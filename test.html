@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script type="text/javascript">
+			window.onerror = function() {
+				// alert('Error in the javascript, back to the drawing board buddy.');
+				document.write(JSON.stringify(arguments, null, 2));
+			}
+		</script>
+
+		<!-- External dependencies -->
+		<script type="text/javascript" src="dependencies/jquery.js"></script>
+		<!-- External dependencities -->
+
+		<!-- SDK Files -->
+		<script type="text/javascript" src="utils/http/httpModule.js"></script>
+		<script type="text/javascript" src="utils/http/urlFactory.js"></script>
+		<script type="text/javascript" src="EventManager.js"></script>
+		<script type="text/javascript" src="config.js"></script>
+		<script type="text/javascript" src="session.js"></script>
+		<script type="text/javascript" src="articleCollection.js"></script>
+		<!--<script type="text/javascript" src="Appacitive.js"></script>
+		<script type="text/javascript" src="platform/Appacitive.platform.js"></script>
+		<script type="text/javascript" src="utils/http/JQueryHttpProvider.js"></script>
+		<script type="text/javascript" src="utils/http/NodeHttpProvider.js"></script>
+		<script type="text/javascript" src="utils/http/httpProvider.js"></script>
+		<!-- SDK Files -->
+
+	</head>
+	<body>
+		<pre id="contents"></pre>
+	</body>
+	<script type="text/javascript">
+		if (Appacitive)
+			document.getElementById('contents').innerHTML = JSON.stringify(Appacitive, null, 2);
+	</script>
+</html>
