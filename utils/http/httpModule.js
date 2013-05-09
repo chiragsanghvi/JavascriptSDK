@@ -449,7 +449,7 @@ var global = {};
                         that.onResponse(res.json, options);
                     } else {
                         res.text = receivedData;
-                        that.onError(options,res);
+                        that.onError(options, res);
                     };
  
                 });

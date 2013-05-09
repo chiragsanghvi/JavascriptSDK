@@ -1,1 +1,1 @@
-type utils\getterSetter.js utils\http\httpModule.js utils\http\urlFactory.js EventManager.js config.js session.js queries.js baseObject.js guid.js articleCollection.js connectionCollection.js article.js connection.js Users.js email.js facebook.js export.js > combined.js
+type utils\getterSetter.js utils\http\httpModule.js utils\http\urlFactory.js EventManager.js config.js session.js queries.js baseObject.js guid.js articleCollection.js connectionCollection.js article.js connection.js Users.js email.js facebook.js push.js export.js > combined.js
