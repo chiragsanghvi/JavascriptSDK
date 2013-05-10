@@ -2504,49 +2504,24 @@ Depends on  NOTHING
 			replyto: null
 		};
 
+		var config = {
+			smtp: {
+				username: null,
+				password: null,
+				host: "smtp.gmail.com",
+				port: 465,
+				enablessl: true
+			},
+			from: null,
+			replyto: null
+		}
+
 		this.getConfig = function() {
 			var _copy = config;
 			return _copy;
 		};
 
-		this.sendTemplatedEmail = function(options) {
-			throw new Error('Not implemented yet');
-		};
-
-		this.setupEmail = function(options) {
-			options = options || {};
-			config.username = options.username || config.username;
-			config.from = options.from || config.from;
-			config.frompassword = options.frompassword || config.frompassword;
-			config.smtphost = options.smtphost || config.smtphost;
-			config.smtpport = options.smtpport || config.smtpport;
-			config.enablessl = options.enablessl || config.enablessl;
-			config.replyto = options.replyto || config.replyto;
-		};
-
-		this.sendRawEmail = function(options, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
-			if (!options || !options.to || !options.to.length || options.to.length != 1) {
-				throw new Error('Atleast one receipient is mandatory to send an email');
-			}
-			if (!options.subject) {
-				throw new Error('Subject is mandatory to send an email');
-			}
-
-			var email = {
-				configuration: config,
-				to: options.to || [],
-				cc: options.cc || [],
-				bcc: options.bcc || [],
-				subject: options.subject || 'Appacitive',
-				body: {
-					"BodyText": options.body || '',
-					"IsBodyHTML": true,
-					"__type": "RawBody"
-				}
-			};
+		var _sendEmail = function (email, onSuccess, onError) {
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.email.getSendEmailUrl();
 			request.method = 'post';
@@ -2561,6 +2536,99 @@ Depends on  NOTHING
 				}
 			};
 			global.Appacitive.http.send(request);
+		};
+
+		this.setupEmail = function(options) {
+			options = options || {};
+			config.smtp.username = options.username || config.smtp.username;
+			config.from = options.from || config.from;
+			config.smtp.password = options.password || config.smtp.password;
+			config.smtp.host = options.smtp.host || config.smtp.host;
+			config.smtp.port = options.smtp.port || config.smtp.port;
+			config.smtp.enablessl = options.enableSSL || config.smtp.enablessl;
+			config.replyto = options.replyTo || config.replyto;
+		};
+
+
+		this.sendTemplatedEmail = function(options, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!options || !options.to || !options.to.length || options.to.length == 0) {
+				throw new Error('Atleast one receipient is mandatory to send an email');
+			}
+			if (!options.subject || options.subject.trim().length == 0) {
+				throw new Error('Subject is mandatory to send an email');
+			}
+
+			if(!options.from && config.from) {
+				throw new Error('from is mandatory to send an email. Set it in config or send it in options');
+			} 
+
+			if (!options.templateName) {
+				throw new Error('template name is mandatory to send an email');
+			}
+
+			var email = {
+				to: options.to || [],
+				cc: options.cc || [],
+				bcc: options.bcc || [],
+				subject: options.subject,
+				body: {
+					templatename: options.templateName || '',
+					data : options.data || {},
+					ishtml: (options.isHtml == false) ? false : true
+				}
+			};
+
+			if (options.useConfig) {
+				email.smtp = config.smtp;
+				if(!options.from && !config.from) {
+					throw new Error('from is mandatory to send an email. Set it in config or send it in options');
+				}
+				email.from = options.from || config.from;
+				email.replyto = options.replyTo || config.replyto;
+			}
+
+			_sendEmail(email, onSuccess, onError);
+		};
+
+		this.sendRawEmail = function(options, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!options || !options.to || !options.to.length || options.to.length == 0) {
+				throw new Error('Atleast one receipient is mandatory to send an email');
+			}
+			if (!options.subject || options.subject.trim().length == 0) {
+				throw new Error('Subject is mandatory to send an email');
+			}
+
+			if (!options.body) {
+				throw new Error('body is mandatory to send an email');
+			} 
+
+			var email = {
+				to: options.to || [],
+				cc: options.cc || [],
+				bcc: options.bcc || [],
+				subject: options.subject,
+				body: {
+					content: options.body || '',
+					ishtml: (options.isHtml == false) ? false : true
+				}
+			};
+
+			if (options.useConfig) {
+				email.smtp = config.smtp;
+				if(!options.from && !config.from) {
+					throw new Error('from is mandatory to send an email. Set it in config or send it in options');
+				}
+				email.from = options.from || config.from;
+				email.replyto = options.replyTo || config.replyto;
+			}
+
+			_sendEmail(email, onSuccess, onError);
 		};
 
 	};
