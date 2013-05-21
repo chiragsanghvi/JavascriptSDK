@@ -94,20 +94,21 @@
         };
         this.user = {
 
-            userServiceUrl: baseUrl + '/user',
-            getCreateUserUrl: function () {
+            userServiceUrl: baseUrl + 'user',
+
+            getCreateUrl: function () {
                 return String.format("{0}/create", this.userServiceUrl);
             },
             getAuthenticateUserUrl: function () {
                 return String.format("{0}/authenticate", this.userServiceUrl);
             },
-            getUpdateUserUrl: function (userId, deploymentId) {
-                return String.format("{0}/{1}", this.userServiceUrl, userId);
-            },
             getUserUrl: function (userId, deploymentId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
             },
-            getUserDeleteUrl: function (userId) {
+            getUpdateUrl: function (userId, deploymentId) {
+                return String.format("{0}/{1}", this.userServiceUrl, userId);
+            },
+            getDeleteUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
             },
             getSearchAllUrl: function (deploymentId, queryParams, pageSize) {
@@ -130,6 +131,19 @@
             getGetAllLinkedAccountsUrl: function(userId) {
                 var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
                 return url;
+            }
+        };
+        this.device = {
+            deviceServiceUrl: baseUrl + 'article',
+
+            getCreateUrl: function () {
+                return String.format("{0}/register", this.deviceServiceUrl);
+            },
+            getUpdateUrl: function (deviceId, deploymentId) {
+                return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
+            },
+            getDeleteUrl: function (deviceId) {
+                return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
             }
         };
         this.article = {

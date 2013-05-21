@@ -5,16 +5,6 @@
 	var _emailManager = function() {
 
 		var config = {
-			username: null,
-			from: null,
-			frompassword: null,
-			smtphost: 'smtp.google.com',
-			smtpport: 587,
-			enablessl: true,
-			replyto: null
-		};
-
-		var config = {
 			smtp: {
 				username: null,
 				password: null,

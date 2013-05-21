@@ -295,8 +295,8 @@ var global = {};
 
 					that.onResponse(data, request);
 				},
-				error: function () {
-					that.onError(request);
+				error: function (e) {
+					that.onError(request, e);
 				}
 			});
 		};
@@ -324,8 +324,8 @@ var global = {};
 
 					that.onResponse(data, request);
 				},
-				error: function () {
-					that.onError(request);
+				error: function (e) {
+					that.onError(request, e);
 				}
 			});
 		};
@@ -353,8 +353,8 @@ var global = {};
 
 					that.onResponse(data, request);
 				},
-				error: function () {
-					that.onError(request);
+				error: function (e) {
+					that.onError(request, e);
 				}
 			});
 		};
@@ -380,8 +380,8 @@ var global = {};
 
 					that.onResponse(data, request);
 				},
-				error: function () {
-					that.onError(request);
+				error: function (e) {
+					that.onError(request, e);
 				}
 			});
 		};
@@ -488,9 +488,8 @@ var global = {};
             });
  
             x.write(o.data);
-            x.on('error',function(e){
-                res.text = receivedData;
-                that.onError(options,res);
+            x.on('error', function(e) {
+                that.onError(options, e);
             });
             x.end();
         };
@@ -553,12 +552,12 @@ var global = {};
 		}
 
 		// the error handler
-		this.onError = function (request) {
+		this.onError = function (request, err) {
 			if (request.onError) {
 				if (request.context) {
-					request.onError.apply(request.context, []);
+					request.onError.apply(request.context, [err]);
 				} else {
-					request.onError();
+					request.onError(err);
 				}
 			}
 		}
@@ -636,29 +635,7 @@ var global = {};
 
 	/* Http Utilities */
 
-})();
-
-////// unit test
-var t = 0;
-while (t-- > 0) {
-	var req1 = new Appacitive.HttpRequest();
-	req1.url = 'https://apis.appacitive.com/sessionservice.svc/getGraph?rawData=true&from=-1hours&target=stats.pgossamer.account{0}.application1918338163933441.deployment10938369762787624.success';
-	req1.method = 'get';
-	req1.headers = [{
-		key: 'appacitive-session',
-		value: 'BxqkdySwptR0C5iaJfWXd2+6bkWYtEmMYuPC77odDXE='
-	}, {
-		key: 'appacitive-environment',
-		value: 'sandbox'
-	}];
-	req1.onSuccess = function (response) {
-		console.dir(response);
-	}
-	req1.onError = function () {
-		console.log('error occured');
-	}
-	Appacitive.http.send(req1);
-}(function (global) {
+})();(function (global) {
     /**
      * @param {...string} var_args
      */
@@ -754,20 +731,21 @@ while (t-- > 0) {
         };
         this.user = {
 
-            userServiceUrl: baseUrl + '/user',
-            getCreateUserUrl: function () {
+            userServiceUrl: baseUrl + 'user',
+
+            getCreateUrl: function () {
                 return String.format("{0}/create", this.userServiceUrl);
             },
             getAuthenticateUserUrl: function () {
                 return String.format("{0}/authenticate", this.userServiceUrl);
             },
-            getUpdateUserUrl: function (userId, deploymentId) {
-                return String.format("{0}/{1}", this.userServiceUrl, userId);
-            },
             getUserUrl: function (userId, deploymentId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
             },
-            getUserDeleteUrl: function (userId) {
+            getUpdateUrl: function (userId, deploymentId) {
+                return String.format("{0}/{1}", this.userServiceUrl, userId);
+            },
+            getDeleteUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
             },
             getSearchAllUrl: function (deploymentId, queryParams, pageSize) {
@@ -790,6 +768,19 @@ while (t-- > 0) {
             getGetAllLinkedAccountsUrl: function(userId) {
                 var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
                 return url;
+            }
+        };
+        this.device = {
+            deviceServiceUrl: baseUrl + 'article',
+
+            getCreateUrl: function () {
+                return String.format("{0}/register", this.deviceServiceUrl);
+            },
+            getUpdateUrl: function (deviceId, deploymentId) {
+                return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
+            },
+            getDeleteUrl: function (deviceId) {
+                return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
             }
         };
         this.article = {
@@ -1508,15 +1499,17 @@ Depends on  NOTHING
 			getRequest.url = url;
 			getRequest.method = 'get';
 			getRequest.onSuccess = function(data) {
-				if (data && data.article) {
-					_snapshot = data.article;
-					article.__id = data.article.__id;
-					for (var property in data.article) {
+				if (data && (data.article || data.connection || data.user || data.device)) {
+					_snapshot = data.article || data.connection || data.user || data.device;
+					var obj = data.article || data.connection || data.user || data.device;
+
+					article.__id = obj.__id;
+					for (var property in obj) {
 						if (typeof article[property] == 'undefined') {
-							article[property] = data.article[property];
+							article[property] = obj[property];
 						}
 					}
-					if (that.___collection && that.___collection.collectionType == 'article')
+					if (that.___collection && ( that.___collection.collectionType == 'article'))
 						that.___collection.addToCollection(that);
 					onSuccess();
 				} else {
@@ -1536,7 +1529,7 @@ Depends on  NOTHING
 			// just remove it from the collection
 			// else delete the article and remove from collection
 
-			if (!article['__id']) {
+			if (!article['__id'] && this.___collection) {
 				this.___collection.removeByCId(this.__cid);
 				onSuccess();
 				return;
@@ -1547,10 +1540,10 @@ Depends on  NOTHING
 			var url = global.Appacitive.config.apiBaseUrl;
 			url += global.Appacitive.storage.urlFactory[this.type].getDeleteUrl(article.__schematype || article.__relationtype, article.__id);
 
-			// for User articles
-			if (article && article.__schematype && article.__schematype.toLowerCase() == 'user') {
+			// for User and Device articles
+			if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
 				url = global.Appacitive.config.apiBaseUrl;
-				url += global.Appacitive.storage.urlFactory.user.getUserDeleteUrl(article.__id);
+				url += global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getDeleteUrl(article.__id);
 			}
 
 			// if deleteConnections is specified
@@ -1571,13 +1564,15 @@ Depends on  NOTHING
 					onError(data);
 				}
 			};
-			_deleteRequest.beforeSend = function(r) {
-				console.log('DELETE: ' + r.url);
-			};
+			_deleteRequest.onError = function(err) {
+				onError(err);
+			}
 			global.Appacitive.http.send(_deleteRequest);
 		};
 
 		this.getArticle = function() { return article; };
+
+		this.toJSON = function() { return article; };
 
 		// accessor function for the article's attributes
 		this.attributes = function() {
@@ -1638,6 +1633,9 @@ Depends on  NOTHING
 
 		// to update the article
 		var _update = function(onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
 			var isDirty = false;
 			var fieldList = [];
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
@@ -1655,12 +1653,20 @@ Depends on  NOTHING
 
 			if (isDirty) {
 				var _updateRequest = new global.Appacitive.HttpRequest();
-				_updateRequest.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, _snapshot.__id);
+				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, _snapshot.__id);
+				
+				// for User and Device articles
+				if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
+					url = global.Appacitive.config.apiBaseUrl;
+					url += global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getUpdateUrl(_snapshot.__id);
+				}
+
+				_updateRequest.url = url;
 				_updateRequest.method = 'post';
 				_updateRequest.data = changeSet;
 				_updateRequest.onSuccess = function(data) {
-					if (data && (data.article || data.connection || data.user)) {
-						_snapshot = data.article;
+					if (data && (data.article || data.connection || data.user || data.device)) {
+						_snapshot = data.article || data.connection || data.user || data.device;
 						if (typeof onSuccess == 'function') {
 							onSuccess();
 						}
@@ -1670,19 +1676,26 @@ Depends on  NOTHING
 						}
 					}
 				};
+				_updateRequest.onError = function(err) {
+					onError(err);
+				}
 				global.Appacitive.http.send(_updateRequest);
 			}
 		};
 
 		// to create the article
 		var _create = function(onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
 			// save this article
 			var that = this;
 			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype);
 
-			// user article
-			if (article.__schematype && article.__schematype.toLowerCase() == 'user') {
-				url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getCreateUserUrl();
+			// for User and Device articles
+			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
+				url = global.Appacitive.config.apiBaseUrl;
+				url += global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getCreateUrl();
 			}
 
 			var _saveRequest = new global.Appacitive.HttpRequest();
@@ -1691,8 +1704,8 @@ Depends on  NOTHING
 			_saveRequest.data = article;
 			_saveRequest.onSuccess = function(data) {
 				var savedState = null;
-				if (data) {
-					savedState = data.article || data.connection || data.user;
+				if (data && (data.article || data.connection || data.user || data.device)) {
+					savedState = data.article || data.connection || data.user || data.device;
 				}
 				if (data && savedState) {
 					_snapshot = savedState;
@@ -1711,7 +1724,6 @@ Depends on  NOTHING
 						});
 					}
 
-
 					if (typeof onSuccess == 'function') {
 						onSuccess();
 					}
@@ -1721,6 +1733,9 @@ Depends on  NOTHING
 					}
 				}
 			};
+			_saveRequest.onError = function(err) {
+				onError(err);
+			}
 			global.Appacitive.http.send(_saveRequest);
 		};
 
@@ -1868,7 +1883,12 @@ Depends on  NOTHING
 		};
 
 		var fetchArticleById = function(id, onSuccess, onError) {
-
+			onSuccess = onSuccess || function() {};		
+			onError = onError || function() {};
+			if(!id || id.length == 0)
+			
+			var tempArticle = locs.createNewArticle({ __id : id});
+    		tempArticle.fetch(function(){},onError);
 		};
 
 		this.addToCollection = function(article) {
@@ -2367,16 +2387,18 @@ Depends on  NOTHING
 			return authenticatedUser;
 		});
 
-		this.deleteCurrentUser = function(onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		global.Appacitive.User = function(options) {
+			var base = new global.Appacitive.BaseObject(options);
+			base.type = 'user';
+			base.connectionCollections = [];
 
-			if (authenticatedUser === null) {
-				throw new Error('Current user is not set yet');
+			if (base.get('__schematype') && base.get('__schematype').toLowerCase() == 'user') {
+				base.getFacebookProfile = _getFacebookProfile;
 			}
-			var currentUserId = authenticatedUser.__id;
-			this.deleteUser(currentUserId, onSuccess, onError);
+
+			return base;
 		};
+
 
 		this.deleteUser = function(userId, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
@@ -2385,9 +2407,11 @@ Depends on  NOTHING
 			var request = new global.Appacitive.HttpRequest();
 			request.method = 'delete';
 			request.url = global.Appacitive.config.apiBaseUrl;
-			request.url += global.Appacitive.storage.urlFactory.user.getUserDeleteUrl(userId);
+			request.url += global.Appacitive.storage.urlFactory.user.getDeleteUrl(userId);
 			request.onSuccess = function(data) {
 				if (data && data.code && data.code == '200') {
+					global.Appacitive.session.removeUserAuthHeader();
+					global.Appacitive.localStorage.set('Appacitive-User', null);
 					onSuccess(data);
 				} else {
 					data = data || {};
@@ -2399,25 +2423,29 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request);
 		};
 
-		this.createUser = function(fields, onSuccess, onError) {
-			var users = new Appacitive.ArticleCollection({ schema: 'user' });
-			var user = users.createNewArticle(fields);
-			user.save(function() {
-				onSuccess(user);
-			}, onError);
+		this.deleteCurrentUser = function(onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (authenticatedUser === null) {
+				throw new Error('Current user is not set yet for delete operation');
+			}
+			var currentUserId = authenticatedUser.__id;
+
+			this.deleteUser(currentUserId, onSuccess, onError);
 		};
 
-		this.createUser1 = function(user, onSuccess, onError) {
+		this.signup = function(user, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 			user = user || {};
 			user.__schematype = 'user';
-			if (!user.username || !user.password) {
-				throw new Error('Username and password are mandatory');
+			if (!user.username || !user.password || !user.firstname || user.username.length == 0 || user.password.length == 0 || user.firstname.length == 0) {
+				throw new Error('Username, password and firstname are mandatory');
 			}
 			var request = new global.Appacitive.HttpRequest();
 			request.method = 'put';
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getCreateUserUrl();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getCreateUrl();
 			request.data = user;
 			request.onSuccess = function(data) {
 				if (data && data.user) {
@@ -2430,6 +2458,8 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request);
 		};
 
+		this.createUser = this.signup;
+
 		this.authenticateUser = function(authRequest, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
@@ -2441,6 +2471,8 @@ Depends on  NOTHING
 			request.onSuccess = function(data) {
 				if (data && data.user) {
 					authenticatedUser = data.user;
+					global.Appacitive.session.setUserAuthHeader(data.token);
+					global.Appacitive.localStorage.set('Appacitive-User', data.user);
 					onSuccess(data);
 				} else {
 					data = data || {};
@@ -2457,18 +2489,20 @@ Depends on  NOTHING
 
 			FB.api('/me', function(response) {
 				var authRequest = {
-					"accesstoken": Appacitive.facebook.accessToken,
+					"accesstoken": global.Appacitive.facebook.accessToken,
 					"type": "facebook",
 					"expiry": 60 * 60,
 					"attempts": -1,
 					"createnew": true
 				};
-				var request = new Appacitive.HttpRequest();
-				request.url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
+				var request = new global.Appacitive.HttpRequest();
+				request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
 				request.method = 'post';
 				request.data = authRequest;
 				request.onSuccess = function(a) {
 					if (a.user) {
+						global.Appacitive.session.setUserAuthHeader(a.token);
+						global.Appacitive.localStorage.set('Appacitive-User', a.user);
 						authenticatedUser = a.user;
 						onSuccess(a);
 					} else {
@@ -2478,7 +2512,7 @@ Depends on  NOTHING
 				request.onError = function() {
 					onError();
 				};
-				Appacitive.http.send(request);
+				global.Appacitive.http.send(request);
 			});
 		};
 
@@ -2487,22 +2521,11 @@ Depends on  NOTHING
 	};
 
 	global.Appacitive.Users = new UserManager();
-
 })(global);(function(global) {
 
 	"use strict";
 
 	var _emailManager = function() {
-
-		var config = {
-			username: null,
-			from: null,
-			frompassword: null,
-			smtphost: 'smtp.google.com',
-			smtpport: 587,
-			enablessl: true,
-			replyto: null
-		};
 
 		var config = {
 			smtp: {
@@ -2864,6 +2887,95 @@ Depends on  NOTHING
 	};
 
 	global.Appacitive.push = new _pushManager();
+
+})(global);(function(global) {
+  
+  global.Appacitive.parseISODate = function (str) {
+    try{
+      var date = new Date(str); 
+      if (isNaN(date)) {
+        var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z$");
+        if(!regexp.exec(str)) {
+           return null;
+        } else {
+           var parts = str.split('T'),
+           dateParts = parts[0].split('-'),
+           timeParts = parts[1].split('Z'),
+           timeSubParts = timeParts[0].split(':'),
+           timeSecParts = timeSubParts[2].split('.'),
+           timeHours = Number(timeSubParts[0]),
+           date = new Date();
+
+           date.setUTCFullYear(Number(dateParts[0]));
+           date.setUTCMonth(Number(dateParts[1])-1);
+           date.setUTCDate(Number(dateParts[2]));
+           date.setUTCHours(Number(timeHours));
+           date.setUTCMinutes(Number(timeSubParts[1]));
+           date.setUTCSeconds(Number(timeSecParts[0]));
+           if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
+
+           return date;
+        }
+      } else {
+        return date;
+      }
+    } catch(e) {return null;}
+  }
+
+  global.Appacitive.toISOString = function (date) {
+    try {
+      var date = date.toISOString();
+      var i = date.indexOf('Z');
+      date = replace('Z','0000Z');
+      return date;
+    } catch(e) { return null;}
+  }
+
+})(global);(function (global) {
+
+	"use strict";
+
+	var A_LocalStorage = function() {
+
+		var _localStorage = window.localStorage || {};
+
+		this.set = function(key, value) {
+			value = value || '';
+			if (!key) return false;
+
+		    if (typeof value == "object") {
+		    	try {
+			      value = JSON.stringify(value);
+			    } catch(e){}
+		    }
+
+			_localStorage[key] = value;
+			return true;
+		};
+
+		this.get = function(key) {
+			if (!key) return null;
+
+			var value = _localStorage.getItem(key);
+		   	if (!value) { return null; }
+
+		    // assume it is an object that has been stringified
+		    if (value[0] == "{") {
+		    	try {
+			      value = JSON.parse(value);
+			    } catch(e){}
+		    }
+
+		    return value;
+		};
+		
+		this.remove = function(key) {
+			if (!key) return;
+			try { delete _localStorage[key]; } catch(e){}
+		}
+	};
+
+	global.Appacitive.localStorage = new A_LocalStorage();
 
 })(global);
 if (typeof module != 'undefined') {

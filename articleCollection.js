@@ -67,7 +67,12 @@
 		};
 
 		var fetchArticleById = function(id, onSuccess, onError) {
-
+			onSuccess = onSuccess || function() {};		
+			onError = onError || function() {};
+			if(!id || id.length == 0)
+			
+			var tempArticle = locs.createNewArticle({ __id : id});
+    		tempArticle.fetch(function(data){},onError);
 		};
 
 		this.addToCollection = function(article) {

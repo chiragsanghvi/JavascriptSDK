@@ -1,23 +1,21 @@
 module('Email functionality tests');
 
+asyncTest('Creating session with valid Apikey', function() {
+	Appacitive.session.resetSession();
+	Appacitive.session.removeUserAuthHeader();
+	var _sessionOptions = { "apikey": testConstants.apiKey, app: testConstants.appName };
+	var subscriberId = Appacitive.eventManager.subscribe('session.success', function() {
+		ok(true, 'Session created successfully.');
+		start();
+		Appacitive.eventManager.unsubscribe(subscriberId);
+	})
+	Appacitive.session.create(_sessionOptions);
+});
+
 test('Verify setup email and send email methods exist', function() {
 	equal(typeof Appacitive.email.setupEmail, 'function', 'method exists');
 	equal(typeof Appacitive.email.sendRawEmail, 'function', 'method exists');
 	equal(typeof Appacitive.email.sendTemplatedEmail, 'function', 'method exists');
-});
-
-test('Verify default email configuration', function() {
-	var defaultConfig = {
-		username: 'tiatma@gmail.com',
-		from: 'tiatma@gmail.com',
-		frompassword: 'test123!@#',
-		smtphost: 'smtp.google.com',
-		smtpport: 587,
-		enablessl: true,
-		replyto: 'support@appacitive.com'
-	};
-	var c = Appacitive.email.getConfig();
-	deepEqual(defaultConfig, c, 'Default config is correctly set: ' + JSON.stringify(defaultConfig));
 });
 
 test('Verify atleast 1 receipient is mandatory in email', function() {
@@ -43,17 +41,6 @@ test('Verify subject is mandatory in email', function() {
 	} catch (err) {
 		ok(true, 'Error thrown on not sending subject: ' + err.message);
 	}
-});
-
-asyncTest('Creating session with valid Apikey', function() {
-	Appacitive.session.resetSession();
-	var _sessionOptions = { "apikey": testConstants.apiKey, app: testConstants.appName };
-	var subscriberId = Appacitive.eventManager.subscribe('session.success', function() {
-		ok(true, 'Session created successfully.');
-		start();
-		Appacitive.eventManager.unsubscribe(subscriberId);
-	})
-	Appacitive.session.create(_sessionOptions);
 });
 
 asyncTest('Verify emails can be sent with proper config details', function() {
@@ -90,9 +77,10 @@ asyncTest('Verify emails can be sent with proper config details', function() {
 	    	ok(true, 'User authenticated successfully: ' + JSON.stringify(data));
 	    	try {
 	    		var emailOptions = {
-	    			to: ['bchakravarty@appacitive.com'],
+	    			to: ['csanghvi@appacitive.com'],
 	    			subject: 'Hello World!',
-	    			body: '<b>hello world!</b>'
+	    			body: '<b>hello world!</b>',
+	    			ishtml : true
 	    		};
 	    		Appacitive.email.sendRawEmail(emailOptions, function(email) { 
 	    			ok(true, 'Send email successfully: ' + JSON.stringify(email));

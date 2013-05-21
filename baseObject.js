@@ -29,15 +29,17 @@
 			getRequest.url = url;
 			getRequest.method = 'get';
 			getRequest.onSuccess = function(data) {
-				if (data && data.article) {
-					_snapshot = data.article;
-					article.__id = data.article.__id;
-					for (var property in data.article) {
+				if (data && (data.article || data.connection || data.user || data.device)) {
+					_snapshot = data.article || data.connection || data.user || data.device;
+					var obj = data.article || data.connection || data.user || data.device;
+
+					article.__id = obj.__id;
+					for (var property in obj) {
 						if (typeof article[property] == 'undefined') {
-							article[property] = data.article[property];
+							article[property] = obj[property];
 						}
 					}
-					if (that.___collection && that.___collection.collectionType == 'article')
+					if (that.___collection && ( that.___collection.collectionType == 'article'))
 						that.___collection.addToCollection(that);
 					onSuccess();
 				} else {
@@ -57,7 +59,7 @@
 			// just remove it from the collection
 			// else delete the article and remove from collection
 
-			if (!article['__id']) {
+			if (!article['__id'] && this.___collection) {
 				this.___collection.removeByCId(this.__cid);
 				onSuccess();
 				return;
@@ -68,10 +70,10 @@
 			var url = global.Appacitive.config.apiBaseUrl;
 			url += global.Appacitive.storage.urlFactory[this.type].getDeleteUrl(article.__schematype || article.__relationtype, article.__id);
 
-			// for User articles
-			if (article && article.__schematype && article.__schematype.toLowerCase() == 'user') {
+			// for User and Device articles
+			if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
 				url = global.Appacitive.config.apiBaseUrl;
-				url += global.Appacitive.storage.urlFactory.user.getUserDeleteUrl(article.__id);
+				url += global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getDeleteUrl(article.__id);
 			}
 
 			// if deleteConnections is specified
@@ -92,13 +94,15 @@
 					onError(data);
 				}
 			};
-			_deleteRequest.beforeSend = function(r) {
-				console.log('DELETE: ' + r.url);
-			};
+			_deleteRequest.onError = function(err) {
+				onError(err);
+			}
 			global.Appacitive.http.send(_deleteRequest);
 		};
 
 		this.getArticle = function() { return article; };
+
+		this.toJSON = function() { return article; };
 
 		// accessor function for the article's attributes
 		this.attributes = function() {
@@ -159,6 +163,9 @@
 
 		// to update the article
 		var _update = function(onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
 			var isDirty = false;
 			var fieldList = [];
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
@@ -176,12 +183,20 @@
 
 			if (isDirty) {
 				var _updateRequest = new global.Appacitive.HttpRequest();
-				_updateRequest.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, _snapshot.__id);
+				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, _snapshot.__id);
+				
+				// for User and Device articles
+				if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
+					url = global.Appacitive.config.apiBaseUrl;
+					url += global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getUpdateUrl(_snapshot.__id);
+				}
+
+				_updateRequest.url = url;
 				_updateRequest.method = 'post';
 				_updateRequest.data = changeSet;
 				_updateRequest.onSuccess = function(data) {
-					if (data && (data.article || data.connection || data.user)) {
-						_snapshot = data.article;
+					if (data && (data.article || data.connection || data.user || data.device)) {
+						_snapshot = data.article || data.connection || data.user || data.device;
 						if (typeof onSuccess == 'function') {
 							onSuccess();
 						}
@@ -191,19 +206,26 @@
 						}
 					}
 				};
+				_updateRequest.onError = function(err) {
+					onError(err);
+				}
 				global.Appacitive.http.send(_updateRequest);
 			}
 		};
 
 		// to create the article
 		var _create = function(onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
 			// save this article
 			var that = this;
 			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype);
 
-			// user article
-			if (article.__schematype && article.__schematype.toLowerCase() == 'user') {
-				url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getCreateUserUrl();
+			// for User and Device articles
+			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
+				url = global.Appacitive.config.apiBaseUrl;
+				url += global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getCreateUrl();
 			}
 
 			var _saveRequest = new global.Appacitive.HttpRequest();
@@ -212,8 +234,8 @@
 			_saveRequest.data = article;
 			_saveRequest.onSuccess = function(data) {
 				var savedState = null;
-				if (data) {
-					savedState = data.article || data.connection || data.user;
+				if (data && (data.article || data.connection || data.user || data.device)) {
+					savedState = data.article || data.connection || data.user || data.device;
 				}
 				if (data && savedState) {
 					_snapshot = savedState;
@@ -232,7 +254,6 @@
 						});
 					}
 
-
 					if (typeof onSuccess == 'function') {
 						onSuccess();
 					}
@@ -242,6 +263,9 @@
 					}
 				}
 			};
+			_saveRequest.onError = function(err) {
+				onError(err);
+			}
 			global.Appacitive.http.send(_saveRequest);
 		};
 

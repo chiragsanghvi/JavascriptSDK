@@ -2,6 +2,7 @@ module('Test Cleanup');
 
 asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.session.resetSession();
+	Appacitive.session.removeUserAuthHeader();
 	var _sessionOptions = { "apikey": testConstants.apiKey, app: testConstants.appName };
 	var subscriberId = Appacitive.eventManager.subscribe('session.success', function() {
 		ok(true, 'Session created successfully.');
@@ -74,9 +75,9 @@ asyncTest('Cleaning up articles of schema user', function() {
 		Appacitive.Users.createUser(user, step, step);
 	};
 
-	var authenticateUser = function(username, step) {
+	var authenticateUser = function(step) {
 		var creds = {
-	    	'username': username,
+	    	'username': testConstants.user.username,
 	    	'password': 'test123!@#',
 	    	'expiry': 60,
 	    	'attempts': 10
@@ -91,40 +92,64 @@ asyncTest('Cleaning up articles of schema user', function() {
 	};
 
 	var deleteUsers = function() {
-		Appacitive.session.setUserAuthHeader(testConstants.adminUserAuthToken);
+		//Appacitive.session.setUserAuthHeader(testConstants.adminUserAuthToken);
 
 		var collection = new Appacitive.ArticleCollection({ schema: 'user' });
 		collection.fetch(function() {
 			var articles = collection.getAll();
-			var total = articles.length, t = articles.length;
-			if (articles.length == 0) {
-				ok(true, 'No articles to delete');
-				start();
-				return;
-			}
-			var numFailures = 0;
-			articles.forEach(function (article) {
-				var deleteUser = function() {
-					article.del(function() {
-						// Appacitive.session.removeUserAuthHeader();
-						total -= 1;
-						if (total == 0) {
-							ok(true, articles.length + '/' + t + ' articles of type user deleted successfully');
+			var total = articles.length - 1, t = articles.length - 1;
+			var step = function() {
+				authenticateUser(function() {
+					if (total == 0) {
+						Appacitive.Users.deleteCurrentUser(function() {
+							ok(true, '1/1 articles of type user deleted successfully');
 							start();
-						}
-					}, function() {
-						// Appacitive.session.removeUserAuthHeader();
-						numFailures += 1;
-						total -= 1;
-						if (total == 0) {
-							ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
+						}, function() {
+							ok(false, 'Article delete failed for  1/1 articles');
 							start();
-						}
-					});
-				};
-				// authenticateUser(article.get('username'), deleteUser);
-				deleteUser();
-			});
+						});
+					} else {
+						var numFailures = 0;
+						articles.forEach(function (article) {
+							if (article.get('username') != 'bchakravarty@appacitive.com') {
+								var deleteUser = function() {
+									article.del(function() {
+										// Appacitive.session.removeUserAuthHeader();
+										total -= 1;
+										if (total == 0) {
+											Appacitive.Users.deleteCurrentUser(function() {
+												ok(true, articles.length + '/' + t + ' articles of type user deleted successfully');
+												start();
+											}, function() {
+												numFailures += 1;
+												ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
+												start();
+											});
+										}
+									}, function() {
+										// Appacitive.session.removeUserAuthHeader();
+										numFailures += 1;
+										total -= 1;
+										if (total == 0) {
+											Appacitive.Users.deleteCurrentUser(function() {
+												ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
+												start();
+											}, function() {
+												numFailures += 1;
+												ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
+												start();
+											});
+										}
+									});
+								};
+								// authenticateUser(article.get('username'), deleteUser);
+								deleteUser();
+							}
+						});
+					};
+				});
+			};
+			createDefaultUser(step);
 		}, function(e) {
 			ok(false, 'Could not fetch articles for schema user');
 			start();

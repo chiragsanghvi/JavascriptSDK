@@ -263,8 +263,8 @@ var global = {};
 
 					that.onResponse(data, request);
 				},
-				error: function () {
-					that.onError(request);
+				error: function (e) {
+					that.onError(request, e);
 				}
 			});
 		};
@@ -292,8 +292,8 @@ var global = {};
 
 					that.onResponse(data, request);
 				},
-				error: function () {
-					that.onError(request);
+				error: function (e) {
+					that.onError(request, e);
 				}
 			});
 		};
@@ -321,8 +321,8 @@ var global = {};
 
 					that.onResponse(data, request);
 				},
-				error: function () {
-					that.onError(request);
+				error: function (e) {
+					that.onError(request, e);
 				}
 			});
 		};
@@ -348,8 +348,8 @@ var global = {};
 
 					that.onResponse(data, request);
 				},
-				error: function () {
-					that.onError(request);
+				error: function (e) {
+					that.onError(request, e);
 				}
 			});
 		};
@@ -456,9 +456,8 @@ var global = {};
             });
  
             x.write(o.data);
-            x.on('error',function(e){
-                res.text = receivedData;
-                that.onError(options,res);
+            x.on('error', function(e) {
+                that.onError(options, e);
             });
             x.end();
         };
@@ -521,12 +520,12 @@ var global = {};
 		}
 
 		// the error handler
-		this.onError = function (request) {
+		this.onError = function (request, err) {
 			if (request.onError) {
 				if (request.context) {
-					request.onError.apply(request.context, []);
+					request.onError.apply(request.context, [err]);
 				} else {
-					request.onError();
+					request.onError(err);
 				}
 			}
 		}
@@ -605,25 +604,3 @@ var global = {};
 	/* Http Utilities */
 
 })();
-
-////// unit test
-var t = 0;
-while (t-- > 0) {
-	var req1 = new Appacitive.HttpRequest();
-	req1.url = 'https://apis.appacitive.com/sessionservice.svc/getGraph?rawData=true&from=-1hours&target=stats.pgossamer.account{0}.application1918338163933441.deployment10938369762787624.success';
-	req1.method = 'get';
-	req1.headers = [{
-		key: 'appacitive-session',
-		value: 'BxqkdySwptR0C5iaJfWXd2+6bkWYtEmMYuPC77odDXE='
-	}, {
-		key: 'appacitive-environment',
-		value: 'sandbox'
-	}];
-	req1.onSuccess = function (response) {
-		console.dir(response);
-	}
-	req1.onError = function () {
-		console.log('error occured');
-	}
-	Appacitive.http.send(req1);
-}

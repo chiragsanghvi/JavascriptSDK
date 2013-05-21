@@ -2,6 +2,7 @@ module('Article Tests - Update');
 
 asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.session.resetSession();
+	Appacitive.session.removeUserAuthHeader();
 	var _sessionOptions = { "apikey": testConstants.apiKey, app: testConstants.appName };
 	var subscriberId = Appacitive.eventManager.subscribe('session.success', function() {
 		ok(true, 'Session created successfully.');
