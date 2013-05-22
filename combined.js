@@ -821,7 +821,7 @@ var global = {};
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
             },
             getMultideleteUrl: function (schemaName) {
-                return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName, articleId);
+                return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);
             }
         };
         this.connection = {
@@ -2378,9 +2378,9 @@ Depends on  NOTHING
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultideleteUrl(schemaName);
 			request.method = 'post';
-			request.data = ids;
+			request.data = { idlist : ids };
 			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
+				if (d && d.code == '200') {
 					onSuccess();
 				} else {
 					d = d || {};
@@ -2545,9 +2545,9 @@ Depends on  NOTHING
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultideleteUrl(relationName);
 			request.method = 'post';
-			request.data = ids;
+			request.data = { idlist : ids };
 			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
+				if (d && d.code == '200') {
 					onSuccess();
 				} else {
 					d = d || {};

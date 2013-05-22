@@ -113,7 +113,7 @@ asyncTest('Cleaning up articles of schema school', function() {
 				ids.push(article.get('__id'));
 			});
 
-			Appacitive.Article.multiDelete("school", ids, function(){
+			Appacitive.Article.multiDelete("school", ids, function() {
 				ok(true, articles.length + ' articles of type school deleted successfully');
 				start();
 			}, function() {

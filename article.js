@@ -72,9 +72,9 @@
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultideleteUrl(schemaName);
 			request.method = 'post';
-			request.data = ids;
+			request.data = { idlist : ids };
 			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
+				if (d && d.code == '200') {
 					onSuccess();
 				} else {
 					d = d || {};

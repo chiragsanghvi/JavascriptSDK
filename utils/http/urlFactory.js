@@ -184,7 +184,7 @@
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
             },
             getMultideleteUrl: function (schemaName) {
-                return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName, articleId);
+                return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);
             }
         };
         this.connection = {
