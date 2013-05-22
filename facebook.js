@@ -51,6 +51,7 @@
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
+			Appacitive.facebook.accessToken = "";
 			try {
 				FB.logout(function(response) {
 					onSuccess();
@@ -59,7 +60,6 @@
 				onError(e.message);
 			}
 		};
-
 	};
 
 	var _nodeFacebook = function() {

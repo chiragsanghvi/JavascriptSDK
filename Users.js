@@ -10,7 +10,7 @@
 			return authenticatedUser;
 		});
 
-		global.Appacitive.Users.setCurrentUser = function(user, token) {
+		this.setCurrentUser = function(user, token) {
 			authenticatedUser = user;
 			if (token)
 				Appacitive.session.setUserAuthHeader(token);
@@ -131,9 +131,10 @@
 				request.data = authRequest;
 				request.onSuccess = function(a) {
 					if (a.user) {
+						a.user.__authType = 'FB';
 						global.Appacitive.session.setUserAuthHeader(a.token);
 						global.Appacitive.localStorage.set('Appacitive-User', a.user);
-						authenticatedUser = a.user;
+						authenticatedUser = a.user;	
 						onSuccess(a);
 					} else {
 						onError(a);
@@ -146,14 +147,20 @@
 			});
 		};
 
-		Appacitive.Users.currentUser.signout = function(callback) {
-			callback = callback || function(){};
+		this.authenticateWithFacebook = this.signupWithFacebook;
+
+		this.logout = function(callback) {
+			callback = callback || function() {};
+			if (!this.currentUser) { 
+				callback();
+				return;
+			}
+
 			global.Appacitive.session.removeUserAuthHeader(callback);
 		}
-
-		this.authenticateWithFacebook = this.signupWithFacebook;
 
 	};
 
 	global.Appacitive.Users = new UserManager();
+
 })(global);

@@ -1194,7 +1194,7 @@ Depends on  NOTHING
 			if (_authToken) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.session.getInvalidateTokenUrl(_authToken);
+					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 					_authToken = null;
 					global.Appacitive.localStorage.remove('Appacitive-User');
 					
@@ -1263,7 +1263,7 @@ Depends on  NOTHING
 		global.Appacitive.session.environment = ( options.env || '' );
 		global.Appacitive.useApiKey = true;
 
-		Appacitive.Users.setCurrentUser(global.Appacitive.localStorage.get('Appacitive-User'));
+		Appacitive.Users.setCurrentUser(global.Appacitive.localStorage.get('Appacitive-User'));				
 	}
 
 } (global));
@@ -2574,7 +2574,7 @@ Depends on  NOTHING
 			return authenticatedUser;
 		});
 
-		global.Appacitive.Users.setCurrentUser = function(user, token) {
+		this.setCurrentUser = function(user, token) {
 			authenticatedUser = user;
 			if (token)
 				Appacitive.session.setUserAuthHeader(token);
@@ -2695,9 +2695,10 @@ Depends on  NOTHING
 				request.data = authRequest;
 				request.onSuccess = function(a) {
 					if (a.user) {
+						a.user.__authType = 'FB';
 						global.Appacitive.session.setUserAuthHeader(a.token);
 						global.Appacitive.localStorage.set('Appacitive-User', a.user);
-						authenticatedUser = a.user;
+						authenticatedUser = a.user;	
 						onSuccess(a);
 					} else {
 						onError(a);
@@ -2710,16 +2711,22 @@ Depends on  NOTHING
 			});
 		};
 
-		Appacitive.Users.currentUser.signout = function(callback) {
-			callback = callback || function(){};
+		this.authenticateWithFacebook = this.signupWithFacebook;
+
+		this.logout = function(callback) {
+			callback = callback || function() {};
+			if (!this.currentUser) { 
+				callback();
+				return;
+			}
+
 			global.Appacitive.session.removeUserAuthHeader(callback);
 		}
-
-		this.authenticateWithFacebook = this.signupWithFacebook;
 
 	};
 
 	global.Appacitive.Users = new UserManager();
+
 })(global);(function(global) {
 
 	"use strict";
@@ -2910,6 +2917,7 @@ Depends on  NOTHING
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
+			Appacitive.facebook.accessToken = "";
 			try {
 				FB.logout(function(response) {
 					onSuccess();
@@ -2918,7 +2926,6 @@ Depends on  NOTHING
 				onError(e.message);
 			}
 		};
-
 	};
 
 	var _nodeFacebook = function() {

@@ -108,7 +108,7 @@
 			if (_authToken) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.session.getInvalidateTokenUrl(_authToken);
+					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 					_authToken = null;
 					global.Appacitive.localStorage.remove('Appacitive-User');
 					
@@ -177,7 +177,7 @@
 		global.Appacitive.session.environment = ( options.env || '' );
 		global.Appacitive.useApiKey = true;
 
-		Appacitive.Users.setCurrentUser(global.Appacitive.localStorage.get('Appacitive-User'));
+		Appacitive.Users.setCurrentUser(global.Appacitive.localStorage.get('Appacitive-User'));				
 	}
 
 } (global));
