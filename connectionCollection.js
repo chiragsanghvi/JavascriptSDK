@@ -147,7 +147,7 @@
 			}
 			if (!connections.length || connections.length === 0) connections = [];
 			connections.forEach(function (connection) {
-				var _c = new global.Appacitive.Connection(connection);
+				var _c = new global.Appacitive.Connection(connection, true);
 				_c.___collection = that;
 				_connections.push(_c);
 

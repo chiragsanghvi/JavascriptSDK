@@ -64,26 +64,10 @@
      * @constructor
      */
     var UrlFactory = function () {
+
         global.Appacitive.bag = global.Appacitive.bag || {};
-        global.Appacitive.bag.accountName = global.Appacitive.bag.accountName || {};
-        global.Appacitive.bag.selectedType = global.Appacitive.bag.selectedType || {};
-
-        global.Appacitive.bag.apps = global.Appacitive.bag.apps || {};
-        global.Appacitive.bag.apps.selected = global.Appacitive.bag.apps.selected || {};
-        global.Appacitive.bag.apps.selected.name = global.Appacitive.bag.apps.selected.name || {};
-
-        global.Appacitive.bag.selectedCatalog = global.Appacitive.bag.selectedCatalog || {};
-        global.Appacitive.bag.selectedCatalog.Id = global.Appacitive.bag.selectedCatalog.Id || 0;
-        global.Appacitive.bag.selectedCatalog.blueprintid = global.Appacitive.bag.selectedCatalog.blueprintid || 0;
-        global.Appacitive.bag.selectedCatalog.BlueprintId = global.Appacitive.bag.selectedCatalog.BlueprintId || 0;
-
-        global.Appacitive.models = global.Appacitive.models || {};
-        global.Appacitive.models.deploymentCollection = global.Appacitive.models.deploymentCollection || {};
-        global.Appacitive.models.deploymentCollection.deployments = global.Appacitive.models.deploymentCollection.deployments || {};
-
-        var baseUrl = (global.Appacitive.config||{apiBaseUrl:''}).apiBaseUrl;
-        if (baseUrl.lastIndexOf("/") == baseUrl.length - 1)
-            baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+        
+        var baseUrl = (global.Appacitive.config || { apiBaseUrl: '' }).apiBaseUrl;
         
         this.email = {
             emailServiceUrl: 'email',
@@ -94,7 +78,7 @@
         };
         this.user = {
 
-            userServiceUrl: baseUrl + 'user',
+            userServiceUrl:  'user',
 
             getCreateUrl: function () {
                 return String.format("{0}/create", this.userServiceUrl);
@@ -131,10 +115,16 @@
             getGetAllLinkedAccountsUrl: function(userId) {
                 var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
                 return url;
+            },
+            getValidateTokenUrl: function(token) {
+                return String.format("{0}/validate?userToken={1}", this.userServiceUrl, token);
+            },
+            getInvalidateTokenUrl: function(token) {
+                return String.format("{0}/invalidate?userToken={1}", this.userServiceUrl, token);
             }
         };
         this.device = {
-            deviceServiceUrl: baseUrl + 'article',
+            deviceServiceUrl: 'device',
 
             getCreateUrl: function () {
                 return String.format("{0}/register", this.deviceServiceUrl);
@@ -147,7 +137,7 @@
             }
         };
         this.article = {
-            articleServiceUrl: baseUrl + 'article',
+            articleServiceUrl: 'article',
 
             getGetUrl: function (schemaId, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaId, articleId);
@@ -185,17 +175,21 @@
                 return url;
             },
             getDeleteUrl: function (schemaName, articleId) {
-                return String.format('{0}/{1}/{2}?verbose=true&debug=true', this.articleServiceUrl, schemaName, articleId);
+                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
             },
             getCreateUrl: function (schemaName) {
                 return String.format('{0}/{1}', this.articleServiceUrl, schemaName);
             },
-            getUpdateUrl: function (schemaType, articleId) {
-                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaType, articleId);
+            getUpdateUrl: function (schemaName, articleId) {
+                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            },
+            getMultideleteUrl: function (schemaName) {
+                return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName, articleId);
             }
         };
         this.connection = {
-            connectionServiceUrl: baseUrl + 'connection',
+
+            connectionServiceUrl: 'connection',
 
             getGetUrl: function (relationId, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationId, connectionId);
@@ -209,8 +203,8 @@
             getDeleteUrl: function (relationId, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationId, connectionId);
             },
-            getMultiDeleteUrl: function (deploymentId, relationId) {
-                return String.format('{0}/multidelete/{1}', this.connectionServiceUrl, relationId);
+            getMultiDeleteUrl: function (relationName) {
+                return String.format('{0}/{1}/bulkdelete', this.connectionServiceUrl, relationName);
             },
             getSearchByArticleUrl: function (deploymentId, relationId, articleId, label, queryParams) {
                 var url = '';
@@ -252,7 +246,7 @@
         };
         this.cannedList = {
 
-            cannedListServiceUrl: baseUrl + '/list',
+            cannedListServiceUrl: 'list',
 
             getGetListItemsUrl: function (cannedListId) {
                 return String.format('{0}/list/{1}/contents', this.cannedListServiceUrl, cannedListId);
@@ -273,7 +267,27 @@
             getGetAllNotificationsUrl: function (pagingInfo) {
                 return String.format('{0}/getAll?psize={1}&pnum={2}', this.pushServiceUrl, pagingInfo.psize, pagingInfo.pnum);
             }
-        }
+        };
+        this.file = {
+
+            fileServiceUrl: 'file',
+
+            getUploadUrl: function (contentType) {
+                return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contenttype));
+            },
+
+            getUploadUrl: function (contentType, fileId) {
+                return String.format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contenttype));
+            },
+
+            getDownloadUrl: function (fileId, expiryTime) {
+                return String.format('{0}/download/{1}?expires={2}', this.fileServiceUrl, fileId, expiryTime);
+            },
+
+            getDeleteUrl: function () {
+                return String.format('{0}/delete/{1}', this.fileServiceUrl, fileId);
+            }
+        };
         this.query = {
             params: function (key) {
                 var match = [];

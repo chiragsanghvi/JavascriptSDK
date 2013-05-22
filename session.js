@@ -102,8 +102,28 @@
 			_authToken = authToken;
 		};
 
-		this.removeUserAuthHeader = function() {
+		this.removeUserAuthHeader = function(callback) {
 			authEnabled = false;
+			callback = callback || function() {};
+			if (_authToken) {
+				try {
+					var _request = new global.Appacitive.HttpRequest();
+					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.session.getInvalidateTokenUrl(_authToken);
+					_authToken = null;
+					global.Appacitive.localStorage.remove('Appacitive-User');
+					
+					_request.method = 'POST';
+					request.data = {};
+					request.onSuccess = function() {
+						if (typeof(callback) == 'function')
+							callback();
+					};
+					global.Appacitive.http.send(request);
+				} catch (e){}
+			} else {
+				if (typeof(callback) == 'function')
+					callback();
+			}
 		};
 
 		this.isSessionValid = function(response) {
@@ -156,6 +176,8 @@
 		global.Appacitive.session.setApiKey( options.apikey || '' ) ;
 		global.Appacitive.session.environment = ( options.env || '' );
 		global.Appacitive.useApiKey = true;
+
+		Appacitive.Users.setCurrentUser(global.Appacitive.localStorage.get('Appacitive-User'));
 	}
 
 } (global));

@@ -40,6 +40,35 @@ asyncTest('Cleaning up connections of relation userprofile', function() {
 	});
 });
 
+asyncTest('Cleaning up connections of relation myschool', function() {
+	var collection = new Appacitive.ConnectionCollection({ relation: 'myschool' });
+	collection.fetch(function() {
+		var connections = collection.getAll();
+		var total = connections.length;
+		if (connections.length == 0) {
+			ok(true, 'No connections to delete');
+			start();
+			return;
+		}
+		connections.forEach(function (connection) {
+			connection.del(function() {
+				total -= 1;
+				if (total == 0) {
+					ok(true, connections.length + ' connections of type myschool deleted successfully');
+					start();
+				}
+			}, function() {
+				ok(false, 'Article delete failed for connections with id: ' + connection.get('__id'));
+				start();
+			})
+		});
+	}, function() {
+		ok(false, 'Could not fetch articles for schema profile');
+		start();
+	});
+});
+
+
 asyncTest('Cleaning up articles of schema profile', function() {
 	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
 	collection.fetch(function() {
@@ -50,23 +79,54 @@ asyncTest('Cleaning up articles of schema profile', function() {
 			start();
 			return;
 		}
+		var ids = [];
 		articles.forEach(function (article) {
-			article.del(function() {
-				total -= 1;
-				if (total == 0) {
-					ok(true, articles.length + ' articles of type profile deleted successfully');
-					start();
-				}
-			}, function() {
-				ok(false, 'Article delete failed for article with id: ' + article.get('__id'));
-				start();
-			})
+			ids.push(article.get('__id'));
+		});
+
+		Appacitive.Article.multiDelete("profile", ids, function(){
+			ok(true, articles.length + ' articles of type profile deleted successfully');
+			start();
+		}, function() {
+			ok(false, 'Article delete failed for all articles');
+			start();
 		});
 	}, function() {
 		ok(false, 'Could not fetch articles for schema profile');
 		start();
 	});
 });
+
+asyncTest('Cleaning up articles of schema school', function() {
+	var collection = new Appacitive.ArticleCollection({ schema: 'school' });
+	collection.fetch(function() {
+		var articles = collection.getAll();
+		var total = articles.length;
+		if (articles.length == 0) {
+			ok(true, 'No articles to delete');
+			start();
+			return;
+		}
+		articles.forEach(function (article) {
+			var ids = [];
+			articles.forEach(function (article) {
+				ids.push(article.get('__id'));
+			});
+
+			Appacitive.Article.multiDelete("school", ids, function(){
+				ok(true, articles.length + ' articles of type school deleted successfully');
+				start();
+			}, function() {
+				ok(false, 'Article delete failed for all articles');
+				start();
+			});
+		});
+	}, function() {
+		ok(false, 'Could not fetch articles for schema school');
+		start();
+	});
+});
+
 
 asyncTest('Cleaning up articles of schema user', function() {
 

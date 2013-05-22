@@ -148,7 +148,7 @@
 			}
 			if (!articles.length || articles.length === 0) articles = [];
 			articles.forEach(function (article) {
-				var _a = new global.Appacitive.Article(article);
+				var _a = new global.Appacitive.Article(article, true);
 				_a.___collection = that;
 				_articles.push(_a);
 			});
@@ -199,9 +199,21 @@
 		this.map = function() { return _articles.map.apply(this, arguments); };
 		this.forEach = function() { return _articles.forEach.apply(this, arguments); };
 		this.filter = function() { return _articles.filter.apply(this, arguments); };
-
 	};
 
 	global.Appacitive.ArticleCollection = _ArticleCollection;
+
+	global.Appacitive.ArticleCollection.prototype.toString = function() {
+		return JSON.stringify(this.getAllArticles());
+	};
+
+	global.Appacitive.ArticleCollection.prototype.toJSON = function() {
+		return this.getAllArticles();
+	};
+
+	global.Appacitive.ArticleCollection.prototype.__defineGetter__('articles', function() {
+		return this.getAll();
+	});
+
 
 })(global);

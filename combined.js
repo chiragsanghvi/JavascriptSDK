@@ -701,26 +701,10 @@ var global = {};
      * @constructor
      */
     var UrlFactory = function () {
+
         global.Appacitive.bag = global.Appacitive.bag || {};
-        global.Appacitive.bag.accountName = global.Appacitive.bag.accountName || {};
-        global.Appacitive.bag.selectedType = global.Appacitive.bag.selectedType || {};
-
-        global.Appacitive.bag.apps = global.Appacitive.bag.apps || {};
-        global.Appacitive.bag.apps.selected = global.Appacitive.bag.apps.selected || {};
-        global.Appacitive.bag.apps.selected.name = global.Appacitive.bag.apps.selected.name || {};
-
-        global.Appacitive.bag.selectedCatalog = global.Appacitive.bag.selectedCatalog || {};
-        global.Appacitive.bag.selectedCatalog.Id = global.Appacitive.bag.selectedCatalog.Id || 0;
-        global.Appacitive.bag.selectedCatalog.blueprintid = global.Appacitive.bag.selectedCatalog.blueprintid || 0;
-        global.Appacitive.bag.selectedCatalog.BlueprintId = global.Appacitive.bag.selectedCatalog.BlueprintId || 0;
-
-        global.Appacitive.models = global.Appacitive.models || {};
-        global.Appacitive.models.deploymentCollection = global.Appacitive.models.deploymentCollection || {};
-        global.Appacitive.models.deploymentCollection.deployments = global.Appacitive.models.deploymentCollection.deployments || {};
-
-        var baseUrl = (global.Appacitive.config||{apiBaseUrl:''}).apiBaseUrl;
-        if (baseUrl.lastIndexOf("/") == baseUrl.length - 1)
-            baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+        
+        var baseUrl = (global.Appacitive.config || { apiBaseUrl: '' }).apiBaseUrl;
         
         this.email = {
             emailServiceUrl: 'email',
@@ -731,7 +715,7 @@ var global = {};
         };
         this.user = {
 
-            userServiceUrl: baseUrl + 'user',
+            userServiceUrl:  'user',
 
             getCreateUrl: function () {
                 return String.format("{0}/create", this.userServiceUrl);
@@ -768,10 +752,16 @@ var global = {};
             getGetAllLinkedAccountsUrl: function(userId) {
                 var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
                 return url;
+            },
+            getValidateTokenUrl: function(token) {
+                return String.format("{0}/validate?userToken={1}", this.userServiceUrl, token);
+            },
+            getInvalidateTokenUrl: function(token) {
+                return String.format("{0}/invalidate?userToken={1}", this.userServiceUrl, token);
             }
         };
         this.device = {
-            deviceServiceUrl: baseUrl + 'article',
+            deviceServiceUrl: 'device',
 
             getCreateUrl: function () {
                 return String.format("{0}/register", this.deviceServiceUrl);
@@ -784,7 +774,7 @@ var global = {};
             }
         };
         this.article = {
-            articleServiceUrl: baseUrl + 'article',
+            articleServiceUrl: 'article',
 
             getGetUrl: function (schemaId, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaId, articleId);
@@ -822,17 +812,21 @@ var global = {};
                 return url;
             },
             getDeleteUrl: function (schemaName, articleId) {
-                return String.format('{0}/{1}/{2}?verbose=true&debug=true', this.articleServiceUrl, schemaName, articleId);
+                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
             },
             getCreateUrl: function (schemaName) {
                 return String.format('{0}/{1}', this.articleServiceUrl, schemaName);
             },
-            getUpdateUrl: function (schemaType, articleId) {
-                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaType, articleId);
+            getUpdateUrl: function (schemaName, articleId) {
+                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            },
+            getMultideleteUrl: function (schemaName) {
+                return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName, articleId);
             }
         };
         this.connection = {
-            connectionServiceUrl: baseUrl + 'connection',
+
+            connectionServiceUrl: 'connection',
 
             getGetUrl: function (relationId, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationId, connectionId);
@@ -846,8 +840,8 @@ var global = {};
             getDeleteUrl: function (relationId, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationId, connectionId);
             },
-            getMultiDeleteUrl: function (deploymentId, relationId) {
-                return String.format('{0}/multidelete/{1}', this.connectionServiceUrl, relationId);
+            getMultiDeleteUrl: function (relationName) {
+                return String.format('{0}/{1}/bulkdelete', this.connectionServiceUrl, relationName);
             },
             getSearchByArticleUrl: function (deploymentId, relationId, articleId, label, queryParams) {
                 var url = '';
@@ -889,7 +883,7 @@ var global = {};
         };
         this.cannedList = {
 
-            cannedListServiceUrl: baseUrl + '/list',
+            cannedListServiceUrl: 'list',
 
             getGetListItemsUrl: function (cannedListId) {
                 return String.format('{0}/list/{1}/contents', this.cannedListServiceUrl, cannedListId);
@@ -910,7 +904,27 @@ var global = {};
             getGetAllNotificationsUrl: function (pagingInfo) {
                 return String.format('{0}/getAll?psize={1}&pnum={2}', this.pushServiceUrl, pagingInfo.psize, pagingInfo.pnum);
             }
-        }
+        };
+        this.file = {
+
+            fileServiceUrl: 'file',
+
+            getUploadUrl: function (contentType) {
+                return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contenttype));
+            },
+
+            getUploadUrl: function (contentType, fileId) {
+                return String.format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contenttype));
+            },
+
+            getDownloadUrl: function (fileId, expiryTime) {
+                return String.format('{0}/download/{1}?expires={2}', this.fileServiceUrl, fileId, expiryTime);
+            },
+
+            getDeleteUrl: function () {
+                return String.format('{0}/delete/{1}', this.fileServiceUrl, fileId);
+            }
+        };
         this.query = {
             params: function (key) {
                 var match = [];
@@ -1174,8 +1188,28 @@ Depends on  NOTHING
 			_authToken = authToken;
 		};
 
-		this.removeUserAuthHeader = function() {
+		this.removeUserAuthHeader = function(callback) {
 			authEnabled = false;
+			callback = callback || function() {};
+			if (_authToken) {
+				try {
+					var _request = new global.Appacitive.HttpRequest();
+					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.session.getInvalidateTokenUrl(_authToken);
+					_authToken = null;
+					global.Appacitive.localStorage.remove('Appacitive-User');
+					
+					_request.method = 'POST';
+					request.data = {};
+					request.onSuccess = function() {
+						if (typeof(callback) == 'function')
+							callback();
+					};
+					global.Appacitive.http.send(request);
+				} catch (e){}
+			} else {
+				if (typeof(callback) == 'function')
+					callback();
+			}
 		};
 
 		this.isSessionValid = function(response) {
@@ -1228,6 +1262,8 @@ Depends on  NOTHING
 		global.Appacitive.session.setApiKey( options.apikey || '' ) ;
 		global.Appacitive.session.environment = ( options.env || '' );
 		global.Appacitive.useApiKey = true;
+
+		Appacitive.Users.setCurrentUser(global.Appacitive.localStorage.get('Appacitive-User'));
 	}
 
 } (global));
@@ -1476,12 +1512,21 @@ Depends on  NOTHING
 	/**
 	* @constructor
 	**/
-	var _BaseObject = function(raw) {
+	var _BaseObject = function(raw, setSnapShot) {
 
-		var _snapshot = null;
+		var _snapshot = {};
 
 		raw = raw || {};
 		var article = raw;
+
+		//will be used in case of 
+		if (setSnapShot) {
+			for (var property in article) {
+				_snapshot[property] = article[property];
+			}
+		}
+		if (!_snapshot.__id && raw.__id)
+			_snapshot.__id = raw.__id;
 
 		// crud operations
 		// fetch ( by id )
@@ -1570,7 +1615,7 @@ Depends on  NOTHING
 			global.Appacitive.http.send(_deleteRequest);
 		};
 
-		this.getArticle = function() { return article; };
+		this.getObject = function() { return article; };
 
 		this.toJSON = function() { return article; };
 
@@ -1583,6 +1628,8 @@ Depends on  NOTHING
 				if (!article.__attributes) article.__attributes = {};
 				return article.__attributes[arguments[0]];
 			} else if (arguments.length == 2) {
+				if(typeof(arguments[1]) !== 'string')
+					throw new Error('only string values can be stored in attributes.');
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
 			} else {
@@ -1631,6 +1678,12 @@ Depends on  NOTHING
 				_create.apply(this, arguments);
 		};
 
+		this.copy = function(properties) {
+			for (var property in properties) {
+				article[property] = properties[property];
+			}
+		};
+
 		// to update the article
 		var _update = function(onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
@@ -1649,6 +1702,7 @@ Depends on  NOTHING
 				} else if (article[property] == _snapshot[property]) {
 					delete changeSet[property];
 				}
+				if (changeSet["__revision"]) delete changeSet["__revision"];
 			}
 
 			if (isDirty) {
@@ -1680,6 +1734,8 @@ Depends on  NOTHING
 					onError(err);
 				}
 				global.Appacitive.http.send(_updateRequest);
+			} else {
+				onSuccess();
 			}
 		};
 
@@ -1701,6 +1757,7 @@ Depends on  NOTHING
 			var _saveRequest = new global.Appacitive.HttpRequest();
 			_saveRequest.url = url;
 			_saveRequest.method = 'put';
+			if (article["__revision"]) delete article["__revision"];
 			_saveRequest.data = article;
 			_saveRequest.onSuccess = function(data) {
 				var savedState = null;
@@ -1724,8 +1781,12 @@ Depends on  NOTHING
 						});
 					}
 
+					if (that.type == 'connection') {
+						that.parseConnection();
+					}
+
 					if (typeof onSuccess == 'function') {
-						onSuccess();
+						onSuccess(that);
 					}
 				} else {
 					if (typeof onError == 'function') {
@@ -1742,6 +1803,10 @@ Depends on  NOTHING
 	};
 
 	global.Appacitive.BaseObject = _BaseObject;
+
+	global.Appacitive.BaseObject.prototype.toString = function() {
+		return JSON.stringify(this.getObject());
+	};
 
 })(global);(function (global) {
 
@@ -1888,7 +1953,7 @@ Depends on  NOTHING
 			if(!id || id.length == 0)
 			
 			var tempArticle = locs.createNewArticle({ __id : id});
-    		tempArticle.fetch(function(){},onError);
+    		tempArticle.fetch(function(data){},onError);
 		};
 
 		this.addToCollection = function(article) {
@@ -1964,7 +2029,7 @@ Depends on  NOTHING
 			}
 			if (!articles.length || articles.length === 0) articles = [];
 			articles.forEach(function (article) {
-				var _a = new global.Appacitive.Article(article);
+				var _a = new global.Appacitive.Article(article, true);
 				_a.___collection = that;
 				_articles.push(_a);
 			});
@@ -2015,10 +2080,22 @@ Depends on  NOTHING
 		this.map = function() { return _articles.map.apply(this, arguments); };
 		this.forEach = function() { return _articles.forEach.apply(this, arguments); };
 		this.filter = function() { return _articles.filter.apply(this, arguments); };
-
 	};
 
 	global.Appacitive.ArticleCollection = _ArticleCollection;
+
+	global.Appacitive.ArticleCollection.prototype.toString = function() {
+		return JSON.stringify(this.getAllArticles());
+	};
+
+	global.Appacitive.ArticleCollection.prototype.toJSON = function() {
+		return this.getAllArticles();
+	};
+
+	global.Appacitive.ArticleCollection.prototype.__defineGetter__('articles', function() {
+		return this.getAll();
+	});
+
 
 })(global);(function(global) {
 
@@ -2169,7 +2246,7 @@ Depends on  NOTHING
 			}
 			if (!connections.length || connections.length === 0) connections = [];
 			connections.forEach(function (connection) {
-				var _c = new global.Appacitive.Connection(connection);
+				var _c = new global.Appacitive.Connection(connection, true);
 				_c.___collection = that;
 				_connections.push(_c);
 
@@ -2263,10 +2340,14 @@ Depends on  NOTHING
 		global.Appacitive.http.send(r);
 	};
 
-	global.Appacitive.Article = function(options) {
-		var base = new global.Appacitive.BaseObject(options);
+	global.Appacitive.Article = function(options, setSnapShot) {
+		if (!options.__schematype)
+			throw new error("Cannot set article without __schematype");
+
+		var base = new global.Appacitive.BaseObject(options, setSnapShot);
 		base.type = 'article';
 		base.connectionCollections = [];
+		base.getArticle = base.getObject;
 
 		if (base.get('__schematype') && base.get('__schematype').toLowerCase() == 'user') {
 			base.getFacebookProfile = _getFacebookProfile;
@@ -2289,20 +2370,45 @@ Depends on  NOTHING
 		return collection;
 	};
 
-	global.Appacitive.BaseObject.prototype.getConnected = function(options) {
+	global.Appacitive.Article.multiDelete = function(schemaName, ids, onSuccess, onError) {
+		if (!schemaName)
+			throw new Error("Specify schemaname");
+
+		if (ids.length > 0) {
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultideleteUrl(schemaName);
+			request.method = 'post';
+			request.data = ids;
+			request.onSuccess = function(d) {
+				if (d && d.status && d.status.code == '200') {
+					onSuccess();
+				} else {
+					d = d || {};
+					onError(d || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				onError(d || { message : 'Server error', code: 400 });
+			}
+			global.Appacitive.http.send(request);
+		} else onSuccess();
+	};
+
+	/*global.Appacitive.BaseObject.prototype.getConnected = function(options) {
 		if (this.type != 'article') return null;
 		options = options || {};
 		options.onSuccess = options.onSuccess || function(){};
 		options.onError = options.onError || function(){};
 		options.articleId = this.get('__id');
 
-	};
+	};*/
 
 })(global);(function (global) {
 
 	"use strict";
 
-	var parseEndpoint = function(endpoint) {
+	var parseEndpoint = function(endpoint, type, base) {
 		var result = {
 			label: endpoint.label
 		};
@@ -2310,7 +2416,7 @@ Depends on  NOTHING
 		if (endpoint.articleid) {
 			// provided an article id
 			result.articleid = endpoint.articleid;
-		} else if (endpoint.article && typeof endpoint.article.getArticle == 'function'){
+		} else if (endpoint.article && typeof endpoint.article.getArticle == 'function') {
 			// provided an instance of Appacitive.ArticleCollection
 			// stick the whole article if there is no __id
 			// else just stick the __id
@@ -2319,6 +2425,7 @@ Depends on  NOTHING
 			} else {
 				result.article = endpoint.article.getArticle();
 			}
+			base["endpoint" + type] = endpoint;
 		} else if (typeof endpoint.article == 'object' && endpoint.article.__schematype) {
 			// provided a raw article
 			// if there is an __id, just add that
@@ -2335,27 +2442,25 @@ Depends on  NOTHING
 		return result;
 	};
 
-	global.Appacitive.Connection = function(options) {
+	global.Appacitive.Connection = function(options, doNotParse) {
+
+		if (options.endpoints && options.endpoints.length == 2) {
+			options.__endpointa = options.endpoints[0];
+			options.__endpointb = options.endpoints[1];
+			delete options.endpoints;
+		}
+
+		if (!options.__endpointa || !options.__endpointb)
+			throw new Error('Provide both endpoints.');
+
 		var base = new global.Appacitive.BaseObject(options);
 		base.type = 'connection';
-		base.getConnection = base.getArticle;
-
-		base.__defineGetter__('connectedArticle', function() {
-			if (!base.___collection.connectedArticle) {
-				throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
-			}
-			var articleId = base.___collection.connectedArticle.get('__id');
-			if (!articleId) return null;
-			var otherArticleId = base.getConnection().__endpointa.articleid;
-			if (base.getConnection().__endpointa.articleid == articleId)
-				otherArticleId = base.getConnection().__endpointb.articleid;
-			return base.___collection.getConnectedArticle(otherArticleId);
-		});
+		base.getConnection = base.getObject;
 
 		// helper method for setting up the connection
 		base.setupConnection = function(endpointA, endpointB) {
 			// validate the endpoints
-			if ((!endpointA || !endpointA.id || endpointA.label) || (!endpointB || !endpointB.id || endpointB.label)) {
+			if (!endpointA || (!endpointA.articleid &&  !endpointA.article) || !endpointA.label || !endpointB || (!endpointB.articleid && !endpointB.article) || !endpointB.label) {
 				throw new Error('Incorrect endpoints configuration passed.');
 			}
 
@@ -2366,13 +2471,95 @@ Depends on  NOTHING
 			// sigh
 
 			// 1
-			base.set('__endpointa', parseEndpoint(endpointA));
+			base.set('__endpointa', parseEndpoint(endpointA, 'A', base));
 
 			// 2
-			base.set('__endpointb', parseEndpoint(endpointB));
+			base.set('__endpointb', parseEndpoint(endpointB, 'B', base));
 		};
 
+		base.__defineGetter__('endpoints', function() {
+			var endpoints = [];
+			endpoints.push(this.endpointA);
+			endpoints.push(this.endpointB);
+			return endpoints;
+		});
+
+		base.parseConnection = function() {
+
+			var typeA = 'A', typeB ='B';
+			if ( options.__endpointa.articleid == this.get('__endpointa').articleid ) {
+				typeA = 'B', typeB = 'A';
+			}
+
+			if (typeof this.get('__endpointa').article == 'object') {
+				if (!this.endpointa) {
+					this["endpoint" + typeA] = new global.Appacitive.Article(this.get('__endpointa').article);
+				} else {
+					this["endpoint" + typeA].copy(this.get('__endpointb').getArticle());
+				}
+				this["endpoint" + typeA].___collection = this.___collection;
+			} else {
+				this["endpoint" + typeA] = this.get('__endpointa');
+			}
+
+			if (typeof this.get('__endpointb').article == 'object') {
+				if (!this.endpointb) {
+					this["endpoint" + typeB] = new global.Appacitive.Article(this.get('__endpointb').article);
+				} else {
+					this["endpoint" + typeB].copy(this.get('__endpointb').getArticle());
+				}
+				this["endpoint" + typeB].___collection = this.___collection;
+			} else {
+				this["endpoint" + typeB] = this.get('__endpointb');
+			}
+
+			return base;
+		};
+
+		if (doNotParse) {
+
+				base.__defineGetter__('connectedArticle', function() {
+					if (!base.___collection.connectedArticle) {
+						throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
+					}
+					var articleId = base.___collection.connectedArticle.get('__id');
+					if (!articleId) return null;
+					var otherArticleId = base.getConnection().__endpointa.articleid;
+					if (base.getConnection().__endpointa.articleid == articleId)
+						otherArticleId = base.getConnection().__endpointb.articleid;
+					return base.___collection.getConnectedArticle(otherArticleId);
+				});
+
+		} else {
+			base.setupConnection(base.get('__endpointa'), base.get('__endpointb'));
+		} 
+
 		return base;
+	};
+
+	global.Appacitive.Connection.multiDelete = function(relationName, ids, onSuccess, onError) {
+		if (!relationName)
+			throw new Error("Specify relationName");
+
+		if (ids.length > 0) {
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultideleteUrl(relationName);
+			request.method = 'post';
+			request.data = ids;
+			request.onSuccess = function(d) {
+				if (d && d.status && d.status.code == '200') {
+					onSuccess();
+				} else {
+					d = d || {};
+					onError(d || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				onError(d || { message : 'Server error', code: 400 });
+			}
+			global.Appacitive.http.send(request);
+		} else onSuccess();
 	};
 
 })(global);(function (global) {
@@ -2387,6 +2574,12 @@ Depends on  NOTHING
 			return authenticatedUser;
 		});
 
+		global.Appacitive.Users.setCurrentUser = function(user, token) {
+			authenticatedUser = user;
+			if (token)
+				Appacitive.session.setUserAuthHeader(token);
+		};
+		
 		global.Appacitive.User = function(options) {
 			var base = new global.Appacitive.BaseObject(options);
 			base.type = 'user';
@@ -2399,7 +2592,6 @@ Depends on  NOTHING
 			return base;
 		};
 
-
 		this.deleteUser = function(userId, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
@@ -2410,8 +2602,6 @@ Depends on  NOTHING
 			request.url += global.Appacitive.storage.urlFactory.user.getDeleteUrl(userId);
 			request.onSuccess = function(data) {
 				if (data && data.code && data.code == '200') {
-					global.Appacitive.session.removeUserAuthHeader();
-					global.Appacitive.localStorage.set('Appacitive-User', null);
 					onSuccess(data);
 				} else {
 					data = data || {};
@@ -2430,9 +2620,13 @@ Depends on  NOTHING
 			if (authenticatedUser === null) {
 				throw new Error('Current user is not set yet for delete operation');
 			}
+			
 			var currentUserId = authenticatedUser.__id;
 
-			this.deleteUser(currentUserId, onSuccess, onError);
+			this.deleteUser(currentUserId, function(data) { 
+				global.Appacitive.session.removeUserAuthHeader();
+				onSuccess(data);
+			}, onError);
 		};
 
 		this.signup = function(user, onSuccess, onError) {
@@ -2515,6 +2709,11 @@ Depends on  NOTHING
 				global.Appacitive.http.send(request);
 			});
 		};
+
+		Appacitive.Users.currentUser.signout = function(callback) {
+			callback = callback || function(){};
+			global.Appacitive.session.removeUserAuthHeader(callback);
+		}
 
 		this.authenticateWithFacebook = this.signupWithFacebook;
 

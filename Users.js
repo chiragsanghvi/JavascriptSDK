@@ -10,6 +10,12 @@
 			return authenticatedUser;
 		});
 
+		global.Appacitive.Users.setCurrentUser = function(user, token) {
+			authenticatedUser = user;
+			if (token)
+				Appacitive.session.setUserAuthHeader(token);
+		};
+		
 		global.Appacitive.User = function(options) {
 			var base = new global.Appacitive.BaseObject(options);
 			base.type = 'user';
@@ -21,7 +27,6 @@
 
 			return base;
 		};
-
 
 		this.deleteUser = function(userId, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
@@ -56,7 +61,6 @@
 
 			this.deleteUser(currentUserId, function(data) { 
 				global.Appacitive.session.removeUserAuthHeader();
-				global.Appacitive.localStorage.set('Appacitive-User', null);
 				onSuccess(data);
 			}, onError);
 		};
@@ -141,6 +145,11 @@
 				global.Appacitive.http.send(request);
 			});
 		};
+
+		Appacitive.Users.currentUser.signout = function(callback) {
+			callback = callback || function(){};
+			global.Appacitive.session.removeUserAuthHeader(callback);
+		}
 
 		this.authenticateWithFacebook = this.signupWithFacebook;
 

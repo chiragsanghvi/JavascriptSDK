@@ -1,15 +1,14 @@
 module('Connection Collection via Article::getConnectedArticles');
 
 test('Connection Collection returned on calling getConnectedArticles', function() {
-	var a = new Appacitive.Article(), c = new Appacitive.Connection(), options = { relation: 'some_relation '};
-	var aC = a.getConnectedArticles(options), cC = c.getConnectedArticles(options);
+	var a = new Appacitive.Article({ __schematype: 'profile' }), options = { relation: 'some_relation '};
+	var aC = a.getConnectedArticles(options);
 	equal(aC.collectionType, 'connection', 'Connection collection returned on calling getConnectedArticles on an article');
-	equal(cC, null, 'Nothing returned on calling getConnectedArticles on a connection');
 });
 
 test('Verify connection collection search query url', function() {
 	var id = 1, relation = 'r';
-	var article = new Appacitive.Article({ __id: id });
+	var article = new Appacitive.Article({ __id: id, __schematype: 'profile'});
 	var requestUrl = article.getConnectedArticles({ relation: relation }).getQuery().toRequest().url;
 	if (requestUrl.indexOf('?') != -1) {
 		requestUrl = requestUrl.substr(requestUrl, requestUrl.indexOf('?'));
@@ -19,7 +18,7 @@ test('Verify connection collection search query url', function() {
 });
 
 test('Verify "fetch" method on connection collection', function() {
-	var a = new Appacitive.Article(), options = { relation: 'some_relation '};
+	var a = new Appacitive.Article({ __schematype: 'profile' }), options = { relation: 'some_relation '};
 	var aC = a.getConnectedArticles(options);
 	equal(typeof aC.fetch, 'function', 'Fetch exists on the connection collection.');
 });

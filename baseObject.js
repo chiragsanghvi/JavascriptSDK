@@ -6,12 +6,21 @@
 	/**
 	* @constructor
 	**/
-	var _BaseObject = function(raw) {
+	var _BaseObject = function(raw, setSnapShot) {
 
-		var _snapshot = null;
+		var _snapshot = {};
 
 		raw = raw || {};
 		var article = raw;
+
+		//will be used in case of 
+		if (setSnapShot) {
+			for (var property in article) {
+				_snapshot[property] = article[property];
+			}
+		}
+		if (!_snapshot.__id && raw.__id)
+			_snapshot.__id = raw.__id;
 
 		// crud operations
 		// fetch ( by id )
@@ -100,7 +109,7 @@
 			global.Appacitive.http.send(_deleteRequest);
 		};
 
-		this.getArticle = function() { return article; };
+		this.getObject = function() { return article; };
 
 		this.toJSON = function() { return article; };
 
@@ -113,6 +122,8 @@
 				if (!article.__attributes) article.__attributes = {};
 				return article.__attributes[arguments[0]];
 			} else if (arguments.length == 2) {
+				if(typeof(arguments[1]) !== 'string')
+					throw new Error('only string values can be stored in attributes.');
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
 			} else {
@@ -161,6 +172,12 @@
 				_create.apply(this, arguments);
 		};
 
+		this.copy = function(properties) {
+			for (var property in properties) {
+				article[property] = properties[property];
+			}
+		};
+
 		// to update the article
 		var _update = function(onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
@@ -179,6 +196,7 @@
 				} else if (article[property] == _snapshot[property]) {
 					delete changeSet[property];
 				}
+				if (changeSet["__revision"]) delete changeSet["__revision"];
 			}
 
 			if (isDirty) {
@@ -210,6 +228,8 @@
 					onError(err);
 				}
 				global.Appacitive.http.send(_updateRequest);
+			} else {
+				onSuccess();
 			}
 		};
 
@@ -231,6 +251,7 @@
 			var _saveRequest = new global.Appacitive.HttpRequest();
 			_saveRequest.url = url;
 			_saveRequest.method = 'put';
+			if (article["__revision"]) delete article["__revision"];
 			_saveRequest.data = article;
 			_saveRequest.onSuccess = function(data) {
 				var savedState = null;
@@ -254,8 +275,12 @@
 						});
 					}
 
+					if (that.type == 'connection') {
+						that.parseConnection();
+					}
+
 					if (typeof onSuccess == 'function') {
-						onSuccess();
+						onSuccess(that);
 					}
 				} else {
 					if (typeof onError == 'function') {
@@ -272,5 +297,9 @@
 	};
 
 	global.Appacitive.BaseObject = _BaseObject;
+
+	global.Appacitive.BaseObject.prototype.toString = function() {
+		return JSON.stringify(this.getObject());
+	};
 
 })(global);

@@ -49,6 +49,32 @@ asyncTest('Happy path for create two articles and connect them', function() {
 	});
 });
 
+asyncTest('Happy path for create connection with two article objects', function() {
+	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
+	var school = schools.createNewArticle();
+	var profile = profiles.createNewArticle();
+	var connectOptions = {
+		__endpointa: {
+			article: school,
+			label: 'school'
+		},
+		__endpointb: {
+			article: profile,
+			label: 'profile'
+		}
+	};
+
+	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
+	var connection = cC.createNewConnection(connectOptions);
+	connection.save(function() {
+		ok(true, 'Save worked');
+		start();
+	}, function() {
+		ok(false, 'Could not save connection.');
+		start();
+	});
+});
+
 asyncTest('Verify happy path for connection delete', function() {
 	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
 	var user = users.createNewArticle();
