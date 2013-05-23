@@ -78,7 +78,7 @@
 			_query = query;
 		});
 
-		this.setQuery = function() {
+		this.setQuery = function(query) {
 			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
 			_articles.length = 0;
 			_query = query;

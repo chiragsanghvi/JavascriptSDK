@@ -10,10 +10,18 @@
 			return authenticatedUser;
 		});
 
-		this.setCurrentUser = function(user, token) {
+		this.setCurrentUser = function(user, token, expiry) {
+			global.Appacitive.localStorage.set('Appacitive-User', user);
+			
+			if (expiry == -1)
+			 expiry = null 
+			else 
+			  if (!expiry) expiry = 3600;
+
 			authenticatedUser = user;
-			if (token)
-				Appacitive.session.setUserAuthHeader(token);
+			if (token) {
+				Appacitive.session.setUserAuthHeader(token, expiry);
+			}
 		};
 		
 		global.Appacitive.User = function(options) {
@@ -94,6 +102,7 @@
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
+			var that = this;
 			var request = new global.Appacitive.HttpRequest();
 			request.method = 'post';
 			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
@@ -101,8 +110,7 @@
 			request.onSuccess = function(data) {
 				if (data && data.user) {
 					authenticatedUser = data.user;
-					global.Appacitive.session.setUserAuthHeader(data.token);
-					global.Appacitive.localStorage.set('Appacitive-User', data.user);
+					that.setCurrentUser(data.user, data.token, authRequest.expiry);
 					onSuccess(data);
 				} else {
 					data = data || {};
@@ -116,7 +124,7 @@
 		this.signupWithFacebook = function(onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
-
+			var that = this;
 			FB.api('/me', function(response) {
 				var authRequest = {
 					"accesstoken": global.Appacitive.facebook.accessToken,
@@ -132,9 +140,8 @@
 				request.onSuccess = function(a) {
 					if (a.user) {
 						a.user.__authType = 'FB';
-						global.Appacitive.session.setUserAuthHeader(a.token);
-						global.Appacitive.localStorage.set('Appacitive-User', a.user);
 						authenticatedUser = a.user;	
+						that.setCurrentUser(a.user, a.token, 3600);
 						onSuccess(a);
 					} else {
 						onError(a);

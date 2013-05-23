@@ -1183,9 +1183,12 @@ Depends on  NOTHING
 			}
 		});
 
-		this.setUserAuthHeader = function(authToken) {
-			authEnabled = true;
-			_authToken = authToken;
+		this.setUserAuthHeader = function(authToken, expiry) {
+			if (authToken) {
+				authEnabled = true;
+				_authToken = authToken;
+				if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
+			}
 		};
 
 		this.removeUserAuthHeader = function(callback) {
@@ -1210,6 +1213,7 @@ Depends on  NOTHING
 				if (typeof(callback) == 'function')
 					callback();
 			}
+			if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
 		};
 
 		this.isSessionValid = function(response) {
@@ -1263,8 +1267,25 @@ Depends on  NOTHING
 		global.Appacitive.session.environment = ( options.env || '' );
 		global.Appacitive.useApiKey = true;
 
-		Appacitive.Users.setCurrentUser(global.Appacitive.localStorage.get('Appacitive-User'));				
-	}
+		if (options.user) {
+			global.Appacitive.localStorage.set('Appacitive-User', options.user);
+			global.Appacitive.Users.setCurrentUser(options.user);	
+		} else {
+			if (global.Appacitive.runtime.isBrowser) {
+				//read user from localstorage and set it
+				var user = global.Appacitive.localStorage.get('Appacitive-User');	
+				global.Appacitive.Users.setCurrentUser(user);
+				
+				//read usertoken from cookie and set it
+				var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
+				if (token) global.Appacitive.session.setUserAuthHeader(token, 60);
+			}
+		}			
+
+		if (options.userToken) {
+			global.Appacitive.session.setUserAuthHeader(options.userToken, 60);
+		}
+	};
 
 } (global));
 
@@ -1444,7 +1465,7 @@ Depends on  NOTHING
 			return inner.filter = value;
 		});
 
-		this.__defineGetter__('freetext', function() {
+		this.__defineGetter__('freeText', function() {
 			return inner.freetext;
 		});
 
@@ -1531,7 +1552,7 @@ Depends on  NOTHING
 			return inner.filter = value;
 		});
 
-		this.__defineGetter__('freetext', function() {
+		this.__defineGetter__('freeText', function() {
 			return inner.freetext;
 		});
 
@@ -1761,7 +1782,7 @@ Depends on  NOTHING
 
 			if (isDirty) {
 				var _updateRequest = new global.Appacitive.HttpRequest();
-				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, _snapshot.__id);
+				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id);
 				
 				// for User and Device articles
 				if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
@@ -2013,7 +2034,7 @@ Depends on  NOTHING
 			_query = query;
 		});
 
-		this.setQuery = function() {
+		this.setQuery = function(query) {
 			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
 			_articles.length = 0;
 			_query = query;
@@ -2260,7 +2281,7 @@ Depends on  NOTHING
 			_query = query;
 		});
 
-		this.setQuery = function() {
+		this.setQuery = function(query) {
 			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
 			_articles.length = 0;
 			_connections.length = 0;
@@ -2699,10 +2720,18 @@ Depends on  NOTHING
 			return authenticatedUser;
 		});
 
-		this.setCurrentUser = function(user, token) {
+		this.setCurrentUser = function(user, token, expiry) {
+			global.Appacitive.localStorage.set('Appacitive-User', user);
+			
+			if (expiry == -1)
+			 expiry = null 
+			else 
+			  if (!expiry) expiry = 3600;
+
 			authenticatedUser = user;
-			if (token)
-				Appacitive.session.setUserAuthHeader(token);
+			if (token) {
+				Appacitive.session.setUserAuthHeader(token, expiry);
+			}
 		};
 		
 		global.Appacitive.User = function(options) {
@@ -2783,6 +2812,7 @@ Depends on  NOTHING
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
+			var that = this;
 			var request = new global.Appacitive.HttpRequest();
 			request.method = 'post';
 			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
@@ -2790,8 +2820,7 @@ Depends on  NOTHING
 			request.onSuccess = function(data) {
 				if (data && data.user) {
 					authenticatedUser = data.user;
-					global.Appacitive.session.setUserAuthHeader(data.token);
-					global.Appacitive.localStorage.set('Appacitive-User', data.user);
+					that.setCurrentUser(data.user, data.token, authRequest.expiry);
 					onSuccess(data);
 				} else {
 					data = data || {};
@@ -2805,7 +2834,7 @@ Depends on  NOTHING
 		this.signupWithFacebook = function(onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
-
+			var that = this;
 			FB.api('/me', function(response) {
 				var authRequest = {
 					"accesstoken": global.Appacitive.facebook.accessToken,
@@ -2821,9 +2850,8 @@ Depends on  NOTHING
 				request.onSuccess = function(a) {
 					if (a.user) {
 						a.user.__authType = 'FB';
-						global.Appacitive.session.setUserAuthHeader(a.token);
-						global.Appacitive.localStorage.set('Appacitive-User', a.user);
 						authenticatedUser = a.user;	
+						that.setCurrentUser(a.user, a.token, 3600);
 						onSuccess(a);
 					} else {
 						onError(a);
@@ -3307,6 +3335,40 @@ Depends on  NOTHING
 	};
 
 	global.Appacitive.localStorage = new A_LocalStorage();
+
+})(global);(function (global) {
+
+var cookieManager = function () {
+
+	this.setCookie = function (name, value, minutes) {
+		if (minutes) {
+			var date = new Date();
+			date.setTime(date.getTime() + (minutes*60*1000));
+			var expires = "; expires="+date.toGMTString();
+		}
+		else var expires = "";
+		document.cookie = name + "=" + value + expires + "; path=/";
+	};
+
+	this.readCookie = function (name) {
+		var nameEQ = name + "=";
+		var ca = document.cookie.split(';');
+		for (var i=0; i < ca.length; i++) {
+			var c = ca[i];
+			while (c.charAt(0)==' ') c = c.substring(1,c.length);
+			if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+		}
+		return null;
+	};
+
+	this.eraseCookie = function (name) {
+		this.setCookie(name, "" ,-1);
+	};
+
+};
+
+if (global.Appacitive.runtime.isBrowser)
+	global.Appacitive.Cookie = new cookieManager();
 
 })(global);
 if (typeof module != 'undefined') {

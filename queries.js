@@ -160,7 +160,7 @@
 			return inner.filter = value;
 		});
 
-		this.__defineGetter__('freetext', function() {
+		this.__defineGetter__('freeText', function() {
 			return inner.freetext;
 		});
 
@@ -247,7 +247,7 @@
 			return inner.filter = value;
 		});
 
-		this.__defineGetter__('freetext', function() {
+		this.__defineGetter__('freeText', function() {
 			return inner.freetext;
 		});
 
