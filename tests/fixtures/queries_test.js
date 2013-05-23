@@ -1,6 +1,6 @@
 module('Search All Query');
 test('Basic search all query for articles', function() {
-	var query = new Appacitive.queries.SearchAllQuery({
+	var query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile'
 	});
@@ -13,7 +13,7 @@ test('Basic search all query for articles', function() {
 });
 
 test('Basic search all query for articles with sorting', function() {
-	var query = new Appacitive.queries.SearchAllQuery({
+	var query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile',
 		orderBy: 'name',
@@ -24,7 +24,7 @@ test('Basic search all query for articles with sorting', function() {
 	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=200&pnum=1&orderBy=name&isAsc=true';
 	equal(url, request.url, 'Url generated has correct sort options - ascending');
 	
-	query = new Appacitive.queries.SearchAllQuery({
+	query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile',
 		orderBy: 'name2',
@@ -37,7 +37,7 @@ test('Basic search all query for articles with sorting', function() {
 });
 
 test('Basic search all query for articles with pagination', function() {
-	var query = new Appacitive.queries.SearchAllQuery({
+	var query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile',
 		pageNumber: 3
@@ -47,7 +47,7 @@ test('Basic search all query for articles with pagination', function() {
 	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=200&pnum=3&orderBy=__UtcLastUpdatedDate&isAsc=false';
 	equal(url, request.url, 'Url generated has correct pagination options - page number');
 	
-	query = new Appacitive.queries.SearchAllQuery({
+	query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile',
 		pageSize: 100
@@ -57,7 +57,7 @@ test('Basic search all query for articles with pagination', function() {
 	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=100&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false';
 	equal(url, request.url, 'Url generated has correct pagination options - page size');
 
-	query = new Appacitive.queries.SearchAllQuery({
+	query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile',
 		pageSize: 100,
@@ -70,7 +70,7 @@ test('Basic search all query for articles with pagination', function() {
 });
 
 test('Basic search all query with sorting and pagination', function() {
-	var query = new Appacitive.queries.SearchAllQuery({
+	var query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile',
 		pageSize: 100,
@@ -87,17 +87,17 @@ test('Basic search all query with sorting and pagination', function() {
 
 // check query with articleCollection.setQuery
 test('Verify default basic search all query in article collection', function() {
-	var query = new Appacitive.queries.SearchAllQuery({
+	var query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile'
 	});
 	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var collectionQuery = collection.getQuery();
+	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default query setting correctly in article collection.');
 });
 
 test('Verify custom search all query in article collection', function() {
-	var query = new Appacitive.queries.SearchAllQuery({
+	var query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile',
 		pageNumber: 3,
@@ -106,7 +106,7 @@ test('Verify custom search all query in article collection', function() {
 		isAscending: false
 	});
 	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var collectionQuery = collection.getQuery();
+	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Custom query setting correctly in article collection.');
 });
 
@@ -115,9 +115,9 @@ test('Verify query modification using setOptions in articleCollection', function
 		type: 'article',
 		schema: 'profile'
 	};
-	var query = new Appacitive.queries.SearchAllQuery(options);
+	var query = new Appacitive.queries.BasicFilterQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
-	var collectionQuery = collection.getQuery();
+	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default query setting correctly in articleCollection.');
 
 	options = {
@@ -128,9 +128,9 @@ test('Verify query modification using setOptions in articleCollection', function
 		orderBy: '__UtcLastUpdatedDate',
 		isAscending: true
 	};
-	query = new Appacitive.queries.SearchAllQuery(options);
+	query = new Appacitive.queries.BasicFilterQuery(options);
 	collection.setOptions(options);
-	var collectionQuery = collection.getQuery();
+	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Query modification correctly done in articleCollection.');
 });
 
@@ -168,19 +168,18 @@ test('Verify customized filtered search query', function() {
 
 // properties search with article collection
 // check query with articleCollection.setQuery
-test('Verify default filtered search all query in article collection', function() {
-	var query = new Appacitive.queries.SearchAllQuery({
+test('Verify default filtered query in article collection', function() {
+	var query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
-		schema: 'profile',
-		filter: 'a=b'
+		schema: 'profile'
 	});
 	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var collectionQuery = collection.getQuery();
+	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in article collection.');
 });
 
 test('Verify custom filtered query in article collection', function() {
-	var query = new Appacitive.queries.SearchAllQuery({
+	var query = new Appacitive.queries.BasicFilterQuery({
 		type: 'article',
 		schema: 'profile',
 		pageNumber: 3,
@@ -189,8 +188,17 @@ test('Verify custom filtered query in article collection', function() {
 		isAscending: false,
 		filter: 'c>3'
 	});
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var collectionQuery = collection.getQuery();
+	var collection = new Appacitive.ArticleCollection({ 
+		schema: 'profile',
+		type: 'article',
+		schema: 'profile',
+		pageNumber: 3,
+		pageSize: 50,
+		orderBy: 'name',
+		isAscending: false,
+		filter: 'c>3' 
+	});
+	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Custom filtered query setting correctly in article collection.');
 });
 
@@ -200,9 +208,9 @@ test('Verify filtered query modification using setOptions in articleCollection',
 		schema: 'profile',
 		filter: 'q within_circle (1,2,3km)'
 	};
-	var query = new Appacitive.queries.SearchAllQuery(options);
+	var query = new Appacitive.queries.BasicFilterQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
-	var collectionQuery = collection.getQuery();
+	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
 	options = {
@@ -214,16 +222,16 @@ test('Verify filtered query modification using setOptions in articleCollection',
 		isAscending: true,
 		filter: 'q < 1234567890'
 	};
-	query = new Appacitive.queries.SearchAllQuery(options);
+	query = new Appacitive.queries.BasicFilterQuery(options);
 	collection.setOptions(options);
-	var collectionQuery = collection.getQuery();
+	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
 });
 
 test('Verify filtered query orderBy in ArticleCollection', function() {
 	var models = new Appacitive.ArticleCollection({ schema: 'profile' });
 	models.setFilter('somep == somev');
-	models.getQuery().extendOptions({ orderBy: 'orderByField' });
-	var qUrl = models.getQuery().toRequest().url;
+	models.query.extendOptions({ orderBy: 'orderByField' });
+	var qUrl = models.query.toRequest().url;
 	equal(qUrl.indexOf('orderByField') != -1, true, 'orderBy sets properly, url: ' + qUrl);
 })

@@ -17,21 +17,31 @@
 		if (!options || !options.schema) {
 			throw new Error('Must provide schema while initializing ArticleCollection.');
 		}
-
+		_schema = options.schema;
+		
 		var that = this;
 		var _parseOptions = function(options) {
-			_schema = options.schema;
 			options.type = 'article';
-			_query = new global.Appacitive.queries.SearchAllQuery(options);
-			that.extendOptions = _query.extendOptions;
+
+			if (options.schema)
+				_schema = options.schema;
+			else
+				options.schema = _schema;
+
+			_query = new global.Appacitive.queries.BasicFilterQuery(options);
 			_options = options;
+			that.extendOptions = _query.extendOptions;
 		};
 
 		this.setFilter = function(filterString) {
 			_options.filter = filterString;
 			_options.type = 'article';
-			_options.schema = _schema;
-			_query = new global.Appacitive.queries.BasicFilterQuery(options);
+			if (_query) {
+				_query.filter = filterString;
+			} else {
+				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				that.extendOptions = _query.extendOptions;
+			}
 		};
 
         this.setFreeText = function(tokens) {
@@ -39,8 +49,12 @@
                 _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'article';
-            _options.schema = _schema;
-            _query = new global.Appacitive.queries.BasicFilterQuery(options);
+            if (_query) {
+				_query.freeText = tokens;
+			} else {
+				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				that.extendOptions = _query.extendOptions;
+			}
         };
 
 		this.reset = function() {
@@ -50,11 +64,28 @@
 			_query = null;
 		};
 
+		this.__defineGetter__("query", function() {
+			return _query;
+		});
+
 		this.getQuery = function() {
 			return _query;
 		};
 
+		this.__defineSetter__("query", function(query) {
+			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
+			_articles.length = 0;
+			_query = query;
+		});
+
+		this.setQuery = function() {
+			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
+			_articles.length = 0;
+			_query = query;
+		};
+
 		this.setOptions = _parseOptions;
+		
 		_parseOptions(options);
 
 		// getters

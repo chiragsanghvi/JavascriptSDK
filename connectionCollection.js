@@ -23,23 +23,62 @@
 		if (!options || !options.relation) {
 			throw new Error('Must provide relation while initializing ConnectionCollection.');
 		}
+		_relation = options.relation;
 
 		var _parseOptions = function(options) {
-			_relation = options.relation;
 			options.type = 'connection';
-			_query = new global.Appacitive.queries.SearchAllQuery(options);
+
+			if (options.relation)
+				_relation = options.relation;
+			else
+				options.relation = _relation;
+
+			_query = new global.Appacitive.queries.BasicFilterQuery(options);
 			_options = options;
 		};
 
 		this.setFilter = function(filterString) {
 			_options.filter = filterString;
 			_options.type = 'connection';
-			_options.relation = _relation;
-			_query = new global.Appacitive.queries.BasicFilterQuery(options);
+			if (_query) {
+				_query.filter = filterString;
+			} else {
+				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				that.extendOptions = _query.extendOptions;
+			}
 		};
 
-		this.setQuery = function(query) {
-			if (!query) throw new Error('Invalid query passed to connectionCollection');
+		this.setFreeText = function(tokens) {
+            if(!tokens && tokens.trim().length==0)
+                _options.freeText = "";
+            _options.freeText = tokens;
+            _options.type = 'connection';
+            if (_query) {
+				_query.freeText = tokens;
+			} else {
+				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				that.extendOptions = _query.extendOptions;
+			}
+        };
+
+		this.__defineGetter__("query", function() {
+			return _query;
+		});
+
+		this.getQuery = function() {
+			return _query;
+		};
+
+		this.__defineSetter__("query", function(query) {
+			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
+			_articles.length = 0;
+			_connections.length = 0;
+			_query = query;
+		});
+
+		this.setQuery = function() {
+			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
+			_articles.length = 0;
 			_connections.length = 0;
 			_query = query;
 		};
@@ -47,13 +86,9 @@
 		this.reset = function() {
 			_options = null;
 			_relation = null;
-			articles.length = 0;
+			_articles.length = 0;
 			_connections.length = 0;
 			_query = null;
-		};
-
-		this.getQuery = function() {
-			return _query;
 		};
 
 		this.setOptions = _parseOptions;

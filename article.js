@@ -35,9 +35,14 @@
 	};
 
 	global.Appacitive.Article = function(options, setSnapShot) {
-		if (!options.__schematype)
+		if (!options.__schematype && !options.schema )
 			throw new error("Cannot set article without __schematype");
 
+		if (options.schema) {
+			options.__schematype = options.schema;
+			delete options.schema;
+		}
+		
 		var base = new global.Appacitive.BaseObject(options, setSnapShot);
 		base.type = 'article';
 		base.connectionCollections = [];
@@ -59,7 +64,7 @@
 		collection.connectedArticle = this;
 		this.connectionCollections.push(collection);
 		var connectedArticlesQuery = new global.Appacitive.queries.ConnectedArticlesQuery(options);
-		collection.setQuery(connectedArticlesQuery);
+		collection.query = connectedArticlesQuery;
 
 		return collection;
 	};

@@ -39,10 +39,14 @@
 
 		this.pageQuery = new PageQuery(o);
 		this.sortQuery = new SortQuery(o);
-		this.type = o.type || 'article';
 		this.baseType = o.schema || o.relation;
-		this.filter = '';
-		this.freeText = '';
+		if (!this.baseType)
+			throw new Error('schema or relation name is mandatory');
+		this.type = (o.schema) ? 'article' : 'connection';
+
+		this.filter = o.filter || '';
+		this.freeText = o.freeText || '';
+		this.fields = o.fields || '';
 
 		this.extendOptions = function(changes) {
 			for (var key in changes) {
@@ -52,25 +56,40 @@
 			this.sortQuery = new SortQuery(options);
 		};
 
-		this.setFilter = function(filter) {
-			this.filter = filter;
-		};
-
-		this.setFreeText = function(tokens) {
-            this.freeText = tokens;
-        };
-
         this.toUrl = function() {
 			var finalUrl = global.Appacitive.config.apiBaseUrl +
 				this.type + '.svc/' +
 				this.baseType + '/find/all?' + this.pageQuery.toString() + '&' + this.sortQuery.toString();
 
-			if (this.filter.trim().length > 0) {
+			if (this.filter && this.filter.trim().length > 0) {
 				finalUrl += '&query=' + this.filter;
 			}
 
-			if (this.freeText.trim().length > 0) {
+			if (this.freeText && this.freeText.trim().length > 0) {
                 finalUrl += "&freetext=" + this.freeText + "&language=en";
+            }
+
+            if (this.fields && this.fields.trim().length > 0) {
+            	finalUrl += "&fields=" + this.fields;
+            }
+
+			return finalUrl;
+		};
+
+		this.toString = function() {
+
+			var finalUrl = this.pageQuery.toString() + '&' + this.sortQuery.toString();
+
+			if (this.filter && this.filter.trim().length > 0) {
+				finalUrl += '&query=' + this.filter;
+			}
+
+			if (this.freeText && this.freeText.trim().length > 0) {
+                finalUrl += "&freetext=" + this.freeText + "&language=en";
+            }
+
+            if (this.fields && this.fields.trim().length > 0) {
+            	finalUrl += "&fields=" + this.fields;
             }
 
 			return finalUrl;
@@ -121,16 +140,41 @@
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = inner.toUrl();
-            
-            if (options.filter && options.filter.trim().length > 0)
-                r.url += '&query=' + options.filter;
-
-            if (options.freeText && options.freeText.trim().length > 0)
-                r.url += "&freetext=" + options.freeText + "&language=en";
-           
-			r.method = 'get';
+            r.method = 'get';
 			return r;
+		}; 
+
+		this.setFilter = function() {
+			inner.filter = arguments[0];
 		};
+
+		this.setFreeText = function() {
+            inner.freeText = arguments[1];
+        };
+
+        this.__defineGetter__('filter', function() {
+			return inner.filter;
+		});
+
+		this.__defineSetter__('filter', function(value) {
+			return inner.filter = value;
+		});
+
+		this.__defineGetter__('freetext', function() {
+			return inner.freetext;
+		});
+
+		this.__defineSetter__('freeText', function(value) {
+			return inner.freeText = value;
+		});
+
+		this.__defineGetter__('fields', function() {
+			return inner.fields;
+		});
+
+		this.__defineSetter__('fields', function(value) {
+			return inner.fields = value;
+		});
 
 		this.extendOptions = function() {
 			inner.extendOptions.apply(inner, arguments);
@@ -153,7 +197,9 @@
 	global.Appacitive.queries.GraphQuery = function(options) {
 
 		options = options || {};
-		var inner = new BaseQuery(options);
+		
+		if (!options.graphQuery)
+			throw new Error('graphQuery object is mandatory');
 
 		// just append the filters/properties parameter to the query string
 		this.toRequest = function() {
@@ -163,20 +209,6 @@
 			r.method = 'post';
 			r.data = options.graphQuery;
 			return r;
-		};
-
-		this.extendOptions = function() {
-			inner.extendOptions.apply(inner, arguments);
-		};
-
-		this.getOptions = function() {
-			var o = {};
-			for (var key in inner) {
-				if (inner.hasOwnProperty(key) && typeof inner[key] != 'function') {
-					o[key] = inner[key];
-				}
-			}
-			return o;
 		};
 	};
 
@@ -191,23 +223,45 @@
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/' + options.articleId + '/find?' +
-				inner.pageQuery.toString() +
-				'&' + inner.sortQuery.toString();
+				inner.toString();
 			return r;
 		};
 
 		this.extendOptions = function() {
 			inner.extendOptions.apply(inner, arguments);
 		};
-
+		
 		this.setFilter = function() {
-			inner.setFilter.apply(inner, arguments);
+			inner.filter = arguments[0];
 		};
 
 		this.setFreeText = function() {
-            inner.setFreeText.apply(inner,arguments);
+            inner.freeText = arguments[1];
         };
 
+        this.__defineGetter__('filter', function() {
+			return inner.filter;
+		});
+
+		this.__defineSetter__('filter', function(value) {
+			return inner.filter = value;
+		});
+
+		this.__defineGetter__('freetext', function() {
+			return inner.freetext;
+		});
+
+		this.__defineSetter__('freeText', function(value) {
+			return inner.freeText = value;
+		});
+
+		this.__defineGetter__('fields', function() {
+			return inner.fields;
+		});
+
+		this.__defineSetter__('fields', function(value) {
+			return inner.fields = value;
+		});
 
 		this.getOptions = function() {
 			var o = {};
