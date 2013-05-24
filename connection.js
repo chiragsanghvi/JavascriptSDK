@@ -41,7 +41,7 @@
 		if (typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
-				base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpointb').article);
+				base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpoint' + type.toLowerCase()).article);
 			} else {
 				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article.getArticle)
 					base["endpoint" + type].article.copy(base.get('__endpointb').article);
