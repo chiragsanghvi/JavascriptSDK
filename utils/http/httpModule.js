@@ -580,22 +580,21 @@ var global = {};
 				return request;
 			},
 			post: function (response, request) {
-				if(false) {
+				try {
 					var _valid = global.Appacitive.session.isSessionValid(response);
 					if (!_valid) {
 						if (global.Appacitive.session.get() != null) {
 							global.Appacitive.session.resetSession();
-							global.Appacitive.session.onSessionCreated = function () {
-								global.Appacitive.http.unpause();
-								global.Appacitive.http.flush();
-								global.Appacitive.session.onSessionCreated = function () {};
-							}
-							global.Appacitive.session.recreate();
-							global.Appacitive.http.pause();
 						}
 						global.Appacitive.http.send(request);
+					} else {
+						if (response && ((response.status && response.status.code && response.status.code == '8036') || (response.code &&response.code == '8036'))) {
+							global.Appacitive.session.removeUserAuthHeader(true);
+						} else {
+							global.Appacitive.session.incrementExpiry();
+						}
 					}
-				}
+				} catch(e){}
 			}
 		});
 

@@ -14,11 +14,10 @@
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
 			
-			if (expiry == -1) expiry = null 
-			else if (!expiry) expiry = 3600;
+			if (!expiry) expiry = 60;
 
 			authenticatedUser = user;
-			if (token) 
+			if (token)
 				Appacitive.session.setUserAuthHeader(token, expiry);
 		};
 		
@@ -100,6 +99,7 @@
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
+			if (!authRequest.expiry) authRequest.expiry = -1;
 			var that = this;
 			var request = new global.Appacitive.HttpRequest();
 			request.method = 'post';
@@ -149,33 +149,36 @@
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 			var that = this;
-			FB.api('/me', function(response) {
-				var authRequest = {
-					"accesstoken": global.Appacitive.facebook.accessToken,
-					"type": "facebook",
-					"expiry": 60 * 60,
-					"attempts": -1,
-					"createnew": true
-				};
-				var request = new global.Appacitive.HttpRequest();
-				request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
-				request.method = 'post';
-				request.data = authRequest;
-				request.onSuccess = function(a) {
-					if (a.user) {
-						a.user.__authType = 'FB';
-						authenticatedUser = a.user;	
-						that.setCurrentUser(a.user, a.token, 3600);
-						onSuccess(a);
-					} else {
-						onError(a);
-					}
-				};
-				request.onError = function() {
-					onError();
-				};
-				global.Appacitive.http.send(request);
-			});
+			if (FB) {
+				FB.api('/me', function(response) {
+					var authRequest = {
+						"accesstoken": global.Appacitive.facebook.accessToken,
+						"type": "facebook",
+						"expiry": 80,
+						"attempts": -1,
+						"createnew": true
+					};
+					var request = new global.Appacitive.HttpRequest();
+					request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
+					request.method = 'post';
+					request.data = authRequest;
+					request.onSuccess = function(a) {
+						if (a.user) {
+							a.user.__authType = 'FB';
+							authenticatedUser = a.user;	
+							that.setCurrentUser(a.user, a.token, 80);
+							onSuccess(a);
+						} else {
+							onError(a);
+						}
+					};
+					request.onError = function() {
+						onError();
+					};
+					global.Appacitive.http.send(request);
+				});
+			} else
+				onError();
 		};
 
 		this.authenticateWithFacebook = this.signupWithFacebook;
@@ -184,14 +187,11 @@
 			if (callback && typeof callback != 'function' && typeof callback == 'boolean') {
 				avoidApiCall = callback;
 				callback = function() {}; 
-			} else {
-				callback = callback;
-				avoidApiCall = avoidApiCall;
 			}
 
 			var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
 
-			if(!token) {
+			if (!token) {
 				if (typeof(callback) == 'function')
 					callback(false);
 				return false;
@@ -208,7 +208,7 @@
 							callback(data.result);
 					};
 					global.Appacitive.http.send(_request);
-				} catch (e){callback(false);}
+				} catch (e) { callback(false);}
 			} else {
 				if (typeof(callback) == 'function')
 					callback(true);

@@ -38,6 +38,14 @@
 
 	global.Appacitive.Connection = function(options, doNotParse) {
 
+		if (!options.__relationtype && !options.relation )
+			throw new error("Cannot set connection without schema");
+
+		if (options.schema) {
+			options.__schematype = options.schema;
+			delete options.schema;
+		}
+
 		if (options.endpoints && options.endpoints.length == 2) {
 			options.__endpointa = options.endpoints[0];
 			options.__endpointb = options.endpoints[1];
