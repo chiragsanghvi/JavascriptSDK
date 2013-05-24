@@ -2726,8 +2726,8 @@ Depends on  NOTHING
 					typeA = 'B', typeB = 'A';
 			}
 
-			convertEndpoint(this.get('__endpointa'), 'A', base);
-			convertEndpoint(this.get('__endpointb'), 'B', base);
+			convertEndpoint(this.get('__endpointa'), typeA, base);
+			convertEndpoint(this.get('__endpointb'), typeB, base);
 
 			base.__defineGetter__('endpoints', function() {
 				var endpoints = [];
