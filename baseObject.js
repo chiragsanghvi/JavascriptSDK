@@ -261,9 +261,14 @@
 				if (data && savedState) {
 					_snapshot = savedState;
 					article.__id = savedState.__id;
+
 					for (var property in savedState) {
 						if (typeof article[property] == 'undefined') {
 							article[property] = savedState[property];
+						} else if (typeof savedState[property] == 'object')  {
+							for (var p in savedState[property]) {
+								article[property][p] = savedState[property][p];
+							}
 						}
 					}
 

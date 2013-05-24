@@ -36,6 +36,29 @@
 		return result;
 	};
 
+	var convertEndpoint = function(endpoint, type, base) {
+
+		if (typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
+			if (!base['endpoint' + type]) {
+				base["endpoint" + type] = {};
+				base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpointb').article);
+			} else {
+				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article.getArticle)
+					base["endpoint" + type].article.copy(base.get('__endpointb').article);
+				else 
+					base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpointb').article);
+			}
+			base["endpoint" + type].articleid = base.get('__endpoint' + type.toLowerCase()).articleid;
+			base["endpoint" + type].label = base.get('__endpoint' + type.toLowerCase()).label;
+			base["endpoint" + type].type = base.get('__endpoint' + type.toLowerCase()).type;
+
+			base["endpoint" + type].article.___collection = base.___collection;
+		} else {
+			base["endpoint" + type] = base.get('__endpoint' + type.toLowerCase());
+		}
+
+	};
+
 	global.Appacitive.Connection = function(options, doNotParse) {
 
 		if (!options.__relationtype && !options.relation )
@@ -83,31 +106,13 @@
 		base.parseConnection = function() {
 
 			var typeA = 'A', typeB ='B';
-			if ( options.__endpointa.articleid == this.get('__endpointa').articleid ) {
-				typeA = 'B', typeB = 'A';
+			if ( options.__endpointa.label == this.get('__endpointb').label ) {
+				if (options.__endpointa.articleid == this.get('__endpointb').articleid)
+					typeA = 'B', typeB = 'A';
 			}
 
-			if (typeof this.get('__endpointa').article == 'object') {
-				if (!this.endpointa) {
-					this["endpoint" + typeA] = new global.Appacitive.Article(this.get('__endpointa').article);
-				} else {
-					this["endpoint" + typeA].copy(this.get('__endpointb').getArticle());
-				}
-				this["endpoint" + typeA].___collection = this.___collection;
-			} else {
-				this["endpoint" + typeA] = this.get('__endpointa');
-			}
-
-			if (typeof this.get('__endpointb').article == 'object') {
-				if (!this.endpointb) {
-					this["endpoint" + typeB] = new global.Appacitive.Article(this.get('__endpointb').article);
-				} else {
-					this["endpoint" + typeB].copy(this.get('__endpointb').getArticle());
-				}
-				this["endpoint" + typeB].___collection = this.___collection;
-			} else {
-				this["endpoint" + typeB] = this.get('__endpointb');
-			}
+			convertEndpoint(this.get('__endpointa'), 'A', base);
+			convertEndpoint(this.get('__endpointb'), 'B', base);
 
 			base.__defineGetter__('endpoints', function() {
 				var endpoints = [];

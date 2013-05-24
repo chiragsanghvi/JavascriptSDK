@@ -66,8 +66,9 @@ asyncTest('Happy path for create connection with two article objects', function(
 
 	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
 	var connection = cC.createNewConnection(connectOptions);
-	connection.save(function() {
-		ok(true, 'Save worked');
+	connection.save(function(conn) {
+		ok(true, 'Save worked ');
+		console.dir(conn);
 		start();
 	}, function() {
 		ok(false, 'Could not save connection.');
