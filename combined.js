@@ -2450,6 +2450,9 @@ Depends on  NOTHING
 	"use strict";
 
 	var _getFacebookProfile = function(onSuccess, onError) {
+		onSuccess = onSuccess || function() {};
+		onError = onError || function(){};
+		
 		var r = new global.Appacitive.HttpRequest();
 		r.method = 'get';
 		r.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getGetAllLinkedAccountsUrl(this.get('__id'));
