@@ -79,12 +79,6 @@
 			base.set('__endpointb', parseEndpoint(endpointB, 'B', base));
 		};
 
-		base.__defineGetter__('endpoints', function() {
-			var endpoints = [];
-			endpoints.push(this.endpointA);
-			endpoints.push(this.endpointB);
-			return endpoints;
-		});
 
 		base.parseConnection = function() {
 
@@ -115,6 +109,13 @@
 				this["endpoint" + typeB] = this.get('__endpointb');
 			}
 
+			base.__defineGetter__('endpoints', function() {
+				var endpoints = [];
+				endpoints.push(this.endpointA);
+				endpoints.push(this.endpointB);
+				return endpoints;
+			});
+
 			return base;
 		};
 
@@ -130,7 +131,10 @@
 					if (base.getConnection().__endpointa.articleid == articleId)
 						otherArticleId = base.getConnection().__endpointb.articleid;
 					return base.___collection.getConnectedArticle(otherArticleId);
+
 				});
+
+				base.parseConnection();
 
 		} else {
 			base.setupConnection(base.get('__endpointa'), base.get('__endpointb'));
