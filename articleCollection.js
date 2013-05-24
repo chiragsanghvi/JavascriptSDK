@@ -57,6 +57,19 @@
 			}
         };
 
+        this.setFields = function(fields) {
+        	if (!fields)
+                _options.fields = "";
+            _options.fields = fields;
+            _options.type = 'article';
+            if (_query) {
+				_query.fields = fields;
+			} else {
+				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				that.extendOptions = _query.extendOptions;
+			}
+        };
+
 		this.reset = function() {
 			_options = null;
 			_schema = null;
@@ -122,7 +135,7 @@
 			}
 		};
 
-		this.getArticle = function(id, onSuccess, onError) {
+		this.getArticleById = function(id, onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function() {};
 			var existingArticle = _articles.filter(function (article) {

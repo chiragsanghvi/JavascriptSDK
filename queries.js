@@ -44,10 +44,6 @@
 			throw new Error('schema or relation name is mandatory');
 		this.type = (o.schema) ? 'article' : 'connection';
 
-		this.filter = o.filter || '';
-		this.freeText = o.freeText || '';
-		this.fields = o.fields || '';
-
 		this.extendOptions = function(changes) {
 			for (var key in changes) {
 				options[key] = changes[key];
@@ -96,38 +92,6 @@
 		};
 	};
 
-	// search all type query
-	/** 
-	* @constructor
-	**/
-	global.Appacitive.queries.SearchAllQuery = function(options) {
-
-		options = options || {};
-		var inner = new BaseQuery(options);
-
-		// simple query
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = inner.toUrl();
-			r.method = 'get';
-			return r;
-		};
-
-		this.extendOptions = function() {
-			inner.extendOptions.apply(inner, arguments);
-		};
-
-		this.getOptions = function() {
-			var o = {};
-			for (var key in inner) {
-				if (inner.hasOwnProperty(key) && typeof inner[key] != 'function') {
-					o[key] = inner[key];
-				}
-			}
-			return o;
-		};
-	};
-
 	/** 
 	* @constructor
 	**/
@@ -135,6 +99,42 @@
 
 		options = options || {};
 		var inner = new BaseQuery(options);
+
+		//Set setter for filter to set value from basequery
+		this.__defineSetter__('filter', function(value) {
+			 inner.filter = value;
+		});
+
+		//Set getter for freetext to retrieve value from basequery
+		this.__defineGetter__('freeText', function() {
+			return inner.freetext;
+		});
+
+		//Set setter for freetext to set value from basequery
+		this.__defineSetter__('freeText', function(value) {
+			if (typeof freeText == 'string')
+				inner.freeText = value;
+			else if (typeof freeText == 'object' && value.length)
+				inner.freeText = value.join(',');
+		});
+
+		//Set getter for fields to retrieve value from basequery
+		this.__defineGetter__('fields', function() {
+			return inner.fields;
+		});
+
+		//Set setter for fields to set value from basequery
+		this.__defineSetter__('fields', function(value) {
+			if (typeof fields == 'string')
+				inner.fields = value;
+			else if (typeof fields == 'object' && value.length)
+				inner.fields = value.join(',');
+		});
+
+		//set filters , freetext and fields
+		this.filter = options.filter || '';
+		this.freeText = options.freeText || '';
+		this.fields = options.fields || '';
 
 		// just append the filters/properties parameter to the query string
 		this.toRequest = function() {
@@ -149,32 +149,12 @@
 		};
 
 		this.setFreeText = function() {
-            inner.freeText = arguments[1];
+            this.freeText = arguments[0];
         };
 
-        this.__defineGetter__('filter', function() {
-			return inner.filter;
-		});
-
-		this.__defineSetter__('filter', function(value) {
-			return inner.filter = value;
-		});
-
-		this.__defineGetter__('freeText', function() {
-			return inner.freetext;
-		});
-
-		this.__defineSetter__('freeText', function(value) {
-			return inner.freeText = value;
-		});
-
-		this.__defineGetter__('fields', function() {
-			return inner.fields;
-		});
-
-		this.__defineSetter__('fields', function(value) {
-			return inner.fields = value;
-		});
+        this.setFields = function() {
+        	this.fields = arguments[0];
+        };
 
 		this.extendOptions = function() {
 			inner.extendOptions.apply(inner, arguments);
@@ -220,6 +200,47 @@
 		options = options || {};
 		var inner = new BaseQuery(options);
 
+		//Set getter for filter to retrieve value from basequery
+		this.__defineGetter__('filter', function() {
+			return inner.filter;
+		});
+
+		//Set setter for filter to set value from basequery
+		this.__defineSetter__('filter', function(value) {
+			 inner.filter = value;
+		});
+
+		//Set getter for freetext to retrieve value from basequery
+		this.__defineGetter__('freeText', function() {
+			return inner.freetext;
+		});
+
+		//Set setter for freetext to set value from basequery
+		this.__defineSetter__('freeText', function(value) {
+			if (typeof freeText == 'string')
+				inner.freeText = value;
+			else if (typeof freeText == 'object' && value.length)
+				inner.freeText = value.join(',');
+		});
+
+		//Set getter for fields to retrieve value from basequery
+		this.__defineGetter__('fields', function() {
+			return inner.fields;
+		});
+
+		//Set setter for fields to set value from basequery
+		this.__defineSetter__('fields', function(value) {
+			if (typeof fields == 'string')
+				inner.fields = value;
+			else if (typeof fields == 'object' && value.length)
+				inner.fields = value.join(',');
+		});
+
+		//set filters , freetext and fields
+		this.filter = options.filter || '';
+		this.freeText = options.freeText || '';
+		this.fields = options.fields || '';
+
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/' + options.articleId + '/find?' +
@@ -236,32 +257,13 @@
 		};
 
 		this.setFreeText = function() {
-            inner.freeText = arguments[1];
+            this.freeText = arguments[0];
         };
 
-        this.__defineGetter__('filter', function() {
-			return inner.filter;
-		});
+        this.setFields = function() {
+        	this.fields = arguments[0];
+        };
 
-		this.__defineSetter__('filter', function(value) {
-			return inner.filter = value;
-		});
-
-		this.__defineGetter__('freeText', function() {
-			return inner.freetext;
-		});
-
-		this.__defineSetter__('freeText', function(value) {
-			return inner.freeText = value;
-		});
-
-		this.__defineGetter__('fields', function() {
-			return inner.fields;
-		});
-
-		this.__defineSetter__('fields', function(value) {
-			return inner.fields = value;
-		});
 
 		this.getOptions = function() {
 			var o = {};

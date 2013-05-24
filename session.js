@@ -97,37 +97,39 @@
 			}
 		});
 
-		this.setUserAuthHeader = function(authToken, expiry) {
+		this.setUserAuthHeader = function(authToken, expiry, doNotSetCookie) {
 			if (authToken) {
 				authEnabled = true;
 				_authToken = authToken;
-				if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
+				if (!doNotSetCookie) 
+					if (global.Appacitive.runtime.isBrowser) 
+						global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
 			}
 		};
 
 		this.removeUserAuthHeader = function(callback) {
 			authEnabled = false;
 			callback = callback || function() {};
+			global.Appacitive.localStorage.remove('Appacitive-User');
+			if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+
 			if (_authToken) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
 					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 					_authToken = null;
-					global.Appacitive.localStorage.remove('Appacitive-User');
-					
 					_request.method = 'POST';
-					request.data = {};
-					request.onSuccess = function() {
+					_request.data = {};
+					_request.onSuccess = function() {
 						if (typeof(callback) == 'function')
 							callback();
 					};
-					global.Appacitive.http.send(request);
+					global.Appacitive.http.send(_request);
 				} catch (e){}
 			} else {
 				if (typeof(callback) == 'function')
 					callback();
 			}
-			if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
 		};
 
 		this.isSessionValid = function(response) {
@@ -181,24 +183,30 @@
 		global.Appacitive.session.environment = ( options.env || '' );
 		global.Appacitive.useApiKey = true;
 
-		if (options.user) {
-			global.Appacitive.localStorage.set('Appacitive-User', options.user);
-			global.Appacitive.Users.setCurrentUser(options.user);	
+		if (options.userToken) {
+			if (options.expiry == -1)  options.expiry = null 
+			else if (!options.expiry)  options.expiry = 3600;
+
+			global.Appacitive.session.setUserAuthHeader(options.userToken, options.expiry);
+
+			if (options.user) {
+				global.Appacitive.localStorage.set('Appacitive-User', options.user);
+				global.Appacitive.Users.setCurrentUser(options.user);	
+			}
+
 		} else {
 			if (global.Appacitive.runtime.isBrowser) {
-				//read user from localstorage and set it
-				var user = global.Appacitive.localStorage.get('Appacitive-User');	
-				global.Appacitive.Users.setCurrentUser(user);
-				
 				//read usertoken from cookie and set it
 				var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
-				if (token) global.Appacitive.session.setUserAuthHeader(token, 60);
+				if (token) { 
+					global.Appacitive.session.setUserAuthHeader(token, 3600, true);
+
+					//read user from localstorage and set it
+					var user = global.Appacitive.localStorage.get('Appacitive-User');	
+					global.Appacitive.Users.setCurrentUser(user);
+				}
 			}
 		}			
-
-		if (options.userToken) {
-			global.Appacitive.session.setUserAuthHeader(options.userToken, 60);
-		}
 	};
 
 } (global));

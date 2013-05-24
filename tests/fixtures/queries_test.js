@@ -228,9 +228,174 @@ test('Verify filtered query modification using setOptions in articleCollection',
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
 });
 
+test('Verify filter modification using setFilter in articleCollection', function() {
+	var options = {
+		type: 'article',
+		schema: 'profile',
+		filter: 'q within_circle (1,2,3km)'
+	};
+	var query = new Appacitive.queries.BasicFilterQuery(options);
+	var collection = new Appacitive.ArticleCollection(options);
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
+
+	query = new Appacitive.queries.BasicFilterQuery(options);
+	collection.setFilter('q < 1234567890');
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
+});
+
+test('Verify custom filtered and freetext query in article collection', function() {
+	var query = new Appacitive.queries.BasicFilterQuery({
+		type: 'article',
+		schema: 'profile',
+		pageNumber: 3,
+		pageSize: 50,
+		orderBy: 'name',
+		isAscending: false,
+		filter: 'c>3',
+		freetext: 'test'
+	});
+	var collection = new Appacitive.ArticleCollection({ 
+		schema: 'profile',
+		type: 'article',
+		schema: 'profile',
+		pageNumber: 3,
+		pageSize: 50,
+		orderBy: 'name',
+		isAscending: false,
+		filter: 'c>3',
+		freetext: ['test'] 
+	});
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Custom filtered and freetxet query setting correctly in article collection.');
+});
+
+test('Verify filter and freetxt query modification using setOptions in articleCollection', function() {
+	var options = {
+		type: 'article',
+		schema: 'profile',
+		filter: 'q within_circle (1,2,3km)',
+		freetext: ['test']
+	};
+	var query = new Appacitive.queries.BasicFilterQuery(options);
+	var collection = new Appacitive.ArticleCollection(options);
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
+
+	options = {
+		type: 'article',
+		schema: 'profile',
+		pageNumber: 1,
+		pageSize: 200,
+		orderBy: '__UtcLastUpdatedDate',
+		isAscending: true,
+		filter: 'q < 1234567890',
+		freetext: 'newprofile'
+	};
+	query = new Appacitive.queries.BasicFilterQuery(options);
+	collection.setOptions(options);
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
+});
+
+test('Verify filter and freetext modification using setFilter and setfreetext in articleCollection', function() {
+	var options = {
+		type: 'article',
+		schema: 'profile',
+		filter: 'q within_circle (1,2,3km)',
+		freetext: 'test'
+	};
+	var query = new Appacitive.queries.BasicFilterQuery(options);
+	var collection = new Appacitive.ArticleCollection(options);
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
+
+	query = new Appacitive.queries.BasicFilterQuery(options);
+	collection.setFreeText('updatedtest');
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Filtered and freetext query modification correctly done in articleCollection.');
+});
+
+test('Verify custom fields and freetext query in article collection', function() {
+	var query = new Appacitive.queries.BasicFilterQuery({
+		type: 'article',
+		schema: 'profile',
+		pageNumber: 3,
+		pageSize: 50,
+		orderBy: 'name',
+		isAscending: false,
+		fields: 'name,id',
+		freetext: 'test'
+	});
+	var collection = new Appacitive.ArticleCollection({ 
+		schema: 'profile',
+		type: 'article',
+		schema: 'profile',
+		pageNumber: 3,
+		pageSize: 50,
+		orderBy: 'name',
+		isAscending: false,
+		filter: 'c>3',
+		freetext: ['name,id']
+	});
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Custom fields and freetext query setting correctly in article collection.');
+});
+
+test('Verify filtered, freetxt and fields query modification using setOptions in articleCollection', function() {
+	var options = {
+		type: 'article',
+		schema: 'profile',
+		filter: 'q within_circle (1,2,3km)',
+		freetext: ['test'],
+		fields: 'name,__id'
+	};
+	var query = new Appacitive.queries.BasicFilterQuery(options);
+	var collection = new Appacitive.ArticleCollection(options);
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
+
+	options = {
+		type: 'article',
+		schema: 'profile',
+		pageNumber: 1,
+		pageSize: 200,
+		orderBy: '__UtcLastUpdatedDate',
+		isAscending: true,
+		filter: 'q < 1234567890',
+		freetext: 'newprofile',
+		fields: ['name', '__id']
+	};
+	query = new Appacitive.queries.BasicFilterQuery(options);
+	collection.setOptions(options);
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
+});
+
+test('Verify filter and freetext modification using setFilter and setfreetext in articleCollection', function() {
+	var options = {
+		type: 'article',
+		schema: 'profile',
+		filter: 'q within_circle (1,2,3km)',
+		freetext: 'test',
+		fields: ['name', '__id']
+	};
+	var query = new Appacitive.queries.BasicFilterQuery(options);
+	var collection = new Appacitive.ArticleCollection(options);
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
+
+	query = new Appacitive.queries.BasicFilterQuery(options);
+	collection.freetext = ['updatedtest'];
+	collection.fields = 'name,__id';
+	var collectionQuery = collection.query;
+	deepEqual(query, collectionQuery, 'Filtered and freetext query modification correctly done in articleCollection.');
+});
+
 test('Verify filtered query orderBy in ArticleCollection', function() {
 	var models = new Appacitive.ArticleCollection({ schema: 'profile' });
-	models.setFilter('somep == somev');
+	models.filter = 'somep == somev';
 	models.query.extendOptions({ orderBy: 'orderByField' });
 	var qUrl = models.query.toRequest().url;
 	equal(qUrl.indexOf('orderByField') != -1, true, 'orderBy sets properly, url: ' + qUrl);

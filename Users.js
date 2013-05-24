@@ -11,17 +11,15 @@
 		});
 
 		this.setCurrentUser = function(user, token, expiry) {
+
 			global.Appacitive.localStorage.set('Appacitive-User', user);
 			
-			if (expiry == -1)
-			 expiry = null 
-			else 
-			  if (!expiry) expiry = 3600;
+			if (expiry == -1) expiry = null 
+			else if (!expiry) expiry = 3600;
 
 			authenticatedUser = user;
-			if (token) {
+			if (token) 
 				Appacitive.session.setUserAuthHeader(token, expiry);
-			}
 		};
 		
 		global.Appacitive.User = function(options) {
@@ -121,6 +119,32 @@
 			global.Appacitive.http.send(request);
 		};
 
+		this.authenticate = function(username, password, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!username || !password || username.length ==0 || password.length == 0) 
+				throw new Error('Please specify username and password');
+
+			var that = this;
+			var request = new global.Appacitive.HttpRequest();
+			request.method = 'post';
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
+			request.data = authRequest;
+			request.onSuccess = function(data) {
+				if (data && data.user) {
+					authenticatedUser = data.user;
+					that.setCurrentUser(data.user, data.token, authRequest.expiry);
+					onSuccess(data);
+				} else {
+					data = data || {};
+					onError(data.status);
+				}
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request);
+		};
+
 		this.signupWithFacebook = function(onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
@@ -156,6 +180,42 @@
 
 		this.authenticateWithFacebook = this.signupWithFacebook;
 
+		this.validateCurrentUser = function(callback, avoidApiCall) {
+			if (callback && typeof callback != 'function' && typeof callback == 'boolean') {
+				avoidApiCall = callback;
+				callback = function() {}; 
+			} else {
+				callback = callback;
+				avoidApiCall = avoidApiCall;
+			}
+
+			var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
+
+			if(!token) {
+				if (typeof(callback) == 'function')
+					callback(false);
+				return false;
+			}
+
+			if (!avoidApiCall) {
+				try {
+					var _request = new global.Appacitive.HttpRequest();
+					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getValidateTokenUrl(token);
+					_request.method = 'POST';
+					_request.data = {};
+					_request.onSuccess = function(data) {
+						if (typeof(callback) == 'function')
+							callback(data.result);
+					};
+					global.Appacitive.http.send(_request);
+				} catch (e){callback(false);}
+			} else {
+				if (typeof(callback) == 'function')
+					callback(true);
+				return true;
+			}
+		};
+
 		this.logout = function(callback) {
 			callback = callback || function() {};
 			if (!this.currentUser) { 
@@ -164,7 +224,7 @@
 			}
 
 			global.Appacitive.session.removeUserAuthHeader(callback);
-		}
+		};
 
 	};
 

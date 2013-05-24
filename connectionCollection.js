@@ -61,6 +61,19 @@
 			}
         };
 
+        this.setFields = function(fields) {
+        	if (!fields)
+                _options.fields = "";
+            _options.fields = fields;
+            _options.type = 'connection';
+            if (_query) {
+				_query.fields = fields;
+			} else {
+				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				that.extendOptions = _query.extendOptions;
+			}
+        };
+
 		this.__defineGetter__("query", function() {
 			return _query;
 		});

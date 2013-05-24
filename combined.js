@@ -723,31 +723,14 @@ var global = {};
             getAuthenticateUserUrl: function () {
                 return String.format("{0}/authenticate", this.userServiceUrl);
             },
-            getUserUrl: function (userId, deploymentId) {
+            getUserUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
             },
-            getUpdateUrl: function (userId, deploymentId) {
+            getUpdateUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
             },
             getDeleteUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
-            },
-            getSearchAllUrl: function (deploymentId, queryParams, pageSize) {
-                var url = '';
-
-                url = String.format('{0}/search/user/all', new UrlFactory().article.articleServiceUrl);
-
-                if (pageSize)
-                    url = url + '?psize=' + pageSize;
-                else
-                    url = url + '?psize=10';
-                if (typeof (queryParams) !== 'undefined' && queryParams.length > 0) {
-                    for (var i = 0; i < queryParams.length; i = i + 1) {
-                        if (queryParams[i].trim().length == 0) continue;
-                        url = url + "&" + queryParams[i];
-                    }
-                }
-                return url;
             },
             getGetAllLinkedAccountsUrl: function(userId) {
                 var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
@@ -1183,37 +1166,39 @@ Depends on  NOTHING
 			}
 		});
 
-		this.setUserAuthHeader = function(authToken, expiry) {
+		this.setUserAuthHeader = function(authToken, expiry, doNotSetCookie) {
 			if (authToken) {
 				authEnabled = true;
 				_authToken = authToken;
-				if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
+				if (!doNotSetCookie) 
+					if (global.Appacitive.runtime.isBrowser) 
+						global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
 			}
 		};
 
 		this.removeUserAuthHeader = function(callback) {
 			authEnabled = false;
 			callback = callback || function() {};
+			global.Appacitive.localStorage.remove('Appacitive-User');
+			if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+
 			if (_authToken) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
 					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 					_authToken = null;
-					global.Appacitive.localStorage.remove('Appacitive-User');
-					
 					_request.method = 'POST';
-					request.data = {};
-					request.onSuccess = function() {
+					_request.data = {};
+					_request.onSuccess = function() {
 						if (typeof(callback) == 'function')
 							callback();
 					};
-					global.Appacitive.http.send(request);
+					global.Appacitive.http.send(_request);
 				} catch (e){}
 			} else {
 				if (typeof(callback) == 'function')
 					callback();
 			}
-			if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
 		};
 
 		this.isSessionValid = function(response) {
@@ -1267,24 +1252,30 @@ Depends on  NOTHING
 		global.Appacitive.session.environment = ( options.env || '' );
 		global.Appacitive.useApiKey = true;
 
-		if (options.user) {
-			global.Appacitive.localStorage.set('Appacitive-User', options.user);
-			global.Appacitive.Users.setCurrentUser(options.user);	
+		if (options.userToken) {
+			if (options.expiry == -1)  options.expiry = null 
+			else if (!options.expiry)  options.expiry = 3600;
+
+			global.Appacitive.session.setUserAuthHeader(options.userToken, options.expiry);
+
+			if (options.user) {
+				global.Appacitive.localStorage.set('Appacitive-User', options.user);
+				global.Appacitive.Users.setCurrentUser(options.user);	
+			}
+
 		} else {
 			if (global.Appacitive.runtime.isBrowser) {
-				//read user from localstorage and set it
-				var user = global.Appacitive.localStorage.get('Appacitive-User');	
-				global.Appacitive.Users.setCurrentUser(user);
-				
 				//read usertoken from cookie and set it
 				var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
-				if (token) global.Appacitive.session.setUserAuthHeader(token, 60);
+				if (token) { 
+					global.Appacitive.session.setUserAuthHeader(token, 3600, true);
+
+					//read user from localstorage and set it
+					var user = global.Appacitive.localStorage.get('Appacitive-User');	
+					global.Appacitive.Users.setCurrentUser(user);
+				}
 			}
 		}			
-
-		if (options.userToken) {
-			global.Appacitive.session.setUserAuthHeader(options.userToken, 60);
-		}
 	};
 
 } (global));
@@ -1349,10 +1340,6 @@ Depends on  NOTHING
 			throw new Error('schema or relation name is mandatory');
 		this.type = (o.schema) ? 'article' : 'connection';
 
-		this.filter = o.filter || '';
-		this.freeText = o.freeText || '';
-		this.fields = o.fields || '';
-
 		this.extendOptions = function(changes) {
 			for (var key in changes) {
 				options[key] = changes[key];
@@ -1401,38 +1388,6 @@ Depends on  NOTHING
 		};
 	};
 
-	// search all type query
-	/** 
-	* @constructor
-	**/
-	global.Appacitive.queries.SearchAllQuery = function(options) {
-
-		options = options || {};
-		var inner = new BaseQuery(options);
-
-		// simple query
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = inner.toUrl();
-			r.method = 'get';
-			return r;
-		};
-
-		this.extendOptions = function() {
-			inner.extendOptions.apply(inner, arguments);
-		};
-
-		this.getOptions = function() {
-			var o = {};
-			for (var key in inner) {
-				if (inner.hasOwnProperty(key) && typeof inner[key] != 'function') {
-					o[key] = inner[key];
-				}
-			}
-			return o;
-		};
-	};
-
 	/** 
 	* @constructor
 	**/
@@ -1440,6 +1395,42 @@ Depends on  NOTHING
 
 		options = options || {};
 		var inner = new BaseQuery(options);
+
+		//Set setter for filter to set value from basequery
+		this.__defineSetter__('filter', function(value) {
+			 inner.filter = value;
+		});
+
+		//Set getter for freetext to retrieve value from basequery
+		this.__defineGetter__('freeText', function() {
+			return inner.freetext;
+		});
+
+		//Set setter for freetext to set value from basequery
+		this.__defineSetter__('freeText', function(value) {
+			if (typeof freeText == 'string')
+				inner.freeText = value;
+			else if (typeof freeText == 'object' && value.length)
+				inner.freeText = value.join(',');
+		});
+
+		//Set getter for fields to retrieve value from basequery
+		this.__defineGetter__('fields', function() {
+			return inner.fields;
+		});
+
+		//Set setter for fields to set value from basequery
+		this.__defineSetter__('fields', function(value) {
+			if (typeof fields == 'string')
+				inner.fields = value;
+			else if (typeof fields == 'object' && value.length)
+				inner.fields = value.join(',');
+		});
+
+		//set filters , freetext and fields
+		this.filter = options.filter || '';
+		this.freeText = options.freeText || '';
+		this.fields = options.fields || '';
 
 		// just append the filters/properties parameter to the query string
 		this.toRequest = function() {
@@ -1454,32 +1445,12 @@ Depends on  NOTHING
 		};
 
 		this.setFreeText = function() {
-            inner.freeText = arguments[1];
+            this.freeText = arguments[0];
         };
 
-        this.__defineGetter__('filter', function() {
-			return inner.filter;
-		});
-
-		this.__defineSetter__('filter', function(value) {
-			return inner.filter = value;
-		});
-
-		this.__defineGetter__('freeText', function() {
-			return inner.freetext;
-		});
-
-		this.__defineSetter__('freeText', function(value) {
-			return inner.freeText = value;
-		});
-
-		this.__defineGetter__('fields', function() {
-			return inner.fields;
-		});
-
-		this.__defineSetter__('fields', function(value) {
-			return inner.fields = value;
-		});
+        this.setFields = function() {
+        	this.fields = arguments[0];
+        };
 
 		this.extendOptions = function() {
 			inner.extendOptions.apply(inner, arguments);
@@ -1525,6 +1496,47 @@ Depends on  NOTHING
 		options = options || {};
 		var inner = new BaseQuery(options);
 
+		//Set getter for filter to retrieve value from basequery
+		this.__defineGetter__('filter', function() {
+			return inner.filter;
+		});
+
+		//Set setter for filter to set value from basequery
+		this.__defineSetter__('filter', function(value) {
+			 inner.filter = value;
+		});
+
+		//Set getter for freetext to retrieve value from basequery
+		this.__defineGetter__('freeText', function() {
+			return inner.freetext;
+		});
+
+		//Set setter for freetext to set value from basequery
+		this.__defineSetter__('freeText', function(value) {
+			if (typeof freeText == 'string')
+				inner.freeText = value;
+			else if (typeof freeText == 'object' && value.length)
+				inner.freeText = value.join(',');
+		});
+
+		//Set getter for fields to retrieve value from basequery
+		this.__defineGetter__('fields', function() {
+			return inner.fields;
+		});
+
+		//Set setter for fields to set value from basequery
+		this.__defineSetter__('fields', function(value) {
+			if (typeof fields == 'string')
+				inner.fields = value;
+			else if (typeof fields == 'object' && value.length)
+				inner.fields = value.join(',');
+		});
+
+		//set filters , freetext and fields
+		this.filter = options.filter || '';
+		this.freeText = options.freeText || '';
+		this.fields = options.fields || '';
+
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/' + options.articleId + '/find?' +
@@ -1541,32 +1553,13 @@ Depends on  NOTHING
 		};
 
 		this.setFreeText = function() {
-            inner.freeText = arguments[1];
+            this.freeText = arguments[0];
         };
 
-        this.__defineGetter__('filter', function() {
-			return inner.filter;
-		});
+        this.setFields = function() {
+        	this.fields = arguments[0];
+        };
 
-		this.__defineSetter__('filter', function(value) {
-			return inner.filter = value;
-		});
-
-		this.__defineGetter__('freeText', function() {
-			return inner.freetext;
-		});
-
-		this.__defineSetter__('freeText', function(value) {
-			return inner.freeText = value;
-		});
-
-		this.__defineGetter__('fields', function() {
-			return inner.fields;
-		});
-
-		this.__defineSetter__('fields', function(value) {
-			return inner.fields = value;
-		});
 
 		this.getOptions = function() {
 			var o = {};
@@ -2013,6 +2006,19 @@ Depends on  NOTHING
 			}
         };
 
+        this.setFields = function(fields) {
+        	if (!fields)
+                _options.fields = "";
+            _options.fields = fields;
+            _options.type = 'article';
+            if (_query) {
+				_query.fields = fields;
+			} else {
+				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				that.extendOptions = _query.extendOptions;
+			}
+        };
+
 		this.reset = function() {
 			_options = null;
 			_schema = null;
@@ -2078,7 +2084,7 @@ Depends on  NOTHING
 			}
 		};
 
-		this.getArticle = function(id, onSuccess, onError) {
+		this.getArticleById = function(id, onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function() {};
 			var existingArticle = _articles.filter(function (article) {
@@ -2260,6 +2266,19 @@ Depends on  NOTHING
             _options.type = 'connection';
             if (_query) {
 				_query.freeText = tokens;
+			} else {
+				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				that.extendOptions = _query.extendOptions;
+			}
+        };
+
+        this.setFields = function(fields) {
+        	if (!fields)
+                _options.fields = "";
+            _options.fields = fields;
+            _options.type = 'connection';
+            if (_query) {
+				_query.fields = fields;
 			} else {
 				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -2521,7 +2540,10 @@ Depends on  NOTHING
 
 	global.Appacitive.Article.multiDelete = function(schemaName, ids, onSuccess, onError) {
 		if (!schemaName)
-			throw new Error("Specify schemaname");
+			throw new Error("Specify schemaName");
+
+		if (schemaName.toLowerCase() == 'user' || schemaName.toLowerCase() == 'device')
+			throw new Error("Cannot delete schema and devices using multidelete");
 
 		if (ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
@@ -2724,17 +2746,15 @@ Depends on  NOTHING
 		});
 
 		this.setCurrentUser = function(user, token, expiry) {
+
 			global.Appacitive.localStorage.set('Appacitive-User', user);
 			
-			if (expiry == -1)
-			 expiry = null 
-			else 
-			  if (!expiry) expiry = 3600;
+			if (expiry == -1) expiry = null 
+			else if (!expiry) expiry = 3600;
 
 			authenticatedUser = user;
-			if (token) {
+			if (token) 
 				Appacitive.session.setUserAuthHeader(token, expiry);
-			}
 		};
 		
 		global.Appacitive.User = function(options) {
@@ -2834,6 +2854,32 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request);
 		};
 
+		this.authenticate = function(username, password, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!username || !password || username.length ==0 || password.length == 0) 
+				throw new Error('Please specify username and password');
+
+			var that = this;
+			var request = new global.Appacitive.HttpRequest();
+			request.method = 'post';
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
+			request.data = authRequest;
+			request.onSuccess = function(data) {
+				if (data && data.user) {
+					authenticatedUser = data.user;
+					that.setCurrentUser(data.user, data.token, authRequest.expiry);
+					onSuccess(data);
+				} else {
+					data = data || {};
+					onError(data.status);
+				}
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request);
+		};
+
 		this.signupWithFacebook = function(onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
@@ -2869,6 +2915,42 @@ Depends on  NOTHING
 
 		this.authenticateWithFacebook = this.signupWithFacebook;
 
+		this.validateCurrentUser = function(callback, avoidApiCall) {
+			if (callback && typeof callback != 'function' && typeof callback == 'boolean') {
+				avoidApiCall = callback;
+				callback = function() {}; 
+			} else {
+				callback = callback;
+				avoidApiCall = avoidApiCall;
+			}
+
+			var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
+
+			if(!token) {
+				if (typeof(callback) == 'function')
+					callback(false);
+				return false;
+			}
+
+			if (!avoidApiCall) {
+				try {
+					var _request = new global.Appacitive.HttpRequest();
+					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getValidateTokenUrl(token);
+					_request.method = 'POST';
+					_request.data = {};
+					_request.onSuccess = function(data) {
+						if (typeof(callback) == 'function')
+							callback(data.result);
+					};
+					global.Appacitive.http.send(_request);
+				} catch (e){callback(false);}
+			} else {
+				if (typeof(callback) == 'function')
+					callback(true);
+				return true;
+			}
+		};
+
 		this.logout = function(callback) {
 			callback = callback || function() {};
 			if (!this.currentUser) { 
@@ -2877,7 +2959,7 @@ Depends on  NOTHING
 			}
 
 			global.Appacitive.session.removeUserAuthHeader(callback);
-		}
+		};
 
 	};
 

@@ -40,6 +40,26 @@ asyncTest('Verify default user authentication', function() {
     });
 });
 
+asyncTest('Verify current usertoken validation with cookie only', function() {
+	Appacitive.Users.validateCurrentUser(function(status) {
+    	ok(status, 'User validated successfully with cookie ');
+    	start();
+    }, true);
+});
+
+asyncTest('Verify current usertoken validation with cookie only without callback', function() {
+	var status = Appacitive.Users.validateCurrentUser(true);
+	ok(status, 'User validated successfully with cookie ');
+    start();
+});
+
+asyncTest('Verify current usertoken validation with cookie and apicall', function() {
+	Appacitive.Users.validateCurrentUser(function(status) {
+    	ok(status, 'User validate successfully with api call');
+    	start();
+    });
+});
+
 asyncTest('Verify currently logged in user delete', function() {
 	Appacitive.Users.deleteCurrentUser(function() {
 		ok(true, 'Current user deleted successfully');
@@ -48,4 +68,24 @@ asyncTest('Verify currently logged in user delete', function() {
 		ok(false, 'Current user delete failed: ' + JSON.stringify(m));
 		start();
 	});
+});
+
+asyncTest('Verify loggedout usertoken validation with cookie only', function() {
+	Appacitive.Users.validateCurrentUser(function(status) {
+    	ok(!status, 'User validated successfully with cookie ');
+    	start();
+    }, true);
+});
+
+asyncTest('Verify loggedout usertoken validation with cookie only without callback', function() {
+	var status = Appacitive.Users.validateCurrentUser(true);
+	ok(!status, 'User validated successfully with cookie ');
+    start();
+});
+
+asyncTest('Verify loggedout usertoken validation with cookie and apicall', function() {
+	Appacitive.Users.validateCurrentUser(function(status) {
+    	ok(!status, 'User validate successfully with api call');
+    	start();
+    });
 });

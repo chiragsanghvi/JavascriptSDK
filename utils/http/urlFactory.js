@@ -86,31 +86,14 @@
             getAuthenticateUserUrl: function () {
                 return String.format("{0}/authenticate", this.userServiceUrl);
             },
-            getUserUrl: function (userId, deploymentId) {
+            getUserUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
             },
-            getUpdateUrl: function (userId, deploymentId) {
+            getUpdateUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
             },
             getDeleteUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
-            },
-            getSearchAllUrl: function (deploymentId, queryParams, pageSize) {
-                var url = '';
-
-                url = String.format('{0}/search/user/all', new UrlFactory().article.articleServiceUrl);
-
-                if (pageSize)
-                    url = url + '?psize=' + pageSize;
-                else
-                    url = url + '?psize=10';
-                if (typeof (queryParams) !== 'undefined' && queryParams.length > 0) {
-                    for (var i = 0; i < queryParams.length; i = i + 1) {
-                        if (queryParams[i].trim().length == 0) continue;
-                        url = url + "&" + queryParams[i];
-                    }
-                }
-                return url;
             },
             getGetAllLinkedAccountsUrl: function(userId) {
                 var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);

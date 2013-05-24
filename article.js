@@ -74,7 +74,10 @@
 
 	global.Appacitive.Article.multiDelete = function(schemaName, ids, onSuccess, onError) {
 		if (!schemaName)
-			throw new Error("Specify schemaname");
+			throw new Error("Specify schemaName");
+
+		if (schemaName.toLowerCase() == 'user' || schemaName.toLowerCase() == 'device')
+			throw new Error("Cannot delete schema and devices using multidelete");
 
 		if (ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
