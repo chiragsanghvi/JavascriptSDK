@@ -10,29 +10,35 @@
 		if (endpoint.articleid) {
 			// provided an article id
 			result.articleid = endpoint.articleid;
-		} else if (endpoint.article && typeof endpoint.article.getArticle == 'function') {
-			// provided an instance of Appacitive.ArticleCollection
-			// stick the whole article if there is no __id
-			// else just stick the __id
-			if (endpoint.article.get('__id')) {
-				result.articleid = endpoint.article.get('__id');
-			} else {
-				result.article = endpoint.article.getArticle();
-			}
-			base["endpoint" + type] = endpoint;
-		} else if (typeof endpoint.article == 'object' && endpoint.article.__schematype) {
-			// provided a raw article
-			// if there is an __id, just add that
-			// else add the entire article
-			if (endpoint.article.__id) {
-				result.articleid = endpoint.article.__id;
-			} else {
-				result.article = endpoint.article;
-			}
+		} 
+		if (endpoint.article) {
+			if (typeof endpoint.article.getArticle == 'function') {
+				// provided an instance of Appacitive.ArticleCollection
+				// stick the whole article if there is no __id
+				// else just stick the __id
+				if (endpoint.article.get('__id')) {
+					result.articleid = endpoint.article.get('__id');
+				} else {
+					result.article = endpoint.article.getArticle();
+				}
+			} else if (typeof endpoint.article == 'object' && endpoint.article.__schematype) {
+				// provided a raw article
+				// if there is an __id, just add that
+				// else add the entire article
+				if (endpoint.article.__id) {
+					result.articleid = endpoint.article.__id;
+				} else {
+					result.article = endpoint.article;
+				}
+				endpoint.article =  new Appacitive.Article(endpoint.article);
+			} 
 		} else {
-			throw new Error('Incorrectly configured endpoints provided to setupConnection');
+			if (!result.articleid && !result.article)
+				throw new Error('Incorrectly configured endpoints provided to setupConnection');
 		}
 
+		base["endpoint" + type] = endpoint;
+		
 		return result;
 	};
 
@@ -62,11 +68,11 @@
 	global.Appacitive.Connection = function(options, doNotParse) {
 
 		if (!options.__relationtype && !options.relation )
-			throw new error("Cannot set connection without schema");
+			throw new error("Cannot set connection without relation");
 
-		if (options.schema) {
-			options.__schematype = options.schema;
-			delete options.schema;
+		if (options.relation) {
+			options.__relationtype = options.relation;
+			delete options.relation;
 		}
 
 		if (options.endpoints && options.endpoints.length == 2) {
@@ -74,9 +80,6 @@
 			options.__endpointb = options.endpoints[1];
 			delete options.endpoints;
 		}
-
-		if (!options.__endpointa || !options.__endpointb)
-			throw new Error('Provide both endpoints.');
 
 		var base = new global.Appacitive.BaseObject(options);
 		base.type = 'connection';
@@ -142,7 +145,8 @@
 				base.parseConnection();
 
 		} else {
-			base.setupConnection(base.get('__endpointa'), base.get('__endpointb'));
+			if (options.__endpointa && options.__endpointb)
+				base.setupConnection(base.get('__endpointa'), base.get('__endpointb'));
 		} 
 
 		return base;

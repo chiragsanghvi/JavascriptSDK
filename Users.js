@@ -166,7 +166,7 @@
 						if (a.user) {
 							a.user.__authType = 'FB';
 							authenticatedUser = a.user;	
-							that.setCurrentUser(a.user, a.token, 80);
+							that.setCurrentUser(a.user, a.token, 120);
 							onSuccess(a);
 						} else {
 							onError(a);
