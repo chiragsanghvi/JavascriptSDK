@@ -122,19 +122,10 @@
         this.article = {
             articleServiceUrl: 'article',
 
-            getGetUrl: function (schemaId, articleId) {
-                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaId, articleId);
-            },
-            getMultiGetUrl: function (deploymentId, schemaId, articleIds) {
-                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaId, articleIds);
-            },
-            getMultiDeleteUrl: function (deploymentId, schemaId) {
-                return String.format('{0}/multidelete/{1}', this.articleServiceUrl, schemaId);
-            },
-            getSearchAllUrl: function (deploymentId, schemaId, queryParams, pageSize) {
+            getSearchAllUrl: function (schemaName, queryParams, pageSize) {
                 var url = '';
 
-                url = String.format('{0}/search/{1}/all', this.articleServiceUrl, schemaId);
+                url = String.format('{0}/search/{1}/all', this.articleServiceUrl, schemaName);
 
                 if (pageSize)
                     url = url + '?psize=' + pageSize;
@@ -151,14 +142,17 @@
             getProjectionQueryUrl: function() {
                 return String.format('{0}/search/project', this.articleServiceUrl);
             },
-            getPropertiesSearchUrl: function (deploymentId, schemaName, query) {
+            getPropertiesSearchUrl: function (schemaName, query) {
                 var url = String.format('{0}/search/{1}/all', this.articleServiceUrl, schemaName);
                 url += '?properties=' + query;
 
                 return url;
             },
-            getDeleteUrl: function (schemaName, articleId) {
+            getGetUrl: function (schemaName, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            },
+            getMultiGetUrl: function (schemaName, articleIds) {
+                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaName, articleIds);
             },
             getCreateUrl: function (schemaName) {
                 return String.format('{0}/{1}', this.articleServiceUrl, schemaName);
@@ -166,7 +160,10 @@
             getUpdateUrl: function (schemaName, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
             },
-            getMultideleteUrl: function (schemaName) {
+            getDeleteUrl: function (schemaName, articleId) {
+                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            },
+            getMultiDeleteUrl: function (schemaName) {
                 return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);
             }
         };
@@ -174,25 +171,28 @@
 
             connectionServiceUrl: 'connection',
 
-            getGetUrl: function (relationId, connectionId) {
-                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationId, connectionId);
+            getGetUrl: function (relationName, connectionId) {
+                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
             },
-            getCreateUrl: function (relationId) {
-                return String.format('{0}/{1}', this.connectionServiceUrl, relationId);
+            getMultiGetUrl: function (schemaName, articleIds) {
+                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaName, articleIds);
             },
-            getUpdateUrl: function (deploymentId, relationType, relationId) {
-                return String.format('{0}/update/{1}/{2}', this.connectionServiceUrl, relationType, relationId);
+            getCreateUrl: function (relationName) {
+                return String.format('{0}/{1}', this.connectionServiceUrl, relationName);
             },
-            getDeleteUrl: function (relationId, connectionId) {
-                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationId, connectionId);
+            getUpdateUrl: function (relationName, connectionId) {
+                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
+            },
+            getDeleteUrl: function (relationName, connectionId) {
+                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
             },
             getMultiDeleteUrl: function (relationName) {
                 return String.format('{0}/{1}/bulkdelete', this.connectionServiceUrl, relationName);
             },
-            getSearchByArticleUrl: function (deploymentId, relationId, articleId, label, queryParams) {
+            getSearchByArticleUrl: function (relationName, articleId, label, queryParams) {
                 var url = '';
 
-                url = String.format('{0}/{1}/find/all?label={2}&articleid={3}', this.connectionServiceUrl, relationId, label, articleId);
+                url = String.format('{0}/{1}/find/all?label={2}&articleid={3}', this.connectionServiceUrl, relationName, label, articleId);
                 // url = url + '?psize=1000';
                 if (typeof (queryParams) !== 'undefined' && queryParams.length > 0) {
                     for (var i = 0; i < queryParams.length; i = i + 1) {
@@ -201,9 +201,9 @@
                 }
                 return url;
             },
-            getConnectedArticles: function (deploymentId, relationId, articleId, queryParams) {
+            getConnectedArticles: function (relationName, articleId, queryParams) {
                 var url = '';
-                url = String.format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationId, articleId);
+                url = String.format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationName, articleId);
                 if (queryParams && queryParams.length && queryParams.length > 0) {
                     for (var x = 0; x < queryParams.length; x += 1) {
                         if (x == 0) {
@@ -215,12 +215,12 @@
                 }
                 return url;
             },
-            getInterconnectsUrl: function (deploymentId) {
+            getInterconnectsUrl: function () {
                 var url = '';
                 url = String.format('{0}/connectedarticles', this.connectionServiceUrl);
                 return url;
             },
-            getPropertiesSearchUrl: function (deploymentId, relationName, query) {
+            getPropertiesSearchUrl: function (relationName, query) {
                 var url = String.format('{0}/{1}/find/all', this.connectionServiceUrl, relationName);
                 url += '?properties=' + query;
 

@@ -5,11 +5,11 @@ var testConstants = {
 	adminUserAuthToken: 'eGdQb3NEcTBLRnlUazA3TU1URzJGOUFWek9tMGZJVFFHcnIzRTJ6RGpuS3poNWV5Rm10MHN5WlBoWCtYWDRpMkpwWEVWMFVhdEMrYUt4dldGR1dENldEZnZpeFIrdDBXNzVHaDFpZ2xBVWVCNVRnaU1rYjU1ZEtOeHlNZzZrOG92eERIcVZkREJpaW0zTmJsSGZHUHVCMHd3aUZnNVRTNQ==',
 	environment: 'sandbox',
 	user: {
-		username: 'bchakravarty@appacitive.com',
+		username: 'csanghvi@appacitive.com',
 		password: 'test123!@#',
-		email: 'bchakravarty@appacitive.com',
-		firstname: 'Biswarup',
-		lastname: 'Chakravarty'
+		email: 'csanghvi@appacitive.com',
+		firstname: 'Chirag',
+		lastname: 'Sanghvi'
 	},
 	populateDefaultUserFields: function(user) {
 		user.set('password', testConstants.user.password);

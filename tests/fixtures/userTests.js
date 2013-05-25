@@ -40,6 +40,33 @@ asyncTest('Verify default user authentication', function() {
     });
 });
 
+asyncTest('Verify signup for user', function() {
+	var user = {};
+	user.username = 'DeepClone #' + parseInt(Math.random() * 10000);
+	user.firstname = testConstants.user.firstname;
+	user.lastname = testConstants.user.lastname;
+	user.email = testConstants.user.email;
+	user.password = testConstants.user.password;
+
+	Appacitive.Users.signup(user, function(data) {
+		ok(true, 'User sidnedup successfully: ' + JSON.stringify(arguments));
+		start();
+	}, function(d) {
+		ok(false, 'Error returned: ' + JSON.stringify(d));
+		start();
+	});
+});
+
+asyncTest('Verify login for user', function() {
+	Appacitive.Users.login(testConstants.user.username, testConstants.user.password, function(data) {
+		ok(true, 'User loggedin successfully: ' + JSON.stringify(arguments));
+		start();
+	}, function(d) {
+		ok(false, 'Error returned: ' + JSON.stringify(d));
+		start();
+	});
+});
+
 asyncTest('Verify current usertoken validation with cookie only', function() {
 	Appacitive.Users.validateCurrentUser(function(status) {
     	ok(status, 'User validated successfully with cookie ');

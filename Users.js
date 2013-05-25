@@ -70,7 +70,7 @@
 			}, onError);
 		};
 
-		this.signup = function(user, onSuccess, onError) {
+		this.createUser = function(user, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 			user = user || {};
@@ -93,8 +93,17 @@
 			global.Appacitive.http.send(request);
 		};
 
-		this.createUser = this.signup;
+		//method to allow user to signup and then login 
+		this.signup = function(user, onSuccess, onError) {
+			var that = this;
+			this.createUser(user, function(data) {
+				that.login(user.username, user.password, onSuccess, onError);
+			}, function(status) {
+				onError(status);
+			});
+		};
 
+		//authenticate user with authrequest that contains username , password and expiry
 		this.authenticateUser = function(authRequest, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
@@ -119,30 +128,21 @@
 			global.Appacitive.http.send(request);
 		};
 
-		this.authenticate = function(username, password, onSuccess, onError) {
+		//An overrride for user login with username and password directly
+		this.login = function(username, password, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
 			if (!username || !password || username.length ==0 || password.length == 0) 
 				throw new Error('Please specify username and password');
 
-			var that = this;
-			var request = new global.Appacitive.HttpRequest();
-			request.method = 'post';
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
-			request.data = authRequest;
-			request.onSuccess = function(data) {
-				if (data && data.user) {
-					authenticatedUser = data.user;
-					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					onSuccess(data);
-				} else {
-					data = data || {};
-					onError(data.status);
-				}
+			var authRequest = {
+				username : username,
+				password: password,
+				expiry: -1
 			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
+
+			this.authenticateUser(authRequest, onSuccess, onError);
 		};
 
 		this.signupWithFacebook = function(onSuccess, onError) {
@@ -154,7 +154,7 @@
 					var authRequest = {
 						"accesstoken": global.Appacitive.facebook.accessToken,
 						"type": "facebook",
-						"expiry": 80,
+						"expiry": 120,
 						"attempts": -1,
 						"createnew": true
 					};

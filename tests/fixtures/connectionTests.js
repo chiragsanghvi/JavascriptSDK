@@ -17,7 +17,7 @@ asyncTest('Happy path for create two articles and connect them', function() {
 	var user = users.createNewArticle();
 	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
 	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
 	user.save(function() {
 		profile.save(function() {
 			var connectOptions = {
@@ -52,7 +52,7 @@ asyncTest('Happy path for create two articles and connect them', function() {
 asyncTest('Happy path for create connection with two article objects', function() {
 	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
 	var school = schools.createNewArticle();
-	var profile = profiles.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
 	var connectOptions = {
 		__endpointa: {
 			article: school,
@@ -76,12 +76,162 @@ asyncTest('Happy path for create connection with two article objects', function(
 	});
 });
 
+
+asyncTest('Happy path to fetch connection using its id', function() {
+	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
+	var school = schools.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
+	
+	var connectOptions = {
+		__endpointa: {
+			article: school,
+			label: 'school'
+		},
+		__endpointb: {
+			article: profile,
+			label: 'profile'
+		}
+	};
+
+	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
+	var connection = cC.createNewConnection(connectOptions);
+	connection.save(function(conn) {
+		console.dir(conn);
+		var relSchool = new Appacitive.Connection({__id: conn.get('__id'), relation : 'myschool'});
+		relSchool.fetch(function() {
+			ok(true, 'Connection fetched successfully.');
+			console.dir(relSchool);
+			start();
+		}, function() {
+			ok(false, 'Could not fetch connection.');
+			start();
+		});		
+	}, function() {
+		ok(false, 'Could not save connection.');
+		start();
+	});
+});
+
+asyncTest('Verify connection create using article as one endpoint and articleid as another endpoint in endpoints objects', function() {
+	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
+	var user = users.createNewArticle();
+	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
+	testConstants.populateDefaultUserFields(user);
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
+	user.save( function() {
+		var connectOptions = {
+			__endpointa: {
+				article: profile,
+				label: 'profile'
+			},
+			__endpointb: {
+				articleid: user.get('__id'),
+				label: 'user'
+			},
+			relation : 'userprofile'
+		};
+		var connection = new Appacitive.Connection(connectOptions);
+		connection.save(function(conn) {
+			console.dir(conn);
+			var relSchool = new Appacitive.Connection(conn.getConnection());
+			relSchool.fetch(function() {
+				ok(true, 'Connection fetched successfully.');
+				console.dir(relSchool);
+				start();
+			}, function() {
+				ok(false, 'Could not fetch connection.');
+				start();
+			});		
+		}, function() {
+			ok(false, 'Could not save connection.');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not save user article.');
+		start();
+	});
+});
+
+asyncTest('Verify connection update after it is created', function() {
+	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
+	var school = schools.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
+	
+	var connectOptions = {
+		__endpointa: {
+			article: school,
+			label: 'school'
+		},
+		__endpointb: {
+			article: profile,
+			label: 'profile'
+		},
+		year: '2003'
+	};
+
+	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
+	var connection = cC.createNewConnection(connectOptions);
+	connection.save(function(conn) {
+		console.dir(conn);
+		var year = '2005';
+		conn.set('year',year);
+		conn.save(function(conn) {
+			equal(conn.get('year'), year, 'Connection property value changed successfully');
+			start();
+		}, function() {
+			ok(false, 'Could not update connection.');
+			start();
+		});		
+	}, function() {
+		ok(false, 'Could not save connection.');
+		start();
+	});
+});
+
+
+asyncTest('Verify connection update directly', function() {
+	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
+	var school = schools.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
+	
+	var connectOptions = {
+		__endpointa: {
+			article: school,
+			label: 'school'
+		},
+		__endpointb: {
+			article: profile,
+			label: 'profile'
+		}
+	};
+
+	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
+	var connection = cC.createNewConnection(connectOptions);
+	connection.save(function(conn) {
+		console.dir(conn);
+		var relSchool =  new Appacitive.Connection(conn.getConnection());
+		var year = '2005';
+		relSchool.set('year', year);
+		
+		relSchool.save(function(conn) {
+			equal(conn.get('year'), year, 'Connection property value changed successfully');
+			start();
+		}, function() {
+			ok(false, 'Could not update connection.');
+			start();
+		});		
+	}, function() {
+		ok(false, 'Could not save connection.');
+		start();
+	});
+});
+
 asyncTest('Verify happy path for connection delete', function() {
 	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
 	var user = users.createNewArticle();
 	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
 	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
 	user.save(function() {
 		profile.save(function() {
 			var connectOptions = {
@@ -123,7 +273,7 @@ asyncTest('Verify unsaved connection delete removes connection from the collecti
 	var user = users.createNewArticle();
 	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
 	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
 	user.save(function() {
 		profile.save(function() {
 			var connectOptions = {
@@ -160,7 +310,7 @@ asyncTest('Verify connection delete removes connection from the collection', fun
 	var user = users.createNewArticle();
 	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
 	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
 	user.save(function() {
 		profile.save(function() {
 			var connectOptions = {
@@ -202,7 +352,7 @@ asyncTest('Verify connection delete removes connection from the collection after
 	var user = users.createNewArticle();
 	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
 	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
 	user.save(function() {
 		profile.save(function() {
 			var connectOptions = {
@@ -253,7 +403,7 @@ asyncTest('Verify created connection shows up in collection after fetching conne
 	var user = users.createNewArticle();
 	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
 	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
 	user.save(function() {
 		profile.save(function() {
 			var connectOptions = {

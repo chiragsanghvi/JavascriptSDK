@@ -197,8 +197,11 @@
 					delete changeSet[property];
 				}
 				if (changeSet["__revision"]) delete changeSet["__revision"];
+				if (changeSet["__endpointa"]) delete changeSet["__endpointa"];
+				if (changeSet["__endpointb"]) delete changeSet["__endpointb"];
 			}
-
+			var that = this;
+			
 			if (isDirty) {
 				var _updateRequest = new global.Appacitive.HttpRequest();
 				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id);
@@ -216,7 +219,7 @@
 					if (data && (data.article || data.connection || data.user || data.device)) {
 						_snapshot = data.article || data.connection || data.user || data.device;
 						if (typeof onSuccess == 'function') {
-							onSuccess();
+							onSuccess(that);
 						}
 					} else {
 						if (typeof onError == 'function') {

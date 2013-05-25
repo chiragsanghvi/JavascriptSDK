@@ -81,7 +81,7 @@
 
 		if (ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultideleteUrl(schemaName);
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiDeleteUrl(schemaName);
 			request.method = 'post';
 			request.data = { idlist : ids };
 			request.onSuccess = function(d) {

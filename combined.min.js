@@ -758,19 +758,10 @@ var global = {};
         this.article = {
             articleServiceUrl: 'article',
 
-            getGetUrl: function (schemaId, articleId) {
-                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaId, articleId);
-            },
-            getMultiGetUrl: function (deploymentId, schemaId, articleIds) {
-                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaId, articleIds);
-            },
-            getMultiDeleteUrl: function (deploymentId, schemaId) {
-                return String.format('{0}/multidelete/{1}', this.articleServiceUrl, schemaId);
-            },
-            getSearchAllUrl: function (deploymentId, schemaId, queryParams, pageSize) {
+            getSearchAllUrl: function (schemaName, queryParams, pageSize) {
                 var url = '';
 
-                url = String.format('{0}/search/{1}/all', this.articleServiceUrl, schemaId);
+                url = String.format('{0}/search/{1}/all', this.articleServiceUrl, schemaName);
 
                 if (pageSize)
                     url = url + '?psize=' + pageSize;
@@ -787,14 +778,17 @@ var global = {};
             getProjectionQueryUrl: function() {
                 return String.format('{0}/search/project', this.articleServiceUrl);
             },
-            getPropertiesSearchUrl: function (deploymentId, schemaName, query) {
+            getPropertiesSearchUrl: function (schemaName, query) {
                 var url = String.format('{0}/search/{1}/all', this.articleServiceUrl, schemaName);
                 url += '?properties=' + query;
 
                 return url;
             },
-            getDeleteUrl: function (schemaName, articleId) {
+            getGetUrl: function (schemaName, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            },
+            getMultiGetUrl: function (schemaName, articleIds) {
+                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaName, articleIds);
             },
             getCreateUrl: function (schemaName) {
                 return String.format('{0}/{1}', this.articleServiceUrl, schemaName);
@@ -802,7 +796,10 @@ var global = {};
             getUpdateUrl: function (schemaName, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
             },
-            getMultideleteUrl: function (schemaName) {
+            getDeleteUrl: function (schemaName, articleId) {
+                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            },
+            getMultiDeleteUrl: function (schemaName) {
                 return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);
             }
         };
@@ -810,25 +807,28 @@ var global = {};
 
             connectionServiceUrl: 'connection',
 
-            getGetUrl: function (relationId, connectionId) {
-                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationId, connectionId);
+            getGetUrl: function (relationName, connectionId) {
+                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
             },
-            getCreateUrl: function (relationId) {
-                return String.format('{0}/{1}', this.connectionServiceUrl, relationId);
+            getMultiGetUrl: function (schemaName, articleIds) {
+                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaName, articleIds);
             },
-            getUpdateUrl: function (deploymentId, relationType, relationId) {
-                return String.format('{0}/update/{1}/{2}', this.connectionServiceUrl, relationType, relationId);
+            getCreateUrl: function (relationName) {
+                return String.format('{0}/{1}', this.connectionServiceUrl, relationName);
             },
-            getDeleteUrl: function (relationId, connectionId) {
-                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationId, connectionId);
+            getUpdateUrl: function (relationName, connectionId) {
+                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
+            },
+            getDeleteUrl: function (relationName, connectionId) {
+                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
             },
             getMultiDeleteUrl: function (relationName) {
                 return String.format('{0}/{1}/bulkdelete', this.connectionServiceUrl, relationName);
             },
-            getSearchByArticleUrl: function (deploymentId, relationId, articleId, label, queryParams) {
+            getSearchByArticleUrl: function (relationName, articleId, label, queryParams) {
                 var url = '';
 
-                url = String.format('{0}/{1}/find/all?label={2}&articleid={3}', this.connectionServiceUrl, relationId, label, articleId);
+                url = String.format('{0}/{1}/find/all?label={2}&articleid={3}', this.connectionServiceUrl, relationName, label, articleId);
                 // url = url + '?psize=1000';
                 if (typeof (queryParams) !== 'undefined' && queryParams.length > 0) {
                     for (var i = 0; i < queryParams.length; i = i + 1) {
@@ -837,9 +837,9 @@ var global = {};
                 }
                 return url;
             },
-            getConnectedArticles: function (deploymentId, relationId, articleId, queryParams) {
+            getConnectedArticles: function (relationName, articleId, queryParams) {
                 var url = '';
-                url = String.format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationId, articleId);
+                url = String.format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationName, articleId);
                 if (queryParams && queryParams.length && queryParams.length > 0) {
                     for (var x = 0; x < queryParams.length; x += 1) {
                         if (x == 0) {
@@ -851,12 +851,12 @@ var global = {};
                 }
                 return url;
             },
-            getInterconnectsUrl: function (deploymentId) {
+            getInterconnectsUrl: function () {
                 var url = '';
                 url = String.format('{0}/connectedarticles', this.connectionServiceUrl);
                 return url;
             },
-            getPropertiesSearchUrl: function (deploymentId, relationName, query) {
+            getPropertiesSearchUrl: function (relationName, query) {
                 var url = String.format('{0}/{1}/find/all', this.connectionServiceUrl, relationName);
                 url += '?properties=' + query;
 
@@ -1804,8 +1804,11 @@ Depends on  NOTHING
 					delete changeSet[property];
 				}
 				if (changeSet["__revision"]) delete changeSet["__revision"];
+				if (changeSet["__endpointa"]) delete changeSet["__endpointa"];
+				if (changeSet["__endpointb"]) delete changeSet["__endpointb"];
 			}
-
+			var that = this;
+			
 			if (isDirty) {
 				var _updateRequest = new global.Appacitive.HttpRequest();
 				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id);
@@ -1823,7 +1826,7 @@ Depends on  NOTHING
 					if (data && (data.article || data.connection || data.user || data.device)) {
 						_snapshot = data.article || data.connection || data.user || data.device;
 						if (typeof onSuccess == 'function') {
-							onSuccess();
+							onSuccess(that);
 						}
 					} else {
 						if (typeof onError == 'function') {
@@ -2449,9 +2452,8 @@ Depends on  NOTHING
 				_connections.push(_c);
 
 				// if this is a connected articles call...
-				if (connection.__endpointa.article || connection.__endpointb.article) {
-					var article = connection.__endpointa.article || connection.__endpointb.article;
-					var _a = new global.Appacitive.Article(article);
+				if (_c.endpointA.article || _c.endpointB.article) {
+					var _a = _c.endpointA.article || _c.endpointB.article;
 					_a.___collection = that;
 					_articles.push(_a);
 				}
@@ -2478,6 +2480,26 @@ Depends on  NOTHING
 			};
 			global.Appacitive.http.send(_queryRequest);
 		};
+
+		this.fetchByPageNumber = function(onSuccess, onError, pageNumber) {
+			var pInfo = _query.getOptions().pageQuery;
+			pInfo.pageNumber = pageNumber;
+			this.fetch(onSuccess, onError);
+		};
+
+		this.fetchNextPage = function(onSuccess, onError) {
+			var pInfo = _query.getOptions().pageQuery;
+			pInfo.pageNumber += 1;
+			this.fetch(onSuccess, onError);
+		};
+
+		this.fetchPreviousPage = function(onSuccess, onError) {
+			var pInfo = _query.getOptions().pageQuery;
+			pInfo.pageNumber -= 1;
+			if (pInfo.pageNumber === 0) pInfo.pageNumber = 1;
+			this.fetch(onSuccess, onError);
+		};
+
 
 		this.createNewConnection = function(values) {
 			values = values || {};
@@ -2585,7 +2607,7 @@ Depends on  NOTHING
 
 		if (ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultideleteUrl(schemaName);
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiDeleteUrl(schemaName);
 			request.method = 'post';
 			request.data = { idlist : ids };
 			request.onSuccess = function(d) {
@@ -2659,7 +2681,7 @@ Depends on  NOTHING
 
 	var convertEndpoint = function(endpoint, type, base) {
 
-		if (typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
+		if ( base.get('__endpoint' + type.toLowerCase()).article && typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
 				base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpoint' + type.toLowerCase()).article);
@@ -2674,13 +2696,14 @@ Depends on  NOTHING
 			base["endpoint" + type].type = base.get('__endpoint' + type.toLowerCase()).type;
 
 			base["endpoint" + type].article.___collection = base.___collection;
+			delete base.get('__endpoint' + type.toLowerCase()).article
 		} else {
 			base["endpoint" + type] = base.get('__endpoint' + type.toLowerCase());
 		}
 
 	};
 
-	global.Appacitive.Connection = function(options, doNotParse) {
+	global.Appacitive.Connection = function(options, doNotConvert) {
 
 		if (!options.__relationtype && !options.relation )
 			throw new error("Cannot set connection without relation");
@@ -2712,7 +2735,7 @@ Depends on  NOTHING
 			// or a raw article
 			// or an Appacitive.Article instance
 			// sigh
-
+			
 			// 1
 			base.set('__endpointa', parseEndpoint(endpointA, 'A', base));
 
@@ -2742,7 +2765,7 @@ Depends on  NOTHING
 			return base;
 		};
 
-		if (doNotParse) {
+		if (doNotConvert) {
 
 				base.__defineGetter__('connectedArticle', function() {
 					if (!base.___collection.connectedArticle) {
@@ -2773,7 +2796,7 @@ Depends on  NOTHING
 
 		if (ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultideleteUrl(relationName);
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(relationName);
 			request.method = 'post';
 			request.data = { idlist : ids };
 			request.onSuccess = function(d) {
@@ -2864,7 +2887,7 @@ Depends on  NOTHING
 			}, onError);
 		};
 
-		this.signup = function(user, onSuccess, onError) {
+		this.createUser = function(user, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 			user = user || {};
@@ -2887,8 +2910,17 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request);
 		};
 
-		this.createUser = this.signup;
+		//method to allow user to signup and then login 
+		this.signup = function(user, onSuccess, onError) {
+			var that = this;
+			this.createUser(user, function(data) {
+				that.login(user.username, user.password, onSuccess, onError);
+			}, function(status) {
+				onError(status);
+			});
+		};
 
+		//authenticate user with authrequest that contains username , password and expiry
 		this.authenticateUser = function(authRequest, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
@@ -2913,30 +2945,21 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request);
 		};
 
-		this.authenticate = function(username, password, onSuccess, onError) {
+		//An overrride for user login with username and password directly
+		this.login = function(username, password, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
 			if (!username || !password || username.length ==0 || password.length == 0) 
 				throw new Error('Please specify username and password');
 
-			var that = this;
-			var request = new global.Appacitive.HttpRequest();
-			request.method = 'post';
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
-			request.data = authRequest;
-			request.onSuccess = function(data) {
-				if (data && data.user) {
-					authenticatedUser = data.user;
-					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					onSuccess(data);
-				} else {
-					data = data || {};
-					onError(data.status);
-				}
+			var authRequest = {
+				username : username,
+				password: password,
+				expiry: -1
 			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
+
+			this.authenticateUser(authRequest, onSuccess, onError);
 		};
 
 		this.signupWithFacebook = function(onSuccess, onError) {
@@ -2948,7 +2971,7 @@ Depends on  NOTHING
 					var authRequest = {
 						"accesstoken": global.Appacitive.facebook.accessToken,
 						"type": "facebook",
-						"expiry": 80,
+						"expiry": 120,
 						"attempts": -1,
 						"createnew": true
 					};

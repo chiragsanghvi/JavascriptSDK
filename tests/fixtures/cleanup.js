@@ -50,20 +50,22 @@ asyncTest('Cleaning up connections of relation myschool', function() {
 			start();
 			return;
 		}
-		connections.forEach(function (connection) {
-			connection.del(function() {
-				total -= 1;
-				if (total == 0) {
-					ok(true, connections.length + ' connections of type myschool deleted successfully');
-					start();
-				}
-			}, function() {
-				ok(false, 'Article delete failed for connections with id: ' + connection.get('__id'));
-				start();
-			})
+
+		var ids = [];
+		connections.forEach(function (article) {
+			ids.push(article.get('__id'));
 		});
+
+		Appacitive.Connection.multiDelete("myschool", ids, function() {
+			ok(true, connections.length + ' connections of type myschool deleted successfully');
+			start();
+		}, function() {
+			ok(false, 'Article delete failed for all connections' );
+			start();
+		});
+
 	}, function() {
-		ok(false, 'Could not fetch articles for schema profile');
+		ok(false, 'Could not fetch connections for relation myschool');
 		start();
 	});
 });
@@ -107,19 +109,17 @@ asyncTest('Cleaning up articles of schema school', function() {
 			start();
 			return;
 		}
+		var ids = [];
 		articles.forEach(function (article) {
-			var ids = [];
-			articles.forEach(function (article) {
-				ids.push(article.get('__id'));
-			});
+			ids.push(article.get('__id'));
+		});
 
-			Appacitive.Article.multiDelete("school", ids, function() {
-				ok(true, articles.length + ' articles of type school deleted successfully');
-				start();
-			}, function() {
-				ok(false, 'Article delete failed for all articles');
-				start();
-			});
+		Appacitive.Article.multiDelete("school", ids, function() {
+			ok(true, articles.length + ' articles of type school deleted successfully');
+			start();
+		}, function() {
+			ok(false, 'Article delete failed for all articles');
+			start();
 		});
 	}, function() {
 		ok(false, 'Could not fetch articles for schema school');
@@ -171,7 +171,7 @@ asyncTest('Cleaning up articles of schema user', function() {
 					} else {
 						var numFailures = 0;
 						articles.forEach(function (article) {
-							if (article.get('username') != 'bchakravarty@appacitive.com') {
+							if (article.get('username') != testConstants.user.username) {
 								var deleteUser = function() {
 									article.del(function() {
 										// Appacitive.session.removeUserAuthHeader();

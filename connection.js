@@ -44,7 +44,7 @@
 
 	var convertEndpoint = function(endpoint, type, base) {
 
-		if (typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
+		if ( base.get('__endpoint' + type.toLowerCase()).article && typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
 				base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpoint' + type.toLowerCase()).article);
@@ -59,13 +59,14 @@
 			base["endpoint" + type].type = base.get('__endpoint' + type.toLowerCase()).type;
 
 			base["endpoint" + type].article.___collection = base.___collection;
+			delete base.get('__endpoint' + type.toLowerCase()).article
 		} else {
 			base["endpoint" + type] = base.get('__endpoint' + type.toLowerCase());
 		}
 
 	};
 
-	global.Appacitive.Connection = function(options, doNotParse) {
+	global.Appacitive.Connection = function(options, doNotConvert) {
 
 		if (!options.__relationtype && !options.relation )
 			throw new error("Cannot set connection without relation");
@@ -97,7 +98,7 @@
 			// or a raw article
 			// or an Appacitive.Article instance
 			// sigh
-
+			
 			// 1
 			base.set('__endpointa', parseEndpoint(endpointA, 'A', base));
 
@@ -127,7 +128,7 @@
 			return base;
 		};
 
-		if (doNotParse) {
+		if (doNotConvert) {
 
 				base.__defineGetter__('connectedArticle', function() {
 					if (!base.___collection.connectedArticle) {
@@ -158,7 +159,7 @@
 
 		if (ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultideleteUrl(relationName);
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(relationName);
 			request.method = 'post';
 			request.data = { idlist : ids };
 			request.onSuccess = function(d) {

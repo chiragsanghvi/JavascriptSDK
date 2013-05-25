@@ -200,9 +200,8 @@
 				_connections.push(_c);
 
 				// if this is a connected articles call...
-				if (connection.__endpointa.article || connection.__endpointb.article) {
-					var article = connection.__endpointa.article || connection.__endpointb.article;
-					var _a = new global.Appacitive.Article(article);
+				if (_c.endpointA.article || _c.endpointB.article) {
+					var _a = _c.endpointA.article || _c.endpointB.article;
 					_a.___collection = that;
 					_articles.push(_a);
 				}
@@ -229,6 +228,26 @@
 			};
 			global.Appacitive.http.send(_queryRequest);
 		};
+
+		this.fetchByPageNumber = function(onSuccess, onError, pageNumber) {
+			var pInfo = _query.getOptions().pageQuery;
+			pInfo.pageNumber = pageNumber;
+			this.fetch(onSuccess, onError);
+		};
+
+		this.fetchNextPage = function(onSuccess, onError) {
+			var pInfo = _query.getOptions().pageQuery;
+			pInfo.pageNumber += 1;
+			this.fetch(onSuccess, onError);
+		};
+
+		this.fetchPreviousPage = function(onSuccess, onError) {
+			var pInfo = _query.getOptions().pageQuery;
+			pInfo.pageNumber -= 1;
+			if (pInfo.pageNumber === 0) pInfo.pageNumber = 1;
+			this.fetch(onSuccess, onError);
+		};
+
 
 		this.createNewConnection = function(values) {
 			values = values || {};
