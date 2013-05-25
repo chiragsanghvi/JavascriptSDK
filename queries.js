@@ -35,44 +35,76 @@
 	* @constructor
 	**/
 	var BaseQuery = function(o) {
+
 		var options = o || {};
 
-		this.pageQuery = new PageQuery(o);
-		this.sortQuery = new SortQuery(o);
-		this.baseType = o.schema || o.relation;
-		if (!this.baseType)
-			throw new Error('schema or relation name is mandatory');
-		this.type = (o.schema) ? 'article' : 'connection';
+		//set filters , freetext and fields
+		var _filter = '';
+		var _freeText = '';
+		var _fields = '';
+		var _queryType = o.queryType;
+		var _pageQuery = new PageQuery(o);
+		var _sortQuery = new SortQuery(o);
+		var _entityType = o.schema || o.relation;
+		var _type = (o.schema) ? 'article' : 'connection';
 
-		this.extendOptions = function(changes) {
+		//define getter for type (article/connection)
+		this.__defineGetter__('type', function() { return _type; });
+
+		//define getter for basetype (schema/relation)
+		this.__defineGetter__('entityType', function() { return _entityType; });
+
+		//define getter for querytype (basic,connectedarticles etc)
+		this.__defineGetter__('queryType', function() { return _queryType; });
+
+		//define getter for pagequery 
+		this.__defineGetter__('pageQuery', function() { return _pageQuery; });
+
+		//define getter for sortquery
+		this.__defineGetter__('sortQuery', function() { return _sortQuery; });
+
+		//define getter for filter
+		this.__defineGetter__('filter', function() { return _filter; });
+
+		//define setter for filter
+		this.__defineSetter__('filter', function(value) { _filter = value; });
+
+		//define getter for freetext
+		this.__defineGetter__('freeText', function() { return _freeText; });
+
+		//define setter for freetext
+		this.__defineSetter__('freeText', function(value) {
+			if (typeof value == 'string') _freeText = value;
+			else if (typeof value == 'object' && value.length) _freeText = value.join(',');
+		});
+
+		//define getter for fields
+		this.__defineGetter__('fields', function() { return _fields; });
+
+		//define setter for fields
+		this.__defineSetter__('fields', function(value) {
+			if (typeof value == 'string') _fields = value;
+			else if (typeof value == 'object' && value.length) _fields = value.join(',');
+		});
+
+		//set filters , freetext and fields
+		this.filter = options.filter || '';
+		this.freeText = options.freeText || '';
+		this.fields = options.fields || '';
+
+		this.setFilter = function() { this.filter = arguments[0]; };
+		this.setFreeText = function() { this.freeText = arguments[0]; };
+        this.setFields = function() { this.fields = arguments[0]; };
+
+        this.extendOptions = function(changes) {
 			for (var key in changes) {
 				options[key] = changes[key];
 			}
-			this.pageQuery = new PageQuery(options);
-			this.sortQuery = new SortQuery(options);
+			_pageQuery = new PageQuery(options);
+			_sortQuery = new SortQuery(options);
 		};
 
-        this.toUrl = function() {
-			var finalUrl = global.Appacitive.config.apiBaseUrl +
-				this.type + '.svc/' +
-				this.baseType + '/find/all?' + this.pageQuery.toString() + '&' + this.sortQuery.toString();
-
-			if (this.filter && this.filter.trim().length > 0) {
-				finalUrl += '&query=' + this.filter;
-			}
-
-			if (this.freeText && this.freeText.trim().length > 0) {
-                finalUrl += "&freetext=" + this.freeText + "&language=en";
-            }
-
-            if (this.fields && this.fields.trim().length > 0) {
-            	finalUrl += "&fields=" + this.fields;
-            }
-
-			return finalUrl;
-		};
-
-		this.toString = function() {
+		this.getQueryString = function() {
 
 			var finalUrl = this.pageQuery.toString() + '&' + this.sortQuery.toString();
 
@@ -98,77 +130,37 @@
 	global.Appacitive.queries.BasicFilterQuery = function(options) {
 
 		options = options || {};
+
+		if (!options.schema && !options.relation) throw new Error('Specify either schema or relation name for basic filter query');
+
+		options.queryType = 'BasicFilterQuery';
+
 		var inner = new BaseQuery(options);
-
-		//Set setter for filter to set value from basequery
-		this.__defineSetter__('filter', function(value) {
-			 inner.filter = value;
-		});
-
-		//Set getter for freetext to retrieve value from basequery
-		this.__defineGetter__('freeText', function() {
-			return inner.freetext;
-		});
-
-		//Set setter for freetext to set value from basequery
-		this.__defineSetter__('freeText', function(value) {
-			if (typeof freeText == 'string')
-				inner.freeText = value;
-			else if (typeof freeText == 'object' && value.length)
-				inner.freeText = value.join(',');
-		});
-
-		//Set getter for fields to retrieve value from basequery
-		this.__defineGetter__('fields', function() {
-			return inner.fields;
-		});
-
-		//Set setter for fields to set value from basequery
-		this.__defineSetter__('fields', function(value) {
-			if (typeof fields == 'string')
-				inner.fields = value;
-			else if (typeof fields == 'object' && value.length)
-				inner.fields = value.join(',');
-		});
-
-		//set filters , freetext and fields
-		this.filter = options.filter || '';
-		this.freeText = options.freeText || '';
-		this.fields = options.fields || '';
-
-		// just append the filters/properties parameter to the query string
-		this.toRequest = function() {
+		
+		inner.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = inner.toUrl();
+			r.url = this.toUrl();
             r.method = 'get';
 			return r;
-		}; 
-
-		this.setFilter = function() {
-			inner.filter = arguments[0];
+		};
+		
+		inner.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl +
+				   this.type + '.svc/' +
+				   this.entityType + '/find/all?' + this.getQueryString();
 		};
 
-		this.setFreeText = function() {
-            this.freeText = arguments[0];
-        };
-
-        this.setFields = function() {
-        	this.fields = arguments[0];
-        };
-
-		this.extendOptions = function() {
-			inner.extendOptions.apply(inner, arguments);
-		};
-
-		this.getOptions = function() {
+		inner.getOptions = function() {
 			var o = {};
-			for (var key in inner) {
-				if (inner.hasOwnProperty(key) && typeof inner[key] != 'function') {
-					o[key] = inner[key];
+			for (var key in this) {
+				if (this.hasOwnProperty(key) && typeof this[key] != 'function') {
+					o[key] = this[key];
 				}
 			}
 			return o;
 		};
+
+		return inner;
 	};
 
 	/** 
@@ -181,7 +173,6 @@
 		if (!options.graphQuery)
 			throw new Error('graphQuery object is mandatory');
 
-		// just append the filters/properties parameter to the query string
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = global.Appacitive.config.apiBaseUrl;
@@ -198,82 +189,36 @@
 	global.Appacitive.queries.ConnectedArticlesQuery = function(options) {
 
 		options = options || {};
+
+		if (!options.relation) throw new Error('Specify relation for connected articles query');
+		if (!options.articleId) throw new Error('Specify articleId for connected articles query');
+
+		options.queryType = 'ConnectedArticlesQuery';
+
 		var inner = new BaseQuery(options);
 
-		//Set getter for filter to retrieve value from basequery
-		this.__defineGetter__('filter', function() {
-			return inner.filter;
-		});
-
-		//Set setter for filter to set value from basequery
-		this.__defineSetter__('filter', function(value) {
-			 inner.filter = value;
-		});
-
-		//Set getter for freetext to retrieve value from basequery
-		this.__defineGetter__('freeText', function() {
-			return inner.freetext;
-		});
-
-		//Set setter for freetext to set value from basequery
-		this.__defineSetter__('freeText', function(value) {
-			if (typeof freeText == 'string')
-				inner.freeText = value;
-			else if (typeof freeText == 'object' && value.length)
-				inner.freeText = value.join(',');
-		});
-
-		//Set getter for fields to retrieve value from basequery
-		this.__defineGetter__('fields', function() {
-			return inner.fields;
-		});
-
-		//Set setter for fields to set value from basequery
-		this.__defineSetter__('fields', function(value) {
-			if (typeof fields == 'string')
-				inner.fields = value;
-			else if (typeof fields == 'object' && value.length)
-				inner.fields = value.join(',');
-		});
-
-		//set filters , freetext and fields
-		this.filter = options.filter || '';
-		this.freeText = options.freeText || '';
-		this.fields = options.fields || '';
-
-		this.toRequest = function() {
+		inner.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/' + options.articleId + '/find?' +
-				inner.toString();
+			r.url = this.toUrl();
 			return r;
 		};
 
-		this.extendOptions = function() {
-			inner.extendOptions.apply(inner, arguments);
-		};
-		
-		this.setFilter = function() {
-			inner.filter = arguments[0];
+		inner.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/' + options.articleId + '/find?' +
+				inner.getQueryString();
 		};
 
-		this.setFreeText = function() {
-            this.freeText = arguments[0];
-        };
-
-        this.setFields = function() {
-        	this.fields = arguments[0];
-        };
-
-
-		this.getOptions = function() {
+		inner.getOptions = function() {
 			var o = {};
-			for (var key in inner) {
-				if (inner.hasOwnProperty(key) && typeof inner[key] != 'function') {
-					o[key] = inner[key];
+			for (var key in this) {
+				if (this.hasOwnProperty(key) && typeof this[key] != 'function') {
+					o[key] = this[key];
 				}
 			}
 			return o;
 		};
+
+		return inner;
 	};
 
 })(global);

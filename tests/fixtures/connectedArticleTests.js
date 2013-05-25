@@ -1,7 +1,7 @@
 module('Connection Collection via Article::getConnectedArticles');
 
 test('Connection Collection returned on calling getConnectedArticles', function() {
-	var a = new Appacitive.Article({ __schematype: 'profile' }), options = { relation: 'some_relation '};
+	var a = new Appacitive.Article({ __schematype: 'profile' , __id: '123'}), options = { relation: 'some_relation '};
 	var aC = a.getConnectedArticles(options);
 	equal(aC.collectionType, 'connection', 'Connection collection returned on calling getConnectedArticles on an article');
 });
@@ -18,7 +18,7 @@ test('Verify connection collection search query url', function() {
 });
 
 test('Verify "fetch" method on connection collection', function() {
-	var a = new Appacitive.Article({ __schematype: 'profile' }), options = { relation: 'some_relation '};
+	var a = new Appacitive.Article({ __schematype: 'profile', __id: '123' }), options = { relation: 'some_relation'};
 	var aC = a.getConnectedArticles(options);
 	equal(typeof aC.fetch, 'function', 'Fetch exists on the connection collection.');
 });
@@ -34,7 +34,7 @@ test('Verify error thrown on not passing the relation type', function() {
 });
 
 test('Verify connectedArticle property set on getting connectionCollection', function() {
-	var aC = new Appacitive.ArticleCollection({ schema: 'zzz1e35345' }), a = aC.createNewArticle();
+	var aC = new Appacitive.ArticleCollection({ schema: 'zzz1e35345' }), a = aC.createNewArticle({__id: '123'});
 	var cC = a.getConnectedArticles({ relation: 'something' });
 	deepEqual(cC.connectedArticle, a, 'Connected article property setting properly on connection collection');
 });
@@ -53,26 +53,26 @@ asyncTest('Creating session with valid Apikey', function() {
 		ok(true, 'Session created successfully.');
 		start();
 		Appacitive.eventManager.unsubscribe(subscriberId);
-	})
+	});
 	Appacitive.session.create(_sessionOptions);
 });
 
 asyncTest('Verify error for fetching connections for unsaved article', function() {
 	var aC = new Appacitive.ArticleCollection({ schema: 'profile' }), a = aC.createNewArticle();
-	var cC = a.getConnectedArticles({ relation: 'userprofile' });
-	cC.fetch(function() {
+	try {
+		var cC = a.getConnectedArticles({ relation: 'userprofile' });
 		ok(false, 'Nothing broke on calling fetch for connections');
 		start();
-	}, function() {
+	} catch(e) {
 		ok(true, 'Error occured on calling fetch for connections');
 		start();
-	});
+	}
 });
 
 asyncTest('Verify happy flow for existing schema and relation and saved article', function() {
 	var aC = new Appacitive.ArticleCollection({ schema: 'profile' }), a = aC.createNewArticle();
-	var cC = a.getConnectedArticles({ relation: 'userprofile' });
 	a.save(function() {
+		var cC = a.getConnectedArticles({ relation: 'userprofile' });
 		cC.fetch(function() {
 			ok(true, 'Nothing broke on calling fetch for connections');
 			start();
@@ -83,27 +83,16 @@ asyncTest('Verify happy flow for existing schema and relation and saved article'
 	});
 });
 
-asyncTest('Verify error for non-existant schema', function() {
-	var aC = new Appacitive.ArticleCollection({ schema: '12345profile' }), a = aC.createNewArticle();
-	var cC = a.getConnectedArticles({ relation: 'userprofile' });
-	cC.fetch(function() {
-		ok(false, 'Nothing broke on calling fetch for connections');
-		start();
-	}, function() {
-		ok(true, 'Error occured on calling fetch for connections');
-		start();
-	});
-});
-
-
 asyncTest('Verify error for non-existant relation', function() {
 	var aC = new Appacitive.ArticleCollection({ schema: 'profile' }), a = aC.createNewArticle();
-	var cC = a.getConnectedArticles({ relation: '12345userprofile' });
-	cC.fetch(function() {
-		ok(false, 'Nothing broke on calling fetch for connections');
-		start();
-	}, function() {
-		ok(true, 'Error occured on calling fetch for connections');
-		start();
+	a.save(function() {
+		var cC = a.getConnectedArticles({ relation: 'userprofile111' });
+		cC.fetch(function() {
+			ok(false, 'Nothing broke on calling fetch for connections');
+			start();
+		}, function() {
+			ok(true, 'Error occured on calling fetch for connections');
+			start();
+		});
 	});
 });

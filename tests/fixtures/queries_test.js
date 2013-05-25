@@ -105,7 +105,13 @@ test('Verify custom search all query in article collection', function() {
 		orderBy: 'name',
 		isAscending: false
 	});
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
+	var collection = new Appacitive.ArticleCollection({ 
+		schema: 'profile', 
+		pageNumber: 3,
+		pageSize: 50,
+		orderBy: 'name',
+		isAscending: false
+	});
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Custom query setting correctly in article collection.');
 });
@@ -239,6 +245,11 @@ test('Verify filter modification using setFilter in articleCollection', function
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
+	options = {
+		type: 'article',
+		schema: 'profile',
+		filter: 'q < 1234567890'
+	};
 	query = new Appacitive.queries.BasicFilterQuery(options);
 	collection.setFilter('q < 1234567890');
 	var collectionQuery = collection.query;
@@ -254,7 +265,7 @@ test('Verify custom filtered and freetext query in article collection', function
 		orderBy: 'name',
 		isAscending: false,
 		filter: 'c>3',
-		freetext: 'test'
+		freeText: 'test'
 	});
 	var collection = new Appacitive.ArticleCollection({ 
 		schema: 'profile',
@@ -265,7 +276,7 @@ test('Verify custom filtered and freetext query in article collection', function
 		orderBy: 'name',
 		isAscending: false,
 		filter: 'c>3',
-		freetext: ['test'] 
+		freeText: ['test'] 
 	});
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Custom filtered and freetxet query setting correctly in article collection.');
@@ -276,7 +287,7 @@ test('Verify filter and freetxt query modification using setOptions in articleCo
 		type: 'article',
 		schema: 'profile',
 		filter: 'q within_circle (1,2,3km)',
-		freetext: ['test']
+		freeText: ['test']
 	};
 	var query = new Appacitive.queries.BasicFilterQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
@@ -291,7 +302,7 @@ test('Verify filter and freetxt query modification using setOptions in articleCo
 		orderBy: '__UtcLastUpdatedDate',
 		isAscending: true,
 		filter: 'q < 1234567890',
-		freetext: 'newprofile'
+		freeText: 'newprofile'
 	};
 	query = new Appacitive.queries.BasicFilterQuery(options);
 	collection.setOptions(options);
@@ -304,13 +315,19 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 		type: 'article',
 		schema: 'profile',
 		filter: 'q within_circle (1,2,3km)',
-		freetext: 'test'
+		freeText: 'test'
 	};
 	var query = new Appacitive.queries.BasicFilterQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
+	var options = {
+		type: 'article',
+		schema: 'profile',
+		filter: 'q within_circle (1,2,3km)',
+		freeText: 'updatedtest'
+	};
 	query = new Appacitive.queries.BasicFilterQuery(options);
 	collection.setFreeText('updatedtest');
 	var collectionQuery = collection.query;
@@ -326,7 +343,7 @@ test('Verify custom fields and freetext query in article collection', function()
 		orderBy: 'name',
 		isAscending: false,
 		fields: 'name,id',
-		freetext: 'test'
+		freeText: 'test'
 	});
 	var collection = new Appacitive.ArticleCollection({ 
 		schema: 'profile',
@@ -336,19 +353,19 @@ test('Verify custom fields and freetext query in article collection', function()
 		pageSize: 50,
 		orderBy: 'name',
 		isAscending: false,
-		filter: 'c>3',
-		freetext: ['name,id']
+		fields: ['name', 'id'],
+		freeText: ['test'],
 	});
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Custom fields and freetext query setting correctly in article collection.');
 });
 
-test('Verify filtered, freetxt and fields query modification using setOptions in articleCollection', function() {
+test('Verify filtered, freetext and fields query modification using setOptions in articleCollection', function() {
 	var options = {
 		type: 'article',
 		schema: 'profile',
 		filter: 'q within_circle (1,2,3km)',
-		freetext: ['test'],
+		freeText: ['test'],
 		fields: 'name,__id'
 	};
 	var query = new Appacitive.queries.BasicFilterQuery(options);
@@ -364,7 +381,7 @@ test('Verify filtered, freetxt and fields query modification using setOptions in
 		orderBy: '__UtcLastUpdatedDate',
 		isAscending: true,
 		filter: 'q < 1234567890',
-		freetext: 'newprofile',
+		freeText: 'newprofile',
 		fields: ['name', '__id']
 	};
 	query = new Appacitive.queries.BasicFilterQuery(options);
@@ -378,7 +395,7 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 		type: 'article',
 		schema: 'profile',
 		filter: 'q within_circle (1,2,3km)',
-		freetext: 'test',
+		freeText: 'test',
 		fields: ['name', '__id']
 	};
 	var query = new Appacitive.queries.BasicFilterQuery(options);
@@ -386,9 +403,16 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
+	options = {
+		type: 'article',
+		schema: 'profile',
+		filter: 'q within_circle (1,2,3km)',
+		freeText: 'updatedtest',
+		fields: ['name','__id']
+	};
 	query = new Appacitive.queries.BasicFilterQuery(options);
-	collection.freetext = ['updatedtest'];
-	collection.fields = 'name,__id';
+	collection.query.freeText = ['updatedtest'];
+	collection.query.fields = 'name,__id';
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Filtered and freetext query modification correctly done in articleCollection.');
 });
