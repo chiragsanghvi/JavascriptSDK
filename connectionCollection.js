@@ -33,7 +33,7 @@
 			else
 				options.relation = _relation;
 
-			_query = new global.Appacitive.queries.BasicFilterQuery(options);
+			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
 		};
 
@@ -43,7 +43,7 @@
 			if (_query) {
 				_query.filter = filterString;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 		};
@@ -56,7 +56,7 @@
             if (_query) {
 				_query.freeText = tokens;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
         };
@@ -69,7 +69,7 @@
             if (_query) {
 				_query.fields = fields;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
         };
@@ -197,14 +197,19 @@
 			connections.forEach(function (connection) {
 				var _c = new global.Appacitive.Connection(connection, true);
 				_c.___collection = that;
-				_connections.push(_c);
-
+				
 				// if this is a connected articles call...
 				if (_c.endpointA.article || _c.endpointB.article) {
 					var _a = _c.endpointA.article || _c.endpointB.article;
 					_a.___collection = that;
 					_articles.push(_a);
 				}
+				try {
+					if (!_c.___collection.connectedArticle)
+						delete _c.connectedArticle;
+				} catch(e) {}
+
+				_connections.push(_c);
 			});
 
 			var pagingInfo = data.paginginfo || {};

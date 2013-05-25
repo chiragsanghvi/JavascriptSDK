@@ -2,7 +2,7 @@
 
 	"use strict";
 
-	global.Appacitive.queries = {};
+	global.Appacitive.Queries = {};
 
 	// basic query for contains pagination
 	/** 
@@ -178,7 +178,7 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.queries.BasicFilterQuery = function(options) {
+	global.Appacitive.Queries.BasicFilterQuery = function(options) {
 
 		options = options || {};
 
@@ -208,27 +208,7 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.queries.GraphQuery = function(options) {
-
-		options = options || {};
-		
-		if (!options.graphQuery)
-			throw new Error('graphQuery object is mandatory');
-
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = global.Appacitive.config.apiBaseUrl;
-			r.url += global.Appacitive.storage.urlFactory.article.getProjectionQueryUrl();
-			r.method = 'post';
-			r.data = options.graphQuery;
-			return r;
-		};
-	};
-
-	/** 
-	* @constructor
-	**/
-	global.Appacitive.queries.ConnectedArticlesQuery = function(options) {
+	global.Appacitive.Queries.ConnectedArticlesQuery = function(options) {
 
 		options = options || {};
 
@@ -255,6 +235,62 @@
 		};
 
 		return inner;
+	};
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GetConnectionsQuery = function(options) {
+
+		options = options || {};
+
+		if (!options.relation) throw new Error('Specify relation for GetConnectionsQuery query');
+		if (!options.articleId) throw new Error('Specify articleId for GetConnectionsQuery query');
+		if (!options.label || options.label.trim().length == 0) throw new Error('Specify label for GetConnectionsQuery query');
+		if (options.schema) delete options.schema;
+
+		options.queryType = 'GetConnectionsQuery';
+
+		var inner = new BaseQuery(options);
+
+		inner.articleId = options.articleId;
+		inner.label = options.label;
+
+		inner.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = this.toUrl();
+			r.method = 'get';
+			return r;
+		};
+
+		inner.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/find/all?' +
+				'articleid=' + this.articleId +
+				'&label=' +this.label +
+				inner.getQueryString();
+		};
+
+		return inner;
+	};
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GraphQuery = function(options) {
+
+		options = options || {};
+		
+		if (!options.graphQuery)
+			throw new Error('graphQuery object is mandatory');
+
+		this.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = global.Appacitive.config.apiBaseUrl;
+			r.url += global.Appacitive.storage.urlFactory.article.getProjectionQueryUrl();
+			r.method = 'post';
+			r.data = options.graphQuery;
+			return r;
+		};
 	};
 
 })(global);

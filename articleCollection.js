@@ -28,7 +28,7 @@
 			else
 				options.schema = _schema;
 
-			_query = new global.Appacitive.queries.BasicFilterQuery(options);
+			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
 			that.extendOptions = _query.extendOptions;
 		};
@@ -39,7 +39,7 @@
 			if (_query) {
 				_query.filter = filterString;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 		};
@@ -52,7 +52,7 @@
             if (_query) {
 				_query.freeText = tokens;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
         };
@@ -65,7 +65,7 @@
             if (_query) {
 				_query.fields = fields;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
         };
@@ -87,6 +87,7 @@
 
 		this.__defineSetter__("query", function(query) {
 			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
+			if (query.type !== 'BasicFilterQuery') throw new Error('ArticleCollection only accepts BasicFilterQuery');
 			_articles.length = 0;
 			_query = query;
 		});

@@ -66,7 +66,7 @@
 
 	};
 
-	global.Appacitive.Connection = function(options, doNotConvert) {
+	global.Appacitive.Connection = function(options, doNotSetup) {
 
 		if (!options.__relationtype && !options.relation )
 			throw new error("Cannot set connection without relation");
@@ -128,23 +128,20 @@
 			return base;
 		};
 
-		if (doNotConvert) {
+		if (doNotSetup) {
+			base.__defineGetter__('connectedArticle', function() {
+				if (!base.___collection.connectedArticle) {
+					throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
+				}
+				var articleId = base.___collection.connectedArticle.get('__id');
+				if (!articleId) return null;
+				var otherArticleId = base.getConnection().__endpointa.articleid;
+				if (base.getConnection().__endpointa.articleid == articleId)
+					otherArticleId = base.getConnection().__endpointb.articleid;
+				return base.___collection.getConnectedArticle(otherArticleId);
 
-				base.__defineGetter__('connectedArticle', function() {
-					if (!base.___collection.connectedArticle) {
-						throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
-					}
-					var articleId = base.___collection.connectedArticle.get('__id');
-					if (!articleId) return null;
-					var otherArticleId = base.getConnection().__endpointa.articleid;
-					if (base.getConnection().__endpointa.articleid == articleId)
-						otherArticleId = base.getConnection().__endpointb.articleid;
-					return base.___collection.getConnectedArticle(otherArticleId);
-
-				});
-
-				base.parseConnection();
-
+			});
+			base.parseConnection();
 		} else {
 			if (options.__endpointa && options.__endpointb)
 				base.setupConnection(base.get('__endpointa'), base.get('__endpointb'));
@@ -153,6 +150,7 @@
 		return base;
 	};
 
+	//takes relationame, and array of connections ids
 	global.Appacitive.Connection.multiDelete = function(relationName, ids, onSuccess, onError) {
 		if (!relationName)
 			throw new Error("Specify relationName");
@@ -176,6 +174,39 @@
 			}
 			global.Appacitive.http.send(request);
 		} else onSuccess();
+	};
+
+	var _parseConnections = function(connections) {
+		var connectionObjects = [];
+		connections.forEach(function(c){
+			connectionObjects.push(new global.Appacitive.Connection(a));
+		});
+		return connectionObjects;
+	};
+
+	//takes relationaname and array of connectionids and returns an array of Appacitive article objects
+	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError) {
+		if (!relationName)
+			throw new Error("Specify schemaName");
+
+		if (typeof ids == 'object' && ids.length > 0) {
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','));
+			request.method = 'get';
+			request.onSuccess = function(d) {
+				if (d && d.connections) {
+				   if (typeof onSuccess == 'function') onSuccess(_parseConnections(d.connections));
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			}
+			global.Appacitive.http.send(request);
+		} else onSuccess([]);
 	};
 
 })(global);

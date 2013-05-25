@@ -112,7 +112,8 @@
 		};
 
 		this.incrementExpiry = function() {
-			try {
+			return;
+			/*try {
 				if (global.Appacitive.runtime.isBrowser && authEnabled) {
 					var expiry = global.Appacitive.Cookie.readCookie('Appacitive-UserTokenExpiry');
 					
@@ -122,7 +123,7 @@
 					global.Appacitive.Cookie.setCookie('Appacitive-UserToken', _authToken, expiry);
 					global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
 				}
-			} catch(e) {}
+			} catch(e) {}*/
 		};
 
 		this.removeUserAuthHeader = function(callback, avoidApiCall) {

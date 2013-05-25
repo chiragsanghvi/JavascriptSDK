@@ -54,6 +54,7 @@
 			Appacitive.facebook.accessToken = "";
 			try {
 				FB.logout(function(response) {
+					Appacitive.Users.logout();
 					onSuccess();
 				});
 			} catch(e) {

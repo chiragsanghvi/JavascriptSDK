@@ -788,7 +788,7 @@ var global = {};
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
             },
             getMultiGetUrl: function (schemaName, articleIds) {
-                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaName, articleIds);
+                return String.format('{0}/{1}/multiGet/{2}', this.articleServiceUrl, schemaName, articleIds);
             },
             getCreateUrl: function (schemaName) {
                 return String.format('{0}/{1}', this.articleServiceUrl, schemaName);
@@ -810,8 +810,8 @@ var global = {};
             getGetUrl: function (relationName, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
             },
-            getMultiGetUrl: function (schemaName, articleIds) {
-                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaName, articleIds);
+            getMultiGetUrl: function (relationName, connectionIds) {
+                return String.format('{0}/{1}/multiGet/{2}', this.connectionServiceUrl, relationName, connectionIds);
             },
             getCreateUrl: function (relationName) {
                 return String.format('{0}/{1}', this.connectionServiceUrl, relationName);
@@ -853,7 +853,7 @@ var global = {};
             },
             getInterconnectsUrl: function () {
                 var url = '';
-                url = String.format('{0}/connectedarticles', this.connectionServiceUrl);
+                url = String.format('{0}/interconnects', this.connectionServiceUrl);
                 return url;
             },
             getPropertiesSearchUrl: function (relationName, query) {
@@ -1180,7 +1180,8 @@ Depends on  NOTHING
 		};
 
 		this.incrementExpiry = function() {
-			try {
+			return;
+			/*try {
 				if (global.Appacitive.runtime.isBrowser && authEnabled) {
 					var expiry = global.Appacitive.Cookie.readCookie('Appacitive-UserTokenExpiry');
 					
@@ -1190,7 +1191,7 @@ Depends on  NOTHING
 					global.Appacitive.Cookie.setCookie('Appacitive-UserToken', _authToken, expiry);
 					global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
 				}
-			} catch(e) {}
+			} catch(e) {}*/
 		};
 
 		this.removeUserAuthHeader = function(callback, avoidApiCall) {
@@ -1333,7 +1334,7 @@ Depends on  NOTHING
 
 	"use strict";
 
-	global.Appacitive.queries = {};
+	global.Appacitive.Queries = {};
 
 	// basic query for contains pagination
 	/** 
@@ -1509,7 +1510,7 @@ Depends on  NOTHING
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.queries.BasicFilterQuery = function(options) {
+	global.Appacitive.Queries.BasicFilterQuery = function(options) {
 
 		options = options || {};
 
@@ -1539,27 +1540,7 @@ Depends on  NOTHING
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.queries.GraphQuery = function(options) {
-
-		options = options || {};
-		
-		if (!options.graphQuery)
-			throw new Error('graphQuery object is mandatory');
-
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = global.Appacitive.config.apiBaseUrl;
-			r.url += global.Appacitive.storage.urlFactory.article.getProjectionQueryUrl();
-			r.method = 'post';
-			r.data = options.graphQuery;
-			return r;
-		};
-	};
-
-	/** 
-	* @constructor
-	**/
-	global.Appacitive.queries.ConnectedArticlesQuery = function(options) {
+	global.Appacitive.Queries.ConnectedArticlesQuery = function(options) {
 
 		options = options || {};
 
@@ -1586,6 +1567,62 @@ Depends on  NOTHING
 		};
 
 		return inner;
+	};
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GetConnectionsQuery = function(options) {
+
+		options = options || {};
+
+		if (!options.relation) throw new Error('Specify relation for GetConnectionsQuery query');
+		if (!options.articleId) throw new Error('Specify articleId for GetConnectionsQuery query');
+		if (!options.label || options.label.trim().length == 0) throw new Error('Specify label for GetConnectionsQuery query');
+		if (options.schema) delete options.schema;
+
+		options.queryType = 'GetConnectionsQuery';
+
+		var inner = new BaseQuery(options);
+
+		inner.articleId = options.articleId;
+		inner.label = options.label;
+
+		inner.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = this.toUrl();
+			r.method = 'get';
+			return r;
+		};
+
+		inner.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/find/all?' +
+				'articleid=' + this.articleId +
+				'&label=' +this.label +
+				inner.getQueryString();
+		};
+
+		return inner;
+	};
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GraphQuery = function(options) {
+
+		options = options || {};
+		
+		if (!options.graphQuery)
+			throw new Error('graphQuery object is mandatory');
+
+		this.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = global.Appacitive.config.apiBaseUrl;
+			r.url += global.Appacitive.storage.urlFactory.article.getProjectionQueryUrl();
+			r.method = 'post';
+			r.data = options.graphQuery;
+			return r;
+		};
 	};
 
 })(global);(function(global) {
@@ -2001,7 +2038,7 @@ Depends on  NOTHING
 			else
 				options.schema = _schema;
 
-			_query = new global.Appacitive.queries.BasicFilterQuery(options);
+			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
 			that.extendOptions = _query.extendOptions;
 		};
@@ -2012,7 +2049,7 @@ Depends on  NOTHING
 			if (_query) {
 				_query.filter = filterString;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 		};
@@ -2025,7 +2062,7 @@ Depends on  NOTHING
             if (_query) {
 				_query.freeText = tokens;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
         };
@@ -2038,7 +2075,7 @@ Depends on  NOTHING
             if (_query) {
 				_query.fields = fields;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
         };
@@ -2060,6 +2097,7 @@ Depends on  NOTHING
 
 		this.__defineSetter__("query", function(query) {
 			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
+			if (query.type !== 'BasicFilterQuery') throw new Error('ArticleCollection only accepts BasicFilterQuery');
 			_articles.length = 0;
 			_query = query;
 		});
@@ -2268,7 +2306,7 @@ Depends on  NOTHING
 			else
 				options.relation = _relation;
 
-			_query = new global.Appacitive.queries.BasicFilterQuery(options);
+			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
 		};
 
@@ -2278,7 +2316,7 @@ Depends on  NOTHING
 			if (_query) {
 				_query.filter = filterString;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 		};
@@ -2291,7 +2329,7 @@ Depends on  NOTHING
             if (_query) {
 				_query.freeText = tokens;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
         };
@@ -2304,7 +2342,7 @@ Depends on  NOTHING
             if (_query) {
 				_query.fields = fields;
 			} else {
-				_query = new global.Appacitive.queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
         };
@@ -2432,14 +2470,19 @@ Depends on  NOTHING
 			connections.forEach(function (connection) {
 				var _c = new global.Appacitive.Connection(connection, true);
 				_c.___collection = that;
-				_connections.push(_c);
-
+				
 				// if this is a connected articles call...
 				if (_c.endpointA.article || _c.endpointB.article) {
 					var _a = _c.endpointA.article || _c.endpointB.article;
 					_a.___collection = that;
 					_articles.push(_a);
 				}
+				try {
+					if (!_c.___collection.connectedArticle)
+						delete _c.connectedArticle;
+				} catch(e) {}
+
+				_connections.push(_c);
 			});
 
 			var pagingInfo = data.paginginfo || {};
@@ -2546,7 +2589,38 @@ Depends on  NOTHING
 		global.Appacitive.http.send(r);
 	};
 
+	var _setOperations = function(base) {
+
+		base.getConnectedArticles = function(options) {
+			if (this.type != 'article') return null;
+			options = options || {};
+			options.articleId = this.get('__id');
+
+			var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
+			collection.connectedArticle = this;
+			this.connectionCollections.push(collection);
+			collection.query  = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
+			
+			return collection;
+		};
+
+		base.getConnections = function(options) {
+
+			if (this.type != 'article') return null;
+			options = options || {};
+			options.articleId = this.get('__id');
+
+			var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
+			this.connectionCollections.push(collection);
+			
+			collection.query = new global.Appacitive.Queries.GetConnectionsQuery(options);
+			
+			return collection;
+		};
+	};
+
 	global.Appacitive.Article = function(options, setSnapShot) {
+
 		if (!options.__schematype && !options.schema )
 			throw new error("Cannot set article without __schematype");
 
@@ -2563,22 +2637,10 @@ Depends on  NOTHING
 		if (base.get('__schematype') && base.get('__schematype').toLowerCase() == 'user') {
 			base.getFacebookProfile = _getFacebookProfile;
 		}
+		
+		_setOperations(base);
 
 		return base;
-	};
-
-	global.Appacitive.BaseObject.prototype.getConnectedArticles = function(options) {
-		if (this.type != 'article') return null;
-		options = options || {};
-		options.articleId = this.get('__id');
-
-		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
-		collection.connectedArticle = this;
-		this.connectionCollections.push(collection);
-		var connectedArticlesQuery = new global.Appacitive.queries.ConnectedArticlesQuery(options);
-		collection.query = connectedArticlesQuery;
-
-		return collection;
 	};
 
 	global.Appacitive.Article.multiDelete = function(schemaName, ids, onSuccess, onError) {
@@ -2586,28 +2648,68 @@ Depends on  NOTHING
 			throw new Error("Specify schemaName");
 
 		if (schemaName.toLowerCase() == 'user' || schemaName.toLowerCase() == 'device')
-			throw new Error("Cannot delete schema and devices using multidelete");
+			throw new Error("Cannot delete user and devices using multidelete");
 
 		if (ids.length > 0) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiDeleteUrl(schemaName);
 			request.method = 'post';
 			request.data = { idlist : ids };
 			request.onSuccess = function(d) {
 				if (d && d.code == '200') {
-					onSuccess();
+					if (typeof onSuccess == 'function') onSuccess();
 				} else {
 					d = d || {};
-					onError(d || { message : 'Server error', code: 400 });
+					if (typeof onError == 'function') onError (d.status || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				onError(d || { message : 'Server error', code: 400 });
+				if (typeof onError == 'function') onError (d.status || { message : 'Server error', code: 400 });
 			}
 			global.Appacitive.http.send(request);
 		} else onSuccess();
 	};
+
+	var _parseArticles = function(articles) {
+		var articleObjects = [];
+		articles.forEach(function(a){
+			articleObjects.push(new global.Appacitive.Article(a));
+		});
+		return articleObjects;
+	};
+
+	//takes relationaname and array of articleids and returns an array of Appacitive article objects
+	global.Appacitive.Article.multiGet = function(schemaName, ids, onSuccess, onError) {
+		if (!schemaName)
+			throw new Error("Specify schemaName");
+
+		if (schemaName.toLowerCase() == 'user' || schemaName.toLowerCase() == 'device')
+			throw new Error("Cannot multiget user and devices using multidelete");
+
+		if (typeof ids == 'object' && ids.length > 0) {
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(schemaName, ids.join(','));
+			request.method = 'get';
+			request.onSuccess = function(d) {
+				if (d && d.articles) {
+				   if (typeof onSuccess == 'function') onSuccess(_parseArticles(d.articles));
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			}
+			global.Appacitive.http.send(request);
+		} else onSuccess([]);
+	};
+
 
 	/*global.Appacitive.BaseObject.prototype.getConnected = function(options) {
 		if (this.type != 'article') return null;
@@ -2686,7 +2788,7 @@ Depends on  NOTHING
 
 	};
 
-	global.Appacitive.Connection = function(options, doNotConvert) {
+	global.Appacitive.Connection = function(options, doNotSetup) {
 
 		if (!options.__relationtype && !options.relation )
 			throw new error("Cannot set connection without relation");
@@ -2748,23 +2850,20 @@ Depends on  NOTHING
 			return base;
 		};
 
-		if (doNotConvert) {
+		if (doNotSetup) {
+			base.__defineGetter__('connectedArticle', function() {
+				if (!base.___collection.connectedArticle) {
+					throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
+				}
+				var articleId = base.___collection.connectedArticle.get('__id');
+				if (!articleId) return null;
+				var otherArticleId = base.getConnection().__endpointa.articleid;
+				if (base.getConnection().__endpointa.articleid == articleId)
+					otherArticleId = base.getConnection().__endpointb.articleid;
+				return base.___collection.getConnectedArticle(otherArticleId);
 
-				base.__defineGetter__('connectedArticle', function() {
-					if (!base.___collection.connectedArticle) {
-						throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
-					}
-					var articleId = base.___collection.connectedArticle.get('__id');
-					if (!articleId) return null;
-					var otherArticleId = base.getConnection().__endpointa.articleid;
-					if (base.getConnection().__endpointa.articleid == articleId)
-						otherArticleId = base.getConnection().__endpointb.articleid;
-					return base.___collection.getConnectedArticle(otherArticleId);
-
-				});
-
-				base.parseConnection();
-
+			});
+			base.parseConnection();
 		} else {
 			if (options.__endpointa && options.__endpointb)
 				base.setupConnection(base.get('__endpointa'), base.get('__endpointb'));
@@ -2773,6 +2872,7 @@ Depends on  NOTHING
 		return base;
 	};
 
+	//takes relationame, and array of connections ids
 	global.Appacitive.Connection.multiDelete = function(relationName, ids, onSuccess, onError) {
 		if (!relationName)
 			throw new Error("Specify relationName");
@@ -2796,6 +2896,39 @@ Depends on  NOTHING
 			}
 			global.Appacitive.http.send(request);
 		} else onSuccess();
+	};
+
+	var _parseConnections = function(connections) {
+		var connectionObjects = [];
+		connections.forEach(function(c){
+			connectionObjects.push(new global.Appacitive.Connection(a));
+		});
+		return connectionObjects;
+	};
+
+	//takes relationaname and array of connectionids and returns an array of Appacitive article objects
+	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError) {
+		if (!relationName)
+			throw new Error("Specify schemaName");
+
+		if (typeof ids == 'object' && ids.length > 0) {
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','));
+			request.method = 'get';
+			request.onSuccess = function(d) {
+				if (d && d.connections) {
+				   if (typeof onSuccess == 'function') onSuccess(_parseConnections(d.connections));
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			}
+			global.Appacitive.http.send(request);
+		} else onSuccess([]);
 	};
 
 })(global);(function (global) {
@@ -2954,7 +3087,8 @@ Depends on  NOTHING
 					var authRequest = {
 						"accesstoken": global.Appacitive.facebook.accessToken,
 						"type": "facebook",
-						"expiry": 120 * 60,
+						//"expiry": 120 * 60,
+						"expiry": -1,
 						"createnew": true
 					};
 					var request = new global.Appacitive.HttpRequest();
@@ -3222,6 +3356,7 @@ Depends on  NOTHING
 			Appacitive.facebook.accessToken = "";
 			try {
 				FB.logout(function(response) {
+					Appacitive.Users.logout();
 					onSuccess();
 				});
 			} catch(e) {
@@ -3495,7 +3630,10 @@ var cookieManager = function () {
 			date.setTime(date.getTime() + (minutes*60*1000));
 			var expires = "; expires="+date.toGMTString();
 		}
-		else var expires = "";
+		//else var expires = "";
+		
+		//for now lets make this a session cookie
+		var expires = '';
 		document.cookie = name + "=" + value + expires + "; path=/";
 	};
 

@@ -152,7 +152,7 @@
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
             },
             getMultiGetUrl: function (schemaName, articleIds) {
-                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaName, articleIds);
+                return String.format('{0}/{1}/multiGet/{2}', this.articleServiceUrl, schemaName, articleIds);
             },
             getCreateUrl: function (schemaName) {
                 return String.format('{0}/{1}', this.articleServiceUrl, schemaName);
@@ -174,8 +174,8 @@
             getGetUrl: function (relationName, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
             },
-            getMultiGetUrl: function (schemaName, articleIds) {
-                return String.format('{0}/multiGet/{1}/{2}', this.articleServiceUrl, schemaName, articleIds);
+            getMultiGetUrl: function (relationName, connectionIds) {
+                return String.format('{0}/{1}/multiGet/{2}', this.connectionServiceUrl, relationName, connectionIds);
             },
             getCreateUrl: function (relationName) {
                 return String.format('{0}/{1}', this.connectionServiceUrl, relationName);
@@ -217,7 +217,7 @@
             },
             getInterconnectsUrl: function () {
                 var url = '';
-                url = String.format('{0}/connectedarticles', this.connectionServiceUrl);
+                url = String.format('{0}/interconnects', this.connectionServiceUrl);
                 return url;
             },
             getPropertiesSearchUrl: function (relationName, query) {

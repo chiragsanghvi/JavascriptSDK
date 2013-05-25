@@ -24,7 +24,7 @@ asyncTest('Get non-existent article', function() {
 	})
 });
 
-asyncTest('Save article and get by id', function() {
+asyncTest('Save article and get by id, and then save one more article and multiget them', function() {
 	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
 	var article = collection.createNewArticle();
 	var id = null;
@@ -47,7 +47,22 @@ asyncTest('Save article and get by id', function() {
 					ok(false, 'Duplicate articles in the collection');
 					break;
 			}
-			start();
+			var profile = new Appacitive.Article({ schema:'profile' });
+			profile.save(function() {
+				var ids = [];
+				ids.push(profile.get('__id'));
+				ids.push(article.get('__id'));
+				Appacitive.Article.multiGet('profile', ids, function(articles) {
+					equal(articles.length, 2, 'Articles fetched successfully  using multiget');
+					start();
+				}, function() {
+					ok(false, 'Could not multiget articles of type profile');
+					start();
+				});
+			}, function() {
+				ok(false, 'Article could not be saved!');
+				start();
+			});
 		}, function() {
 			ok(false, 'Could not fetch created article ( id: ' + id + ' )');
 			start();

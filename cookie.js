@@ -8,7 +8,10 @@ var cookieManager = function () {
 			date.setTime(date.getTime() + (minutes*60*1000));
 			var expires = "; expires="+date.toGMTString();
 		}
-		else var expires = "";
+		//else var expires = "";
+		
+		//for now lets make this a session cookie
+		var expires = '';
 		document.cookie = name + "=" + value + expires + "; path=/";
 	};
 

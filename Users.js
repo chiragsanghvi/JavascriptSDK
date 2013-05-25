@@ -154,7 +154,8 @@
 					var authRequest = {
 						"accesstoken": global.Appacitive.facebook.accessToken,
 						"type": "facebook",
-						"expiry": 120 * 60,
+						//"expiry": 120 * 60,
+						"expiry": -1,
 						"createnew": true
 					};
 					var request = new global.Appacitive.HttpRequest();
