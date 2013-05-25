@@ -1202,8 +1202,10 @@ Depends on  NOTHING
 			authEnabled = false;
 			callback = callback || function() {};
 			global.Appacitive.localStorage.remove('Appacitive-User');
-			if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-
+			if (global.Appacitive.runtime.isBrowser) {
+			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+			}
 			if (_authToken  && !avoidApiCall) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
@@ -1339,8 +1341,23 @@ Depends on  NOTHING
 	**/
 	var PageQuery = function(o) {
 		var options = o || {};
-		this.pageNumber = options.pageNumber || 1;
-		this.pageSize = options.pageSize || 200;
+		var _pageNumber = 1;
+		var _pageSize = 200;
+
+		//define getter for pageNumber
+		this.__defineGetter__('pageNumber', function() { return _pageNumber; });
+
+		//define setter for pageNumber
+		this.__defineSetter__('pageNumber', function(value) {  _pageNumber = value || 1; });
+
+		//define getter for pageSize
+		this.__defineGetter__('pageSize', function() { return _pageSize; });
+
+		//define setter for pagenumber
+		this.__defineSetter__('pageSize', function(value) { _pageSize = value || 200; });
+
+		this.pageNumber = options.pageNumber;
+		this.pageSize = options.pageSize;
 	};
 	PageQuery.prototype.toString = function() {
 		return 'psize=' + this.pageSize + '&pnum=' + this.pageNumber;
@@ -1351,9 +1368,24 @@ Depends on  NOTHING
 	* @constructor
 	**/
 	var SortQuery = function(o) {
-		o = o || {};
-		this.orderBy = o.orderBy || '__UtcLastUpdatedDate';
-		this.isAscending = typeof o.isAscending == 'undefined' ? false : o.isAscending;
+		var options = o || {};
+		var _orderBy = '__UtcLastUpdatedDate';
+		var _isAscending = false;
+
+		//define getter for pagenumber
+		this.__defineGetter__('orderBy', function() { return _orderBy; });
+
+		//define setter for pagenumber
+		this.__defineSetter__('orderBy', function(value) { _orderBy = value || '__UtcLastUpdatedDate'; });
+
+		//define getter for pagenumber
+		this.__defineGetter__('isAscending', function() { return _isAscending; });
+
+		//define setter for pagenumber
+		this.__defineSetter__('isAscending', function(value) {  _isAscending = typeof value == 'undefined' ? false : value; });
+
+		this.orderBy = options.orderBy;
+		this.isAscending = options.isAscending;
 	};
 	SortQuery.prototype.toString = function() {
 		return 'orderBy=' + this.orderBy + '&isAsc=' + this.isAscending;
@@ -1377,6 +1409,8 @@ Depends on  NOTHING
 		var _entityType = o.schema || o.relation;
 		var _type = (o.schema) ? 'article' : 'connection';
 
+
+
 		//define getter for type (article/connection)
 		this.__defineGetter__('type', function() { return _type; });
 
@@ -1386,11 +1420,15 @@ Depends on  NOTHING
 		//define getter for querytype (basic,connectedarticles etc)
 		this.__defineGetter__('queryType', function() { return _queryType; });
 
+
+
 		//define getter for pagequery 
 		this.__defineGetter__('pageQuery', function() { return _pageQuery; });
 
 		//define getter for sortquery
 		this.__defineGetter__('sortQuery', function() { return _sortQuery; });
+
+
 
 		//define getter for filter
 		this.__defineGetter__('filter', function() { return _filter; });
@@ -1398,14 +1436,18 @@ Depends on  NOTHING
 		//define setter for filter
 		this.__defineSetter__('filter', function(value) { _filter = value; });
 
+
+
 		//define getter for freetext
 		this.__defineGetter__('freeText', function() { return _freeText; });
 
 		//define setter for freetext
 		this.__defineSetter__('freeText', function(value) {
 			if (typeof value == 'string') _freeText = value;
-			else if (typeof value == 'object' && value.length) _freeText = value.join(',');
+			else if (typeof value == 'object' && value.length) _freeText = value.join(' ');
 		});
+
+
 
 		//define getter for fields
 		this.__defineGetter__('fields', function() { return _fields; });
@@ -1415,6 +1457,7 @@ Depends on  NOTHING
 			if (typeof value == 'string') _fields = value;
 			else if (typeof value == 'object' && value.length) _fields = value.join(',');
 		});
+
 
 		//set filters , freetext and fields
 		this.filter = options.filter || '';
@@ -1451,6 +1494,16 @@ Depends on  NOTHING
 
 			return finalUrl;
 		};
+
+		this.getOptions = function() {
+			var o = {};
+			for (var key in this) {
+				if (this.hasOwnProperty(key) && typeof this[key] != 'function') {
+					o[key] = this[key];
+				}
+			}
+			return o;
+		};
 	};
 
 	/** 
@@ -1460,7 +1513,8 @@ Depends on  NOTHING
 
 		options = options || {};
 
-		if (!options.schema && !options.relation) throw new Error('Specify either schema or relation name for basic filter query');
+		if ((!options.schema && !options.relation) || (options.schema && options.relation)) 
+			throw new Error('Specify either schema or relation for basic filter query');
 
 		options.queryType = 'BasicFilterQuery';
 
@@ -1477,16 +1531,6 @@ Depends on  NOTHING
 			return global.Appacitive.config.apiBaseUrl +
 				   this.type + '.svc/' +
 				   this.entityType + '/find/all?' + this.getQueryString();
-		};
-
-		inner.getOptions = function() {
-			var o = {};
-			for (var key in this) {
-				if (this.hasOwnProperty(key) && typeof this[key] != 'function') {
-					o[key] = this[key];
-				}
-			}
-			return o;
 		};
 
 		return inner;
@@ -1521,30 +1565,24 @@ Depends on  NOTHING
 
 		if (!options.relation) throw new Error('Specify relation for connected articles query');
 		if (!options.articleId) throw new Error('Specify articleId for connected articles query');
+		if (options.schema) delete options.schema;
 
 		options.queryType = 'ConnectedArticlesQuery';
 
 		var inner = new BaseQuery(options);
 
+		inner.articleId = options.articleId;
+
 		inner.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = this.toUrl();
+			r.method = 'get';
 			return r;
 		};
 
 		inner.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/' + options.articleId + '/find?' +
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/' + this.articleId + '/find?' +
 				inner.getQueryString();
-		};
-
-		inner.getOptions = function() {
-			var o = {};
-			for (var key in this) {
-				if (this.hasOwnProperty(key) && typeof this[key] != 'function') {
-					o[key] = this[key];
-				}
-			}
-			return o;
 		};
 
 		return inner;
@@ -2916,8 +2954,7 @@ Depends on  NOTHING
 					var authRequest = {
 						"accesstoken": global.Appacitive.facebook.accessToken,
 						"type": "facebook",
-						"expiry": 120,
-						"attempts": -1,
+						"expiry": 120 * 60,
 						"createnew": true
 					};
 					var request = new global.Appacitive.HttpRequest();

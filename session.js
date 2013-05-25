@@ -134,8 +134,10 @@
 			authEnabled = false;
 			callback = callback || function() {};
 			global.Appacitive.localStorage.remove('Appacitive-User');
-			if (global.Appacitive.runtime.isBrowser) global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-
+			if (global.Appacitive.runtime.isBrowser) {
+			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+			}
 			if (_authToken  && !avoidApiCall) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
