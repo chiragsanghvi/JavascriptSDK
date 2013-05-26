@@ -126,10 +126,11 @@ asyncTest('Signin with facebook and verify Appacitive.Users.currentUser', functi
 asyncTest('Verify get facebook user if info is requested', function() {
 	try {
 		var accessToken = Appacitive.facebook.accessToken;
-		Appacitive.Users.signupWithFacebook(function(user) {
-			var token = user.token;
+		Appacitive.Users.signupWithFacebook(function(data) {
+			var token = data.token;
+			var user = data.user.getArticle();
 			Appacitive.session.setUserAuthHeader(token);
-			var id = user.user.__id;
+			var id = user.__id;
 			ok(true, 'Signed up with facebook: ' + JSON.stringify(user));
 			var users = new Appacitive.ArticleCollection({ schema: 'user' });
 			var user = users.createNewArticle();

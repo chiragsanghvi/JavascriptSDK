@@ -15,7 +15,7 @@ asyncTest('Creating session with valid Apikey', function() {
 asyncTest('Verify create default user', function() {
 	var user = testConstants.user;
 	Appacitive.Users.createUser(user, function(user) {
-		ok(true, 'User created successfully: ' + JSON.stringify(arguments));
+		ok(true, 'User created successfully');
 		start();
 	}, function(d) {
 		ok(false, 'Error returned: ' + JSON.stringify(d));

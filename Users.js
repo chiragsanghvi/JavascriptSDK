@@ -4,94 +4,81 @@
 
 	var UserManager = function() {
 
-		var authenticatedUser = null;
+		var _authenticatedUser = null;
 
 		this.__defineGetter__('currentUser', function() {
-			return authenticatedUser;
+			return _authenticatedUser;
 		});
 
 		this.setCurrentUser = function(user, token, expiry) {
+			if (!user || typeof user != 'object')
+				throw new Error('Cannot set null object as user');
+
+			var userObject = user;
+			
+			if (!user.getArticle) userObject = new Appacitive.User(user); 
+			
+			if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
 			
 			if (!expiry) expiry = 60;
 
-			authenticatedUser = user;
+			_authenticatedUser = userObject;
+
 			if (token)
 				Appacitive.session.setUserAuthHeader(token, expiry);
+
+			_authenticatedUser.logout = function(callback) {
+				Appacitive.Users.logout(callback);
+			};
+
+			Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
+				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
+			});
 		};
 		
 		global.Appacitive.User = function(options) {
-			var base = new global.Appacitive.BaseObject(options);
-			base.type = 'user';
-			base.connectionCollections = [];
-
-			if (base.get('__schematype') && base.get('__schematype').toLowerCase() == 'user') {
-				base.getFacebookProfile = _getFacebookProfile;
-			}
-
+			options.__schematype = 'user';
+			var base = new global.Appacitive.Article(options, true);
 			return base;
 		};
 
 		this.deleteUser = function(userId, onSuccess, onError) {
+			if (!userId)
+				throw new Error('Specify userid for user delete');
+
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			var request = new global.Appacitive.HttpRequest();
-			request.method = 'delete';
-			request.url = global.Appacitive.config.apiBaseUrl;
-			request.url += global.Appacitive.storage.urlFactory.user.getDeleteUrl(userId);
-			request.onSuccess = function(data) {
-				if (data && data.code && data.code == '200') {
-					onSuccess(data);
-				} else {
-					data = data || {};
-					data.message = data.message || 'Server error';
-					onError(data);
-				}
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
+			var userObject = new Appacitive.Article({ __schematype: 'user', __id: userId });
+			userObject.del(onSuccess, onError);
 		};
 
 		this.deleteCurrentUser = function(onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
 
-			if (authenticatedUser === null) {
-				throw new Error('Current user is not set yet for delete operation');
-			}
-			
-			var currentUserId = authenticatedUser.__id;
+			if (_authenticatedUser === null)
+				throw new Error('Current user is not yet set for delete operation');
 
+			var currentUserId = _authenticatedUser.get('__id');
 			this.deleteUser(currentUserId, function(data) { 
 				global.Appacitive.session.removeUserAuthHeader();
-				onSuccess(data);
+				if (typeof onSuccess == 'function') onSuccess(data);
 			}, onError);
 		};
 
-		this.createUser = function(user, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		this.createNewUser = function(user, onSuccess, onError) {
 			user = user || {};
 			user.__schematype = 'user';
-			if (!user.username || !user.password || !user.firstname || user.username.length == 0 || user.password.length == 0 || user.firstname.length == 0) {
-				throw new Error('Username, password and firstname are mandatory');
-			}
-			var request = new global.Appacitive.HttpRequest();
-			request.method = 'put';
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getCreateUrl();
-			request.data = user;
-			request.onSuccess = function(data) {
-				if (data && data.user) {
-					onSuccess(data.user);
-				} else {
-					onError((data || {}).status || 'No response from APIs.');
-				}
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
+			if (!user.username || !user.password || !user.firstname || user.username.length == 0 || user.password.length == 0 || user.firstname.length == 0) 
+				throw new Error('username, password and firstname are mandatory');
+
+			var userObject = new Appacitive.Article(user);
+			user.type = 'user';
+			userObject.save(onSuccess, onError);
 		};
+		this.createUser = this.createNewUser;
 
 		//method to allow user to signup and then login 
 		this.signup = function(user, onSuccess, onError) {
@@ -116,9 +103,8 @@
 			request.data = authRequest;
 			request.onSuccess = function(data) {
 				if (data && data.user) {
-					authenticatedUser = data.user;
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					onSuccess(data);
+					onSuccess({ user : that.currentUser, token: data.token });
 				} else {
 					data = data || {};
 					onError(data.status);
@@ -164,17 +150,15 @@
 					request.data = authRequest;
 					request.onSuccess = function(a) {
 						if (a.user) {
-							a.user.__authType = 'FB';
-							authenticatedUser = a.user;	
+							//a.user.__authType = 'FB';
 							that.setCurrentUser(a.user, a.token, 120);
-							onSuccess(a);
+							onSuccess({ user : that.currentUser, token: a.token });
 						} else {
-							onError(a);
+							data = data || {};
+							onError(data);
 						}
 					};
-					request.onError = function() {
-						onError();
-					};
+					request.onError = onError;
 					global.Appacitive.http.send(request);
 				});
 			} else
@@ -216,16 +200,11 @@
 			}
 		};
 
-		this.logout = function(callback) {
+		this.logout = function(callback, avoidApiCall) {
 			callback = callback || function() {};
-			if (!this.currentUser) { 
-				callback();
-				return;
-			}
-
-			global.Appacitive.session.removeUserAuthHeader(callback);
+			_authenticatedUser = null;
+			global.Appacitive.session.removeUserAuthHeader(callback, avoidApiCall);
 		};
-
 	};
 
 	global.Appacitive.Users = new UserManager();

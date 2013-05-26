@@ -52,7 +52,7 @@
 				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article.getArticle)
 					base["endpoint" + type].article.copy(base.get('__endpointb').article);
 				else 
-					base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpointb').article);
+					base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpoint' + type.toLowerCase()).article);
 			}
 			base["endpoint" + type].articleid = base.get('__endpoint' + type.toLowerCase()).articleid;
 			base["endpoint" + type].label = base.get('__endpoint' + type.toLowerCase()).label;

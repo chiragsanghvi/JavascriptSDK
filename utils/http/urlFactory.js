@@ -38,7 +38,7 @@
         result = result.toLowerCase();
 
         return result;
-    }
+    };
 
     String.contains = function (s1, s2) {
         return (s1.indexOf(s2) != -1);
@@ -46,7 +46,26 @@
 
     String.startsWith = function (s1, s2) {
         return (s1.indexOf(s2) == 0);
-    }
+    };
+
+    Array.distinct = function(orgArr) {
+        var newArr = [],
+            origLen = orgArr.length,
+            found,
+            x, y;
+            
+        for ( x = 0; x < origLen; x++ ) {
+            found = undefined;
+            for ( y = 0; y < newArr.length; y++ ) {
+                if ( orgArr[x].toLowerCase() === newArr[y].toLowerCase() ) { 
+                  found = true;
+                  break;
+                }
+            }
+            if (!found) newArr.push(orgArr[x]);    
+        }
+       return newArr;
+    };
 
     global.dateFromWcf = function (input, throwOnInvalidInput) {
         var pattern = /Date\(([^)]+)\)/;
@@ -58,7 +77,7 @@
             throw new Error(s + " is not .net json date.");
         }
         return new Date(parseFloat(results[1]));
-    }
+    };
 
     /**
      * @constructor

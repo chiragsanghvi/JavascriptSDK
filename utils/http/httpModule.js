@@ -589,7 +589,7 @@ var global = {};
 						global.Appacitive.http.send(request);
 					} else {
 						if (response && ((response.status && response.status.code && response.status.code == '8036') || (response.code &&response.code == '8036'))) {
-							global.Appacitive.session.removeUserAuthHeader(true);
+							global.Appacitive.session.logout(function(){}, true);
 						} else {
 							global.Appacitive.session.incrementExpiry();
 						}

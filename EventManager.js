@@ -74,8 +74,8 @@ Depends on  NOTHING
 
             // shifted logging here
             // for better debugging
-            if (console && console.log && typeof console.log == 'function')
-                console.log(eventName + ' fired');
+            //if (console && console.log && typeof console.log == 'function')
+               // console.log(eventName + ' fired');
 
             if (typeof (_subscriptions["all"]) != "undefined") {
                 for (var x = 0; x < _subscriptions["all"].length; x = x + 1) {

@@ -2,7 +2,7 @@
 
 var cookieManager = function () {
 
-	this.setCookie = function (name, value, minutes) {
+	this.setCookie = function (name, value, minutes, erase) {
 		if (minutes) {
 			var date = new Date();
 			date.setTime(date.getTime() + (minutes*60*1000));
@@ -10,8 +10,8 @@ var cookieManager = function () {
 		}
 		//else var expires = "";
 		
-		//for now lets make this a session cookie
-		var expires = '';
+		//for now lets make this a session cookie if it is not an erase
+		if (!erase) var expires = '';
 		document.cookie = name + "=" + value + expires + "; path=/";
 	};
 
@@ -27,7 +27,7 @@ var cookieManager = function () {
 	};
 
 	this.eraseCookie = function (name) {
-		this.setCookie(name, "" ,-1);
+		this.setCookie(name, "" ,-1, true);
 	};
 
 };
