@@ -215,7 +215,7 @@ var global = {};
 
 	var _XMLHttpRequest = null;
 
-	(global.Appacitive.runtime.isBrowser) ? _XMLHttpRequest = XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
+	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
 
 	var _XMLHttp = function(request) {
 
@@ -442,7 +442,7 @@ var global = {};
 						global.Appacitive.http.send(request);
 					} else {
 						if (response && ((response.status && response.status.code && response.status.code == '8036') || (response.code &&response.code == '8036'))) {
-							global.Appacitive.session.logout(function(){}, true);
+							global.Appacitive.Users.logout(function(){}, true);
 						} else {
 							global.Appacitive.session.incrementExpiry();
 						}
