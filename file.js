@@ -4,10 +4,10 @@
 
   var _file = function(options) {
       
+      options = options || {}; 
       this.fileId = options.fileId;
       this.contentType = options.contentType;
       this.fileData = options.fileData;
-
 
       var _getUrls = function(url, onSuccess, onError) {
           var request = new global.Appacitive.HttpRequest();

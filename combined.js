@@ -3504,6 +3504,7 @@ Depends on  NOTHING
 
   var _file = function(options) {
       
+      options = options || {}; 
       this.fileId = options.fileId;
       this.contentType = options.contentType;
       this.fileData = options.fileData;
