@@ -590,6 +590,12 @@ var global = {};
             },
             getInvalidateTokenUrl: function(token) {
                 return String.format("{0}/invalidate?userToken={1}", this.userServiceUrl, token);
+            },
+            getSendResetPasswordEmailUrl: function() {
+                return String.format("{0}/sendresetpasswordemail", this.userServiceUrl);
+            },
+            getUpdatePasswordUrl: function(userId) {
+                return String.format("{0}/{1}/changepassword", this.userServiceUrl, userId);
             }
         };
         this.device = {
@@ -2873,6 +2879,32 @@ Depends on  NOTHING
 			return _authenticatedUser;
 		});
 
+		var _updatePassword = function(userId, oldPassword, newPassword, onSuccess, onError) {
+			
+			if (!userId || typeof userId !== 'string' || userId.length == 0) throw new Error("Please specify valid userid");
+			if (!oldPassword || typeof oldPassword !== 'string' || oldPassword.length == 0) throw new Error("Please specify valid oldPassword");
+			if (!newPassword || typeof newPassword !== 'string' || newPassword.length == 0) throw new Error("Please specify valid newPassword");
+
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (oldPassword == newPassword) {
+			 	if (typeof onSuccess == 'function') onSuccess(); return;
+			}
+
+			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUpdatePasswordUrl(userId);
+			request.method = 'post';
+			request.data = updatedPasswordOptions;
+			request.onSuccess = function(a) {
+				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess();
+				else { onError(a); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request); 
+		};
+
 		this.setCurrentUser = function(user, token, expiry) {
 			if (!user || typeof user != 'object')
 				throw new Error('Cannot set null object as user');
@@ -2894,6 +2926,10 @@ Depends on  NOTHING
 
 			_authenticatedUser.logout = function(callback) {
 				Appacitive.Users.logout(callback);
+			};
+
+			_authenticatedUser.updatePassword = function(oldPassword, newPassword, onSuccess, onError) {
+				_updatePassword(this.get('__id'), oldPassword, newPassword, onSuccess, onError);
 			};
 
 			Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
@@ -3039,8 +3075,7 @@ Depends on  NOTHING
 			var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
 
 			if (!token) {
-				if (typeof(callback) == 'function')
-					callback(false);
+				if (typeof(callback) == 'function') callback(false);
 				return false;
 			}
 
@@ -3061,6 +3096,26 @@ Depends on  NOTHING
 					callback(true);
 				return true;
 			}
+		};
+
+		this.sendResetPasswordEmail = function(username, subject, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!username || typeof username != 'string' || username.length == 0) throw new Error("Please specify valid username");
+			if (subject && typeof subject == 'string' && subject.length == 0) throw new Error('Plase specify subject for email');
+
+			var passwordResetOptions = { username: username, subject: subject };
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getSendResetPasswordEmailUrl();
+			request.method = 'post';
+			request.data = passwordResetOptions;
+			request.onSuccess = function(a) {
+				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess();
+				else { onError(a); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request); 
 		};
 
 		this.logout = function(callback, avoidApiCall) {

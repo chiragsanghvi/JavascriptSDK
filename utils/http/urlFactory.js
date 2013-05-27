@@ -123,6 +123,12 @@
             },
             getInvalidateTokenUrl: function(token) {
                 return String.format("{0}/invalidate?userToken={1}", this.userServiceUrl, token);
+            },
+            getSendResetPasswordEmailUrl: function() {
+                return String.format("{0}/sendresetpasswordemail", this.userServiceUrl);
+            },
+            getUpdatePasswordUrl: function(userId) {
+                return String.format("{0}/{1}/changepassword", this.userServiceUrl, userId);
             }
         };
         this.device = {
