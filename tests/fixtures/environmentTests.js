@@ -2,6 +2,7 @@ module('Environment tests');
 
 test('Verify default environment is sandbox', function() {
 	var r = new Appacitive.HttpRequest();
+	r.url = 'http://google.co.in';
 	r.beforeSend = function(r) {
 		var environmentHeader = r.headers.filter(function(h) {
 			return h.key.toLowerCase() == 'appacitive-environment';
@@ -14,6 +15,7 @@ test('Verify default environment is sandbox', function() {
 
 test('Verify environment can be changed', function() {
 	var r = new Appacitive.HttpRequest();
+	r.url = 'http://google.co.in';
 	r.beforeSend = function(r) {
 		var environmentHeader = r.headers.filter(function(h) {
 			return h.key.toLowerCase() == 'appacitive-environment';
@@ -27,6 +29,7 @@ test('Verify environment can be changed', function() {
 
 test('Verify environment reverts to sandbox on incorrect values', function() {
 	var r = new Appacitive.HttpRequest();
+	r.url = 'http://google.co.in';
 	r.beforeSend = function(r) {
 		var environmentHeader = r.headers.filter(function(h) {
 			return h.key.toLowerCase() == 'appacitive-environment';

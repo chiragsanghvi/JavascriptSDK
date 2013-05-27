@@ -27,19 +27,6 @@ var global = {};
 	};
 	_initialize();
 
-	// httpRequest class, encapsulates the request 
-	// without bothering about how it is going to be fired.
-	/**
-	 * @constructor
-	 */
-	var HttpRequest = function () {
-		this.url = '';
-		this.data = {};
-		this.async = true;
-		this.headers = [];
-		this.method = 'GET';
-	};
-
 	// httpBuffer class, stores a queue of the requests
 	// and fires them. Global level pre and post processing 
 	// goes here. 
@@ -164,12 +151,11 @@ var global = {};
 
 	};
 
-
 	// base httpTransport class
 	/**
 	 * @constructor
 	 */
-	var HttpTransport = function () {
+	 var _HttpTransport = function () {
 		var _notImplemented = function () {
 			throw new Error('Not Implemented Exception');
 		}
@@ -190,196 +176,89 @@ var global = {};
 		};
 	}
 
-	// jquery based http transport class
+	// base xmlhttprequest class
+	/**
+	  * @constructor
+	  */
+
+	var _XMLHttpRequest = null;
+
+	(global.Appacitive.runtime.isBrowser) ? _XMLHttpRequest = XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
+
+	var _XMLHttp = function(request) {
+
+	    if (typeof(XDomainRequest) !== "undefined") {
+	      throw new Error("Appacitive doesn't support versions of IE6, IE7, IE8, IE9 due to crossdomain calls");
+	    }
+
+		if (!request.url) throw new Error("Please specify request url");
+		if (!request.method) request.method = 'GET' ;
+		if (!request.headers) request.headers = [];
+		var data = {};
+		try { if (request.data) data = request.data;
+			  data = JSON.stringify(data); 
+		} catch(e) {}
+		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
+	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
+	    
+	    var xhr = new _XMLHttpRequest();
+	    xhr.onreadystatechange = function() {
+	    	if (this.readyState == 4) {
+		    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
+					var response = this.responseText;
+					try {
+						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
+						if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') response = JSON.parse(response);
+					} catch(e) {}
+		            request.onSuccess(response, this);
+		        } else {
+		        	request.onError({code: this.status , message: this.statusText }, this);
+		        }
+	    	}
+	    };
+	    xhr.open(request.method, request.url, true);
+	    for (var x = 0; x < request.headers.length; x += 1)
+			xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
+		if (!global.Appacitive.runtime.isBrowser)
+			xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
+	    xhr.send(data);
+	    return xhr;
+	};
+
+
+	// httpRequest class, encapsulates the request 
+	// without bothering about how it is going to be fired.
 	/**
 	 * @constructor
 	 */
-	var JQueryHttpTransport = function () {
+	var HttpRequest = function (o) {
+		o = o || {};
+		this.url = o.url || '';
+		this.data = o.data || {};
+		this.headers = o.headers || [];
+		this.method = o.method || 'GET';
+		this.onSuccess = o.onSuccess || function(){}
+		this.onSuccess = o.onError || function(){}
 
-		var _super = new HttpTransport();
-
-		_super.type = 'jQuery based http provider';
-
-		_super.send = function (request, callbacks, states) {
-			if (typeof request.beforeSend == 'function') {
-				request.beforeSend(request);
-			}
-
-			switch (request.method.toLowerCase()) {
-				case 'get':
-					_get(request, callbacks, states);
-					break;
-				case 'post':
-					_post(request, callbacks, states);
-					break;
-				case 'put':
-					_put(request, callbacks, states);
-					break;
-				case 'delete':
-					_delete(request, callbacks, states);
-					break;
-				default:
-					throw new Error('Unrecognized http method: ' + request.method);
-			}
+		this.send = function() {
+			return new __XMLHttp(this);
 		};
-
-		_super.isOnline = function () {
-			return window.navigator.onLine || true;
-		};
-
-		var _executeCallbacks = function (response, callbacks, states) {
-			if (callbacks.length != states.length) {
-				throw new Error('Callback length and state length mismatch!');
-			}
-
-			for (var x = 0; x < callbacks.length; x += 1) {
-				callbacks[x].apply({}, [response, states[x]]);
-			}
-		};
-
-		var that = _super;
-
-		$ = $ || {};
-		$.ajax = $.ajax || {};
-
-		var _get = function (request, callbacks, states) {
-			$.ajax({
-				url: request.url,
-				type: 'GET',
-				async: request.async,
-				beforeSend: function (xhr) {
-					for (var x = 0; x < request.headers.length; x += 1) {
-						xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
-					}
-				},
-				success: function (data) {
-					// Hack to make things work in FF
-					try {
-						data = JSON.parse(data);
-					} catch (e) {}
-
-					// execute the callbacks first
-					_executeCallbacks(data, callbacks, states);
-
-					that.onResponse(data, request);
-				},
-				error: function (e) {
-					that.onError(request, e);
-				}
-			});
-		};
-
-		var _post = function (request, callbacks, states) {
-			$.ajax({
-				url: request.url,
-				type: 'POST',
-				async: request.async,
-				contentType: "application/json",
-				data: JSON.stringify(request.data),
-				beforeSend: function (xhr) {
-					for (var x = 0; x < request.headers.length; x += 1) {
-						xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
-					}
-				},
-				success: function (data) {
-					// Hack to make things work in FF
-					try {
-						data = JSON.parse(data);
-					} catch (e) {}
-
-					// execute the callbacks first
-					_executeCallbacks(data, callbacks, states);
-
-					that.onResponse(data, request);
-				},
-				error: function (e) {
-					that.onError(request, e);
-				}
-			});
-		};
-
-		var _put = function (request, callbacks, states) {
-			$.ajax({
-				url: request.url,
-				type: 'PUT',
-				contentType: "application/json",
-				data: JSON.stringify(request.data),
-				async: request.async,
-				beforeSend: function (xhr) {
-					for (var x = 0; x < request.headers.length; x += 1) {
-						xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
-					}
-				},
-				success: function (data) {
-					// Hack to make things work in FF
-					try {
-						data = JSON.parse(data);
-					} catch (e) {}
-
-					// execute the callbacks first
-					_executeCallbacks(data, callbacks, states);
-
-					that.onResponse(data, request);
-				},
-				error: function (e) {
-					that.onError(request, e);
-				}
-			});
-		};
-
-		var _delete = function (request, callbacks, states) {
-			$.ajax({
-				url: request.url,
-				type: 'DELETE',
-				async: request.async,
-				beforeSend: function (xhr) {
-					for (var x = 0; x < request.headers.length; x += 1) {
-						xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
-					}
-				},
-				success: function (data) {
-					// Hack to make things work in FF
-					try {
-						data = JSON.parse(data);
-					} catch (e) {}
-
-					// execute the callbacks first
-					_executeCallbacks(data, callbacks, states);
-
-					that.onResponse(data, request);
-				},
-				error: function (e) {
-					that.onError(request, e);
-				}
-			});
-		};
-
-		return _super;
 	};
 
-	var NodeHttpTransport = function () {
+	// browser based http transport class
+	/**
+	 * @constructor
+	 */
+	var BasicHttpTransport = function () {
 
-		var _super = new HttpTransport();
+		var _super = new _HttpTransport();
 
-		_super.type = 'Http provider for nodejs';
-
-		_super.send = function (request, callbacks, states) {
-			if (typeof request.beforeSend == 'function') {
-				request.beforeSend(request);
-			}
-
-			sendHttp(request, callbacks, states);
-		};
-
-		_super.isOnline = function () {
-			return true;
-		};
+		_super.isOnline = function () { return true; };
 
 		var _executeCallbacks = function (response, callbacks, states) {
 			if (callbacks.length != states.length) {
 				throw new Error('Callback length and state length mismatch!');
 			}
-
 			for (var x = 0; x < callbacks.length; x += 1) {
 				callbacks[x].apply({}, [response, states[x]]);
 			}
@@ -387,80 +266,39 @@ var global = {};
 
 		var that = _super;
 
-		var o = {
-		    host: 'localhost',
-		    port: 80,
-		    path: '',
-		    data: "{}",
-		    method: 'GET',
-		    headers: {
-		        'Content-Type': 'application/json',
-		        'accept': 'application/json'
-        	}
-    	};
+		var _trigger = function(request, callbacks, states, isFile) {
+			if (!isFile) request.headers.push({ key:'content-type', value: 'application/json' });
+			var xhr = new  _XMLHttp({
+				method: request.method,
+				url: request.url,
+				headers: request.headers,
+				data: request.data,
+				onSuccess: function(data, xhr) {
+					// Hack to make things work in FF
+					try { data = JSON.parse(data); } catch (e) {}
+					// execute the callbacks first
+					_executeCallbacks(data, callbacks, states);
+					that.onResponse(data, request);
+				},
+				onError: function(e) {
+					that.onError(request, e);
+				}
+			});
+		}
 
-		var http = require('http');
- 
-        var sendHttp = function(options, callbacks, states) {
-            
-            var reqUrl = require('url').parse(options.url);
- 
-            options = options || {};
-            for (var key in options) {
-                if (key == 'headers') {
- 
-                    for(var i = 0 ; i < options.headers.length; i = i + 1) {
-                        o.headers[options.headers[i].key] = options.headers[i].value;
-                         }
-                } else {
-                    o[key] = options[key];
-                }
-            }
-            o.host = reqUrl.host;
-            o.port = reqUrl.port || 80;
-            o.path = reqUrl.path;
-            o.method = options.method.toUpperCase();
-            
-            if (typeof o.data != 'string') o.data = JSON.stringify(o.data);
-            o.headers['Content-Length'] = o.data.length;
-            o.headers['Content-Type'] = 'application/json';
-            
-            var x = http.request(o, function (res) {
-                
-                var receivedData = '';
- 
-                res.setEncoding('utf8');
- 
-                res.on('data', function (data) {
-                    receivedData += data;
-                });
- 
-                res.on('end', function() {
- 
-                    if(res.headers["content-type"] == "application/json" && res.statusCode == "200" ){
-                
-                        if (receivedData[0] != "{") receivedData = receivedData.substr(1, receivedData.length - 1);
-                        
-                        res.json = JSON.parse(receivedData);
- 
-                        // execute the callbacks first
-                        _executeCallbacks(res.json, callbacks, states);
- 
-                        that.onResponse(res.json, options);
-                    } else {
-                        res.text = receivedData;
-                        that.onError(options, res);
-                    };
- 
-                });
-            });
- 
-            x.write(o.data);
-            x.on('error', function(e) {
-                that.onError(options, e);
-            });
-            x.end();
-        };
+		_super.send = function (request, callbacks, states) {
+			if (typeof request.beforeSend == 'function') {
+				request.beforeSend(request);
+			}
+			_trigger(request, callbacks, states);
+		};
+
+		_super.upload = function (request, callbacks, states) {
+			if (typeof request.beforeSend == 'function') {
+				request.beforeSend(request);
+			}
+			_trigger(request, callbacks, states, true);
+		};
 
 		return _super;
 	};
@@ -472,7 +310,8 @@ var global = {};
 	var HttpProvider = function () {
 
 		// actual http provider
-		var _inner = global.Appacitive.runtime.isBrowser ? new JQueryHttpTransport() : new NodeHttpTransport();
+		//var _inner = global.Appacitive.runtime.isBrowser ? new JQueryHttpTransport() : new NodeHttpTransport();
+		var _inner = new BasicHttpTransport();
 
 		// the http buffer
 		var _buffer = new HttpBuffer(_inner);
@@ -542,31 +381,13 @@ var global = {};
 			}
 		}
 		_inner.onResponse = this.onResponse;
-	}
+	};
 
 	// create the http provider and the request
 	global.Appacitive.http = new HttpProvider();
 	global.Appacitive.HttpRequest = HttpRequest;
 
 	/* PLUGIN: Http Utilities */
-
-	// optional plugin
-	(function (global) {
-
-		if (!global.Appacitive) return;
-		if (!global.Appacitive.http) return;
-
-		global.Appacitive.http.addProcessor({
-			pre: function (req) {
-				return new Date().getTime()
-			},
-			post: function (response, state) {
-				var timeSpent = new Date().getTime() - state;
-				response._timeTakenInMilliseconds = timeSpent;
-			}
-		});
-
-	})(global);
 
 	// compulsory plugin
 	// handles session and shits
@@ -595,6 +416,16 @@ var global = {};
 						}
 					}
 				} catch(e){}
+			}
+		});
+
+		global.Appacitive.http.addProcessor({
+			pre: function (req) {
+				return new Date().getTime()
+			},
+			post: function (response, state) {
+				var timeSpent = new Date().getTime() - state;
+				response._timeTakenInMilliseconds = timeSpent;
 			}
 		});
 
