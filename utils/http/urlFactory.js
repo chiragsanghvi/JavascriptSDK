@@ -281,18 +281,18 @@
             fileServiceUrl: 'file',
 
             getUploadUrl: function (contentType) {
-                return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contenttype));
+                return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
             },
 
-            getUploadUrl: function (contentType, fileId) {
-                return String.format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contenttype));
+            getUpdateUrl: function (fileId, contentType) {
+                return String.format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contentType));
             },
 
             getDownloadUrl: function (fileId, expiryTime) {
                 return String.format('{0}/download/{1}?expires={2}', this.fileServiceUrl, fileId, expiryTime);
             },
 
-            getDeleteUrl: function () {
+            getDeleteUrl: function (fileId) {
                 return String.format('{0}/delete/{1}', this.fileServiceUrl, fileId);
             }
         };

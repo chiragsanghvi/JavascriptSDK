@@ -217,7 +217,7 @@ var global = {};
 
 	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
 
-	var _XMLHttp = function(request) {
+	var _XMLHttp = function(request, isFile) {
 
 	    if (typeof(XDomainRequest) !== "undefined") {
 	      throw new Error("Appacitive doesn't support versions of IE6, IE7, IE8, IE9 due to crossdomain calls");
@@ -227,9 +227,12 @@ var global = {};
 		if (!request.method) request.method = 'GET' ;
 		if (!request.headers) request.headers = [];
 		var data = {};
-		try { if (request.data) data = request.data;
-			  data = JSON.stringify(data); 
-		} catch(e) {}
+		if (isFile) data = request.data;
+		else {
+			try { if (request.data) data = request.data;
+				  data = JSON.stringify(data); 
+			} catch(e) {}
+		}
 		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
 	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
 	    
@@ -272,8 +275,8 @@ var global = {};
 		this.onSuccess = o.onSuccess || function(){}
 		this.onSuccess = o.onError || function(){}
 
-		this.send = function() {
-			return new __XMLHttp(this);
+		this.send = function(isFile) {
+			return new _XMLHttp(this, isFile);
 		};
 	};
 
@@ -748,18 +751,18 @@ var global = {};
             fileServiceUrl: 'file',
 
             getUploadUrl: function (contentType) {
-                return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contenttype));
+                return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
             },
 
-            getUploadUrl: function (contentType, fileId) {
-                return String.format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contenttype));
+            getUpdateUrl: function (fileId, contentType) {
+                return String.format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contentType));
             },
 
             getDownloadUrl: function (fileId, expiryTime) {
                 return String.format('{0}/download/{1}?expires={2}', this.fileServiceUrl, fileId, expiryTime);
             },
 
-            getDeleteUrl: function () {
+            getDeleteUrl: function (fileId) {
                 return String.format('{0}/delete/{1}', this.fileServiceUrl, fileId);
             }
         };
@@ -3496,6 +3499,145 @@ Depends on  NOTHING
 	global.Appacitive.push = new _pushManager();
 
 })(global);(function(global) {
+
+  "use strict";
+
+  var _file = function(options) {
+      
+      this.fileId = options.fileId;
+      this.contentType = options.contentType;
+      this.fileData = options.fileData;
+
+
+      var _getUrls = function(url, onSuccess, onError) {
+          var request = new global.Appacitive.HttpRequest();
+          request.url = url;
+          request.method = 'GET';
+          request.onSuccess = onSuccess;
+          request.onError = onError;
+          global.Appacitive.http.send(request); 
+      };
+
+      var _upload = function(url, file, type, onSuccess, onError) {
+          var fd = new FormData();
+          fd.append("fileToUpload", file);
+          var request = new global.Appacitive.HttpRequest();
+          request.url = url;
+          request.method = 'PUT';
+          request.data = file;
+          request.headers.push({ key:'content-type', value: type });
+          request.onSuccess = onSuccess;
+          request.onError = onError;
+          request.send(true);
+      };
+
+      this.save = function(onSuccess, onError, contentType) {
+        if (this.fileId && typeof this.fileId == 'string' && this.fileId.length > 0)
+          _update(this, onSuccess, onError, contentType);
+        else
+          _create(this, onSuccess, onError, contentType);
+      };
+
+      var _create = function(that, onSuccess, onError, contentType) {
+          if (!that.fileData) throw new Error('Please specify filedata');
+          if (contentType || typeof contentType == 'string') that.contentType = contentType;
+          else {
+              if (!that.contentType || typeof contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
+              try { that.contentType = file.type; } catch(e) {}
+          }
+          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType);
+          onSuccess = onSuccess || function(){};
+          onError = onError || function(){};
+
+          _getUrls(url, function(response) {
+              if (response && response.status && response.status.code == '200') {
+                _upload(response.url, that.fileData, that.contentType, function() {
+                    that.fileId = response.id;
+                    that.getDownloadUrl(function(res) {
+                       onSuccess(res);
+                    }, onError);
+                }, onError);
+              } else {
+                if (typeof onError == 'function') onError(response.status, that);
+              }
+          }, onError);
+      };
+
+      var _update = function(that, onSuccess, onError, contentType) {
+          if (!that.fileData) throw new Error('Please specify filedata');
+          if (contentType || typeof contentType == 'string') that.contentType = contentType;
+          else {
+              if (!that.contentType || typeof contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
+              try { that.contentType = file.type; } catch(e) {}
+          }
+
+          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUpdateUrl(that.fileId, that.contentType);
+          onSuccess = onSuccess || function() {};
+          onError = onError || function() {};
+
+          _getUrls(url, function(response) {
+              if (response && response.status && response.status.code == '200') {
+                _upload(response.url, that.fileData, that.contentType, function() {
+                    that.getDownloadUrl(function(res) {
+                       onSuccess(res);
+                    }, onError);
+                }, onError);
+              } else {
+                if (typeof onError == 'function') onError(response.status, that);
+              }
+          }, onError);
+      };
+
+      this.deleteFile = function(onSuccess, onError) {
+          if (!this.fileId) throw new Error('Please specify fileId to delete');
+
+          onSuccess = onSuccess || function() {};
+          onError = onError || function() {};
+
+          var request = new global.Appacitive.HttpRequest();
+          request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);;
+          request.method = 'DELETE';
+
+          request.onSuccess = function(response) {
+              if (response && response.code == '200') {
+                  if (typeof onSuccess == 'function') onSuccess();
+              } else if (typeof onError == 'function') {
+                  if (typeof onError == 'function') onError(response);
+              }
+          };
+          request.onError = onError;
+          global.Appacitive.http.send(request);  
+      };
+
+      this.getDownloadUrl = function(onSuccess, onError) {
+          if (!this.fileId) throw new Error('Please specify fileId to download');
+          var expiry = 5560000;
+          
+          var that = this;
+          onSuccess = onSuccess || function() {};
+          onError = onError || function() {};
+
+          var request = new global.Appacitive.HttpRequest();
+          request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDownloadUrl(this.fileId, expiry);
+          request.method = 'GET';
+
+          request.onSuccess = function(response) {
+              if (response && response.status && response.status.code == '200') {
+                  that.url = response.uri;
+                  if (typeof onSuccess == 'function') onSuccess(response.uri);
+              } else if (typeof onError == 'function') {
+                  if (typeof onError == 'function') onError(response.status);
+              }
+          };
+          request.onError = onError;
+          global.Appacitive.http.send(request); 
+      };
+
+  };
+
+  global.Appacitive.File = _file;
+
+}(global));(function(global) {
   
   global.Appacitive.parseISODate = function (str) {
     try{
