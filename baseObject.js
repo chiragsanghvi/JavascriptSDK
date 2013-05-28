@@ -111,6 +111,8 @@
 		};
 
 		var _removeTags = []; 
+		if (!article.__tags) article.__tags = [];
+
 		this.__defineGetter__('tags', function() {
 			if (!article.__tags) return [];
 			return article.__tags;
