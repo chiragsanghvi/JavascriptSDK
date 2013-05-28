@@ -2914,7 +2914,7 @@ Depends on  NOTHING
 
 			var userObject = user;
 			
-			if (!user.getArticle) userObject = new Appacitive.User(user); 
+			if (!user.getArticle) userObject = new global.Appacitive.User(user); 
 			
 			if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
 
@@ -2925,17 +2925,17 @@ Depends on  NOTHING
 			_authenticatedUser = userObject;
 
 			if (token)
-				Appacitive.session.setUserAuthHeader(token, expiry);
+				global.Appacitive.session.setUserAuthHeader(token, expiry);
 
 			_authenticatedUser.logout = function(callback) {
-				Appacitive.Users.logout(callback);
+				global.Appacitive.Users.logout(callback);
 			};
 
 			_authenticatedUser.updatePassword = function(oldPassword, newPassword, onSuccess, onError) {
 				_updatePassword(this.get('__id'), oldPassword, newPassword, onSuccess, onError);
 			};
 
-			Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
+			global.Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
 			});
 		};
@@ -2953,7 +2953,7 @@ Depends on  NOTHING
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			var userObject = new Appacitive.Article({ __schematype: 'user', __id: userId });
+			var userObject = new global.Appacitive.Article({ __schematype: 'user', __id: userId });
 			userObject.del(onSuccess, onError);
 		};
 
@@ -2976,7 +2976,7 @@ Depends on  NOTHING
 			if (!user.username || !user.password || !user.firstname || user.username.length == 0 || user.password.length == 0 || user.firstname.length == 0) 
 				throw new Error('username, password and firstname are mandatory');
 
-			var userObject = new Appacitive.Article(user);
+			var userObject = new global.Appacitive.Article(user);
 			user.type = 'user';
 			userObject.save(onSuccess, onError);
 		};
@@ -3509,7 +3509,6 @@ Depends on  NOTHING
       this.contentType = options.contentType;
       this.fileData = options.fileData;
 
-
       var _getUrls = function(url, onSuccess, onError) {
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
@@ -3687,7 +3686,7 @@ Depends on  NOTHING
 
 	var A_LocalStorage = function() {
 
-		var _localStorage = window.localStorage || {};
+		var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : {};
 
 		this.set = function(key, value) {
 			value = value || '';
@@ -3766,8 +3765,8 @@ if (global.Appacitive.runtime.isBrowser)
 
 })(global);
 if (typeof module != 'undefined') {
-	module.exports = function(apikey) {
-		global.Appacitive.initialize({apikey:apikey});
+	module.exports = function(options) {
+		global.Appacitive.initialize(options);
 		return global.Appacitive;
 	}
 }
