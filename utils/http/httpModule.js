@@ -241,7 +241,7 @@ var global = {};
 		this.headers = o.headers || [];
 		this.method = o.method || 'GET';
 		this.onSuccess = o.onSuccess || function(){}
-		this.onSuccess = o.onError || function(){}
+		this.onError = o.onError || function(){}
 
 		this.send = function(isFile) {
 			return new _XMLHttp(this, isFile);
