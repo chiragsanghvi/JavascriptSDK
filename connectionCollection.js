@@ -82,18 +82,18 @@
 			return _query;
 		};
 
+		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery", "GetConnectionsBetweenArticlesForRelationQuery"];
+		
 		this.__defineSetter__("query", function(query) {
 			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
+			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
 			_articles.length = 0;
 			_connections.length = 0;
 			_query = query;
 		});
 
 		this.setQuery = function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
-			_articles.length = 0;
-			_connections.length = 0;
-			_query = query;
+			this.query = query;
 		};
 
 		this.reset = function() {

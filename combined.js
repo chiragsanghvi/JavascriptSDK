@@ -1412,6 +1412,7 @@ Depends on  NOTHING
 		var inner = new BaseQuery(options);
 
 		inner.articleId = options.articleId;
+		inner.relation = options.relation;
 
 		inner.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
@@ -1421,12 +1422,13 @@ Depends on  NOTHING
 		};
 
 		inner.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/' + this.articleId + '/find?' +
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.articleId + '/find?' +
 				inner.getQueryString();
 		};
 
 		return inner;
 	};
+
 
 	/** 
 	* @constructor
@@ -1445,6 +1447,7 @@ Depends on  NOTHING
 		var inner = new BaseQuery(options);
 
 		inner.articleId = options.articleId;
+		inner.relation = options.relation;
 		inner.label = options.label;
 
 		inner.toRequest = function() {
@@ -1455,12 +1458,57 @@ Depends on  NOTHING
 		};
 
 		inner.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/find/all?' +
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + inner.relation + '/find/all?' +
 				'articleid=' + this.articleId +
 				'&label=' +this.label +
 				inner.getQueryString();
 		};
 
+		return inner;
+	};
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery = function(options, queryType) {
+
+		options = options || {};
+
+		if (!options.articleAId || typeof options.articleAId != 'string' || options.articleAId.length == 0) throw new Error('Specify valid articleAId for GetConnectionsBetweenArticlesQuery query');
+		if (!options.articleBId || typeof options.articleBId != 'string' || options.articleBId.length == 0) throw new Error('Specify articleBId for GetConnectionsBetweenArticlesQuery query');
+		if (options.schema) delete options.schema;
+
+		options.queryType = queryType || 'GetConnectionsBetweenArticlesQuery';
+
+		var inner = new BaseQuery(options);
+
+		inner.articleAId = options.articleAId;
+		inner.articleBId = options.articleBId;
+		inner.label = options.label;
+		inner.relation = (options.relation && typeof options.relation == 'string' && options.relation.length > 0) ? options.relation + '/' : '';
+		
+		inner.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = this.toUrl();
+			r.method = 'get';
+			return r;
+		};
+
+		inner.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + inner.relation + 'find/' + this.articleAId + '/' + this.articleBId + '?'
+				+ inner.getQueryString();
+		};
+
+		return inner;
+	};
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery = function(options) {
+		options = options || {};
+		if (!options.relation) throw new Error('Specify relation for GetConnectionsBetweenArticlesForRelationQuery query');
+		var inner = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options, 'GetConnectionsBetweenArticlesForRelationQuery');
 		return inner;
 	};
 
@@ -2036,17 +2084,17 @@ Depends on  NOTHING
 			return _query;
 		};
 
+		var _supportedQueryType = ["BasicFilterQuery"];
+
 		this.__defineSetter__("query", function(query) {
 			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-			if (query.type !== 'BasicFilterQuery') throw new Error('ArticleCollection only accepts BasicFilterQuery');
+			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
 			_articles.length = 0;
 			_query = query;
 		});
 
 		this.setQuery = function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-			_articles.length = 0;
-			_query = query;
+			this.query = query;
 		};
 
 		this.setOptions = _parseOptions;
@@ -2296,18 +2344,18 @@ Depends on  NOTHING
 			return _query;
 		};
 
+		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery", "GetConnectionsBetweenArticlesForRelationQuery"];
+		
 		this.__defineSetter__("query", function(query) {
 			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
+			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
 			_articles.length = 0;
 			_connections.length = 0;
 			_query = query;
 		});
 
 		this.setQuery = function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
-			_articles.length = 0;
-			_connections.length = 0;
-			_query = query;
+			this.query = query;
 		};
 
 		this.reset = function() {

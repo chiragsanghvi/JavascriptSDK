@@ -85,17 +85,17 @@
 			return _query;
 		};
 
+		var _supportedQueryType = ["BasicFilterQuery"];
+
 		this.__defineSetter__("query", function(query) {
 			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-			if (query.type !== 'BasicFilterQuery') throw new Error('ArticleCollection only accepts BasicFilterQuery');
+			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
 			_articles.length = 0;
 			_query = query;
 		});
 
 		this.setQuery = function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-			_articles.length = 0;
-			_query = query;
+			this.query = query;
 		};
 
 		this.setOptions = _parseOptions;

@@ -45,9 +45,9 @@ asyncTest('Verify created connection shows up in collection when fetching connec
 						equal(existingConnection.length, 1, 'Connection fetched on calling get connected articles');
 						
 						if (existingConnection[0].connectedArticle)
-							ok('true','Coneection has connectedArticle property populated');
+							ok('true','Connection has connectedArticle property populated');
 						else
-							ok('false','Coneection has connectedArticle property populated');
+							ok('false','Connection has connectedArticle property populated');
 
 						var coll = user.getConnections({relation: 'userprofile', label: 'profile'});
 						coll.fetch(function() {
@@ -55,7 +55,18 @@ asyncTest('Verify created connection shows up in collection when fetching connec
 								return _c.get('__id') == id;
 							});
 							equal(collConnection.length, 1, 'Connections fetched on calling get connectios');
-							start();
+							var btwArticle = new Appacitive.ConnectionCollection({relation: 'userprofile'});
+							btwArticle.query  =  new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ relation: 'userprofile', articleAId: user.get('__id'), articleBId: profile.get('__id')});
+							btwArticle.fetch(function() {
+								var collConnection = coll.getAll().filter(function (_c) {
+									return _c.get('__id') == id;
+								});
+								equal(collConnection.length, 1, 'Connections fetched between 2 articles');
+								start();
+							}, function () {
+								ok(false, 'Could not fetch connections between 2 articles of relation type userprofile');
+							    start();
+							});
 						}, function () {
 							ok(false, 'Could not fetch connections for article of relation type userprofile');
 						    start();

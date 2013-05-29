@@ -221,6 +221,7 @@
 		var inner = new BaseQuery(options);
 
 		inner.articleId = options.articleId;
+		inner.relation = options.relation;
 
 		inner.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
@@ -230,12 +231,13 @@
 		};
 
 		inner.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/' + this.articleId + '/find?' +
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.articleId + '/find?' +
 				inner.getQueryString();
 		};
 
 		return inner;
 	};
+
 
 	/** 
 	* @constructor
@@ -254,6 +256,7 @@
 		var inner = new BaseQuery(options);
 
 		inner.articleId = options.articleId;
+		inner.relation = options.relation;
 		inner.label = options.label;
 
 		inner.toRequest = function() {
@@ -264,12 +267,57 @@
 		};
 
 		inner.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + options.relation + '/find/all?' +
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + inner.relation + '/find/all?' +
 				'articleid=' + this.articleId +
 				'&label=' +this.label +
 				inner.getQueryString();
 		};
 
+		return inner;
+	};
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery = function(options, queryType) {
+
+		options = options || {};
+
+		if (!options.articleAId || typeof options.articleAId != 'string' || options.articleAId.length == 0) throw new Error('Specify valid articleAId for GetConnectionsBetweenArticlesQuery query');
+		if (!options.articleBId || typeof options.articleBId != 'string' || options.articleBId.length == 0) throw new Error('Specify articleBId for GetConnectionsBetweenArticlesQuery query');
+		if (options.schema) delete options.schema;
+
+		options.queryType = queryType || 'GetConnectionsBetweenArticlesQuery';
+
+		var inner = new BaseQuery(options);
+
+		inner.articleAId = options.articleAId;
+		inner.articleBId = options.articleBId;
+		inner.label = options.label;
+		inner.relation = (options.relation && typeof options.relation == 'string' && options.relation.length > 0) ? options.relation + '/' : '';
+		
+		inner.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = this.toUrl();
+			r.method = 'get';
+			return r;
+		};
+
+		inner.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + inner.relation + 'find/' + this.articleAId + '/' + this.articleBId + '?'
+				+ inner.getQueryString();
+		};
+
+		return inner;
+	};
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery = function(options) {
+		options = options || {};
+		if (!options.relation) throw new Error('Specify relation for GetConnectionsBetweenArticlesForRelationQuery query');
+		var inner = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options, 'GetConnectionsBetweenArticlesForRelationQuery');
 		return inner;
 	};
 
