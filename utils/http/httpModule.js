@@ -211,7 +211,15 @@ var global = {};
 					var response = this.responseText;
 					try {
 						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
-						if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') response = JSON.parse(response);
+						if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') { 
+							var jData = response;
+							if (!global.Appacitive.runtime.isBrowser) {
+								if (jData[0] != "{") {
+									jData = jData.substr(1, jData.length - 1);
+								}
+							}
+							response = JSON.parse(jData);
+						}
 					} catch(e) {}
 		            request.onSuccess(response, this);
 		        } else {

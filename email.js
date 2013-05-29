@@ -23,7 +23,7 @@
 
 		var _sendEmail = function (email, onSuccess, onError) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.email.getSendEmailUrl();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.email.getSendEmailUrl();
 			request.method = 'post';
 			request.data = email;
 			request.onSuccess = function(d) {

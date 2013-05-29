@@ -213,7 +213,7 @@
 			if (!avoidApiCall) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getValidateTokenUrl(token);
+					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateTokenUrl(token);
 					_request.method = 'POST';
 					_request.data = {};
 					_request.onSuccess = function(data) {
