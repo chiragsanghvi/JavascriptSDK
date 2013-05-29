@@ -182,9 +182,13 @@
 		};
 
 		var that = this;
-		var parseConnections = function (data, onSuccess, onError) {
+		var parseConnections = function (data, onSuccess, onError, queryType) {
 			data = data || {};
 			var connections = data.connections;
+
+			if (queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && data.connection)
+				connections = [data.connection];
+
 			if (!connections) {
 				if (data.status && data.status.code && data.status.code == '200') {
 					connections = [];
@@ -229,7 +233,7 @@
 			_connections.length = 0;
 			var _queryRequest = _query.toRequest();
 			_queryRequest.onSuccess = function(data) {
-				parseConnections(data, onSuccess, onError);
+				parseConnections(data, onSuccess, onError, _query.queryType);
 			};
 			global.Appacitive.http.send(_queryRequest);
 		};

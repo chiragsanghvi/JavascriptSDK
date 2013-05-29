@@ -58,7 +58,7 @@ asyncTest('Verify created connection shows up in collection when fetching connec
 							var btwArticle = new Appacitive.ConnectionCollection({relation: 'userprofile'});
 							btwArticle.query  =  new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ relation: 'userprofile', articleAId: user.get('__id'), articleBId: profile.get('__id')});
 							btwArticle.fetch(function() {
-								var collConnection = coll.getAll().filter(function (_c) {
+								var collConnection = btwArticle.getAll().filter(function (_c) {
 									return _c.get('__id') == id;
 								});
 								equal(collConnection.length, 1, 'Connections fetched between 2 articles');
