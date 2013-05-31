@@ -125,7 +125,7 @@
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			if (!authRequest.expiry) authRequest.expiry = -1;
+			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
 			var request = new global.Appacitive.HttpRequest();
 			request.method = 'post';
@@ -155,7 +155,7 @@
 			var authRequest = {
 				username : username,
 				password: password,
-				expiry: -1
+				expiry: 86400000
 			};
 
 			this.authenticateUser(authRequest, onSuccess, onError);
@@ -170,8 +170,7 @@
 					var authRequest = {
 						"accesstoken": global.Appacitive.facebook.accessToken,
 						"type": "facebook",
-						//"expiry": 120 * 60,
-						"expiry": -1,
+						"expiry": 86400000,
 						"createnew": true
 					};
 					var request = new global.Appacitive.HttpRequest();

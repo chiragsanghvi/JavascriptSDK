@@ -1,6 +1,8 @@
 (function(global) {
   
-  global.Appacitive.parseISODate = function (str) {
+  global.Appacitive.Date = {};
+
+  global.Appacitive.Date.parseISODate = function (str) {
     try{
       var date = new Date(str); 
       if (isNaN(date)) {
@@ -32,10 +34,9 @@
     } catch(e) {return null;}
   }
 
-  global.Appacitive.toISOString = function (date) {
+  global.Appacitive.Date.toISOString = function (date) {
     try {
-      var date = date.toISOString();
-      var i = date.indexOf('Z');
+      date = date.toISOString();
       date = replace('Z','0000Z');
       return date;
     } catch(e) { return null;}
