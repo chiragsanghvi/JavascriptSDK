@@ -1,15 +1,11 @@
 module('Article Tests - Update');
 
 asyncTest('Creating session with valid Apikey', function() {
-	Appacitive.session.resetSession();
-	Appacitive.session.removeUserAuthHeader();
-	var _sessionOptions = { "apikey": testConstants.apiKey, app: testConstants.appName };
-	var subscriberId = Appacitive.eventManager.subscribe('session.success', function() {
-		ok(true, 'Session created successfully.');
-		start();
-		Appacitive.eventManager.unsubscribe(subscriberId);
-	})
-	Appacitive.session.create(_sessionOptions);
+	Appacitive.Session.resetSession();
+	Appacitive.Session.removeUserAuthHeader();
+	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox' });
+	ok(true, 'Session created successfully.');
+	start();
 });
 
 test('Update article and verify in model', function() {

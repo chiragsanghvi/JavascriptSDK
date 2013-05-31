@@ -23,7 +23,7 @@ test('Verify environment can be changed', function() {
 		equal(environmentHeader.length, 1, 'Environment header present');
 		equal(environmentHeader[0].value, 'live', 'Environment is live');
 	}
-	Appacitive.session.environment = 'live';
+	Appacitive.Session.environment = 'live';
 	Appacitive.http.send(r);
 });
 
@@ -37,6 +37,6 @@ test('Verify environment reverts to sandbox on incorrect values', function() {
 		equal(environmentHeader.length, 1, 'Environment header present');
 		equal(environmentHeader[0].value, 'sandbox', 'Environment is sandbox');
 	}
-	Appacitive.session.environment = 'livelol';
+	Appacitive.Session.environment = 'livelol';
 	Appacitive.http.send(r);
 });

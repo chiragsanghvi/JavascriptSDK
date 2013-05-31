@@ -1,20 +1,16 @@
 module('Session Test');
 
 asyncTest('Creating session with valid Apikey', function() {
-	Appacitive.session.resetSession();
-	Appacitive.session.removeUserAuthHeader();
-	var _sessionOptions = { "apikey": testConstants.apiKey, app: testConstants.appName };
-	var subscriberId = Appacitive.eventManager.subscribe('session.success', function() {
-		ok(true, 'Session created successfully.');
-		start();
-		Appacitive.eventManager.unsubscribe(subscriberId);
-	})
-	Appacitive.session.create(_sessionOptions);
+	Appacitive.Session.resetSession();
+	Appacitive.Session.removeUserAuthHeader();
+	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox' });
+	ok(true, 'Session created successfully.');
+	start();
 });
 
 asyncTest('Verify user auth header can be added', function() {
 	var guid = Appacitive.GUID().toString();
-	Appacitive.session.setUserAuthHeader(guid);
+	Appacitive.Session.setUserAuthHeader(guid);
 	var req1 = new Appacitive.HttpRequest();
 	req1.method = 'get';
 	req1.url = 'https://apis.appacitive.com/article/1/1';
@@ -31,7 +27,7 @@ asyncTest('Verify user auth header can be added', function() {
 
 asyncTest('Verify user auth header can be removed', function() {
 	var guid = Appacitive.GUID();
-	Appacitive.session.setUserAuthHeader(guid);
+	Appacitive.Session.setUserAuthHeader(guid);
 	var req1 = new Appacitive.HttpRequest();
 	req1.method = 'get';
 	req1.url = 'https://apis.appacitive.com/article/1/1';
@@ -43,7 +39,7 @@ asyncTest('Verify user auth header can be removed', function() {
 		equal(userAuthHeader[0].value, guid, 'User auth header value correct: ' + guid);
 	};
 	Appacitive.http.send(req1);
-	Appacitive.session.removeUserAuthHeader();
+	Appacitive.Session.removeUserAuthHeader();
 	req1 = new Appacitive.HttpRequest();
 	req1.method = 'get';
 	req1.url = 'https://apis.appacitive.com/article/1/1';

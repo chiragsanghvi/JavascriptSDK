@@ -53,7 +53,7 @@
 			_authenticatedUser = userObject;
 
 			if (token)
-				global.Appacitive.session.setUserAuthHeader(token, expiry);
+				global.Appacitive.Session.setUserAuthHeader(token, expiry);
 
 			_authenticatedUser.logout = function(callback) {
 				global.Appacitive.Users.logout(callback);
@@ -93,7 +93,7 @@
 
 			var currentUserId = _authenticatedUser.get('__id');
 			this.deleteUser(currentUserId, function(data) { 
-				global.Appacitive.session.removeUserAuthHeader();
+				global.Appacitive.Session.removeUserAuthHeader();
 				if (typeof onSuccess == 'function') onSuccess(data);
 			}, onError);
 		};
@@ -252,7 +252,7 @@
 		this.logout = function(callback, avoidApiCall) {
 			callback = callback || function() {};
 			_authenticatedUser = null;
-			global.Appacitive.session.removeUserAuthHeader(callback, avoidApiCall);
+			global.Appacitive.Session.removeUserAuthHeader(callback, avoidApiCall);
 		};
 	};
 

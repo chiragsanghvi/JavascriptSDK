@@ -445,17 +445,17 @@ var global = {};
 			},
 			post: function (response, request) {
 				try {
-					var _valid = global.Appacitive.session.isSessionValid(response);
+					var _valid = global.Appacitive.Session.isSessionValid(response);
 					if (!_valid) {
-						if (global.Appacitive.session.get() != null) {
-							global.Appacitive.session.resetSession();
+						if (global.Appacitive.Session.get() != null) {
+							global.Appacitive.Session.resetSession();
 						}
 						global.Appacitive.http.send(request);
 					} else {
 						if (response && ((response.status && response.status.code && response.status.code == '8036') || (response.code &&response.code == '8036'))) {
 							global.Appacitive.Users.logout(function(){}, true);
 						} else {
-							global.Appacitive.session.incrementExpiry();
+							global.Appacitive.Session.incrementExpiry();
 						}
 					}
 				} catch(e){}
@@ -959,7 +959,7 @@ Depends on  NOTHING
 		this.onSessionCreated = function() {};
 
 		this.recreate = function() {
-			global.Appacitive.session.create(_options);
+			global.Appacitive.Session.create(_options);
 		};
 
 		this.create = function(options) {
@@ -992,9 +992,9 @@ Depends on  NOTHING
 			_request.onSuccess = function(data) {
 				if (data && data.status && data.status.code == '200') {
 					_sessionKey = data.session.sessionkey;
-					global.Appacitive.session.useApiKey = false;
+					global.Appacitive.Session.useApiKey = false;
 					global.Appacitive.eventManager.fire('session.success', {}, data);
-					global.Appacitive.session.onSessionCreated();
+					global.Appacitive.Session.onSessionCreated();
 				}
 				else {
 					global.Appacitive.eventManager.fire('session.error', {}, data);
@@ -1005,7 +1005,7 @@ Depends on  NOTHING
 
 		global.Appacitive.http.addProcessor({
 			pre: function(request) {
-				if (global.Appacitive.session.useApiKey) {
+				if (global.Appacitive.Session.useApiKey) {
 					request.headers.push({ key: 'appacitive-apikey', value: _apikey });
 				} else {
 					request.headers.push({ key: 'appacitive-session', value: _sessionKey });
@@ -1145,11 +1145,11 @@ Depends on  NOTHING
 		});
 	};
 
-	global.Appacitive.session = new SessionManager();
+	global.Appacitive.Session = new SessionManager();
 
 	global.Appacitive.initialize = function(options) {
-		global.Appacitive.session.setApiKey( options.apikey || '' ) ;
-		global.Appacitive.session.environment = ( options.env || '' );
+		global.Appacitive.Session.setApiKey( options.apikey || '' ) ;
+		global.Appacitive.Session.environment = ( options.env || '' );
 		global.Appacitive.useApiKey = true;
 
 		if (options.userToken) {
@@ -1157,7 +1157,7 @@ Depends on  NOTHING
 			if (options.expiry == -1)  options.expiry = null 
 			else if (!options.expiry)  options.expiry = 3600;
 
-			global.Appacitive.session.setUserAuthHeader(options.userToken, options.expiry);
+			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
 
 			if (options.user) {
 				global.Appacitive.localStorage.set('Appacitive-User', options.user);
@@ -1193,7 +1193,7 @@ Depends on  NOTHING
 
 	global.Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'appacitive-environment', value: global.Appacitive.session.environment });
+			req.headers.push({ key: 'appacitive-environment', value: global.Appacitive.Session.environment });
 		}
 	});
 
@@ -3027,7 +3027,7 @@ Depends on  NOTHING
 			_authenticatedUser = userObject;
 
 			if (token)
-				global.Appacitive.session.setUserAuthHeader(token, expiry);
+				global.Appacitive.Session.setUserAuthHeader(token, expiry);
 
 			_authenticatedUser.logout = function(callback) {
 				global.Appacitive.Users.logout(callback);
@@ -3067,7 +3067,7 @@ Depends on  NOTHING
 
 			var currentUserId = _authenticatedUser.get('__id');
 			this.deleteUser(currentUserId, function(data) { 
-				global.Appacitive.session.removeUserAuthHeader();
+				global.Appacitive.Session.removeUserAuthHeader();
 				if (typeof onSuccess == 'function') onSuccess(data);
 			}, onError);
 		};
@@ -3226,7 +3226,7 @@ Depends on  NOTHING
 		this.logout = function(callback, avoidApiCall) {
 			callback = callback || function() {};
 			_authenticatedUser = null;
-			global.Appacitive.session.removeUserAuthHeader(callback, avoidApiCall);
+			global.Appacitive.Session.removeUserAuthHeader(callback, avoidApiCall);
 		};
 	};
 
@@ -3598,7 +3598,7 @@ Depends on  NOTHING
 
 	};
 
-	global.Appacitive.push = new _pushManager();
+	global.Appacitive.Push = new _pushManager();
 
 })(global);(function(global) {
 

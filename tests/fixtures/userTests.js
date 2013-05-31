@@ -1,15 +1,11 @@
-module('User serivce tests');
+module('User service tests');
 
 asyncTest('Creating session with valid Apikey', function() {
-	Appacitive.session.resetSession();
-	Appacitive.session.removeUserAuthHeader();
-	var _sessionOptions = { "apikey": testConstants.apiKey, app: testConstants.appName };
-	var subscriberId = Appacitive.eventManager.subscribe('session.success', function() {
-		ok(true, 'Session created successfully.');
-		start();
-		Appacitive.eventManager.unsubscribe(subscriberId);
-	})
-	Appacitive.session.create(_sessionOptions);
+	Appacitive.Session.resetSession();
+	Appacitive.Session.removeUserAuthHeader();
+	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox' });
+	ok(true, 'Session created successfully.');
+	start();
 });
 
 asyncTest('Verify create default user', function() {
@@ -31,7 +27,7 @@ asyncTest('Verify default user authentication', function() {
     	'attempts': -1
     };
     Appacitive.Users.authenticateUser(creds, function(data) {
-    	Appacitive.session.setUserAuthHeader(data.token);
+    	Appacitive.Session.setUserAuthHeader(data.token);
     	ok(true, 'User authenticated successfully: ' + JSON.stringify(data));
     	start();
     }, function(data) {

@@ -1,15 +1,11 @@
 module('Connected Articles API tests');
 
 asyncTest('Creating session with valid Apikey', function() {
-	Appacitive.session.resetSession();
-	Appacitive.session.removeUserAuthHeader();
-	var _sessionOptions = { "apikey": testConstants.apiKey, app: testConstants.appName };
-	var subscriberId = Appacitive.eventManager.subscribe('session.success', function() {
-		ok(true, 'Session created successfully.');
-		start();
-		Appacitive.eventManager.unsubscribe(subscriberId);
-	})
-	Appacitive.session.create(_sessionOptions);
+	Appacitive.Session.resetSession();
+	Appacitive.Session.removeUserAuthHeader();
+	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox' });
+	ok(true, 'Session created successfully.');
+	start();
 });
 
 asyncTest('Verify created connection shows up in collection when fetching connected articles', function() {

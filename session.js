@@ -24,7 +24,7 @@
 		this.onSessionCreated = function() {};
 
 		this.recreate = function() {
-			global.Appacitive.session.create(_options);
+			global.Appacitive.Session.create(_options);
 		};
 
 		this.create = function(options) {
@@ -57,9 +57,9 @@
 			_request.onSuccess = function(data) {
 				if (data && data.status && data.status.code == '200') {
 					_sessionKey = data.session.sessionkey;
-					global.Appacitive.session.useApiKey = false;
+					global.Appacitive.Session.useApiKey = false;
 					global.Appacitive.eventManager.fire('session.success', {}, data);
-					global.Appacitive.session.onSessionCreated();
+					global.Appacitive.Session.onSessionCreated();
 				}
 				else {
 					global.Appacitive.eventManager.fire('session.error', {}, data);
@@ -70,7 +70,7 @@
 
 		global.Appacitive.http.addProcessor({
 			pre: function(request) {
-				if (global.Appacitive.session.useApiKey) {
+				if (global.Appacitive.Session.useApiKey) {
 					request.headers.push({ key: 'appacitive-apikey', value: _apikey });
 				} else {
 					request.headers.push({ key: 'appacitive-session', value: _sessionKey });
@@ -210,11 +210,11 @@
 		});
 	};
 
-	global.Appacitive.session = new SessionManager();
+	global.Appacitive.Session = new SessionManager();
 
 	global.Appacitive.initialize = function(options) {
-		global.Appacitive.session.setApiKey( options.apikey || '' ) ;
-		global.Appacitive.session.environment = ( options.env || '' );
+		global.Appacitive.Session.setApiKey( options.apikey || '' ) ;
+		global.Appacitive.Session.environment = ( options.env || '' );
 		global.Appacitive.useApiKey = true;
 
 		if (options.userToken) {
@@ -222,7 +222,7 @@
 			if (options.expiry == -1)  options.expiry = null 
 			else if (!options.expiry)  options.expiry = 3600;
 
-			global.Appacitive.session.setUserAuthHeader(options.userToken, options.expiry);
+			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
 
 			if (options.user) {
 				global.Appacitive.localStorage.set('Appacitive-User', options.user);
@@ -258,7 +258,7 @@
 
 	global.Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'appacitive-environment', value: global.Appacitive.session.environment });
+			req.headers.push({ key: 'appacitive-environment', value: global.Appacitive.Session.environment });
 		}
 	});
 

@@ -98,6 +98,6 @@
 
 	};
 
-	global.Appacitive.push = new _pushManager();
+	global.Appacitive.Push = new _pushManager();
 
 })(global);

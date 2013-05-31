@@ -1,15 +1,11 @@
 module('Test Cleanup');
 
 asyncTest('Creating session with valid Apikey', function() {
-	Appacitive.session.resetSession();
-	Appacitive.session.removeUserAuthHeader();
-	var _sessionOptions = { "apikey": testConstants.apiKey, app: testConstants.appName };
-	var subscriberId = Appacitive.eventManager.subscribe('session.success', function() {
-		ok(true, 'Session created successfully.');
-		start();
-		Appacitive.eventManager.unsubscribe(subscriberId);
-	})
-	Appacitive.session.create(_sessionOptions);
+	Appacitive.Session.resetSession();
+	Appacitive.Session.removeUserAuthHeader();
+	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox' });
+	ok(true, 'Session created successfully.');
+	start();
 });
 
 asyncTest('Cleaning up connections of relation userprofile', function() {
@@ -143,7 +139,7 @@ asyncTest('Cleaning up articles of schema user', function() {
 	    	'attempts': 10
 	    };
 	    Appacitive.Users.authenticateUser(creds, function(data) {
-	    	Appacitive.session.setUserAuthHeader(data.token);
+	    	Appacitive.Session.setUserAuthHeader(data.token);
 	    	step();
 	    }, function(data) {
 	    	ok(false, 'User authentication failed: ' + JSON.stringify(data));
