@@ -3099,7 +3099,7 @@ Depends on  NOTHING
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			if (!authRequest.expiry) authRequest.expiry = -1;
+			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
 			var request = new global.Appacitive.HttpRequest();
 			request.method = 'post';
@@ -3129,7 +3129,7 @@ Depends on  NOTHING
 			var authRequest = {
 				username : username,
 				password: password,
-				expiry: -1
+				expiry: 86400000
 			};
 
 			this.authenticateUser(authRequest, onSuccess, onError);
@@ -3144,8 +3144,7 @@ Depends on  NOTHING
 					var authRequest = {
 						"accesstoken": global.Appacitive.facebook.accessToken,
 						"type": "facebook",
-						//"expiry": 120 * 60,
-						"expiry": -1,
+						"expiry": 86400000,
 						"createnew": true
 					};
 					var request = new global.Appacitive.HttpRequest();
@@ -3741,7 +3740,9 @@ Depends on  NOTHING
 
 }(global));(function(global) {
   
-  global.Appacitive.parseISODate = function (str) {
+  global.Appacitive.Date = {};
+
+  global.Appacitive.Date.parseISODate = function (str) {
     try{
       var date = new Date(str); 
       if (isNaN(date)) {
@@ -3773,10 +3774,9 @@ Depends on  NOTHING
     } catch(e) {return null;}
   }
 
-  global.Appacitive.toISOString = function (date) {
+  global.Appacitive.Date.toISOString = function (date) {
     try {
-      var date = date.toISOString();
-      var i = date.indexOf('Z');
+      date = date.toISOString();
       date = replace('Z','0000Z');
       return date;
     } catch(e) { return null;}
