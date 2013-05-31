@@ -150,8 +150,7 @@
 
 	//takes relationame, and array of connections ids
 	global.Appacitive.Connection.multiDelete = function(relationName, ids, onSuccess, onError) {
-		if (!relationName)
-			throw new Error("Specify relationName");
+		if (!relationName || typeof relationName!= 'string' || relationName.length == 0) throw new Error("Specify relationName");
 
 		if (ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
@@ -174,46 +173,21 @@
 		} else onSuccess();
 	};
 
+    //private function for parsing api connections in sdk connection object
 	var _parseConnections = function(connections) {
 		var connectionObjects = [];
 		if (!connections) connections = [];
 		connections.forEach(function(c){
-			connectionObjects.push(new global.Appacitive.Connection(a));
+			connectionObjects.push(new global.Appacitive.Connection(c));
 		});
 		return connectionObjects;
 	};
 
-	//takes relationaname and array of connectionids and returns an array of Appacitive article objects
-	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError) {
-		if (!relationName)
-			throw new Error("Specify relationName");
-
-		if (typeof ids == 'object' && ids.length > 0) {
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','));
-			request.method = 'get';
-			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') onSuccess(_parseConnections(d.connections));
-				} else {
-					d = d || {};
-					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
-				}
-			};
-			request.onError = function(d) {
-				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
-			}
-			global.Appacitive.http.send(request);
-		} else onSuccess([]);
-	};
-
-	global.Appacitive.Connection.getBetweenArticles = function(articleAId, articleBId, onSuccess, onError) {
-		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery({ articleAId :  articleAId, articleBId: articleBId });
-		var request = q.toRequest();
+	//private function for firing a request
+	var _fetch = function(request, onSuccess, onError) {
 		request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-			   if (typeof onSuccess == 'function') onSuccess(_parseConnections(_parseConnections(d.connections)));
+			   if (typeof onSuccess == 'function') onSuccess(_parseConnections(d.connections), d.paginginfo);
 			} else {
 				d = d || {};
 				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
@@ -226,6 +200,31 @@
 		global.Appacitive.http.send(request);
 	};
 
+	//takes relationname and array of connectionids and returns an array of Appacitive article objects
+	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError) {
+		if (!relationName || typeof relationName!= 'string' || relationName.length == 0) throw new Error("Specify relationName");
+		if (!ids || typeof ids !== 'object' || !(ids.length > 0)) throw new Error('Specify list of ids for multiget');
+		var request = new global.Appacitive.HttpRequest();
+		request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','));
+		request.method = 'get';
+		_fetch(request, onSuccess, onError);
+	};
+
+	//takes 1 articleid and multiple aricleids and returns connections between both 
+	global.Appacitive.Connection.getInterconnects = function(articleAId, articleBIds, onSuccess, onError) {
+		var q = new Appacitive.Queries.InterconnectsQuery({ articleAId :  articleAId, articleBIds: articleBIds });
+		var request = q.toRequest();
+		_fetch(request, onSuccess, onError);
+	};
+
+	//takes 2 articles and returns connections between them
+	global.Appacitive.Connection.getBetweenArticles = function(articleAId, articleBId, onSuccess, onError) {
+		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery({ articleAId :  articleAId, articleBId: articleBId });
+		var request = q.toRequest();
+		_fetch(request, onSuccess, onError);
+	};
+
+	//takes 2 articles and returns connections between them of particluar relationtype
 	global.Appacitive.Connection.getBetweenArticlesForRelation = function(articleAId, articleBId, relationName, onSuccess, onError) {
 		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ articleAId :  articleAId, articleBId: articleBId, relation: relationName });
 		var request = q.toRequest();

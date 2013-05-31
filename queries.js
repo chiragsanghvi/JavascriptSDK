@@ -326,6 +326,43 @@
 	/** 
 	* @constructor
 	**/
+	global.Appacitive.Queries.InterconnectsQuery = function(options) {
+
+		options = options || {};
+
+		if (!options.articleAId || typeof options.articleAId != 'string' || options.articleAId.length == 0) throw new Error('Specify valid articleAId for InterconnectsQuery query');
+		if (!options.articleBIds || typeof options.articleBIds != 'object' || !(options.articleBIds.length > 0)) throw new Error('Specify list of articleBIds for InterconnectsQuery query');
+		if (options.schema) delete options.schema;
+		
+		options.queryType = 'InterconnectsQuery';
+
+		var inner = new BaseQuery(options);
+
+		inner.articleAId = options.articleAId;
+		inner.articleBIds = options.articleBIds;
+		
+		inner.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = this.toUrl();
+			r.method = 'post';
+			r.data = {
+				article1id: this.articleAId,
+				article2ids: this.articleBIds
+			};
+			return r;
+		};
+
+		inner.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString();
+		};
+
+		return inner;
+	};
+
+
+	/** 
+	* @constructor
+	**/
 	global.Appacitive.Queries.GraphQuery = function(options) {
 
 		options = options || {};

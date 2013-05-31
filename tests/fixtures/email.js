@@ -53,7 +53,7 @@ asyncTest('Verify emails can be sent with proper config details', function() {
 	    	'attempts': -1
 	    };
 	    Appacitive.Users.authenticateUser(creds, function(data) {
-	    	Appacitive.session.setUserAuthHeader(data.token);
+	    	Appacitive.Session.setUserAuthHeader(data.token);
 	    	step();
 	    }, function(data) {
 	    	ok(false, 'User authentication failed: ' + JSON.stringify(data));
@@ -69,11 +69,11 @@ asyncTest('Verify emails can be sent with proper config details', function() {
 	    	'attempts': -1
 	    };
 	    Appacitive.Users.authenticateUser(creds, function(data) {
-	    	Appacitive.session.setUserAuthHeader(data.token);
+	    	Appacitive.Session.setUserAuthHeader(data.token);
 	    	ok(true, 'User authenticated successfully: ' + JSON.stringify(data));
 	    	try {
 	    		var emailOptions = {
-	    			to: ['csanghvi@appacitive.com'],
+	    			to: [Appacitive.Users.currentUser.get('email')],
 	    			subject: 'Hello World!',
 	    			body: '<b>hello world!</b>',
 	    			ishtml : true
@@ -95,6 +95,10 @@ asyncTest('Verify emails can be sent with proper config details', function() {
 	    });
 	}
 	createDefaultUser(function() {
+		authenticateDefaultUser(function() {
+			sendRawEmail()
+		});
+	}, function() {
 		authenticateDefaultUser(function() {
 			sendRawEmail()
 		});

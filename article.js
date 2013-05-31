@@ -144,7 +144,7 @@
 			request.method = 'get';
 			request.onSuccess = function(d) {
 				if (d && d.articles) {
-				   if (typeof onSuccess == 'function') onSuccess(_parseArticles(d.articles));
+				   if (typeof onSuccess == 'function') onSuccess(_parseArticles(d.articles), d.paginginfo);
 				} else {
 					d = d || {};
 					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
