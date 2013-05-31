@@ -1363,6 +1363,17 @@ Depends on  NOTHING
 			return finalUrl;
 		};
 
+		this.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + _entityType + '/find/all?' + this.getQueryString();
+		};
+
+		this.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = this.toUrl();
+            r.method = 'get';
+			return r;
+		};
+
 		this.getOptions = function() {
 			var o = {};
 			for (var key in this) {
@@ -1371,6 +1382,33 @@ Depends on  NOTHING
 				}
 			}
 			return o;
+		};
+
+		var _parse = function(entities) {
+			var entitiesObjects = [];
+			if (!entities) entities = [];
+			var eType = (_type == 'article') ? 'Article' : 'Connection';
+			entities.forEach(function(e) {
+				entitiesObjects.push(new global.Appacitive[eType](e));
+			});
+			return entitiesObjects;
+		};
+
+		this.fetch = function(onSuccess, onError) {
+			var request = this.toRequest();
+			request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+				   if (typeof onSuccess == 'function') onSuccess(_parse(d[_type + 's']), d.paginginfo);
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			};
+			global.Appacitive.http.send(request);
 		};
 	};
 
@@ -1519,6 +1557,25 @@ Depends on  NOTHING
 		options = options || {};
 		if (!options.relation) throw new Error('Specify relation for GetConnectionsBetweenArticlesForRelationQuery query');
 		var inner = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options, 'GetConnectionsBetweenArticlesForRelationQuery');
+
+		inner.fetch = function(onSuccess, onError) {
+			this.toUrl();
+			var request = this.toRequest();
+			request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+				   if (typeof onSuccess == 'function') onSuccess(new Appacitive.Connection(d.connection));
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			};
+			global.Appacitive.http.send(request);
+		};
+
 		return inner;
 	};
 
@@ -1532,7 +1589,7 @@ Depends on  NOTHING
 		if (!options.articleAId || typeof options.articleAId != 'string' || options.articleAId.length == 0) throw new Error('Specify valid articleAId for InterconnectsQuery query');
 		if (!options.articleBIds || typeof options.articleBIds != 'object' || !(options.articleBIds.length > 0)) throw new Error('Specify list of articleBIds for InterconnectsQuery query');
 		if (options.schema) delete options.schema;
-		
+
 		options.queryType = 'InterconnectsQuery';
 
 		var inner = new BaseQuery(options);
