@@ -20,18 +20,15 @@
 
 		this.collectionType = 'connection';
 
-		if (!options || !options.relation) {
-			throw new Error('Must provide relation while initializing ConnectionCollection.');
-		}
+		if (!options || !options.relation) throw new Error('Must provide relation while initializing ConnectionCollection.');
+		
 		_relation = options.relation;
 
 		var _parseOptions = function(options) {
 			options.type = 'connection';
 
-			if (options.relation)
-				_relation = options.relation;
-			else
-				options.relation = _relation;
+			if (options.relation) _relation = options.relation;
+			else options.relation = _relation;
 
 			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
@@ -40,12 +37,12 @@
 		this.setFilter = function(filterString) {
 			_options.filter = filterString;
 			_options.type = 'connection';
-			if (_query) {
-				_query.filter = filterString;
-			} else {
+			if (_query) _query.filter = filterString;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
 		};
 
 		this.setFreeText = function(tokens) {
@@ -53,12 +50,13 @@
                 _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'connection';
-            if (_query) {
-				_query.freeText = tokens;
-			} else {
+            if (_query) _query.freeText = tokens;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+
+			return this;
         };
 
         this.setFields = function(fields) {
@@ -66,12 +64,12 @@
                 _options.fields = "";
             _options.fields = fields;
             _options.type = 'connection';
-            if (_query) {
-				_query.fields = fields;
-			} else {
+            if (_query) _query.fields = fields;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
         };
 
 		this.__defineGetter__("query", function() {
@@ -125,11 +123,10 @@
 					index = i;
 				}
 			});
-			if (index !== null) {
-				_connections.splice(index, 1);
-			} else {
-				_connections.push(connection);
-			}
+			if (index !== null) _connections.splice(index, 1);
+			else _connections.push(connection);
+			
+			return this;
 		};
 
 		this.getConnection = function(id, onSuccess, onError) {
@@ -138,11 +135,8 @@
 			var existingConnection = _connections.filter(function (connection) {
 				return connection.get('__id') == id;
 			});
-			if (existingConnection.length == 1) {
-				onSuccess(Array.prototype.slice.call(existingConnection)[0]);
-			} else {
-				onError();
-			}
+			if (existingConnection.length == 1) return existingConnection[0];
+			return null;
 		};
 
 		this.getAll = function() { return Array.prototype.slice.call(_connections); };
@@ -161,10 +155,8 @@
 					index = i;
 				}
 			});
-			if (index !== null) {
-				_connections.splice(index, 1);
-				return true;
-			} else { return false; }
+			if (index !== null) _connections.splice(index, 1);
+			return this;
 		};
 
 		this.removeByCId = function(id) {
@@ -175,13 +167,12 @@
 					index = i;
 				}
 			});
-			if (index !== null) {
-				_connections.splice(index, 1);
-				return true;
-			} else { return false; }
+			if (index !== null) _connections.splice(index, 1);
+			return this;
 		};
 
 		var that = this;
+
 		var parseConnections = function (data, onSuccess, onError, queryType) {
 			data = data || {};
 			var connections = data.connections;
@@ -236,18 +227,21 @@
 				parseConnections(data, onSuccess, onError, _query.queryType);
 			};
 			global.Appacitive.http.send(_queryRequest);
+			return this;
 		};
 
 		this.fetchByPageNumber = function(onSuccess, onError, pageNumber) {
 			var pInfo = _query.getOptions().pageQuery;
 			pInfo.pageNumber = pageNumber;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.fetchNextPage = function(onSuccess, onError) {
 			var pInfo = _query.getOptions().pageQuery;
 			pInfo.pageNumber += 1;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.fetchPreviousPage = function(onSuccess, onError) {
@@ -255,6 +249,7 @@
 			pInfo.pageNumber -= 1;
 			if (pInfo.pageNumber === 0) pInfo.pageNumber = 1;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 

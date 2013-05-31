@@ -210,6 +210,7 @@
 				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
+			return this;
 		};
 	};
 
@@ -375,6 +376,7 @@
 				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
+			return this;
 		};
 
 		return inner;

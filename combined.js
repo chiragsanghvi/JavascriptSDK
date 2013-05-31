@@ -1409,6 +1409,7 @@ Depends on  NOTHING
 				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
+			return this;
 		};
 	};
 
@@ -1574,6 +1575,7 @@ Depends on  NOTHING
 				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
+			return this;
 		};
 
 		return inner;
@@ -1725,9 +1727,7 @@ Depends on  NOTHING
 					throw new Error('only string values can be stored in attributes.');
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
-			} else {
-				throw new Error('.attributes() called with an incorrect number of arguments. 0, 1, 2 are supported.');
-			}
+			} else throw new Error('.attributes() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 		};
 
 		// accessor function for the article's aggregates
@@ -1739,13 +1739,9 @@ Depends on  NOTHING
 					aggregates[key] = article[key];
 				}
 			}
-			if (arguments.length === 0) {
-				return aggregates;
-			} else if (arguments.length == 1) {
-				return aggregates[arguments[0]];
-			} else {
-				throw new Error('.aggregates() called with an incorrect number of arguments. 0, and 1 are supported.');
-			}
+			if (arguments.length === 0) return aggregates;
+			else if (arguments.length == 1) return aggregates[arguments[0]];
+			else throw new Error('.aggregates() called with an incorrect number of arguments. 0, and 1 are supported.');
 		};
 
 		var _removeTags = []; 
@@ -1757,42 +1753,47 @@ Depends on  NOTHING
 		});
 
 		this.addTags = function(tag) {
-			if (!tag || typeof tag != 'string' || !tag.length) return;
+			if (!tag || typeof tag != 'string' || !tag.length) return this;
 		    //tag = tag.toLowerCase();
 		    article.__tags.push(tag);
 		    article.__tags = Array.distinct(article.__tags);
 
-		    if (!_removeTags || !_removeTags.length) return;
+		    if (!_removeTags || !_removeTags.length) return this;;
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
+			return this;
 		};
 
 		this.removeTags = function(tag) {
-			if (!tag || typeof tag != 'string' || !tag.length) return;
+			if (!tag || typeof tag != 'string' || !tag.length) return this;
 			//tag = tag.toLowerCase();
 			_removeTags.push(tag);
 			_removeTags = Array.distinct(_removeTags);
 
-			if (!article.__tags || !article.__tags.length) return;
+			if (!article.__tags || !article.__tags.length) return this;
 			var index = article.__tags.indexOf(tag);
 			if (index != -1) article.__tags.splice(index, 1);
+			return this;
 		};
 
 		this.get = function(key) { if (key) return article[key]; };
 
 		this.set = function(key, value) {
 
-			if(!key || typeof key != 'string' ||  key.length == 0) return value; 
+			if(!key || typeof key != 'string' ||  key.length == 0) return this; 
 		 	
 		 	if (value == null || value == 'undefined') { article[key] = null;}
 		 	else if (typeof value == 'string') { article[key] = value; }
 		 	else if (typeof value == 'number') { article[key] = value + ''; }
 		 	else if (typeof value == 'object' && value.length >= 0) { article[key] = value; }
 		 	
-		 	return value;
+		 	return this;
 		};
 
-		this.copy = function(properties) { if(properties) _copy(properties); };
+		this.copy = function(properties) { 
+			if(properties) _copy(properties); 
+			return this;
+		};
 
 		/* crud operations  */
 
@@ -1802,6 +1803,7 @@ Depends on  NOTHING
 		this.save = function(onSuccess, onError) {
 			if (article.__id) _update.apply(this, arguments);
 			else _create.apply(this, arguments);
+			return this;
 		};
 
 		// to create the article
@@ -1857,6 +1859,7 @@ Depends on  NOTHING
 				if (typeof onError == 'function') onError(err, that);
 			}
 			global.Appacitive.http.send(_saveRequest);
+			return this;
 		};
 
 		// to update the article
@@ -1933,6 +1936,7 @@ Depends on  NOTHING
 			} else {
 				if (typeof onSuccess == 'function') onSuccess(that);
 			}
+			return this;
 		};
 
 		// fetch ( by id )
@@ -1967,6 +1971,7 @@ Depends on  NOTHING
 				if (typeof onError == 'function') onError(err, that);
 			}
 			global.Appacitive.http.send(_getRequest);
+			return this;
 		};
 
 		// delete the article
@@ -2117,19 +2122,16 @@ Depends on  NOTHING
 
 		this.collectionType = 'article';
 
-		if (!options || !options.schema) {
-			throw new Error('Must provide schema while initializing ArticleCollection.');
-		}
+		if (!options || !options.schema) throw new Error('Must provide schema while initializing ArticleCollection.');
+		
 		_schema = options.schema;
 		
 		var that = this;
 		var _parseOptions = function(options) {
 			options.type = 'article';
 
-			if (options.schema)
-				_schema = options.schema;
-			else
-				options.schema = _schema;
+			if (options.schema) _schema = options.schema;
+			else options.schema = _schema;
 
 			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
@@ -2139,12 +2141,12 @@ Depends on  NOTHING
 		this.setFilter = function(filterString) {
 			_options.filter = filterString;
 			_options.type = 'article';
-			if (_query) {
-				_query.filter = filterString;
-			} else {
+			if (_query) _query.filter = filterString;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
 		};
 
         this.setFreeText = function(tokens) {
@@ -2152,12 +2154,12 @@ Depends on  NOTHING
                 _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'article';
-            if (_query) {
-				_query.freeText = tokens;
-			} else {
+            if (_query) _query.freeText = tokens;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
         };
 
         this.setFields = function(fields) {
@@ -2165,12 +2167,12 @@ Depends on  NOTHING
                 _options.fields = "";
             _options.fields = fields;
             _options.type = 'article';
-            if (_query) {
-				_query.fields = fields;
-			} else {
+            if (_query) _query.fields = fields;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
         };
 
 		this.reset = function() {
@@ -2214,15 +2216,6 @@ Depends on  NOTHING
 			return _articles.slice(index, index + 1)[0];
 		};
 
-		var fetchArticleById = function(id, onSuccess, onError) {
-			onSuccess = onSuccess || function() {};		
-			onError = onError || function() {};
-			if(!id || id.length == 0)
-			
-			var tempArticle = locs.createNewArticle({ __id : id});
-    		tempArticle.fetch(function(data){},onError);
-		};
-
 		this.addToCollection = function(article) {
 			if (!article || article.get('__schematype') != _schema)
 				throw new Error('Null article passed or schema type mismatch');
@@ -2237,19 +2230,15 @@ Depends on  NOTHING
 			} else {
 				_articles.push(article);
 			}
+			return this;
 		};
 
-		this.getArticleById = function(id, onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
+		this.getArticleById = function(id) {
 			var existingArticle = _articles.filter(function (article) {
 				return article.get('__id') == id;
 			});
-			if (existingArticle.length == 1) {
-				onSuccess(Array.prototype.slice.call(existingArticle)[0]);
-			} else {
-				onError();
-			}
+			if (existingArticle.length == 1) return existingArticle[0];
+			return null;
 		};
 
 		this.getAll = function() { return Array.prototype.slice.call(_articles); };
@@ -2270,8 +2259,8 @@ Depends on  NOTHING
 			});
 			if (index !== null) {
 				_articles.splice(index, 1);
-				return true;
-			} else { return false; }
+			}
+			return this;
 		};
 
 		this.removeByCId = function(id) {
@@ -2282,10 +2271,8 @@ Depends on  NOTHING
 					index = i;
 				}
 			});
-			if (index !== null) {
-				_articles.splice(index, 1);
-				return true;
-			} else { return false; }
+			if (index !== null) _articles.splice(index, 1);
+			return this;
 		};
 
 		var parseArticles = function (data, onSuccess, onError) {
@@ -2313,18 +2300,21 @@ Depends on  NOTHING
 				parseArticles(data, onSuccess, onError);
 			};
 			global.Appacitive.http.send(_queryRequest);
+			return this;
 		};
 
 		this.fetchByPageNumber = function(onSuccess, onError, pageNumber) {
 			var pInfo = _query.getOptions().pageQuery;
 			pInfo.pageNumber = pageNumber;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.fetchNextPage = function(onSuccess, onError) {
 			var pInfo = _query.getOptions().pageQuery;
 			pInfo.pageNumber += 1;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.fetchPreviousPage = function(onSuccess, onError) {
@@ -2332,6 +2322,7 @@ Depends on  NOTHING
 			pInfo.pageNumber -= 1;
 			if (pInfo.pageNumber === 0) pInfo.pageNumber = 1;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.createNewArticle = function(values) {
@@ -2386,18 +2377,15 @@ Depends on  NOTHING
 
 		this.collectionType = 'connection';
 
-		if (!options || !options.relation) {
-			throw new Error('Must provide relation while initializing ConnectionCollection.');
-		}
+		if (!options || !options.relation) throw new Error('Must provide relation while initializing ConnectionCollection.');
+		
 		_relation = options.relation;
 
 		var _parseOptions = function(options) {
 			options.type = 'connection';
 
-			if (options.relation)
-				_relation = options.relation;
-			else
-				options.relation = _relation;
+			if (options.relation) _relation = options.relation;
+			else options.relation = _relation;
 
 			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
@@ -2406,12 +2394,12 @@ Depends on  NOTHING
 		this.setFilter = function(filterString) {
 			_options.filter = filterString;
 			_options.type = 'connection';
-			if (_query) {
-				_query.filter = filterString;
-			} else {
+			if (_query) _query.filter = filterString;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
 		};
 
 		this.setFreeText = function(tokens) {
@@ -2419,12 +2407,13 @@ Depends on  NOTHING
                 _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'connection';
-            if (_query) {
-				_query.freeText = tokens;
-			} else {
+            if (_query) _query.freeText = tokens;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+
+			return this;
         };
 
         this.setFields = function(fields) {
@@ -2432,12 +2421,12 @@ Depends on  NOTHING
                 _options.fields = "";
             _options.fields = fields;
             _options.type = 'connection';
-            if (_query) {
-				_query.fields = fields;
-			} else {
+            if (_query) _query.fields = fields;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
         };
 
 		this.__defineGetter__("query", function() {
@@ -2491,11 +2480,10 @@ Depends on  NOTHING
 					index = i;
 				}
 			});
-			if (index !== null) {
-				_connections.splice(index, 1);
-			} else {
-				_connections.push(connection);
-			}
+			if (index !== null) _connections.splice(index, 1);
+			else _connections.push(connection);
+			
+			return this;
 		};
 
 		this.getConnection = function(id, onSuccess, onError) {
@@ -2504,11 +2492,8 @@ Depends on  NOTHING
 			var existingConnection = _connections.filter(function (connection) {
 				return connection.get('__id') == id;
 			});
-			if (existingConnection.length == 1) {
-				onSuccess(Array.prototype.slice.call(existingConnection)[0]);
-			} else {
-				onError();
-			}
+			if (existingConnection.length == 1) return existingConnection[0];
+			return null;
 		};
 
 		this.getAll = function() { return Array.prototype.slice.call(_connections); };
@@ -2527,10 +2512,8 @@ Depends on  NOTHING
 					index = i;
 				}
 			});
-			if (index !== null) {
-				_connections.splice(index, 1);
-				return true;
-			} else { return false; }
+			if (index !== null) _connections.splice(index, 1);
+			return this;
 		};
 
 		this.removeByCId = function(id) {
@@ -2541,13 +2524,12 @@ Depends on  NOTHING
 					index = i;
 				}
 			});
-			if (index !== null) {
-				_connections.splice(index, 1);
-				return true;
-			} else { return false; }
+			if (index !== null) _connections.splice(index, 1);
+			return this;
 		};
 
 		var that = this;
+
 		var parseConnections = function (data, onSuccess, onError, queryType) {
 			data = data || {};
 			var connections = data.connections;
@@ -2602,18 +2584,21 @@ Depends on  NOTHING
 				parseConnections(data, onSuccess, onError, _query.queryType);
 			};
 			global.Appacitive.http.send(_queryRequest);
+			return this;
 		};
 
 		this.fetchByPageNumber = function(onSuccess, onError, pageNumber) {
 			var pInfo = _query.getOptions().pageQuery;
 			pInfo.pageNumber = pageNumber;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.fetchNextPage = function(onSuccess, onError) {
 			var pInfo = _query.getOptions().pageQuery;
 			pInfo.pageNumber += 1;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.fetchPreviousPage = function(onSuccess, onError) {
@@ -2621,6 +2606,7 @@ Depends on  NOTHING
 			pInfo.pageNumber -= 1;
 			if (pInfo.pageNumber === 0) pInfo.pageNumber = 1;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 
@@ -3128,11 +3114,14 @@ Depends on  NOTHING
 
 			_authenticatedUser.updatePassword = function(oldPassword, newPassword, onSuccess, onError) {
 				_updatePassword(this.get('__id'), oldPassword, newPassword, onSuccess, onError);
+				return this;
 			};
 
 			global.Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
 			});
+
+			return _authenticatedUser;
 		};
 		
 		global.Appacitive.User = function(options) {
@@ -3755,6 +3744,7 @@ Depends on  NOTHING
                 if (typeof onError == 'function') onError(response.status, that);
               }
           }, onError);
+          return this;
       };
 
       var _update = function(that, onSuccess, onError, contentType) {
@@ -3780,6 +3770,7 @@ Depends on  NOTHING
                 if (typeof onError == 'function') onError(response.status, that);
               }
           }, onError);
+          return this;
       };
 
       this.deleteFile = function(onSuccess, onError) {
@@ -3801,6 +3792,7 @@ Depends on  NOTHING
           };
           request.onError = onError;
           global.Appacitive.http.send(request);  
+          return this;
       };
 
       this.getDownloadUrl = function(onSuccess, onError) {
@@ -3825,6 +3817,7 @@ Depends on  NOTHING
           };
           request.onError = onError;
           global.Appacitive.http.send(request); 
+          return this;
       };
 
   };

@@ -14,19 +14,16 @@
 
 		this.collectionType = 'article';
 
-		if (!options || !options.schema) {
-			throw new Error('Must provide schema while initializing ArticleCollection.');
-		}
+		if (!options || !options.schema) throw new Error('Must provide schema while initializing ArticleCollection.');
+		
 		_schema = options.schema;
 		
 		var that = this;
 		var _parseOptions = function(options) {
 			options.type = 'article';
 
-			if (options.schema)
-				_schema = options.schema;
-			else
-				options.schema = _schema;
+			if (options.schema) _schema = options.schema;
+			else options.schema = _schema;
 
 			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
@@ -36,12 +33,12 @@
 		this.setFilter = function(filterString) {
 			_options.filter = filterString;
 			_options.type = 'article';
-			if (_query) {
-				_query.filter = filterString;
-			} else {
+			if (_query) _query.filter = filterString;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
 		};
 
         this.setFreeText = function(tokens) {
@@ -49,12 +46,12 @@
                 _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'article';
-            if (_query) {
-				_query.freeText = tokens;
-			} else {
+            if (_query) _query.freeText = tokens;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
         };
 
         this.setFields = function(fields) {
@@ -62,12 +59,12 @@
                 _options.fields = "";
             _options.fields = fields;
             _options.type = 'article';
-            if (_query) {
-				_query.fields = fields;
-			} else {
+            if (_query) _query.fields = fields;
+			else {
 				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
+			return this;
         };
 
 		this.reset = function() {
@@ -111,15 +108,6 @@
 			return _articles.slice(index, index + 1)[0];
 		};
 
-		var fetchArticleById = function(id, onSuccess, onError) {
-			onSuccess = onSuccess || function() {};		
-			onError = onError || function() {};
-			if(!id || id.length == 0)
-			
-			var tempArticle = locs.createNewArticle({ __id : id});
-    		tempArticle.fetch(function(data){},onError);
-		};
-
 		this.addToCollection = function(article) {
 			if (!article || article.get('__schematype') != _schema)
 				throw new Error('Null article passed or schema type mismatch');
@@ -134,19 +122,15 @@
 			} else {
 				_articles.push(article);
 			}
+			return this;
 		};
 
-		this.getArticleById = function(id, onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
+		this.getArticleById = function(id) {
 			var existingArticle = _articles.filter(function (article) {
 				return article.get('__id') == id;
 			});
-			if (existingArticle.length == 1) {
-				onSuccess(Array.prototype.slice.call(existingArticle)[0]);
-			} else {
-				onError();
-			}
+			if (existingArticle.length == 1) return existingArticle[0];
+			return null;
 		};
 
 		this.getAll = function() { return Array.prototype.slice.call(_articles); };
@@ -167,8 +151,8 @@
 			});
 			if (index !== null) {
 				_articles.splice(index, 1);
-				return true;
-			} else { return false; }
+			}
+			return this;
 		};
 
 		this.removeByCId = function(id) {
@@ -179,10 +163,8 @@
 					index = i;
 				}
 			});
-			if (index !== null) {
-				_articles.splice(index, 1);
-				return true;
-			} else { return false; }
+			if (index !== null) _articles.splice(index, 1);
+			return this;
 		};
 
 		var parseArticles = function (data, onSuccess, onError) {
@@ -210,18 +192,21 @@
 				parseArticles(data, onSuccess, onError);
 			};
 			global.Appacitive.http.send(_queryRequest);
+			return this;
 		};
 
 		this.fetchByPageNumber = function(onSuccess, onError, pageNumber) {
 			var pInfo = _query.getOptions().pageQuery;
 			pInfo.pageNumber = pageNumber;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.fetchNextPage = function(onSuccess, onError) {
 			var pInfo = _query.getOptions().pageQuery;
 			pInfo.pageNumber += 1;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.fetchPreviousPage = function(onSuccess, onError) {
@@ -229,6 +214,7 @@
 			pInfo.pageNumber -= 1;
 			if (pInfo.pageNumber === 0) pInfo.pageNumber = 1;
 			this.fetch(onSuccess, onError);
+			return this;
 		};
 
 		this.createNewArticle = function(values) {

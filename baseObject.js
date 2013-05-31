@@ -87,9 +87,7 @@
 					throw new Error('only string values can be stored in attributes.');
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
-			} else {
-				throw new Error('.attributes() called with an incorrect number of arguments. 0, 1, 2 are supported.');
-			}
+			} else throw new Error('.attributes() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 		};
 
 		// accessor function for the article's aggregates
@@ -101,13 +99,9 @@
 					aggregates[key] = article[key];
 				}
 			}
-			if (arguments.length === 0) {
-				return aggregates;
-			} else if (arguments.length == 1) {
-				return aggregates[arguments[0]];
-			} else {
-				throw new Error('.aggregates() called with an incorrect number of arguments. 0, and 1 are supported.');
-			}
+			if (arguments.length === 0) return aggregates;
+			else if (arguments.length == 1) return aggregates[arguments[0]];
+			else throw new Error('.aggregates() called with an incorrect number of arguments. 0, and 1 are supported.');
 		};
 
 		var _removeTags = []; 
@@ -119,42 +113,47 @@
 		});
 
 		this.addTags = function(tag) {
-			if (!tag || typeof tag != 'string' || !tag.length) return;
+			if (!tag || typeof tag != 'string' || !tag.length) return this;
 		    //tag = tag.toLowerCase();
 		    article.__tags.push(tag);
 		    article.__tags = Array.distinct(article.__tags);
 
-		    if (!_removeTags || !_removeTags.length) return;
+		    if (!_removeTags || !_removeTags.length) return this;;
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
+			return this;
 		};
 
 		this.removeTags = function(tag) {
-			if (!tag || typeof tag != 'string' || !tag.length) return;
+			if (!tag || typeof tag != 'string' || !tag.length) return this;
 			//tag = tag.toLowerCase();
 			_removeTags.push(tag);
 			_removeTags = Array.distinct(_removeTags);
 
-			if (!article.__tags || !article.__tags.length) return;
+			if (!article.__tags || !article.__tags.length) return this;
 			var index = article.__tags.indexOf(tag);
 			if (index != -1) article.__tags.splice(index, 1);
+			return this;
 		};
 
 		this.get = function(key) { if (key) return article[key]; };
 
 		this.set = function(key, value) {
 
-			if(!key || typeof key != 'string' ||  key.length == 0) return value; 
+			if(!key || typeof key != 'string' ||  key.length == 0) return this; 
 		 	
 		 	if (value == null || value == 'undefined') { article[key] = null;}
 		 	else if (typeof value == 'string') { article[key] = value; }
 		 	else if (typeof value == 'number') { article[key] = value + ''; }
 		 	else if (typeof value == 'object' && value.length >= 0) { article[key] = value; }
 		 	
-		 	return value;
+		 	return this;
 		};
 
-		this.copy = function(properties) { if(properties) _copy(properties); };
+		this.copy = function(properties) { 
+			if(properties) _copy(properties); 
+			return this;
+		};
 
 		/* crud operations  */
 
@@ -164,6 +163,7 @@
 		this.save = function(onSuccess, onError) {
 			if (article.__id) _update.apply(this, arguments);
 			else _create.apply(this, arguments);
+			return this;
 		};
 
 		// to create the article
@@ -219,6 +219,7 @@
 				if (typeof onError == 'function') onError(err, that);
 			}
 			global.Appacitive.http.send(_saveRequest);
+			return this;
 		};
 
 		// to update the article
@@ -295,6 +296,7 @@
 			} else {
 				if (typeof onSuccess == 'function') onSuccess(that);
 			}
+			return this;
 		};
 
 		// fetch ( by id )
@@ -329,6 +331,7 @@
 				if (typeof onError == 'function') onError(err, that);
 			}
 			global.Appacitive.http.send(_getRequest);
+			return this;
 		};
 
 		// delete the article

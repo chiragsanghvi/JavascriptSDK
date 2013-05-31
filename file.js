@@ -61,6 +61,7 @@
                 if (typeof onError == 'function') onError(response.status, that);
               }
           }, onError);
+          return this;
       };
 
       var _update = function(that, onSuccess, onError, contentType) {
@@ -86,6 +87,7 @@
                 if (typeof onError == 'function') onError(response.status, that);
               }
           }, onError);
+          return this;
       };
 
       this.deleteFile = function(onSuccess, onError) {
@@ -107,6 +109,7 @@
           };
           request.onError = onError;
           global.Appacitive.http.send(request);  
+          return this;
       };
 
       this.getDownloadUrl = function(onSuccess, onError) {
@@ -131,6 +134,7 @@
           };
           request.onError = onError;
           global.Appacitive.http.send(request); 
+          return this;
       };
 
   };

@@ -61,11 +61,14 @@
 
 			_authenticatedUser.updatePassword = function(oldPassword, newPassword, onSuccess, onError) {
 				_updatePassword(this.get('__id'), oldPassword, newPassword, onSuccess, onError);
+				return this;
 			};
 
 			global.Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
 			});
+
+			return _authenticatedUser;
 		};
 		
 		global.Appacitive.User = function(options) {
