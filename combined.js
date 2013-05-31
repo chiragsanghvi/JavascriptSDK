@@ -217,7 +217,7 @@ var global = {};
 
 	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
 
-	var _XMLHttp = function(request, isFile) {
+	var _XMLHttp = function(request, doNotStringify) {
 
 	    if (typeof(XDomainRequest) !== "undefined") {
 	      throw new Error("Appacitive doesn't support versions of IE6, IE7, IE8, IE9 due to crossdomain calls");
@@ -227,7 +227,7 @@ var global = {};
 		if (!request.method) request.method = 'GET' ;
 		if (!request.headers) request.headers = [];
 		var data = {};
-		if (isFile) data = request.data;
+		if (doNotStringify) data = request.data;
 		else {
 			try { if (request.data) data = request.data;
 				  data = JSON.stringify(data); 
@@ -283,8 +283,8 @@ var global = {};
 		this.onSuccess = o.onSuccess || function(){}
 		this.onError = o.onError || function(){}
 
-		this.send = function(isFile) {
-			return new _XMLHttp(this, isFile);
+		this.send = function(doNotStringify) {
+			return new _XMLHttp(this, doNotStringify);
 		};
 	};
 
@@ -309,8 +309,8 @@ var global = {};
 
 		var that = _super;
 
-		var _trigger = function(request, callbacks, states, isFile) {
-			if (!isFile) request.headers.push({ key:'content-type', value: 'application/json' });
+		var _trigger = function(request, callbacks, states, doNotStringify) {
+			if (!doNotStringify) request.headers.push({ key:'content-type', value: 'application/json' });
 			var xhr = new  _XMLHttp({
 				method: request.method,
 				url: request.url,
@@ -1421,6 +1421,8 @@ Depends on  NOTHING
 
 		inner.articleId = options.articleId;
 		inner.relation = options.relation;
+		inner.label = '';
+		if (options.label && typeof options.label == 'string' && options.label.length > 0) inner.label = '&label=' + options.label;
 
 		inner.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
@@ -1431,7 +1433,7 @@ Depends on  NOTHING
 
 		inner.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.articleId + '/find?' +
-				inner.getQueryString();
+				this.getQueryString() + this.label;
 		};
 
 		return inner;
@@ -1492,7 +1494,7 @@ Depends on  NOTHING
 
 		inner.articleAId = options.articleAId;
 		inner.articleBId = options.articleBId;
-		inner.label = options.label;
+		inner.label = (inner.queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label == 'string' && options.label.length > 0) ? '&label=' + options.label : '';;
 		inner.relation = (options.relation && typeof options.relation == 'string' && options.relation.length > 0) ? options.relation + '/' : '';
 		
 		inner.toRequest = function() {
@@ -1503,8 +1505,8 @@ Depends on  NOTHING
 		};
 
 		inner.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + inner.relation + 'find/' + this.articleAId + '/' + this.articleBId + '?'
-				+ inner.getQueryString();
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.articleAId + '/' + this.articleBId + '?'
+				+ this.getQueryString() + this.label;
 		};
 
 		return inner;
@@ -2766,7 +2768,6 @@ Depends on  NOTHING
 	};
 
 	var convertEndpoint = function(endpoint, type, base) {
-
 		if ( base.get('__endpoint' + type.toLowerCase()).article && typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
@@ -2786,7 +2787,6 @@ Depends on  NOTHING
 		} else {
 			base["endpoint" + type] = base.get('__endpoint' + type.toLowerCase());
 		}
-
 	};
 
 	global.Appacitive.Connection = function(options, doNotSetup) {
@@ -2901,6 +2901,7 @@ Depends on  NOTHING
 
 	var _parseConnections = function(connections) {
 		var connectionObjects = [];
+		if (!connections) connections = [];
 		connections.forEach(function(c){
 			connectionObjects.push(new global.Appacitive.Connection(a));
 		});
@@ -2910,14 +2911,14 @@ Depends on  NOTHING
 	//takes relationaname and array of connectionids and returns an array of Appacitive article objects
 	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError) {
 		if (!relationName)
-			throw new Error("Specify schemaName");
+			throw new Error("Specify relationName");
 
 		if (typeof ids == 'object' && ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','));
 			request.method = 'get';
 			request.onSuccess = function(d) {
-				if (d && d.connections) {
+				if (d && d.status && d.status.code == '200') {
 				   if (typeof onSuccess == 'function') onSuccess(_parseConnections(d.connections));
 				} else {
 					d = d || {};
@@ -2930,6 +2931,45 @@ Depends on  NOTHING
 			}
 			global.Appacitive.http.send(request);
 		} else onSuccess([]);
+	};
+
+	global.Appacitive.Connection.getBetweenArticles = function(articleAId, articleBId, onSuccess, onError) {
+		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery({ articleAId :  articleAId, articleBId: articleBId });
+		var request = q.toRequest();
+		request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+			   if (typeof onSuccess == 'function') onSuccess(_parseConnections(_parseConnections(d.connections)));
+			} else {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			}
+		};
+		request.onError = function(d) {
+			d = d || {};
+			if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+		};
+		global.Appacitive.http.send(request);
+	};
+
+	global.Appacitive.Connection.getBetweenArticlesForRelation = function(articleAId, articleBId, relationName, onSuccess, onError) {
+		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ articleAId :  articleAId, articleBId: articleBId, relation: relationName });
+		var request = q.toRequest();
+		request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+			   if (typeof onSuccess == 'function') {
+			     var conn = d.connection ? new global.Appacitive.Connection(d.connection) : null;
+			     onSuccess(conn);
+			   }
+			} else {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			}
+		};
+		request.onError = function(d) {
+			d = d || {};
+			if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+		};
+		global.Appacitive.http.send(request);
 	};
 
 })(global);(function (global) {
@@ -3256,7 +3296,7 @@ Depends on  NOTHING
 			}
 
 			if(!options.from && config.from) {
-				throw new Error('from is mandatory to send an email. Set it in config or send it in options');
+				throw new Error('from is mandatory to send an email. Set it in config or send it in options on the portal');
 			} 
 
 			if (!options.templateName) {
@@ -3327,7 +3367,7 @@ Depends on  NOTHING
 
 	};
 
-	global.Appacitive.email = new _emailManager();
+	global.Appacitive.Email = new _emailManager();
 
 })(global);(function (global) {
 
@@ -3616,7 +3656,7 @@ Depends on  NOTHING
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.fileId = response.id;
                     that.getDownloadUrl(function(res) {
-                       onSuccess(res);
+                       onSuccess(res, that);
                     }, onError);
                 }, onError);
               } else {
@@ -3641,7 +3681,7 @@ Depends on  NOTHING
               if (response && response.status && response.status.code == '200') {
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.getDownloadUrl(function(res) {
-                       onSuccess(res);
+                       onSuccess(res, that);
                     }, onError);
                 }, onError);
               } else {
@@ -3664,7 +3704,7 @@ Depends on  NOTHING
               if (response && response.code == '200') {
                   if (typeof onSuccess == 'function') onSuccess();
               } else if (typeof onError == 'function') {
-                  if (typeof onError == 'function') onError(response);
+                  if (typeof onError == 'function') onError(response, that);
               }
           };
           request.onError = onError;
@@ -3688,7 +3728,7 @@ Depends on  NOTHING
                   that.url = response.uri;
                   if (typeof onSuccess == 'function') onSuccess(response.uri);
               } else if (typeof onError == 'function') {
-                  if (typeof onError == 'function') onError(response.status);
+                  if (typeof onError == 'function') onError(response.status, that);
               }
           };
           request.onError = onError;

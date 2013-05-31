@@ -43,7 +43,6 @@
 	};
 
 	var convertEndpoint = function(endpoint, type, base) {
-
 		if ( base.get('__endpoint' + type.toLowerCase()).article && typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
@@ -63,7 +62,6 @@
 		} else {
 			base["endpoint" + type] = base.get('__endpoint' + type.toLowerCase());
 		}
-
 	};
 
 	global.Appacitive.Connection = function(options, doNotSetup) {
@@ -178,6 +176,7 @@
 
 	var _parseConnections = function(connections) {
 		var connectionObjects = [];
+		if (!connections) connections = [];
 		connections.forEach(function(c){
 			connectionObjects.push(new global.Appacitive.Connection(a));
 		});
@@ -187,14 +186,14 @@
 	//takes relationaname and array of connectionids and returns an array of Appacitive article objects
 	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError) {
 		if (!relationName)
-			throw new Error("Specify schemaName");
+			throw new Error("Specify relationName");
 
 		if (typeof ids == 'object' && ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','));
 			request.method = 'get';
 			request.onSuccess = function(d) {
-				if (d && d.connections) {
+				if (d && d.status && d.status.code == '200') {
 				   if (typeof onSuccess == 'function') onSuccess(_parseConnections(d.connections));
 				} else {
 					d = d || {};
@@ -207,6 +206,45 @@
 			}
 			global.Appacitive.http.send(request);
 		} else onSuccess([]);
+	};
+
+	global.Appacitive.Connection.getBetweenArticles = function(articleAId, articleBId, onSuccess, onError) {
+		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery({ articleAId :  articleAId, articleBId: articleBId });
+		var request = q.toRequest();
+		request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+			   if (typeof onSuccess == 'function') onSuccess(_parseConnections(_parseConnections(d.connections)));
+			} else {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			}
+		};
+		request.onError = function(d) {
+			d = d || {};
+			if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+		};
+		global.Appacitive.http.send(request);
+	};
+
+	global.Appacitive.Connection.getBetweenArticlesForRelation = function(articleAId, articleBId, relationName, onSuccess, onError) {
+		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ articleAId :  articleAId, articleBId: articleBId, relation: relationName });
+		var request = q.toRequest();
+		request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+			   if (typeof onSuccess == 'function') {
+			     var conn = d.connection ? new global.Appacitive.Connection(d.connection) : null;
+			     onSuccess(conn);
+			   }
+			} else {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			}
+		};
+		request.onError = function(d) {
+			d = d || {};
+			if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+		};
+		global.Appacitive.http.send(request);
 	};
 
 })(global);

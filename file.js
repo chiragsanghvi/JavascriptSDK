@@ -54,7 +54,7 @@
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.fileId = response.id;
                     that.getDownloadUrl(function(res) {
-                       onSuccess(res);
+                       onSuccess(res, that);
                     }, onError);
                 }, onError);
               } else {
@@ -79,7 +79,7 @@
               if (response && response.status && response.status.code == '200') {
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.getDownloadUrl(function(res) {
-                       onSuccess(res);
+                       onSuccess(res, that);
                     }, onError);
                 }, onError);
               } else {
@@ -102,7 +102,7 @@
               if (response && response.code == '200') {
                   if (typeof onSuccess == 'function') onSuccess();
               } else if (typeof onError == 'function') {
-                  if (typeof onError == 'function') onError(response);
+                  if (typeof onError == 'function') onError(response, that);
               }
           };
           request.onError = onError;
@@ -126,7 +126,7 @@
                   that.url = response.uri;
                   if (typeof onSuccess == 'function') onSuccess(response.uri);
               } else if (typeof onError == 'function') {
-                  if (typeof onError == 'function') onError(response.status);
+                  if (typeof onError == 'function') onError(response.status, that);
               }
           };
           request.onError = onError;

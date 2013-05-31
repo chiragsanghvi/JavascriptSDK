@@ -62,7 +62,7 @@
 			}
 
 			if(!options.from && config.from) {
-				throw new Error('from is mandatory to send an email. Set it in config or send it in options');
+				throw new Error('from is mandatory to send an email. Set it in config or send it in options on the portal');
 			} 
 
 			if (!options.templateName) {
@@ -133,6 +133,6 @@
 
 	};
 
-	global.Appacitive.email = new _emailManager();
+	global.Appacitive.Email = new _emailManager();
 
 })(global);

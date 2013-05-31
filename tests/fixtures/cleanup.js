@@ -168,6 +168,9 @@ asyncTest('Cleaning up articles of schema user', function() {
 							ok(false, 'Article delete failed for  1/1 articles');
 							start();
 						});
+					} else if (total < 0) {
+						ok(true, 'articles of type user deleted successfully');
+						start();
 					} else {
 						var numFailures = 0;
 						articles.forEach(function (article) {

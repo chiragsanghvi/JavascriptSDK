@@ -222,6 +222,8 @@
 
 		inner.articleId = options.articleId;
 		inner.relation = options.relation;
+		inner.label = '';
+		if (options.label && typeof options.label == 'string' && options.label.length > 0) inner.label = '&label=' + options.label;
 
 		inner.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
@@ -232,7 +234,7 @@
 
 		inner.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.articleId + '/find?' +
-				inner.getQueryString();
+				this.getQueryString() + this.label;
 		};
 
 		return inner;
@@ -293,7 +295,7 @@
 
 		inner.articleAId = options.articleAId;
 		inner.articleBId = options.articleBId;
-		inner.label = options.label;
+		inner.label = (inner.queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label == 'string' && options.label.length > 0) ? '&label=' + options.label : '';;
 		inner.relation = (options.relation && typeof options.relation == 'string' && options.relation.length > 0) ? options.relation + '/' : '';
 		
 		inner.toRequest = function() {
@@ -304,8 +306,8 @@
 		};
 
 		inner.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + inner.relation + 'find/' + this.articleAId + '/' + this.articleBId + '?'
-				+ inner.getQueryString();
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.articleAId + '/' + this.articleBId + '?'
+				+ this.getQueryString() + this.label;
 		};
 
 		return inner;

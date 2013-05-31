@@ -185,7 +185,7 @@ var global = {};
 
 	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
 
-	var _XMLHttp = function(request, isFile) {
+	var _XMLHttp = function(request, doNotStringify) {
 
 	    if (typeof(XDomainRequest) !== "undefined") {
 	      throw new Error("Appacitive doesn't support versions of IE6, IE7, IE8, IE9 due to crossdomain calls");
@@ -195,7 +195,7 @@ var global = {};
 		if (!request.method) request.method = 'GET' ;
 		if (!request.headers) request.headers = [];
 		var data = {};
-		if (isFile) data = request.data;
+		if (doNotStringify) data = request.data;
 		else {
 			try { if (request.data) data = request.data;
 				  data = JSON.stringify(data); 
@@ -251,8 +251,8 @@ var global = {};
 		this.onSuccess = o.onSuccess || function(){}
 		this.onError = o.onError || function(){}
 
-		this.send = function(isFile) {
-			return new _XMLHttp(this, isFile);
+		this.send = function(doNotStringify) {
+			return new _XMLHttp(this, doNotStringify);
 		};
 	};
 
@@ -277,8 +277,8 @@ var global = {};
 
 		var that = _super;
 
-		var _trigger = function(request, callbacks, states, isFile) {
-			if (!isFile) request.headers.push({ key:'content-type', value: 'application/json' });
+		var _trigger = function(request, callbacks, states, doNotStringify) {
+			if (!doNotStringify) request.headers.push({ key:'content-type', value: 'application/json' });
 			var xhr = new  _XMLHttp({
 				method: request.method,
 				url: request.url,

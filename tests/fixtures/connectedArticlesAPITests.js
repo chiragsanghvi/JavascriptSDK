@@ -62,6 +62,13 @@ asyncTest('Verify created connection shows up in collection when fetching connec
 									return _c.get('__id') == id;
 								});
 								equal(collConnection.length, 1, 'Connections fetched between 2 articles');
+								Appacitive.Connection.getBetweenArticlesForRelation(user.get('__id'), profile.get('__id'), 'userprofile', function(conn) {
+									ok('true','Connection between 2 articles fetched');
+									start();
+								}, function() {
+									ok(false, 'Could not fetch connections between 2 articles');
+							        start();
+								});
 								start();
 							}, function () {
 								ok(false, 'Could not fetch connections between 2 articles of relation type userprofile');
