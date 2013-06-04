@@ -45,12 +45,18 @@
 			this.type = 'connection';
 		}
 
+		//Fileds to be ignored while update operation
+		var _ignoreTheseFields = ["__revision","__endpointa","__endpointb","__createdby","__lastmodifiedby","__schematype","__relationtype","__utcdatecreated","__utclastupdateddate","__tags","__authType","__link"];
+		
+		var _allowObjectSetOpeerations = ["__link"];
+
 		/* parse api output to get error info
 		   TODO: define error objects in future depending on codes and messages */
 		var _getOutpuStatus = function(data) {
 			data = data || {};
 			data.message = data.message || 'Server error';
 			data.code = data.code || '500';
+			return data;
 		};
 
 		//Copy properties to current object
@@ -145,7 +151,10 @@
 		 	if (value == null || value == 'undefined') { article[key] = null;}
 		 	else if (typeof value == 'string') { article[key] = value; }
 		 	else if (typeof value == 'number') { article[key] = value + ''; }
-		 	else if (typeof value == 'object' && value.length >= 0) { article[key] = value; }
+		 	else if (typeof value == 'object') {
+		 		if (value.length >= 0) article[key] = value; 
+		 		else if (_allowObjectSetOpeerations.indexOf(key) !== -1) article[key] = value;
+			}
 		 	
 		 	return this;
 		};
@@ -242,16 +251,9 @@
 			}
 
 			try {
-				if (changeSet["__revision"]) delete changeSet["__revision"];
-				if (changeSet["__endpointa"]) delete changeSet["__endpointa"];
-				if (changeSet["__endpointb"]) delete changeSet["__endpointb"];
-				if (changeSet["__createdby"]) delete changeSet["__createdby"];
-				if (changeSet["__lastmodifiedby"]) delete changeSet["__lastmodifiedby"];
-				if (changeSet["__schematype"]) delete changeSet["__schematype"];
-				if (changeSet["__relationtype"]) delete changeSet["__relationtype"];
-				if (changeSet["__utcdatecreated"]) delete changeSet["__utcdatecreated"];
-				if (changeSet["__utclastupdateddate"]) delete changeSet["__utclastupdateddate"];
-				if (changeSet["__tags"]) delete changeSet["__tags"];
+				_ignoreTheseFields.forEach(function(c) {
+					if (changeSet[c]) delete changeSet[c];
+				});
 			} catch(e) {}
 
 			if (article.__tags && article.__tags.length > 0)

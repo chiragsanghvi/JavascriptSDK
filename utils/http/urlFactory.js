@@ -129,6 +129,12 @@
             },
             getUpdatePasswordUrl: function(userId) {
                 return String.format("{0}/{1}/changepassword", this.userServiceUrl, userId);
+            },
+            getLinkAccountUrl: function(userId) {
+                return String.format("{0}/{1}/link", this.userServiceUrl, userId);
+            },
+            getDelinkAccountUrl: function(userId, type){
+                return String.format("{0}/{1}/{2}/delink", this.userServiceUrl, userId, type);
             }
         };
         this.device = {

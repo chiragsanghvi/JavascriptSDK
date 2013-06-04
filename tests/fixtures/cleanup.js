@@ -153,59 +153,64 @@ asyncTest('Cleaning up articles of schema user', function() {
 		var collection = new Appacitive.ArticleCollection({ schema: 'user' });
 		collection.fetch(function() {
 			var articles = collection.getAll();
-			var total = articles.length - 1, t = articles.length - 1;
+			var total = articles.length, t = articles.length;
+			if (total == 0) {
+				ok(true, "All users deleted");
+				start();
+				return;
+			} 
+
 			var step = function() {
 				authenticateUser(function() {
-					if (total == 0) {
-						Appacitive.Users.deleteCurrentUser(function() {
-							ok(true, '1/1 articles of type user deleted successfully');
-							start();
-						}, function() {
-							ok(false, 'Article delete failed for  1/1 articles');
-							start();
-						});
-					} else if (total < 0) {
-						ok(true, 'articles of type user deleted successfully');
-						start();
-					} else {
-						var numFailures = 0;
-						articles.forEach(function (article) {
-							if (article.get('username') != testConstants.user.username) {
-								var deleteUser = function() {
-									article.del(function() {
-										// Appacitive.session.removeUserAuthHeader();
-										total -= 1;
-										if (total == 0) {
-											Appacitive.Users.deleteCurrentUser(function() {
-												ok(true, articles.length + '/' + t + ' articles of type user deleted successfully');
-												start();
-											}, function() {
-												numFailures += 1;
-												ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
-												start();
-											});
-										}
-									}, function() {
-										// Appacitive.session.removeUserAuthHeader();
-										numFailures += 1;
-										total -= 1;
-										if (total == 0) {
-											Appacitive.Users.deleteCurrentUser(function() {
-												ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
-												start();
-											}, function() {
-												numFailures += 1;
-												ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
-												start();
-											});
-										}
-									});
-								};
-								// authenticateUser(article.get('username'), deleteUser);
-								deleteUser();
+					var numFailures = 0;
+					articles.forEach(function (article) {
+						if (article.get('username') != testConstants.user.username) {
+							var deleteUser = function() {
+								article.del(function() {
+									// Appacitive.session.removeUserAuthHeader();
+									total -= 1;
+									if (total == 0) {
+										Appacitive.Users.deleteCurrentUser(function() {
+											ok(true, articles.length + '/' + t + ' articles of type user deleted successfully');
+											start();
+										}, function() {
+											numFailures += 1;
+											ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
+											start();
+										});
+									}
+								}, function() {
+									// Appacitive.session.removeUserAuthHeader();
+									numFailures += 1;
+									total -= 1;
+									if (total == 0) {
+										Appacitive.Users.deleteCurrentUser(function() {
+											ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
+											start();
+										}, function() {
+											numFailures += 1;
+											ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
+											start();
+										});
+									}
+								});
+							};
+							// authenticateUser(article.get('username'), deleteUser);
+							deleteUser();
+						} else {
+							total -= 1;
+							if (total == 0) {
+								Appacitive.Users.deleteCurrentUser(function() {
+									ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
+									start();
+								}, function() {
+									numFailures += 1;
+									ok(false, 'Article delete failed for ' + numFailures + '/' + t +' articles');
+									start();
+								});
 							}
-						});
-					};
+						}
+					});
 				});
 			};
 			createDefaultUser(step);

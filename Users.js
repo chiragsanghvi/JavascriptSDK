@@ -6,12 +6,10 @@
 
 		var _authenticatedUser = null;
 
-		this.__defineGetter__('currentUser', function() {
-			return _authenticatedUser;
-		});
+		this.__defineGetter__('currentUser', function() { return _authenticatedUser; });
 
-		var _updatePassword = function(userId, oldPassword, newPassword, onSuccess, onError) {
-			
+		var _updatePassword = function(base, oldPassword, newPassword, onSuccess, onError) {
+			var userId = base.get('__id');
 			if (!userId || typeof userId !== 'string' || userId.length == 0) throw new Error("Please specify valid userid");
 			if (!oldPassword || typeof oldPassword !== 'string' || oldPassword.length == 0) throw new Error("Please specify valid oldPassword");
 			if (!newPassword || typeof newPassword !== 'string' || newPassword.length == 0) throw new Error("Please specify valid newPassword");
@@ -20,7 +18,7 @@
 			onError = onError || function(){};
 
 			if (oldPassword == newPassword) {
-			 	if (typeof onSuccess == 'function') onSuccess(); return;
+			 	if (typeof onSuccess == 'function') onSuccess(base); return;
 			}
 
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
@@ -29,40 +27,192 @@
 			request.method = 'post';
 			request.data = updatedPasswordOptions;
 			request.onSuccess = function(a) {
-				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess();
-				else { onError(a); }
+				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess(base);
+				else { onError(a, base); }
 			};
 			request.onError = onError;
-			global.Appacitive.http.send(request); 
+			global.Appacitive.http.send(request);
+		};
+
+		var _getAllLinkedAccounts = function(base, onSuccess, onError) {
+			var userId = base.get('__id');
+			if (!userId || typeof userId !== 'string' || userId.length == 0) {
+				if (typeof onSuccess == 'function') onSuccess(base.linkedAccounts, base);
+			}
+
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getGetAllLinkedAccountsUrl(userId);
+			request.method = 'get';
+			request.onSuccess = function(a) {
+				if (a && a.status && a.status.code == '200') { 
+					var accounts = a.identities || []; 
+					if (accounts.length > 0) base.set('__link', accounts);
+					else base.set('__link', null);
+					if (typeof onSuccess == 'function') onSuccess(accounts, base);
+				}
+				else { onError(a.status, base); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request);
+		};
+
+		var _link = function(accessToken, base, onSuccess, onError) {
+
+			onSuccess = onSuccess || function() {};
+			onError = onError || function() {};
+			
+			var payload = {
+				"authtype": "facebook",
+				"accesstoken": accessToken,
+				"name": "facebook"
+			};
+
+			var userId = base.get('__id');
+
+			if (!base.get('__id')) {
+				base.set('__link', payload);
+				if (typeof onSuccess == 'function') onSuccess(base);
+				return;
+			}
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getLinkAccountUrl(userId);
+			request.method = 'post';
+			request.data = payload;
+			request.onSuccess = function(a) {
+				if (a && a.code == '200') {
+					base.set('__link', payload);
+					if (typeof onSuccess == 'function') onSuccess(base);
+				}
+				else { onError(a, base); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request);
+		};
+
+		var _unlink = function(name, base, onSuccess, onError) {
+			onSuccess = onSuccess || function() {};
+			onError = onError || function() {};
+			
+			var userId = base.get('__id');
+
+			if (!base.get('__id')) {
+				if (typeof onSuccess == 'function') onSuccess(base);
+				return;
+			}
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getLinkAccountUrl(userId, name);
+			request.method = 'post';
+			request.onSuccess = function(a) {
+				if (a && a.code == '200') {
+					if (typeof onSuccess == 'function') onSuccess(base);
+				}
+				else { onError(a, base); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request);
+		};
+
+		var _setUserOperations = function(base) {
+
+			base.__defineGetter__("linkedAccounts", function() {
+				var accounts = this.get('__link');
+				
+				if(!accounts) accounts = [];
+				else if(typeof accounts == 'object' && !(accounts.length >= 0)) accounts = [accounts];
+				else if(!(accounts.length >= 0)) accounts = accounts[0];
+
+				return accounts;
+			});
+
+			//method for getting all linked accounts
+			base.getAllLinkedAccounts = function(onSuccess, onError) {
+				onSuccess = onSuccess || function(){};
+				_getAllLinkedAccounts(this, function(accounts) {
+					base.linkedAccounts = accounts;
+					if (typeof onSuccess == 'function') onSuccess(accounts, base);
+				}, onError);
+				return this;
+			};
+
+			//method for linking facebook account to a user
+			base.linkFacebookAccount = function(accessToken, onSuccess, onError) {
+				_link(accessToken, this, onSuccess, onError);
+				return this;
+			};
+
+			//method for unlinking facebook account for a user
+			base.unlinkFacebookAccount = function(onSuccess, onError) {
+				_unlink('facebook', this, function() {
+					var accounts = base.get('__link');
+				
+					if(!accounts) accounts = [];
+					else if(!(accounts.length >= 0)) accounts = accounts[0];
+
+					if (accounts.length > 0) {
+						if (accounts[0].name == 'name') {
+							base.set('__link', null);
+						}
+					}
+
+					if (typeof onSuccess == 'function') onSuccess(base);
+				}, onError);
+				return this;
+			};
 		};
 
 		this.setCurrentUser = function(user, token, expiry) {
-			if (!user || typeof user != 'object')
-				throw new Error('Cannot set null object as user');
-
+			if (!user || typeof user != 'object' || user.length >= 0) throw new Error('Cannot set null object as user');
 			var userObject = user;
-			
 			if (!user.getArticle) userObject = new global.Appacitive.User(user); 
-			
 			if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
-			
 			if (!expiry) expiry = 60;
-
 			_authenticatedUser = userObject;
 
-			if (token)
-				global.Appacitive.Session.setUserAuthHeader(token, expiry);
+			if (token) global.Appacitive.Session.setUserAuthHeader(token, expiry);
 
-			_authenticatedUser.logout = function(callback) {
-				global.Appacitive.Users.logout(callback);
-			};
+			_authenticatedUser.logout = function(callback) { global.Appacitive.Users.logout(callback); };
 
 			_authenticatedUser.updatePassword = function(oldPassword, newPassword, onSuccess, onError) {
-				_updatePassword(this.get('__id'), oldPassword, newPassword, onSuccess, onError);
+				_updatePassword(this, oldPassword, newPassword, onSuccess, onError);
 				return this;
 			};
+
+			_authenticatedUser.linkFacebookAccount = function(onSuccess, onError) {
+				var _callback = function() {
+					_link(Appacitive.Facebook.accessToken, _authenticatedUser, function(base) {
+						global.Appacitive.eventManager.fire('user.' + base.get('__id') + '.updated', base, { object: base });
+						if (typeof onSuccess == 'function') onSuccess(base);
+					}, onError);
+				};
+
+				Appacitive.Facebook.getCurrentUserInfo(function() {
+					_callback();
+				}, function() {
+					Appacitive.Facebook.requestLogin(function() {
+						_callback();
+					}, onError);
+				});
+
+				return this;
+			};
+
+			_authenticatedUser.unlinkFacebookAccount = function(onSuccess, onError) {
+
+				_link('facebook', this, function(base) {
+					global.Appacitive.eventManager.fire('user.' + base.get('__id') + '.updated', base, { object: base });
+					if (typeof onSuccess == 'function') onSuccess(base);
+				}, onError);
+				
+				return this;
+			};
+
 
 			global.Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
@@ -74,12 +224,12 @@
 		global.Appacitive.User = function(options) {
 			options.__schematype = 'user';
 			var base = new global.Appacitive.Article(options, true);
+			_setUserOperations(base);
 			return base;
 		};
 
 		this.deleteUser = function(userId, onSuccess, onError) {
-			if (!userId)
-				throw new Error('Specify userid for user delete');
+			if (!userId) throw new Error('Specify userid for user delete');
 
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
@@ -91,8 +241,7 @@
 		this.deleteCurrentUser = function(onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 
-			if (_authenticatedUser === null)
-				throw new Error('Current user is not yet set for delete operation');
+			if (_authenticatedUser === null) throw new Error('Current user is not yet set for delete operation');
 
 			var currentUserId = _authenticatedUser.get('__id');
 			this.deleteUser(currentUserId, function(data) { 
@@ -107,8 +256,7 @@
 			if (!user.username || !user.password || !user.firstname || user.username.length == 0 || user.password.length == 0 || user.firstname.length == 0) 
 				throw new Error('username, password and firstname are mandatory');
 
-			var userObject = new global.Appacitive.Article(user);
-			user.type = 'user';
+			var userObject = new global.Appacitive.User(user);
 			userObject.save(onSuccess, onError);
 		};
 		this.createUser = this.createNewUser;
@@ -124,7 +272,7 @@
 		};
 
 		//authenticate user with authrequest that contains username , password and expiry
-		this.authenticateUser = function(authRequest, onSuccess, onError) {
+		this.authenticateUser = function(authRequest, onSuccess, onError, provider) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
@@ -136,6 +284,9 @@
 			request.data = authRequest;
 			request.onSuccess = function(data) {
 				if (data && data.user) {
+					if (provider) { 
+						data.user.__authType = provider;
+					}
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
 					onSuccess({ user : that.currentUser, token: data.token });
 				} else {
@@ -161,45 +312,48 @@
 				expiry: 86400000
 			};
 
-			this.authenticateUser(authRequest, onSuccess, onError);
+			this.authenticateUser(authRequest, onSuccess, onError, 'BASIC');
 		};
 
-		this.signupWithFacebook = function(onSuccess, onError) {
+		this.loginWithFacebook = function(onSuccess, onError, ignoreFBLogin) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 			var that = this;
-			if (FB) {
-				FB.api('/me', function(response) {
-					var authRequest = {
-						"accesstoken": global.Appacitive.facebook.accessToken,
-						"type": "facebook",
-						"expiry": 86400000,
-						"createnew": true
-					};
-					var request = new global.Appacitive.HttpRequest();
-					request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
-					request.method = 'post';
-					request.data = authRequest;
-					request.onSuccess = function(a) {
-						if (a.user) {
-							//a.user.__authType = 'FB';
-							that.setCurrentUser(a.user, a.token, 120);
-							onSuccess({ user : that.currentUser, token: a.token });
-						} else {
-							data = data || {};
-							onError(data);
-						}
-					};
-					request.onError = onError;
-					global.Appacitive.http.send(request);
-				});
-			} else
-				onError();
+
+			var _callback = function() {
+
+				var authRequest = {
+					"accesstoken": global.Appacitive.Facebook.accessToken,
+					"type": "facebook",
+					"expiry": 86400000,
+					"createnew": true
+				};
+
+				that.authenticateUser(authRequest, function(a) {
+					if (a.user) {
+						a.user.__authType = 'FB';
+						if (typeof onSuccess == 'function') onSuccess({ user : that.currentUser, token: a.token });
+					} else {
+						a = a || {};
+						if (typeof onError == 'function') onError(a.status);
+					}
+				}, onError, 'FB');
+			};
+			if (ignoreFBLogin) {
+				_callback();
+			} else { 
+				if (FB) {
+					Appacitive.Facebook.requestLogin(function(authResponse) {
+						_callback();
+					}, onError);
+				} else if (typeof onError == 'function') onError();
+			}
 		};
 
 		this.authenticateWithFacebook = this.signupWithFacebook;
 
 		this.validateCurrentUser = function(callback, avoidApiCall) {
+
 			if (callback && typeof callback != 'function' && typeof callback == 'boolean') {
 				avoidApiCall = callback;
 				callback = function() {}; 
