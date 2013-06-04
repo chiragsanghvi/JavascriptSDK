@@ -131,16 +131,13 @@
 	};
 
 	//takes relationaname and array of articleids and returns an array of Appacitive article objects
-	global.Appacitive.Article.multiGet = function(schemaName, ids, onSuccess, onError) {
+	global.Appacitive.Article.multiGet = function(schemaName, ids, onSuccess, onError, fields) {
 		if (!schemaName)
 			throw new Error("Specify schemaName");
 
-		if (schemaName.toLowerCase() == 'user' || schemaName.toLowerCase() == 'device')
-			throw new Error("Cannot multiget user and devices using multidelete");
-
 		if (typeof ids == 'object' && ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(schemaName, ids.join(','));
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(schemaName, ids.join(','), fields ? fields : '');
 			request.method = 'get';
 			request.onSuccess = function(d) {
 				if (d && d.articles) {

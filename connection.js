@@ -201,11 +201,11 @@
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive article objects
-	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError) {
+	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError, fields) {
 		if (!relationName || typeof relationName!= 'string' || relationName.length == 0) throw new Error("Specify relationName");
 		if (!ids || typeof ids !== 'object' || !(ids.length > 0)) throw new Error('Specify list of ids for multiget');
 		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','));
+		request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','), fields ? fields : '');
 		request.method = 'get';
 		_fetch(request, onSuccess, onError);
 	};

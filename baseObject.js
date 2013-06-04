@@ -6,28 +6,34 @@
 	/**
 	* @constructor
 	**/
-	var _BaseObject = function(raw, setSnapShot) {
+	var _BaseObject = function(objectOptions, setSnapShot) {
 
 		var _snapshot = {};
+		
+		//Copy properties to current object
+		var _copy = function(src, des) {
+			for (var property in src) {
+				if (typeof src[property] == 'string') {
+					des[property] = src[property];
+				} else if (typeof src[property] == 'object')  {
+					if (src[property].length >=0 ) des[property] = [];
+					else des[property] = {};
+					for (var p in src[property]) {
+						des[property][p] = src[property][p];
+					}
+				} else {
+					des[property] = src[property];
+				}
+			}
+		};	
 
-		raw = raw || {};
+		var raw = {};
+		_copy(objectOptions, raw);
 		var article = raw;
 
 		//will be used in case of creating an appacitive article for internal purpose
 		if (setSnapShot) {
-			for (var property in article) {
-				if (typeof article[property] == 'string' || typeof article[property] == 'number') {
-					_snapshot[property] = article[property];
-				} else if (typeof article[property] == 'object')  {
-					if (article[property].length >= 0) _snapshot[property] = [];
-					else _snapshot[property] = {};
-					for (var p in article[property]) {
-						_snapshot[property][p] = article[property][p];
-					}
-				} else {
-					_snapshot[property] = obj[property];
-				}
-			}
+			_copy(article, _snapshot);
 		}
 
 		if (!_snapshot.__id && raw.__id) _snapshot.__id = raw.__id;
@@ -58,23 +64,6 @@
 			data.code = data.code || '500';
 			return data;
 		};
-
-		//Copy properties to current object
-		var _copy = function(obj) {
-			for (var property in obj) {
-				if (typeof obj[property] == 'string') {
-					article[property] = obj[property];
-				} else if (typeof obj[property] == 'object')  {
-					if (obj[property].length >=0 ) article[property] = [];
-					else article[property] = {};
-					for (var p in obj[property]) {
-						article[property][p] = obj[property][p];
-					}
-				} else {
-					article[property] = obj[property];
-				}
-			}
-		};	
 
 		this.getObject = function() { return article; };
 
@@ -142,6 +131,17 @@
 			return this;
 		};
 
+		var _fields = '';
+
+		//define getter for fields
+		this.__defineGetter__('fields', function() { return _fields; });
+
+		//define setter for fields
+		this.__defineSetter__('fields', function(value) {
+			if (typeof value == 'string') _fields = value;
+			else if (typeof value == 'object' && value.length) _fields = value.join(',');
+		});
+
 		this.get = function(key) { if (key) return article[key]; };
 
 		this.set = function(key, value) {
@@ -160,7 +160,7 @@
 		};
 
 		this.copy = function(properties) { 
-			if(properties) _copy(properties); 
+			if (properties) _copy(properties, article); 
 			return this;
 		};
 
@@ -182,7 +182,7 @@
 
 			// save this article
 			var that = this;
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype);
+			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, _fields);
 
 			// for User and Device articles
 			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
@@ -201,7 +201,7 @@
 				if (data && savedState) {
 					_snapshot = savedState;
 					article.__id = savedState.__id;
-					_copy(savedState);
+					_copy(savedState, article);
 
 					// if this is an article and there are collections 
 					// of connected articles, set the article Id in them
@@ -265,7 +265,7 @@
 			var that = this;
 			if (isDirty) {
 				var _updateRequest = new global.Appacitive.HttpRequest();
-				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id);
+				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, _fields);
 				
 				// for User and Device articles
 				if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
@@ -277,7 +277,7 @@
 				_updateRequest.onSuccess = function(data) {
 					if (data && (data.article || data.connection || data.user || data.device)) {
 						_snapshot = data.article || data.connection || data.user || data.device;
-						_copy(_snapshot);
+						_copy(_snapshot, article);
 						Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updated', 'base', { object: that });
 						if (typeof onSuccess == 'function') onSuccess(that);
 					} else {
@@ -311,14 +311,14 @@
 			}
 			// get this article by id
 			var that = this;
-			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[this.type].getGetUrl(article.__schematype || article.__relationtype, article.__id);
+			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[this.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, _fields);
 			var _getRequest = new global.Appacitive.HttpRequest();
 			_getRequest.url = url;
 			_getRequest.method = 'get';
 			_getRequest.onSuccess = function(data) {
 				if (data && (data.article || data.connection || data.user || data.device)) {
 					_snapshot = data.article || data.connection || data.user || data.device;
-					_copy(_snapshot);
+					_copy(_snapshot, article);
 					if (that.___collection && ( that.___collection.collectionType == 'article')) that.___collection.addToCollection(that);
 					if (typeof onSuccess == 'function') onSuccess(that);
 				} else {

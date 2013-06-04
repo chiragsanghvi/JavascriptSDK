@@ -577,17 +577,17 @@ var global = {};
 
             userServiceUrl:  'user',
 
-            getCreateUrl: function () {
-                return String.format("{0}/create", this.userServiceUrl);
+            getCreateUrl: function (fields) {
+                return String.format("{0}/create?fields={1}", this.userServiceUrl, fields);
             },
             getAuthenticateUserUrl: function () {
                 return String.format("{0}/authenticate", this.userServiceUrl);
             },
-            getUserUrl: function (userId) {
-                return String.format("{0}/{1}", this.userServiceUrl, userId);
+            getGetUrl: function (userId, fields) {
+                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, fields);
             },
-            getUpdateUrl: function (userId) {
-                return String.format("{0}/{1}", this.userServiceUrl, userId);
+            getUpdateUrl: function (userId, fields) {
+                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, fields);
             },
             getDeleteUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
@@ -618,11 +618,14 @@ var global = {};
         this.device = {
             deviceServiceUrl: 'device',
 
-            getCreateUrl: function () {
-                return String.format("{0}/register", this.deviceServiceUrl);
+            getCreateUrl: function (fields) {
+                return String.format("{0}/register?fields={1}", this.deviceServiceUrl, fields);
             },
-            getUpdateUrl: function (deviceId, deploymentId) {
-                return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
+            getGetUrl: function (deviceId, fields) {
+                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, fields);
+            },
+            getUpdateUrl: function (deviceId, fields) {
+                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, fields);
             },
             getDeleteUrl: function (deviceId) {
                 return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
@@ -652,22 +655,19 @@ var global = {};
                 return String.format('{0}/search/project', this.articleServiceUrl);
             },
             getPropertiesSearchUrl: function (schemaName, query) {
-                var url = String.format('{0}/search/{1}/all', this.articleServiceUrl, schemaName);
-                url += '?properties=' + query;
-
-                return url;
+                return String.format('{0}/search/{1}/all?properties={2}', this.articleServiceUrl, schemaName, query);
             },
-            getGetUrl: function (schemaName, articleId) {
-                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            getMultiGetUrl: function (schemaName, articleIds, fields) {
+                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.articleServiceUrl, schemaName, articleIds, fields);
             },
-            getMultiGetUrl: function (schemaName, articleIds) {
-                return String.format('{0}/{1}/multiGet/{2}', this.articleServiceUrl, schemaName, articleIds);
+            getCreateUrl: function (schemaName, fields) {
+                return String.format('{0}/{1}?fields={2}', this.articleServiceUrl, schemaName, fields);
             },
-            getCreateUrl: function (schemaName) {
-                return String.format('{0}/{1}', this.articleServiceUrl, schemaName);
+            getGetUrl: function (schemaName, articleId, fields) {
+                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, fields);
             },
-            getUpdateUrl: function (schemaName, articleId) {
-                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            getUpdateUrl: function (schemaName, articleId, fields) {
+                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, fields);
             },
             getDeleteUrl: function (schemaName, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
@@ -680,17 +680,17 @@ var global = {};
 
             connectionServiceUrl: 'connection',
 
-            getGetUrl: function (relationName, connectionId) {
-                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
+            getGetUrl: function (relationName, connectionId, fields) {
+                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, fields);
             },
-            getMultiGetUrl: function (relationName, connectionIds) {
-                return String.format('{0}/{1}/multiGet/{2}', this.connectionServiceUrl, relationName, connectionIds);
+            getMultiGetUrl: function (relationName, connectionIds, fields) {
+                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionIds, fields);
             },
-            getCreateUrl: function (relationName) {
-                return String.format('{0}/{1}', this.connectionServiceUrl, relationName);
+            getCreateUrl: function (relationName, fields) {
+                return String.format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, fields);
             },
-            getUpdateUrl: function (relationName, connectionId) {
-                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
+            getUpdateUrl: function (relationName, connectionId, fields) {
+                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, fields);
             },
             getDeleteUrl: function (relationName, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
@@ -725,15 +725,10 @@ var global = {};
                 return url;
             },
             getInterconnectsUrl: function () {
-                var url = '';
-                url = String.format('{0}/interconnects', this.connectionServiceUrl);
-                return url;
+                return String.format('{0}/interconnects', this.connectionServiceUrl);
             },
             getPropertiesSearchUrl: function (relationName, query) {
-                var url = String.format('{0}/{1}/find/all', this.connectionServiceUrl, relationName);
-                url += '?properties=' + query;
-
-                return url;
+                return String.format('{0}/{1}/find/all?properties=', this.connectionServiceUrl, relationName, query);
             }
         };
         this.cannedList = {
@@ -1652,28 +1647,34 @@ Depends on  NOTHING
 	/**
 	* @constructor
 	**/
-	var _BaseObject = function(raw, setSnapShot) {
+	var _BaseObject = function(objectOptions, setSnapShot) {
 
 		var _snapshot = {};
+		
+		//Copy properties to current object
+		var _copy = function(src, des) {
+			for (var property in src) {
+				if (typeof src[property] == 'string') {
+					des[property] = src[property];
+				} else if (typeof src[property] == 'object')  {
+					if (src[property].length >=0 ) des[property] = [];
+					else des[property] = {};
+					for (var p in src[property]) {
+						des[property][p] = src[property][p];
+					}
+				} else {
+					des[property] = src[property];
+				}
+			}
+		};	
 
-		raw = raw || {};
+		var raw = {};
+		_copy(objectOptions, raw);
 		var article = raw;
 
 		//will be used in case of creating an appacitive article for internal purpose
 		if (setSnapShot) {
-			for (var property in article) {
-				if (typeof article[property] == 'string' || typeof article[property] == 'number') {
-					_snapshot[property] = article[property];
-				} else if (typeof article[property] == 'object')  {
-					if (article[property].length >= 0) _snapshot[property] = [];
-					else _snapshot[property] = {};
-					for (var p in article[property]) {
-						_snapshot[property][p] = article[property][p];
-					}
-				} else {
-					_snapshot[property] = obj[property];
-				}
-			}
+			_copy(article, _snapshot);
 		}
 
 		if (!_snapshot.__id && raw.__id) _snapshot.__id = raw.__id;
@@ -1704,23 +1705,6 @@ Depends on  NOTHING
 			data.code = data.code || '500';
 			return data;
 		};
-
-		//Copy properties to current object
-		var _copy = function(obj) {
-			for (var property in obj) {
-				if (typeof obj[property] == 'string') {
-					article[property] = obj[property];
-				} else if (typeof obj[property] == 'object')  {
-					if (obj[property].length >=0 ) article[property] = [];
-					else article[property] = {};
-					for (var p in obj[property]) {
-						article[property][p] = obj[property][p];
-					}
-				} else {
-					article[property] = obj[property];
-				}
-			}
-		};	
 
 		this.getObject = function() { return article; };
 
@@ -1788,6 +1772,17 @@ Depends on  NOTHING
 			return this;
 		};
 
+		var _fields = '';
+
+		//define getter for fields
+		this.__defineGetter__('fields', function() { return _fields; });
+
+		//define setter for fields
+		this.__defineSetter__('fields', function(value) {
+			if (typeof value == 'string') _fields = value;
+			else if (typeof value == 'object' && value.length) _fields = value.join(',');
+		});
+
 		this.get = function(key) { if (key) return article[key]; };
 
 		this.set = function(key, value) {
@@ -1806,7 +1801,7 @@ Depends on  NOTHING
 		};
 
 		this.copy = function(properties) { 
-			if(properties) _copy(properties); 
+			if (properties) _copy(properties, article); 
 			return this;
 		};
 
@@ -1828,7 +1823,7 @@ Depends on  NOTHING
 
 			// save this article
 			var that = this;
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype);
+			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, _fields);
 
 			// for User and Device articles
 			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
@@ -1847,7 +1842,7 @@ Depends on  NOTHING
 				if (data && savedState) {
 					_snapshot = savedState;
 					article.__id = savedState.__id;
-					_copy(savedState);
+					_copy(savedState, article);
 
 					// if this is an article and there are collections 
 					// of connected articles, set the article Id in them
@@ -1911,7 +1906,7 @@ Depends on  NOTHING
 			var that = this;
 			if (isDirty) {
 				var _updateRequest = new global.Appacitive.HttpRequest();
-				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id);
+				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, _fields);
 				
 				// for User and Device articles
 				if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
@@ -1923,7 +1918,7 @@ Depends on  NOTHING
 				_updateRequest.onSuccess = function(data) {
 					if (data && (data.article || data.connection || data.user || data.device)) {
 						_snapshot = data.article || data.connection || data.user || data.device;
-						_copy(_snapshot);
+						_copy(_snapshot, article);
 						Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updated', 'base', { object: that });
 						if (typeof onSuccess == 'function') onSuccess(that);
 					} else {
@@ -1957,14 +1952,14 @@ Depends on  NOTHING
 			}
 			// get this article by id
 			var that = this;
-			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[this.type].getGetUrl(article.__schematype || article.__relationtype, article.__id);
+			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[this.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, _fields);
 			var _getRequest = new global.Appacitive.HttpRequest();
 			_getRequest.url = url;
 			_getRequest.method = 'get';
 			_getRequest.onSuccess = function(data) {
 				if (data && (data.article || data.connection || data.user || data.device)) {
 					_snapshot = data.article || data.connection || data.user || data.device;
-					_copy(_snapshot);
+					_copy(_snapshot, article);
 					if (that.___collection && ( that.___collection.collectionType == 'article')) that.___collection.addToCollection(that);
 					if (typeof onSuccess == 'function') onSuccess(that);
 				} else {
@@ -2774,16 +2769,13 @@ Depends on  NOTHING
 	};
 
 	//takes relationaname and array of articleids and returns an array of Appacitive article objects
-	global.Appacitive.Article.multiGet = function(schemaName, ids, onSuccess, onError) {
+	global.Appacitive.Article.multiGet = function(schemaName, ids, onSuccess, onError, fields) {
 		if (!schemaName)
 			throw new Error("Specify schemaName");
 
-		if (schemaName.toLowerCase() == 'user' || schemaName.toLowerCase() == 'device')
-			throw new Error("Cannot multiget user and devices using multidelete");
-
 		if (typeof ids == 'object' && ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(schemaName, ids.join(','));
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(schemaName, ids.join(','), fields ? fields : '');
 			request.method = 'get';
 			request.onSuccess = function(d) {
 				if (d && d.articles) {
@@ -3014,11 +3006,11 @@ Depends on  NOTHING
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive article objects
-	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError) {
+	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError, fields) {
 		if (!relationName || typeof relationName!= 'string' || relationName.length == 0) throw new Error("Specify relationName");
 		if (!ids || typeof ids !== 'object' || !(ids.length > 0)) throw new Error('Specify list of ids for multiget');
 		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','));
+		request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','), fields ? fields : '');
 		request.method = 'get';
 		_fetch(request, onSuccess, onError);
 	};
