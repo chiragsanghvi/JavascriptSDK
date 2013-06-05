@@ -225,8 +225,11 @@
 			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
 
 			if (options.user) {
-				global.Appacitive.localStorage.set('Appacitive-User', options.user);
 				global.Appacitive.Users.setCurrentUser(options.user);	
+			} else {
+				//read user from from localstorage and set it;
+				var user = global.Appacitive.localStorage.get('Appacitive-User');	
+				if (user) global.Appacitive.Users.setCurrentUser(user);
 			}
 
 		} else {
@@ -240,7 +243,7 @@
 					
 					//read usertoken from cookie and user from from localstorage and set it;
 					var user = global.Appacitive.localStorage.get('Appacitive-User');	
-					global.Appacitive.Users.setCurrentUser(user, token, expiry);
+					if (user) global.Appacitive.Users.setCurrentUser(user, token, expiry);
 				}
 			}
 		}			
