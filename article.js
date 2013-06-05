@@ -40,10 +40,13 @@
 	var _setOperations = function(base) {
 
 		base.getConnectedArticles = function(options) {
-			if (this.type != 'article') return null;
 			options = options || {};
+			if (typeof options == 'string') {
+				rName = options;
+				options = { relation: rName };
+			}	
+			
 			options.articleId = this.get('__id');
-
 			var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
 			collection.connectedArticle = this;
 			this.connectionCollections.push(collection);
@@ -68,9 +71,12 @@
 	};
 
 	global.Appacitive.Article = function(options, setSnapShot) {
+		if (typeof options == 'string') {
+			var sName = options;
+			options = { __schematype : sName };
+		}
 
-		if (!options.__schematype && !options.schema )
-			throw new error("Cannot set article without __schematype");
+		if (!options.__schematype && !options.schema ) throw new error("Cannot set article without __schematype");
 
 		if (options.schema) {
 			options.__schematype = options.schema;

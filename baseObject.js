@@ -69,6 +69,10 @@
 
 		this.toJSON = function() { return article; };
 
+		this.__defineGetter__('id', function() { return this.get('__id'); });
+
+		this.__defineSetter__('id', function(value) { this.set('__id', value); });
+
 		// accessor function for the article's attributes
 		this.attributes = function() {
 			if (arguments.length === 0) {

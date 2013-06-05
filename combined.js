@@ -1713,6 +1713,10 @@ Depends on  NOTHING
 
 		this.toJSON = function() { return article; };
 
+		this.__defineGetter__('id', function() { return this.get('__id'); });
+
+		this.__defineSetter__('id', function(value) { this.set('__id', value); });
+
 		// accessor function for the article's attributes
 		this.attributes = function() {
 			if (arguments.length === 0) {
@@ -2124,13 +2128,16 @@ Depends on  NOTHING
 		var _schema = null;
 		var _query = null;
 		var _articles = [];
-		var _options = options;
+		var _options = {};
+
+		if (typeof options == 'string') _options.schema = options;
+		else _options = options;
 
 		this.collectionType = 'article';
 
-		if (!options || !options.schema) throw new Error('Must provide schema while initializing ArticleCollection.');
+		if (!_options || !_options.schema) throw new Error('Must provide schema while initializing ArticleCollection.');
 		
-		_schema = options.schema;
+		_schema = _options.schema;
 		
 		var that = this;
 		var _parseOptions = function(options) {
@@ -2212,7 +2219,7 @@ Depends on  NOTHING
 
 		this.setOptions = _parseOptions;
 		
-		_parseOptions(options);
+		_parseOptions(_options);
 
 		// getters
 		this.get = function(index) {
@@ -2379,7 +2386,11 @@ Depends on  NOTHING
 		var _connections = [];
 		var _articles = [];
 
-		var _options = options;
+		var _options = {};
+
+		if (typeof options == 'string') _options.relation = options;
+		else _options = options;
+
 		var connectionMap = {};
 
 		this.collectionType = 'connection';
@@ -2472,7 +2483,7 @@ Depends on  NOTHING
 		};
 
 		this.setOptions = _parseOptions;
-		_parseOptions(options);
+		_parseOptions(_options);
 
 		// getters
 		this.get = function(index) {
@@ -2685,10 +2696,13 @@ Depends on  NOTHING
 	var _setOperations = function(base) {
 
 		base.getConnectedArticles = function(options) {
-			if (this.type != 'article') return null;
 			options = options || {};
+			if (typeof options == 'string') {
+				rName = options;
+				options = { relation: rName };
+			}	
+			
 			options.articleId = this.get('__id');
-
 			var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
 			collection.connectedArticle = this;
 			this.connectionCollections.push(collection);
@@ -2713,9 +2727,12 @@ Depends on  NOTHING
 	};
 
 	global.Appacitive.Article = function(options, setSnapShot) {
+		if (typeof options == 'string') {
+			var sName = options;
+			options = { __schematype : sName };
+		}
 
-		if (!options.__schematype && !options.schema )
-			throw new error("Cannot set article without __schematype");
+		if (!options.__schematype && !options.schema ) throw new error("Cannot set article without __schematype");
 
 		if (options.schema) {
 			options.__schematype = options.schema;
@@ -2878,8 +2895,12 @@ Depends on  NOTHING
 
 	global.Appacitive.Connection = function(options, doNotSetup) {
 
-		if (!options.__relationtype && !options.relation )
-			throw new error("Cannot set connection without relation");
+		if (typeof options == 'string') {
+			var rName = options;
+			options = { __relationtype : rName };
+		}
+
+		if (!options.__relationtype && !options.relation ) throw new error("Cannot set connection without relation");
 
 		if (options.relation) {
 			options.__relationtype = options.relation;
@@ -3285,6 +3306,7 @@ Depends on  NOTHING
 		};
 		
 		global.Appacitive.User = function(options) {
+			options = options || {};
 			options.__schematype = 'user';
 			var base = new global.Appacitive.Article(options, true);
 			_setUserOperations(base);

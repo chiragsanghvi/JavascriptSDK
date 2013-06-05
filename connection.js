@@ -66,8 +66,12 @@
 
 	global.Appacitive.Connection = function(options, doNotSetup) {
 
-		if (!options.__relationtype && !options.relation )
-			throw new error("Cannot set connection without relation");
+		if (typeof options == 'string') {
+			var rName = options;
+			options = { __relationtype : rName };
+		}
+
+		if (!options.__relationtype && !options.relation ) throw new error("Cannot set connection without relation");
 
 		if (options.relation) {
 			options.__relationtype = options.relation;

@@ -15,7 +15,11 @@
 		var _connections = [];
 		var _articles = [];
 
-		var _options = options;
+		var _options = {};
+
+		if (typeof options == 'string') _options.relation = options;
+		else _options = options;
+
 		var connectionMap = {};
 
 		this.collectionType = 'connection';
@@ -108,7 +112,7 @@
 		};
 
 		this.setOptions = _parseOptions;
-		_parseOptions(options);
+		_parseOptions(_options);
 
 		// getters
 		this.get = function(index) {

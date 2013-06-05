@@ -222,6 +222,7 @@
 		};
 		
 		global.Appacitive.User = function(options) {
+			options = options || {};
 			options.__schematype = 'user';
 			var base = new global.Appacitive.Article(options, true);
 			_setUserOperations(base);

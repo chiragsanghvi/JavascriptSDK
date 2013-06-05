@@ -10,13 +10,16 @@
 		var _schema = null;
 		var _query = null;
 		var _articles = [];
-		var _options = options;
+		var _options = {};
+
+		if (typeof options == 'string') _options.schema = options;
+		else _options = options;
 
 		this.collectionType = 'article';
 
-		if (!options || !options.schema) throw new Error('Must provide schema while initializing ArticleCollection.');
+		if (!_options || !_options.schema) throw new Error('Must provide schema while initializing ArticleCollection.');
 		
-		_schema = options.schema;
+		_schema = _options.schema;
 		
 		var that = this;
 		var _parseOptions = function(options) {
@@ -98,7 +101,7 @@
 
 		this.setOptions = _parseOptions;
 		
-		_parseOptions(options);
+		_parseOptions(_options);
 
 		// getters
 		this.get = function(index) {
