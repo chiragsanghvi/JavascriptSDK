@@ -2207,6 +2207,7 @@ Depends on  NOTHING
 
 		this.setQuery = function(query) {
 			this.query = query;
+			return this;
 		};
 
 		this.setOptions = _parseOptions;
@@ -2294,7 +2295,7 @@ Depends on  NOTHING
 				_articles.push(_a);
 			});
 			var pagingInfo = data.paginginfo || {};
-			onSuccess(pagingInfo);
+			onSuccess(pagingInfo, that);
 		};
 
 		this.fetch = function(onSuccess, onError) {
@@ -2383,6 +2384,8 @@ Depends on  NOTHING
 
 		this.collectionType = 'connection';
 
+		var that = this;
+
 		if (!options || !options.relation) throw new Error('Must provide relation while initializing ConnectionCollection.');
 		
 		_relation = options.relation;
@@ -2395,6 +2398,8 @@ Depends on  NOTHING
 
 			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
+
+			return that;
 		};
 
 		this.setFilter = function(filterString) {
@@ -2455,6 +2460,7 @@ Depends on  NOTHING
 
 		this.setQuery = function(query) {
 			this.query = query;
+			return this;
 		};
 
 		this.reset = function() {
@@ -2534,8 +2540,6 @@ Depends on  NOTHING
 			return this;
 		};
 
-		var that = this;
-
 		var parseConnections = function (data, onSuccess, onError, queryType) {
 			data = data || {};
 			var connections = data.connections;
@@ -2571,7 +2575,7 @@ Depends on  NOTHING
 			});
 
 			var pagingInfo = data.paginginfo || {};
-			onSuccess(pagingInfo);
+			onSuccess(pagingInfo, that);
 		};
 
 		this.getConnectedArticle = function(articleId) {
@@ -4136,8 +4140,9 @@ if (global.Appacitive.runtime.isBrowser)
 
 })(global);
 if (typeof module != 'undefined') {
-	module.exports = function(options) {
+	/*module.exports = function(options) {
 		global.Appacitive.initialize(options);
 		return global.Appacitive;
-	}
+	}*/
+	module.exports =  global.Appacitive;
 }

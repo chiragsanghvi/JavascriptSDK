@@ -93,6 +93,7 @@
 
 		this.setQuery = function(query) {
 			this.query = query;
+			return this;
 		};
 
 		this.setOptions = _parseOptions;
@@ -180,7 +181,7 @@
 				_articles.push(_a);
 			});
 			var pagingInfo = data.paginginfo || {};
-			onSuccess(pagingInfo);
+			onSuccess(pagingInfo, that);
 		};
 
 		this.fetch = function(onSuccess, onError) {

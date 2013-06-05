@@ -20,6 +20,8 @@
 
 		this.collectionType = 'connection';
 
+		var that = this;
+
 		if (!options || !options.relation) throw new Error('Must provide relation while initializing ConnectionCollection.');
 		
 		_relation = options.relation;
@@ -32,6 +34,8 @@
 
 			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
 			_options = options;
+
+			return that;
 		};
 
 		this.setFilter = function(filterString) {
@@ -92,6 +96,7 @@
 
 		this.setQuery = function(query) {
 			this.query = query;
+			return this;
 		};
 
 		this.reset = function() {
@@ -171,8 +176,6 @@
 			return this;
 		};
 
-		var that = this;
-
 		var parseConnections = function (data, onSuccess, onError, queryType) {
 			data = data || {};
 			var connections = data.connections;
@@ -208,7 +211,7 @@
 			});
 
 			var pagingInfo = data.paginginfo || {};
-			onSuccess(pagingInfo);
+			onSuccess(pagingInfo, that);
 		};
 
 		this.getConnectedArticle = function(articleId) {
