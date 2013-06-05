@@ -2696,12 +2696,13 @@ Depends on  NOTHING
 	var _setOperations = function(base) {
 
 		base.getConnectedArticles = function(options) {
+
 			options = options || {};
 			if (typeof options == 'string') {
 				rName = options;
 				options = { relation: rName };
 			}	
-			
+
 			options.articleId = this.get('__id');
 			var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
 			collection.connectedArticle = this;
@@ -2754,8 +2755,7 @@ Depends on  NOTHING
 	};
 
 	global.Appacitive.Article.multiDelete = function(schemaName, ids, onSuccess, onError) {
-		if (!schemaName)
-			throw new Error("Specify schemaName");
+		if (!schemaName) throw new Error("Specify schemaName");
 
 		if (schemaName.toLowerCase() == 'user' || schemaName.toLowerCase() == 'device')
 			throw new Error("Cannot delete user and devices using multidelete");
@@ -2794,8 +2794,7 @@ Depends on  NOTHING
 
 	//takes relationaname and array of articleids and returns an array of Appacitive article objects
 	global.Appacitive.Article.multiGet = function(schemaName, ids, onSuccess, onError, fields) {
-		if (!schemaName)
-			throw new Error("Specify schemaName");
+		if (!schemaName) throw new Error("Specify schemaName");
 
 		if (typeof ids == 'object' && ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
@@ -2817,6 +2816,18 @@ Depends on  NOTHING
 		} else onSuccess([]);
 	};
 
+	global.Appacitive.Article.get = function(schemaName, id, onSuccess, onError, fields) {
+		if (!schemaName) throw new Error("Specify schemaName");
+		if (!id) throw new Error("Specify id to fetch");
+
+		var obj = {};
+		if (schemaName.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: id });
+		else obj = new global.Appacitive.Article({ __schematype: schemaName, __id: id });
+		
+		obj.fields = fields;
+
+		obj.fetch(onSuccess, onError);
+	};
 
 	/*global.Appacitive.BaseObject.prototype.getConnected = function(options) {
 		if (this.type != 'article') return null;
@@ -2979,6 +2990,14 @@ Depends on  NOTHING
 		} 
 
 		return base;
+	};
+
+	global.Appacitive.Connection.get = function(relationName, id, onSuccess, onError, fields) {
+		if (!relationName) throw new Error("Specify relationName");
+		if (!id) throw new Error("Specify id to fetch");
+		var obj = new global.Appacitive.Connection({ __relationtype: relationName, __id: id });
+		obj.fields = fields;
+		obj.fetch(onSuccess, onError);
 	};
 
 	//takes relationame, and array of connections ids

@@ -152,6 +152,14 @@
 		return base;
 	};
 
+	global.Appacitive.Connection.get = function(relationName, id, onSuccess, onError, fields) {
+		if (!relationName) throw new Error("Specify relationName");
+		if (!id) throw new Error("Specify id to fetch");
+		var obj = new global.Appacitive.Connection({ __relationtype: relationName, __id: id });
+		obj.fields = fields;
+		obj.fetch(onSuccess, onError);
+	};
+
 	//takes relationame, and array of connections ids
 	global.Appacitive.Connection.multiDelete = function(relationName, ids, onSuccess, onError) {
 		if (!relationName || typeof relationName!= 'string' || relationName.length == 0) throw new Error("Specify relationName");
