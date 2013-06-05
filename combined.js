@@ -1161,8 +1161,11 @@ Depends on  NOTHING
 			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
 
 			if (options.user) {
-				global.Appacitive.localStorage.set('Appacitive-User', options.user);
 				global.Appacitive.Users.setCurrentUser(options.user);	
+			} else {
+				//read user from from localstorage and set it;
+				var user = global.Appacitive.localStorage.get('Appacitive-User');	
+				if (user) global.Appacitive.Users.setCurrentUser(user);
 			}
 
 		} else {
@@ -1176,7 +1179,7 @@ Depends on  NOTHING
 					
 					//read usertoken from cookie and user from from localstorage and set it;
 					var user = global.Appacitive.localStorage.get('Appacitive-User');	
-					global.Appacitive.Users.setCurrentUser(user, token, expiry);
+					if (user) global.Appacitive.Users.setCurrentUser(user, token, expiry);
 				}
 			}
 		}			
@@ -3016,22 +3019,25 @@ Depends on  NOTHING
 	};
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 
-	global.Appacitive.Connection.getInterconnects = function(articleAId, articleBIds, onSuccess, onError) {
+	global.Appacitive.Connection.getInterconnects = function(articleAId, articleBIds, onSuccess, onError, fields) {
 		var q = new Appacitive.Queries.InterconnectsQuery({ articleAId :  articleAId, articleBIds: articleBIds });
+		q.fields = fields ? fields : '';
 		var request = q.toRequest();
 		_fetch(request, onSuccess, onError);
 	};
 
 	//takes 2 articles and returns connections between them
-	global.Appacitive.Connection.getBetweenArticles = function(articleAId, articleBId, onSuccess, onError) {
+	global.Appacitive.Connection.getBetweenArticles = function(articleAId, articleBId, onSuccess, onError, fields) {
 		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery({ articleAId :  articleAId, articleBId: articleBId });
+		q.fields = fields ? fields : '';
 		var request = q.toRequest();
 		_fetch(request, onSuccess, onError);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype
-	global.Appacitive.Connection.getBetweenArticlesForRelation = function(articleAId, articleBId, relationName, onSuccess, onError) {
+	global.Appacitive.Connection.getBetweenArticlesForRelation = function(articleAId, articleBId, relationName, onSuccess, onError, fields) {
 		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ articleAId :  articleAId, articleBId: articleBId, relation: relationName });
+		q.fields = fields ? fields : '';
 		var request = q.toRequest();
 		request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
