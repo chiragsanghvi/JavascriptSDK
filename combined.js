@@ -566,6 +566,12 @@ var global = {};
         
         var baseUrl = (global.Appacitive.config || { apiBaseUrl: '' }).apiBaseUrl;
         
+        var _getFields = function(fields) {
+            if (typeof fields == 'object' && fields.length > 0 && (typeof fields[0] == 'string' || typeof fields[0] == 'number')) fields = fields.join(',');
+            if (!fields) fields = '';
+            return fields;
+        };
+
         this.email = {
             emailServiceUrl: 'email',
             
@@ -578,16 +584,16 @@ var global = {};
             userServiceUrl:  'user',
 
             getCreateUrl: function (fields) {
-                return String.format("{0}/create?fields={1}", this.userServiceUrl, fields);
+                return String.format("{0}/create?fields={1}", this.userServiceUrl, _getFields(fields));
             },
             getAuthenticateUserUrl: function () {
                 return String.format("{0}/authenticate", this.userServiceUrl);
             },
             getGetUrl: function (userId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, fields);
+                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getUpdateUrl: function (userId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, fields);
+                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getDeleteUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
@@ -619,13 +625,13 @@ var global = {};
             deviceServiceUrl: 'device',
 
             getCreateUrl: function (fields) {
-                return String.format("{0}/register?fields={1}", this.deviceServiceUrl, fields);
+                return String.format("{0}/register?fields={1}", this.deviceServiceUrl, _getFields(fields));
             },
             getGetUrl: function (deviceId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, fields);
+                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
             getUpdateUrl: function (deviceId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, fields);
+                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
             getDeleteUrl: function (deviceId) {
                 return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
@@ -658,16 +664,16 @@ var global = {};
                 return String.format('{0}/search/{1}/all?properties={2}', this.articleServiceUrl, schemaName, query);
             },
             getMultiGetUrl: function (schemaName, articleIds, fields) {
-                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.articleServiceUrl, schemaName, articleIds, fields);
+                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.articleServiceUrl, schemaName, articleIds, _getFields(fields));
             },
             getCreateUrl: function (schemaName, fields) {
-                return String.format('{0}/{1}?fields={2}', this.articleServiceUrl, schemaName, fields);
+                return String.format('{0}/{1}?fields={2}', this.articleServiceUrl, schemaName, _getFields(fields));
             },
             getGetUrl: function (schemaName, articleId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, fields);
+                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
             },
             getUpdateUrl: function (schemaName, articleId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, fields);
+                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
             },
             getDeleteUrl: function (schemaName, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
@@ -681,16 +687,16 @@ var global = {};
             connectionServiceUrl: 'connection',
 
             getGetUrl: function (relationName, connectionId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, fields);
+                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
             },
             getMultiGetUrl: function (relationName, connectionIds, fields) {
-                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionIds, fields);
+                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionIds, _getFields(fields));
             },
             getCreateUrl: function (relationName, fields) {
-                return String.format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, fields);
+                return String.format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, _getFields(fields));
             },
             getUpdateUrl: function (relationName, connectionId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, fields);
+                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
             },
             getDeleteUrl: function (relationName, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
@@ -1389,13 +1395,13 @@ Depends on  NOTHING
 		};
 
 		var _parse = function(entities) {
-			var entitiesObjects = [];
+			var entityObjects = [];
 			if (!entities) entities = [];
 			var eType = (_type == 'article') ? 'Article' : 'Connection';
 			entities.forEach(function(e) {
-				entitiesObjects.push(new global.Appacitive[eType](e));
+				entityObjects.push(new global.Appacitive[eType](e));
 			});
-			return entitiesObjects;
+			return entityObjects;
 		};
 
 		this.fetch = function(onSuccess, onError) {
@@ -1568,7 +1574,7 @@ Depends on  NOTHING
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') onSuccess(new Appacitive.Connection(d.connection));
+				   if (typeof onSuccess == 'function') onSuccess(new global.Appacitive.Connection(d.connection));
 				} else {
 					d = d || {};
 					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
@@ -1805,6 +1811,12 @@ Depends on  NOTHING
 			}
 		 	
 		 	return this;
+		};
+
+		this.unset = function(key) {
+			if (!key || typeof key != 'string' ||  key.length == 0 || key.indexOf('__') == 0) return this; 
+		 	try { delete article[key]; } catch(e) {}
+			return this;
 		};
 
 		this.copy = function(properties) { 
@@ -2630,7 +2642,6 @@ Depends on  NOTHING
 			return this;
 		};
 
-
 		this.createNewConnection = function(values) {
 			values = values || {};
 			values.__relationtype = _relation;
@@ -2671,103 +2682,96 @@ Depends on  NOTHING
 				var fb = d.identities.filter(function(identity) {
 					return identity.authtype.toLowerCase() == 'facebook';
 				});
-				if (fb.length == 1) {
-					fbUsername = fb[0].username;
-				}
+				if (fb.length == 1) fbUsername = fb[0].username;
 			}
 			if (fbUsername !== null) {
 				FB.api('/' + fbUsername, function(response) {
-					if (response) {
-						onSuccess(response);
-					} else {
-						onError();
-					}
+					if (response) onSuccess(response);
+					else onError();
 				});
-			} else {
-				onError();
-			}
+			} else  onError();
 		};
-		r.onError = function() {
-			onError();
-		};
+		r.onError = onError;
 		global.Appacitive.http.send(r);
 	};
 
-	var _setOperations = function(base) {
-
-		base.getConnectedArticles = function(options) {
-
-			options = options || {};
-			if (typeof options == 'string') {
-				rName = options;
-				options = { relation: rName };
-			}	
-
-			options.articleId = this.get('__id');
-			var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
-			collection.connectedArticle = this;
-			this.connectionCollections.push(collection);
-			collection.query  = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
-			
-			return collection;
-		};
-
-		base.getConnections = function(options) {
-
-			if (this.type != 'article') return null;
-			options = options || {};
-			options.articleId = this.get('__id');
-
-			var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
-			this.connectionCollections.push(collection);
-			
-			collection.query = new global.Appacitive.Queries.GetConnectionsQuery(options);
-			
-			return collection;
-		};
-	};
-
 	global.Appacitive.Article = function(options, setSnapShot) {
+		options = options || {};
+
 		if (typeof options == 'string') {
 			var sName = options;
 			options = { __schematype : sName };
 		}
 
-		if (!options.__schematype && !options.schema ) throw new error("Cannot set article without __schematype");
+		if (!options.__schematype && !options.schema ) throw new Error("Cannot set article without __schematype");
 
 		if (options.schema) {
 			options.__schematype = options.schema;
 			delete options.schema;
 		}
 		
-		var base = new global.Appacitive.BaseObject(options, setSnapShot);
-		base.type = 'article';
-		base.connectionCollections = [];
-		base.getArticle = base.getObject;
+		global.Appacitive.BaseObject.call(this, options, setSnapShot);
 
-		if (base.get('__schematype') && base.get('__schematype').toLowerCase() == 'user') {
-			base.getFacebookProfile = _getFacebookProfile;
-		}
-		
-		_setOperations(base);
+		this.type = 'article';
+		this.connectionCollections = [];
+		this.getArticle = this.getObject;
 
-		return base;
+		if (this.get('__schematype').toLowerCase() == 'user') this.getFacebookProfile = _getFacebookProfile;
+
+		return this;
 	};
 
-	global.Appacitive.Article.multiDelete = function(schemaName, ids, onSuccess, onError) {
-		if (!schemaName) throw new Error("Specify schemaName");
+	global.Appacitive.Article.prototype = new global.Appacitive.BaseObject();
 
-		if (schemaName.toLowerCase() == 'user' || schemaName.toLowerCase() == 'device')
-			throw new Error("Cannot delete user and devices using multidelete");
+	global.Appacitive.Article.prototype.constructor = global.Appacitive.Article;
 
-		if (ids.length > 0) {
+	global.Appacitive.Article.prototype.getConnections = function(options) {
+
+		if (this.type != 'article') return null;
+		
+		options = options || {};
+		options.articleId = this.get('__id');
+		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
+		this.connectionCollections.push(collection);
+		
+		collection.query = new global.Appacitive.Queries.GetConnectionsQuery(options);
+		
+		return collection;
+	};
+
+	global.Appacitive.Article.prototype.getConnectedArticles = function(options) {
+
+		options = options || {};
+		if (typeof options == 'string') {
+			rName = options;
+			options = { relation: rName };
+		}	
+
+		options.articleId = this.get('__id');
+		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
+		collection.connectedArticle = this;
+		this.connectionCollections.push(collection);
+		collection.query  = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
+		
+		return collection;
+	};
+
+	global.Appacitive.Article.multiDelete = function(options, onSuccess, onError) {
+		options = options || {};
+
+		if (!options.schema || typeof options.schema!= 'string' || options.schema.length == 0) throw new Error("Specify valid schema");
+
+		if (options.schema.toLowerCase() == 'user' || options.schema.toLowerCase() == 'device') throw new Error("Cannot delete user and devices using multidelete");
+
+		if (options.ids && options.ids.length > 0) {
+
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiDeleteUrl(schemaName);
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiDeleteUrl(options.schema);
 			request.method = 'post';
-			request.data = { idlist : ids };
+			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
 				if (d && d.code == '200') {
 					if (typeof onSuccess == 'function') onSuccess();
@@ -2793,12 +2797,12 @@ Depends on  NOTHING
 	};
 
 	//takes relationaname and array of articleids and returns an array of Appacitive article objects
-	global.Appacitive.Article.multiGet = function(schemaName, ids, onSuccess, onError, fields) {
-		if (!schemaName) throw new Error("Specify schemaName");
-
-		if (typeof ids == 'object' && ids.length > 0) {
+	global.Appacitive.Article.multiGet = function(options, onSuccess, onError) {
+		options = options || {};
+		if (!options.schema || typeof options.schema!= 'string' || options.schema.length == 0) throw new Error("Specify valid schema");
+		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(schemaName, ids.join(','), fields ? fields : '');
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
 			request.method = 'get';
 			request.onSuccess = function(d) {
 				if (d && d.articles) {
@@ -2813,76 +2817,58 @@ Depends on  NOTHING
 				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
 			}
 			global.Appacitive.http.send(request);
-		} else onSuccess([]);
+		} else {
+			if (typeof onSuccess == 'function') onSuccess([]);
+		}
 	};
 
-	global.Appacitive.Article.get = function(schemaName, id, onSuccess, onError, fields) {
-		if (!schemaName) throw new Error("Specify schemaName");
-		if (!id) throw new Error("Specify id to fetch");
+	global.Appacitive.Article.get = function(options, onSuccess, onError) {
+		options = options || {};
+		if (!options.schema) throw new Error("Specify schema");
+		if (!options.id) throw new Error("Specify id to fetch");
 
 		var obj = {};
-		if (schemaName.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: id });
-		else obj = new global.Appacitive.Article({ __schematype: schemaName, __id: id });
+		if (schemaName.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: options.id });
+		else obj = new global.Appacitive.Article({ __schematype: options.schema, __id: options.id });
 		
-		obj.fields = fields;
-
+		obj.fields = options.fields;
 		obj.fetch(onSuccess, onError);
+
+		return obj;
 	};
-
-	/*global.Appacitive.BaseObject.prototype.getConnected = function(options) {
-		if (this.type != 'article') return null;
-		options = options || {};
-		options.onSuccess = options.onSuccess || function(){};
-		options.onError = options.onError || function(){};
-		options.articleId = this.get('__id');
-
-	};*/
 
 })(global);(function (global) {
 
 	"use strict";
 
-	var parseEndpoint = function(endpoint, type, base) {
-		var result = {
-			label: endpoint.label
-		};
-
-		if (endpoint.articleid) {
-			// provided an article id
-			result.articleid = endpoint.articleid;
-		} 
+	var _parseEndpoint = function(endpoint, type, base) {
+		var result = { label: endpoint.label };
+		if (endpoint.articleid)  result.articleid = endpoint.articleid;
 		if (endpoint.article) {
 			if (typeof endpoint.article.getArticle == 'function') {
 				// provided an instance of Appacitive.ArticleCollection
 				// stick the whole article if there is no __id
 				// else just stick the __id
-				if (endpoint.article.get('__id')) {
-					result.articleid = endpoint.article.get('__id');
-				} else {
-					result.article = endpoint.article.getArticle();
-				}
+				if (endpoint.article.get('__id')) result.articleid = endpoint.article.get('__id');
+				else result.article = endpoint.article.getArticle();
 			} else if (typeof endpoint.article == 'object' && endpoint.article.__schematype) {
 				// provided a raw article
 				// if there is an __id, just add that
 				// else add the entire article
-				if (endpoint.article.__id) {
-					result.articleid = endpoint.article.__id;
-				} else {
-					result.article = endpoint.article;
-				}
-				endpoint.article =  new Appacitive.Article(endpoint.article);
+				if (endpoint.article.__id) result.articleid = endpoint.article.__id;
+				else result.article = endpoint.article;
+
+				endpoint.article =  new global.Appacitive.Article(endpoint.article);
 			} 
 		} else {
-			if (!result.articleid && !result.article)
-				throw new Error('Incorrectly configured endpoints provided to setupConnection');
+			if (!result.articleid && !result.article) throw new Error('Incorrectly configured endpoints provided to setupConnection');
 		}
 
 		base["endpoint" + type] = endpoint;
-		
 		return result;
 	};
 
-	var convertEndpoint = function(endpoint, type, base) {
+	var _convertEndpoint = function(endpoint, type, base) {
 		if ( base.get('__endpoint' + type.toLowerCase()).article && typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
@@ -2905,7 +2891,8 @@ Depends on  NOTHING
 	};
 
 	global.Appacitive.Connection = function(options, doNotSetup) {
-
+		options = options || {};
+		
 		if (typeof options == 'string') {
 			var rName = options;
 			options = { __relationtype : rName };
@@ -2924,105 +2911,82 @@ Depends on  NOTHING
 			delete options.endpoints;
 		}
 
-		var base = new global.Appacitive.BaseObject(options);
-		base.type = 'connection';
-		base.getConnection = base.getObject;
+		global.Appacitive.BaseObject.call(this, options);
+		this.type = 'connection';
+		this.getConnection = this.getObject;
 
-		// helper method for setting up the connection
-		base.setupConnection = function(endpointA, endpointB) {
-			// validate the endpoints
-			if (!endpointA || (!endpointA.articleid &&  !endpointA.article) || !endpointA.label || !endpointB || (!endpointB.articleid && !endpointB.article) || !endpointB.label) {
-				throw new Error('Incorrect endpoints configuration passed.');
-			}
-
-			// there are two ways to do this
-			// either we are provided the article id
-			// or a raw article
-			// or an Appacitive.Article instance
-			// sigh
+		this.parseConnection = function() {
 			
-			// 1
-			base.set('__endpointa', parseEndpoint(endpointA, 'A', base));
-
-			// 2
-			base.set('__endpointb', parseEndpoint(endpointB, 'B', base));
-		};
-
-
-		base.parseConnection = function() {
-
 			var typeA = 'A', typeB ='B';
 			if ( options.__endpointa.label == this.get('__endpointb').label ) {
-				if (options.__endpointa.articleid == this.get('__endpointb').articleid)
-					typeA = 'B', typeB = 'A';
+				if (options.__endpointa.articleid == this.get('__endpointb').articleid) typeA = 'B', typeB = 'A';
 			}
 
-			convertEndpoint(this.get('__endpointa'), typeA, base);
-			convertEndpoint(this.get('__endpointb'), typeB, base);
+			_convertEndpoint(this.get('__endpointa'), typeA, this);
+			_convertEndpoint(this.get('__endpointb'), typeB, this);
 
-			base.__defineGetter__('endpoints', function() {
+			this.__defineGetter__('endpoints', function() {
 				var endpoints = [];
 				endpoints.push(this.endpointA);
 				endpoints.push(this.endpointB);
 				return endpoints;
 			});
 
-			return base;
+			return this;
 		};
 
 		if (doNotSetup) {
-			base.__defineGetter__('connectedArticle', function() {
-				if (!base.___collection.connectedArticle) {
+			this.__defineGetter__('connectedArticle', function() {
+				if (!this.___collection.connectedArticle) {
 					throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
 				}
-				var articleId = base.___collection.connectedArticle.get('__id');
+				var articleId = this.___collection.connectedArticle.get('__id');
 				if (!articleId) return null;
-				var otherArticleId = base.getConnection().__endpointa.articleid;
-				if (base.getConnection().__endpointa.articleid == articleId)
-					otherArticleId = base.getConnection().__endpointb.articleid;
-				return base.___collection.getConnectedArticle(otherArticleId);
+				var otherArticleId = this.getConnection().__endpointa.articleid;
+				if (this.getConnection().__endpointa.articleid == articleId)
+					otherArticleId = this.getConnection().__endpointb.articleid;
+				return this.___collection.getConnectedArticle(otherArticleId);
 
 			});
-			base.parseConnection();
+			this.parseConnection(options);
 		} else {
-			if (options.__endpointa && options.__endpointb)
-				base.setupConnection(base.get('__endpointa'), base.get('__endpointb'));
+			if (options.__endpointa && options.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));
 		} 
 
-		return base;
+		return this;
+	};
+
+	global.Appacitive.Connection.prototype = new global.Appacitive.BaseObject();
+
+	global.Appacitive.Connection.prototype.constructor = global.Appacitive.Connection;
+
+	// helper method for setting up the connection
+	global.Appacitive.Connection.prototype.setupConnection = function(endpointA, endpointB) {
+		// validate the endpoints
+		if (!endpointA || (!endpointA.articleid &&  !endpointA.article) || !endpointA.label || !endpointB || (!endpointB.articleid && !endpointB.article) || !endpointB.label) {
+			throw new Error('Incorrect endpoints configuration passed.');
+		}
+
+		// there are two ways to do this
+		// either we are provided the article id
+		// or a raw article
+		// or an Appacitive.Article instance
+		// sigh
+		
+		// 1
+		this.set('__endpointa', _parseEndpoint(endpointA, 'A', this));
+
+		// 2
+		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
 	};
 
 	global.Appacitive.Connection.get = function(relationName, id, onSuccess, onError, fields) {
-		if (!relationName) throw new Error("Specify relationName");
-		if (!id) throw new Error("Specify id to fetch");
-		var obj = new global.Appacitive.Connection({ __relationtype: relationName, __id: id });
-		obj.fields = fields;
+		options = options || {};
+		if (!options.relation) throw new Error("Specify relation");
+		if (!options.id) throw new Error("Specify id to fetch");
+		var obj = new global.Appacitive.Connection({ __relationtype: options.relation, __id: options.id });
+		obj.fields = options.fields;
 		obj.fetch(onSuccess, onError);
-	};
-
-	//takes relationame, and array of connections ids
-	global.Appacitive.Connection.multiDelete = function(relationName, ids, onSuccess, onError) {
-		if (!relationName || typeof relationName!= 'string' || relationName.length == 0) throw new Error("Specify relationName");
-
-		if (ids.length > 0) {
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(relationName);
-			request.method = 'post';
-			request.data = { idlist : ids };
-			request.onSuccess = function(d) {
-				if (d && d.code == '200') {
-					onSuccess();
-				} else {
-					d = d || {};
-					onError(d || { message : 'Server error', code: 400 });
-				}
-			};
-			request.onError = function(d) {
-				d = d || {};
-				onError(d || { message : 'Server error', code: 400 });
-			}
-			global.Appacitive.http.send(request);
-		} else onSuccess();
 	};
 
     //private function for parsing api connections in sdk connection object
@@ -3054,34 +3018,60 @@ Depends on  NOTHING
 
 	//takes relationname and array of connectionids and returns an array of Appacitive article objects
 	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError, fields) {
-		if (!relationName || typeof relationName!= 'string' || relationName.length == 0) throw new Error("Specify relationName");
-		if (!ids || typeof ids !== 'object' || !(ids.length > 0)) throw new Error('Specify list of ids for multiget');
-		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(relationName, ids.join(','), fields ? fields : '');
-		request.method = 'get';
-		_fetch(request, onSuccess, onError);
+		options = options || {};
+		if (!options.relation || typeof options.relation!= 'string' || options.relation.length == 0) throw new Error("Specify valid relation");
+		if (options.ids && options.ids.length > 0) {
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
+			request.method = 'get';
+			return _fetch(request, onSuccess, onError); 
+		} else { 
+			if (typeof onSuccess == 'function') onSuccess([]);
+		}
+	};
+
+	//takes relationame, and array of connections ids
+	global.Appacitive.Connection.multiDelete = function(options, onSuccess, onError) {
+		options = options || {};
+		
+		if (!options.relation || typeof options.relation!= 'string' || options.relation.length == 0) throw new Error("Specify valid relation");
+
+		if (options.ids && options.ids.length > 0) {
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
+			request.method = 'post';
+			request.data = { idlist : options.ids };
+			request.onSuccess = function(d) {
+				if (d && d.code == '200') {
+					onSuccess();
+				} else {
+					d = d || {};
+					onError(d || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				onError(d || { message : 'Server error', code: 400 });
+			}
+			global.Appacitive.http.send(request);
+		} else onSuccess();
 	};
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 
-	global.Appacitive.Connection.getInterconnects = function(articleAId, articleBIds, onSuccess, onError, fields) {
-		var q = new Appacitive.Queries.InterconnectsQuery({ articleAId :  articleAId, articleBIds: articleBIds });
-		q.fields = fields ? fields : '';
-		var request = q.toRequest();
-		_fetch(request, onSuccess, onError);
+	global.Appacitive.Connection.getInterconnects = function(options, onSuccess, onError) {
+		var q = new Appacitive.Queries.InterconnectsQuery(options);
+		_fetch(q.toRequest(), request, onSuccess, onError);
 	};
 
-	//takes 2 articles and returns connections between them
-	global.Appacitive.Connection.getBetweenArticles = function(articleAId, articleBId, onSuccess, onError, fields) {
-		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery({ articleAId :  articleAId, articleBId: articleBId });
-		q.fields = fields ? fields : '';
-		var request = q.toRequest();
-		_fetch(request, onSuccess, onError);
+	//takes 2 articleids and returns connections between them
+	global.Appacitive.Connection.getBetweenArticles = function(options, onSuccess, onError) {
+		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
+		_fetch(q.toRequest(), onSuccess, onError);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype
-	global.Appacitive.Connection.getBetweenArticlesForRelation = function(articleAId, articleBId, relationName, onSuccess, onError, fields) {
-		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ articleAId :  articleAId, articleBId: articleBId, relation: relationName });
-		q.fields = fields ? fields : '';
+	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options, onSuccess, onError) {
+		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options);
 		var request = q.toRequest();
 		request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
@@ -3220,54 +3210,6 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request);
 		};
 
-		var _setUserOperations = function(base) {
-
-			base.__defineGetter__("linkedAccounts", function() {
-				var accounts = this.get('__link');
-				
-				if(!accounts) accounts = [];
-				else if(typeof accounts == 'object' && !(accounts.length >= 0)) accounts = [accounts];
-				else if(!(accounts.length >= 0)) accounts = accounts[0];
-
-				return accounts;
-			});
-
-			//method for getting all linked accounts
-			base.getAllLinkedAccounts = function(onSuccess, onError) {
-				onSuccess = onSuccess || function(){};
-				_getAllLinkedAccounts(this, function(accounts) {
-					base.linkedAccounts = accounts;
-					if (typeof onSuccess == 'function') onSuccess(accounts, base);
-				}, onError);
-				return this;
-			};
-
-			//method for linking facebook account to a user
-			base.linkFacebookAccount = function(accessToken, onSuccess, onError) {
-				_link(accessToken, this, onSuccess, onError);
-				return this;
-			};
-
-			//method for unlinking facebook account for a user
-			base.unlinkFacebookAccount = function(onSuccess, onError) {
-				_unlink('facebook', this, function() {
-					var accounts = base.get('__link');
-				
-					if(!accounts) accounts = [];
-					else if(!(accounts.length >= 0)) accounts = accounts[0];
-
-					if (accounts.length > 0) {
-						if (accounts[0].name == 'name') {
-							base.set('__link', null);
-						}
-					}
-
-					if (typeof onSuccess == 'function') onSuccess(base);
-				}, onError);
-				return this;
-			};
-		};
-
 		this.setCurrentUser = function(user, token, expiry) {
 			if (!user || typeof user != 'object' || user.length >= 0) throw new Error('Cannot set null object as user');
 			var userObject = user;
@@ -3316,6 +3258,7 @@ Depends on  NOTHING
 				return this;
 			};
 
+			_authenticatedUser.logout = function(callback) { Appacitive.Users.logout(callback); };
 
 			global.Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
@@ -3327,9 +3270,62 @@ Depends on  NOTHING
 		global.Appacitive.User = function(options) {
 			options = options || {};
 			options.__schematype = 'user';
-			var base = new global.Appacitive.Article(options, true);
-			_setUserOperations(base);
-			return base;
+			global.Appacitive.Article.call(this, options);
+			return this;
+		};
+
+		global.Appacitive.User.prototype = new global.Appacitive.Article('user');
+
+		global.Appacitive.User.prototype.constructor = global.Appacitive.User;
+
+		//getter to get linkedaccounts
+		global.Appacitive.User.prototype.__defineGetter__("linkedAccounts", function() {
+			
+			var accounts = this.get('__link');
+			
+			if(!accounts) accounts = [];
+			else if(typeof accounts == 'object' && !(accounts.length >= 0)) accounts = [accounts];
+			else if(!(accounts.length >= 0)) accounts = accounts[0];
+
+			return accounts;
+		});
+
+		//method for getting all linked accounts
+		global.Appacitive.User.prototype.getAllLinkedAccounts = function(onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			var that = this;
+
+			_getAllLinkedAccounts(this, function(accounts) {
+				that.linkedAccounts = accounts;
+				if (typeof onSuccess == 'function') onSuccess(accounts, that);
+			}, onError);
+			return this;
+		};
+
+		//method for linking facebook account to a user
+		global.Appacitive.User.prototype.linkFacebookAccount = function(accessToken, onSuccess, onError) {
+			_link(accessToken, this, onSuccess, onError);
+			return this;
+		};
+
+		//method for unlinking facebook account for a user
+		global.Appacitive.User.prototype.unlinkFacebookAccount = function(onSuccess, onError) {
+			var that = this;
+			_unlink('facebook', this, function() {
+				var accounts = that.get('__link');
+			
+				if(!accounts) accounts = [];
+				else if(!(accounts.length >= 0)) accounts = accounts[0];
+
+				if (accounts.length > 0) {
+					if (accounts[0].name == 'name') {
+						that.set('__link', null);
+					}
+				}
+
+				if (typeof onSuccess == 'function') onSuccess(that);
+			}, onError);
+			return this;
 		};
 
 		this.deleteUser = function(userId, onSuccess, onError) {
@@ -4180,10 +4176,4 @@ if (global.Appacitive.runtime.isBrowser)
 	global.Appacitive.Cookie = new cookieManager();
 
 })(global);
-if (typeof module != 'undefined') {
-	/*module.exports = function(options) {
-		global.Appacitive.initialize(options);
-		return global.Appacitive;
-	}*/
-	module.exports =  global.Appacitive;
-}
+if (typeof module != 'undefined' && !global.Appacitive.runtime.isBrowser) module.exports =  global.Appacitive;

@@ -88,6 +88,12 @@
         
         var baseUrl = (global.Appacitive.config || { apiBaseUrl: '' }).apiBaseUrl;
         
+        var _getFields = function(fields) {
+            if (typeof fields == 'object' && fields.length > 0 && (typeof fields[0] == 'string' || typeof fields[0] == 'number')) fields = fields.join(',');
+            if (!fields) fields = '';
+            return fields;
+        };
+
         this.email = {
             emailServiceUrl: 'email',
             
@@ -100,16 +106,16 @@
             userServiceUrl:  'user',
 
             getCreateUrl: function (fields) {
-                return String.format("{0}/create?fields={1}", this.userServiceUrl, fields);
+                return String.format("{0}/create?fields={1}", this.userServiceUrl, _getFields(fields));
             },
             getAuthenticateUserUrl: function () {
                 return String.format("{0}/authenticate", this.userServiceUrl);
             },
             getGetUrl: function (userId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, fields);
+                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getUpdateUrl: function (userId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, fields);
+                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getDeleteUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
@@ -141,13 +147,13 @@
             deviceServiceUrl: 'device',
 
             getCreateUrl: function (fields) {
-                return String.format("{0}/register?fields={1}", this.deviceServiceUrl, fields);
+                return String.format("{0}/register?fields={1}", this.deviceServiceUrl, _getFields(fields));
             },
             getGetUrl: function (deviceId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, fields);
+                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
             getUpdateUrl: function (deviceId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, fields);
+                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
             getDeleteUrl: function (deviceId) {
                 return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
@@ -180,16 +186,16 @@
                 return String.format('{0}/search/{1}/all?properties={2}', this.articleServiceUrl, schemaName, query);
             },
             getMultiGetUrl: function (schemaName, articleIds, fields) {
-                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.articleServiceUrl, schemaName, articleIds, fields);
+                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.articleServiceUrl, schemaName, articleIds, _getFields(fields));
             },
             getCreateUrl: function (schemaName, fields) {
-                return String.format('{0}/{1}?fields={2}', this.articleServiceUrl, schemaName, fields);
+                return String.format('{0}/{1}?fields={2}', this.articleServiceUrl, schemaName, _getFields(fields));
             },
             getGetUrl: function (schemaName, articleId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, fields);
+                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
             },
             getUpdateUrl: function (schemaName, articleId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, fields);
+                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
             },
             getDeleteUrl: function (schemaName, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
@@ -203,16 +209,16 @@
             connectionServiceUrl: 'connection',
 
             getGetUrl: function (relationName, connectionId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, fields);
+                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
             },
             getMultiGetUrl: function (relationName, connectionIds, fields) {
-                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionIds, fields);
+                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionIds, _getFields(fields));
             },
             getCreateUrl: function (relationName, fields) {
-                return String.format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, fields);
+                return String.format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, _getFields(fields));
             },
             getUpdateUrl: function (relationName, connectionId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, fields);
+                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
             },
             getDeleteUrl: function (relationName, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);

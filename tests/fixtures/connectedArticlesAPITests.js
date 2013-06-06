@@ -58,7 +58,7 @@ asyncTest('Verify created connection shows up in collection when fetching connec
 									return _c.get('__id') == id;
 								});
 								equal(collConnection.length, 1, 'Connections fetched between 2 articles');
-								Appacitive.Connection.getBetweenArticlesForRelation(user.get('__id'), profile.get('__id'), 'userprofile', function(conn) {
+								Appacitive.Connection.getBetweenArticlesForRelation( { articleAId : user.get('__id'), articleBId: profile.get('__id'), relation: 'userprofile' }, function(conn) {
 									ok('true','Connection between 2 articles fetched');
 									start();
 								}, function() {

@@ -259,7 +259,6 @@
 			return this;
 		};
 
-
 		this.createNewConnection = function(values) {
 			values = values || {};
 			values.__relationtype = _relation;

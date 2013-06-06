@@ -1,8 +1,2 @@
 
-if (typeof module != 'undefined') {
-	/*module.exports = function(options) {
-		global.Appacitive.initialize(options);
-		return global.Appacitive;
-	}*/
-	module.exports =  global.Appacitive;
-}
+if (typeof module != 'undefined' && !global.Appacitive.runtime.isBrowser) module.exports =  global.Appacitive;

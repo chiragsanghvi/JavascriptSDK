@@ -163,6 +163,12 @@
 		 	return this;
 		};
 
+		this.unset = function(key) {
+			if (!key || typeof key != 'string' ||  key.length == 0 || key.indexOf('__') == 0) return this; 
+		 	try { delete article[key]; } catch(e) {}
+			return this;
+		};
+
 		this.copy = function(properties) { 
 			if (properties) _copy(properties, article); 
 			return this;

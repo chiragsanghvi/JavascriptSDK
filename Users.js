@@ -117,54 +117,6 @@
 			global.Appacitive.http.send(request);
 		};
 
-		var _setUserOperations = function(base) {
-
-			base.__defineGetter__("linkedAccounts", function() {
-				var accounts = this.get('__link');
-				
-				if(!accounts) accounts = [];
-				else if(typeof accounts == 'object' && !(accounts.length >= 0)) accounts = [accounts];
-				else if(!(accounts.length >= 0)) accounts = accounts[0];
-
-				return accounts;
-			});
-
-			//method for getting all linked accounts
-			base.getAllLinkedAccounts = function(onSuccess, onError) {
-				onSuccess = onSuccess || function(){};
-				_getAllLinkedAccounts(this, function(accounts) {
-					base.linkedAccounts = accounts;
-					if (typeof onSuccess == 'function') onSuccess(accounts, base);
-				}, onError);
-				return this;
-			};
-
-			//method for linking facebook account to a user
-			base.linkFacebookAccount = function(accessToken, onSuccess, onError) {
-				_link(accessToken, this, onSuccess, onError);
-				return this;
-			};
-
-			//method for unlinking facebook account for a user
-			base.unlinkFacebookAccount = function(onSuccess, onError) {
-				_unlink('facebook', this, function() {
-					var accounts = base.get('__link');
-				
-					if(!accounts) accounts = [];
-					else if(!(accounts.length >= 0)) accounts = accounts[0];
-
-					if (accounts.length > 0) {
-						if (accounts[0].name == 'name') {
-							base.set('__link', null);
-						}
-					}
-
-					if (typeof onSuccess == 'function') onSuccess(base);
-				}, onError);
-				return this;
-			};
-		};
-
 		this.setCurrentUser = function(user, token, expiry) {
 			if (!user || typeof user != 'object' || user.length >= 0) throw new Error('Cannot set null object as user');
 			var userObject = user;
@@ -213,6 +165,7 @@
 				return this;
 			};
 
+			_authenticatedUser.logout = function(callback) { Appacitive.Users.logout(callback); };
 
 			global.Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
@@ -224,9 +177,62 @@
 		global.Appacitive.User = function(options) {
 			options = options || {};
 			options.__schematype = 'user';
-			var base = new global.Appacitive.Article(options, true);
-			_setUserOperations(base);
-			return base;
+			global.Appacitive.Article.call(this, options);
+			return this;
+		};
+
+		global.Appacitive.User.prototype = new global.Appacitive.Article('user');
+
+		global.Appacitive.User.prototype.constructor = global.Appacitive.User;
+
+		//getter to get linkedaccounts
+		global.Appacitive.User.prototype.__defineGetter__("linkedAccounts", function() {
+			
+			var accounts = this.get('__link');
+			
+			if(!accounts) accounts = [];
+			else if(typeof accounts == 'object' && !(accounts.length >= 0)) accounts = [accounts];
+			else if(!(accounts.length >= 0)) accounts = accounts[0];
+
+			return accounts;
+		});
+
+		//method for getting all linked accounts
+		global.Appacitive.User.prototype.getAllLinkedAccounts = function(onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			var that = this;
+
+			_getAllLinkedAccounts(this, function(accounts) {
+				that.linkedAccounts = accounts;
+				if (typeof onSuccess == 'function') onSuccess(accounts, that);
+			}, onError);
+			return this;
+		};
+
+		//method for linking facebook account to a user
+		global.Appacitive.User.prototype.linkFacebookAccount = function(accessToken, onSuccess, onError) {
+			_link(accessToken, this, onSuccess, onError);
+			return this;
+		};
+
+		//method for unlinking facebook account for a user
+		global.Appacitive.User.prototype.unlinkFacebookAccount = function(onSuccess, onError) {
+			var that = this;
+			_unlink('facebook', this, function() {
+				var accounts = that.get('__link');
+			
+				if(!accounts) accounts = [];
+				else if(!(accounts.length >= 0)) accounts = accounts[0];
+
+				if (accounts.length > 0) {
+					if (accounts[0].name == 'name') {
+						that.set('__link', null);
+					}
+				}
+
+				if (typeof onSuccess == 'function') onSuccess(that);
+			}, onError);
+			return this;
 		};
 
 		this.deleteUser = function(userId, onSuccess, onError) {

@@ -186,13 +186,13 @@
 		};
 
 		var _parse = function(entities) {
-			var entitiesObjects = [];
+			var entityObjects = [];
 			if (!entities) entities = [];
 			var eType = (_type == 'article') ? 'Article' : 'Connection';
 			entities.forEach(function(e) {
-				entitiesObjects.push(new global.Appacitive[eType](e));
+				entityObjects.push(new global.Appacitive[eType](e));
 			});
-			return entitiesObjects;
+			return entityObjects;
 		};
 
 		this.fetch = function(onSuccess, onError) {
@@ -365,7 +365,7 @@
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') onSuccess(new Appacitive.Connection(d.connection));
+				   if (typeof onSuccess == 'function') onSuccess(new global.Appacitive.Connection(d.connection));
 				} else {
 					d = d || {};
 					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });

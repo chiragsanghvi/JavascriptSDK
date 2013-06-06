@@ -15,103 +15,96 @@
 				var fb = d.identities.filter(function(identity) {
 					return identity.authtype.toLowerCase() == 'facebook';
 				});
-				if (fb.length == 1) {
-					fbUsername = fb[0].username;
-				}
+				if (fb.length == 1) fbUsername = fb[0].username;
 			}
 			if (fbUsername !== null) {
 				FB.api('/' + fbUsername, function(response) {
-					if (response) {
-						onSuccess(response);
-					} else {
-						onError();
-					}
+					if (response) onSuccess(response);
+					else onError();
 				});
-			} else {
-				onError();
-			}
+			} else  onError();
 		};
-		r.onError = function() {
-			onError();
-		};
+		r.onError = onError;
 		global.Appacitive.http.send(r);
 	};
 
-	var _setOperations = function(base) {
-
-		base.getConnectedArticles = function(options) {
-
-			options = options || {};
-			if (typeof options == 'string') {
-				rName = options;
-				options = { relation: rName };
-			}	
-
-			options.articleId = this.get('__id');
-			var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
-			collection.connectedArticle = this;
-			this.connectionCollections.push(collection);
-			collection.query  = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
-			
-			return collection;
-		};
-
-		base.getConnections = function(options) {
-
-			if (this.type != 'article') return null;
-			options = options || {};
-			options.articleId = this.get('__id');
-
-			var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
-			this.connectionCollections.push(collection);
-			
-			collection.query = new global.Appacitive.Queries.GetConnectionsQuery(options);
-			
-			return collection;
-		};
-	};
-
 	global.Appacitive.Article = function(options, setSnapShot) {
+		options = options || {};
+
 		if (typeof options == 'string') {
 			var sName = options;
 			options = { __schematype : sName };
 		}
 
-		if (!options.__schematype && !options.schema ) throw new error("Cannot set article without __schematype");
+		if (!options.__schematype && !options.schema ) throw new Error("Cannot set article without __schematype");
 
 		if (options.schema) {
 			options.__schematype = options.schema;
 			delete options.schema;
 		}
 		
-		var base = new global.Appacitive.BaseObject(options, setSnapShot);
-		base.type = 'article';
-		base.connectionCollections = [];
-		base.getArticle = base.getObject;
+		global.Appacitive.BaseObject.call(this, options, setSnapShot);
 
-		if (base.get('__schematype') && base.get('__schematype').toLowerCase() == 'user') {
-			base.getFacebookProfile = _getFacebookProfile;
-		}
-		
-		_setOperations(base);
+		this.type = 'article';
+		this.connectionCollections = [];
+		this.getArticle = this.getObject;
 
-		return base;
+		if (this.get('__schematype').toLowerCase() == 'user') this.getFacebookProfile = _getFacebookProfile;
+
+		return this;
 	};
 
-	global.Appacitive.Article.multiDelete = function(schemaName, ids, onSuccess, onError) {
-		if (!schemaName) throw new Error("Specify schemaName");
+	global.Appacitive.Article.prototype = new global.Appacitive.BaseObject();
 
-		if (schemaName.toLowerCase() == 'user' || schemaName.toLowerCase() == 'device')
-			throw new Error("Cannot delete user and devices using multidelete");
+	global.Appacitive.Article.prototype.constructor = global.Appacitive.Article;
 
-		if (ids.length > 0) {
+	global.Appacitive.Article.prototype.getConnections = function(options) {
+
+		if (this.type != 'article') return null;
+		
+		options = options || {};
+		options.articleId = this.get('__id');
+		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
+		this.connectionCollections.push(collection);
+		
+		collection.query = new global.Appacitive.Queries.GetConnectionsQuery(options);
+		
+		return collection;
+	};
+
+	global.Appacitive.Article.prototype.getConnectedArticles = function(options) {
+
+		options = options || {};
+		if (typeof options == 'string') {
+			rName = options;
+			options = { relation: rName };
+		}	
+
+		options.articleId = this.get('__id');
+		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
+		collection.connectedArticle = this;
+		this.connectionCollections.push(collection);
+		collection.query  = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
+		
+		return collection;
+	};
+
+	global.Appacitive.Article.multiDelete = function(options, onSuccess, onError) {
+		options = options || {};
+
+		if (!options.schema || typeof options.schema!= 'string' || options.schema.length == 0) throw new Error("Specify valid schema");
+
+		if (options.schema.toLowerCase() == 'user' || options.schema.toLowerCase() == 'device') throw new Error("Cannot delete user and devices using multidelete");
+
+		if (options.ids && options.ids.length > 0) {
+
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiDeleteUrl(schemaName);
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiDeleteUrl(options.schema);
 			request.method = 'post';
-			request.data = { idlist : ids };
+			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
 				if (d && d.code == '200') {
 					if (typeof onSuccess == 'function') onSuccess();
@@ -137,12 +130,12 @@
 	};
 
 	//takes relationaname and array of articleids and returns an array of Appacitive article objects
-	global.Appacitive.Article.multiGet = function(schemaName, ids, onSuccess, onError, fields) {
-		if (!schemaName) throw new Error("Specify schemaName");
-
-		if (typeof ids == 'object' && ids.length > 0) {
+	global.Appacitive.Article.multiGet = function(options, onSuccess, onError) {
+		options = options || {};
+		if (!options.schema || typeof options.schema!= 'string' || options.schema.length == 0) throw new Error("Specify valid schema");
+		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(schemaName, ids.join(','), fields ? fields : '');
+			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
 			request.method = 'get';
 			request.onSuccess = function(d) {
 				if (d && d.articles) {
@@ -157,29 +150,24 @@
 				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
 			}
 			global.Appacitive.http.send(request);
-		} else onSuccess([]);
+		} else {
+			if (typeof onSuccess == 'function') onSuccess([]);
+		}
 	};
 
-	global.Appacitive.Article.get = function(schemaName, id, onSuccess, onError, fields) {
-		if (!schemaName) throw new Error("Specify schemaName");
-		if (!id) throw new Error("Specify id to fetch");
+	global.Appacitive.Article.get = function(options, onSuccess, onError) {
+		options = options || {};
+		if (!options.schema) throw new Error("Specify schema");
+		if (!options.id) throw new Error("Specify id to fetch");
 
 		var obj = {};
-		if (schemaName.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: id });
-		else obj = new global.Appacitive.Article({ __schematype: schemaName, __id: id });
+		if (schemaName.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: options.id });
+		else obj = new global.Appacitive.Article({ __schematype: options.schema, __id: options.id });
 		
-		obj.fields = fields;
-
+		obj.fields = options.fields;
 		obj.fetch(onSuccess, onError);
+
+		return obj;
 	};
-
-	/*global.Appacitive.BaseObject.prototype.getConnected = function(options) {
-		if (this.type != 'article') return null;
-		options = options || {};
-		options.onSuccess = options.onSuccess || function(){};
-		options.onError = options.onError || function(){};
-		options.articleId = this.get('__id');
-
-	};*/
 
 })(global);

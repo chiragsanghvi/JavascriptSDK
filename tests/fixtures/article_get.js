@@ -48,7 +48,7 @@ asyncTest('Save article and get by id, and then save one more article and multig
 				var ids = [];
 				ids.push(profile.get('__id'));
 				ids.push(article.get('__id'));
-				Appacitive.Article.multiGet('profile', ids, function(articles) {
+				Appacitive.Article.multiGet({ schema: 'profile', ids: ids }, function(articles) {
 					equal(articles.length, 2, 'Articles fetched successfully  using multiget');
 					start();
 				}, function() {

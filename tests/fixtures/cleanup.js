@@ -52,7 +52,7 @@ asyncTest('Cleaning up connections of relation myschool', function() {
 			ids.push(article.get('__id'));
 		});
 
-		Appacitive.Connection.multiDelete("myschool", ids, function() {
+		Appacitive.Connection.multiDelete({ relation : "myschool", ids : ids }, function() {
 			ok(true, connections.length + ' connections of type myschool deleted successfully');
 			start();
 		}, function() {
@@ -82,7 +82,7 @@ asyncTest('Cleaning up articles of schema profile', function() {
 			ids.push(article.get('__id'));
 		});
 
-		Appacitive.Article.multiDelete("profile", ids, function(){
+		Appacitive.Article.multiDelete({ schema: "profile", ids: ids }, function(){
 			ok(true, articles.length + ' articles of type profile deleted successfully');
 			start();
 		}, function() {
@@ -110,7 +110,7 @@ asyncTest('Cleaning up articles of schema school', function() {
 			ids.push(article.get('__id'));
 		});
 
-		Appacitive.Article.multiDelete("school", ids, function() {
+		Appacitive.Article.multiDelete({ schema: "school", ids: ids }, function() {
 			ok(true, articles.length + ' articles of type school deleted successfully');
 			start();
 		}, function() {
