@@ -54,7 +54,7 @@
 		//Fileds to be ignored while update operation
 		var _ignoreTheseFields = ["__revision","__endpointa","__endpointb","__createdby","__lastmodifiedby","__schematype","__relationtype","__utcdatecreated","__utclastupdateddate","__tags","__authType","__link"];
 		
-		var _allowObjectSetOpeerations = ["__link"];
+		var _allowObjectSetOperations = ["__link","__endpointa","__endpointb"];
 
 		/* parse api output to get error info
 		   TODO: define error objects in future depending on codes and messages */
@@ -157,7 +157,7 @@
 		 	else if (typeof value == 'number') { article[key] = value + ''; }
 		 	else if (typeof value == 'object') {
 		 		if (value.length >= 0) article[key] = value; 
-		 		else if (_allowObjectSetOpeerations.indexOf(key) !== -1) article[key] = value;
+		 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
 			}
 		 	
 		 	return this;

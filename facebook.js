@@ -23,7 +23,7 @@
 		    onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 			FB.login(function(response) {
-				if (response.authResponse) {
+				if (response && response.status === 'connected' && response.authResponse) {
 					_accessToken = response.authResponse.accessToken;
 					if (typeof onSuccess == 'function') onSuccess(response.authResponse);
 				} else {

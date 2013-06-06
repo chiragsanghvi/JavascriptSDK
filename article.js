@@ -161,7 +161,7 @@
 		if (!options.id) throw new Error("Specify id to fetch");
 
 		var obj = {};
-		if (schemaName.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: options.id });
+		if (options.schema.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: options.id });
 		else obj = new global.Appacitive.Article({ __schematype: options.schema, __id: options.id });
 		
 		obj.fields = options.fields;
