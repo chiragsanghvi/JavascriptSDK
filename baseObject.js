@@ -223,13 +223,13 @@
 
 					if (that.type == 'connection') that.parseConnection();
 
-					Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.created', 'base', { object : that });
+					global.Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.created', 'base', { object : that });
 					if (typeof onSuccess == 'function') onSuccess(that);
 				} else {
 					data = data || {};
 					data.status =  data.status || {};
 					data.status = _getOutpuStatus(data.status);
-					Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.createFailed', 'base', { error: data.status });
+					global.Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.createFailed', 'base', { error: data.status });
 					if (typeof onError == 'function') onError(data.status, that);
 				}
 			};
@@ -288,13 +288,13 @@
 					if (data && (data.article || data.connection || data.user || data.device)) {
 						_snapshot = data.article || data.connection || data.user || data.device;
 						_copy(_snapshot, article);
-						Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updated', 'base', { object: that });
+						global.Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updated', 'base', { object: that });
 						if (typeof onSuccess == 'function') onSuccess(that);
 					} else {
 						data = data || {};
 						data.status =  data.status || {};
 						data.status = _getOutpuStatus(data.status);
-						Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updateFailed', 'base', { object: data.status });
+						global.Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updateFailed', 'base', { object: data.status });
 						if (typeof onError == 'function') onError(data.status, that);
 					}
 				};

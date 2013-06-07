@@ -1873,13 +1873,13 @@ Depends on  NOTHING
 
 					if (that.type == 'connection') that.parseConnection();
 
-					Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.created', 'base', { object : that });
+					global.Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.created', 'base', { object : that });
 					if (typeof onSuccess == 'function') onSuccess(that);
 				} else {
 					data = data || {};
 					data.status =  data.status || {};
 					data.status = _getOutpuStatus(data.status);
-					Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.createFailed', 'base', { error: data.status });
+					global.Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.createFailed', 'base', { error: data.status });
 					if (typeof onError == 'function') onError(data.status, that);
 				}
 			};
@@ -1938,13 +1938,13 @@ Depends on  NOTHING
 					if (data && (data.article || data.connection || data.user || data.device)) {
 						_snapshot = data.article || data.connection || data.user || data.device;
 						_copy(_snapshot, article);
-						Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updated', 'base', { object: that });
+						global.Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updated', 'base', { object: that });
 						if (typeof onSuccess == 'function') onSuccess(that);
 					} else {
 						data = data || {};
 						data.status =  data.status || {};
 						data.status = _getOutpuStatus(data.status);
-						Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updateFailed', 'base', { object: data.status });
+						global.Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updateFailed', 'base', { object: data.status });
 						if (typeof onError == 'function') onError(data.status, that);
 					}
 				};
@@ -2884,7 +2884,6 @@ Depends on  NOTHING
 			base["endpoint" + type].type = base.get('__endpoint' + type.toLowerCase()).type;
 
 			base["endpoint" + type].article.___collection = base.___collection;
-			delete base.get('__endpoint' + type.toLowerCase()).article
 		} else {
 			base["endpoint" + type] = base.get('__endpoint' + type.toLowerCase());
 		}
@@ -2935,6 +2934,25 @@ Depends on  NOTHING
 			return this;
 		};
 
+		this.setupConnection = function(endpointA, endpointB) {
+			// validate the endpoints
+			if (!endpointA || (!endpointA.articleid &&  !endpointA.article) || !endpointA.label || !endpointB || (!endpointB.articleid && !endpointB.article) || !endpointB.label) {
+				throw new Error('Incorrect endpoints configuration passed.');
+			}
+
+			// there are two ways to do this
+			// either we are provided the article id
+			// or a raw article
+			// or an Appacitive.Article instance
+			// sigh
+			
+			// 1
+			this.set('__endpointa', _parseEndpoint(endpointA, 'A', this));
+
+			// 2
+			this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
+		};
+
 		if (doNotSetup) {
 			this.__defineGetter__('connectedArticle', function() {
 				if (!this.___collection.connectedArticle) {
@@ -2959,26 +2977,6 @@ Depends on  NOTHING
 	global.Appacitive.Connection.prototype = new global.Appacitive.BaseObject();
 
 	global.Appacitive.Connection.prototype.constructor = global.Appacitive.Connection;
-
-	// helper method for setting up the connection
-	global.Appacitive.Connection.prototype.setupConnection = function(endpointA, endpointB) {
-		// validate the endpoints
-		if (!endpointA || (!endpointA.articleid &&  !endpointA.article) || !endpointA.label || !endpointB || (!endpointB.articleid && !endpointB.article) || !endpointB.label) {
-			throw new Error('Incorrect endpoints configuration passed.');
-		}
-
-		// there are two ways to do this
-		// either we are provided the article id
-		// or a raw article
-		// or an Appacitive.Article instance
-		// sigh
-		
-		// 1
-		this.set('__endpointa', _parseEndpoint(endpointA, 'A', this));
-
-		// 2
-		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
-	};
 
 	global.Appacitive.Connection.get = function(relationName, id, onSuccess, onError, fields) {
 		options = options || {};
