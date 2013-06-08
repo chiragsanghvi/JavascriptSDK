@@ -30,23 +30,23 @@
 	};
 
 	var _convertEndpoint = function(endpoint, type, base) {
-		if ( base.get('__endpoint' + type.toLowerCase()).article && typeof base.get('__endpoint' + type.toLowerCase()).article == 'object') {
+		if ( endpoint.article && typeof endpoint.article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
-				base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpoint' + type.toLowerCase()).article);
+				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article);
 			} else {
 				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article.getArticle)
-					base["endpoint" + type].article.copy(base.get('__endpointb').article);
+					base["endpoint" + type].article.copy(endpoint.article);
 				else 
-					base['endpoint' + type].article = new global.Appacitive.Article(base.get('__endpoint' + type.toLowerCase()).article);
+					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article);
 			}
-			base["endpoint" + type].articleid = base.get('__endpoint' + type.toLowerCase()).articleid;
-			base["endpoint" + type].label = base.get('__endpoint' + type.toLowerCase()).label;
-			base["endpoint" + type].type = base.get('__endpoint' + type.toLowerCase()).type;
+			base["endpoint" + type].articleid = endpoint.articleid;
+			base["endpoint" + type].label = endpoint.label;
+			base["endpoint" + type].type = endpoint.type;
 
 			base["endpoint" + type].article.___collection = base.___collection;
 		} else {
-			base["endpoint" + type] = base.get('__endpoint' + type.toLowerCase());
+			base["endpoint" + type] = endpoint;
 		}
 	};
 
@@ -79,7 +79,9 @@
 			
 			var typeA = 'A', typeB ='B';
 			if ( options.__endpointa.label == this.get('__endpointb').label ) {
-				if (options.__endpointa.articleid == this.get('__endpointb').articleid) typeA = 'B', typeB = 'A';
+				if ((options.__endpointa.label != options.__endpointb.label) && (options.__endpointa.articleid == this.get('__endpointb').articleid || !options.__endpointa.articleid)) {
+				 	typeA = 'B', typeB = 'A';
+				}
 			}
 
 			_convertEndpoint(this.get('__endpointa'), typeA, this);
@@ -93,25 +95,6 @@
 			});
 
 			return this;
-		};
-
-		this.setupConnection = function(endpointA, endpointB) {
-			// validate the endpoints
-			if (!endpointA || (!endpointA.articleid &&  !endpointA.article) || !endpointA.label || !endpointB || (!endpointB.articleid && !endpointB.article) || !endpointB.label) {
-				throw new Error('Incorrect endpoints configuration passed.');
-			}
-
-			// there are two ways to do this
-			// either we are provided the article id
-			// or a raw article
-			// or an Appacitive.Article instance
-			// sigh
-			
-			// 1
-			this.set('__endpointa', _parseEndpoint(endpointA, 'A', this));
-
-			// 2
-			this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
 		};
 
 		if (doNotSetup) {
@@ -138,6 +121,26 @@
 	global.Appacitive.Connection.prototype = new global.Appacitive.BaseObject();
 
 	global.Appacitive.Connection.prototype.constructor = global.Appacitive.Connection;
+
+	global.Appacitive.Connection.prototype.setupConnection = function(endpointA, endpointB) {
+		
+		// validate the endpoints
+		if (!endpointA || (!endpointA.articleid &&  !endpointA.article) || !endpointA.label || !endpointB || (!endpointB.articleid && !endpointB.article) || !endpointB.label) {
+			throw new Error('Incorrect endpoints configuration passed.');
+		}
+
+		// there are two ways to do this
+		// either we are provided the article id
+		// or a raw article
+		// or an Appacitive.Article instance
+		// sigh
+		
+		// 1
+		this.set('__endpointa', _parseEndpoint(endpointA, 'A', this));
+
+		// 2
+		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
+	};
 
 	global.Appacitive.Connection.get = function(relationName, id, onSuccess, onError, fields) {
 		options = options || {};
