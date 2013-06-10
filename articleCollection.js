@@ -163,7 +163,7 @@
 			if (!id) return false;
 			var index = null;
 			_articles.forEach(function(article, i) {
-				if (article.__cid && article.__cid == id) {
+				if (article.cid && article.cid == id) {
 					index = i;
 				}
 			});
@@ -241,7 +241,6 @@
 			values.__schematype = _schema;
 			var _a = new global.Appacitive.Article(values);
 			_a.___collection = that;
-			_a.__cid = parseInt(Math.random() * 1000000, 10);
 			_articles.push(_a);
 			return _a;
 		};

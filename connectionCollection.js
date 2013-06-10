@@ -172,7 +172,7 @@
 			if (!id) return false;
 			var index = null;
 			_connections.forEach(function(connection, i) {
-				if (connection.__cid && connection.__cid == id) {
+				if (connection.cid && connection.cid == id) {
 					index = i;
 				}
 			});
@@ -272,7 +272,6 @@
 			values.__relationtype = _relation;
 			var _a = new global.Appacitive.Connection(values);
 			_a.___collection = that;
-			_a.__cid = parseInt(Math.random() * 1000000, 10);
 			_connections.push(_a);
 			return _a;
 		};

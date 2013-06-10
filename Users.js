@@ -235,6 +235,10 @@
 			return this;
 		};
 
+		global.Appacitive.User.prototype.clone = function() {
+			return new Appacitive.User(this.getObject());
+		};
+
 		this.deleteUser = function(userId, onSuccess, onError) {
 			if (!userId) throw new Error('Specify userid for user delete');
 

@@ -9,7 +9,8 @@
 	var _BaseObject = function(objectOptions, setSnapShot) {
 
 		var _snapshot = {};
-		
+		var _previous = {};
+
 		//Copy properties to current object
 		var _copy = function(src, des) {
 			for (var property in src) {
@@ -25,7 +26,7 @@
 					des[property] = src[property];
 				}
 			}
-		};	
+		};
 
 		var raw = {};
 		_copy(objectOptions, raw);
@@ -34,6 +35,7 @@
 		//will be used in case of creating an appacitive article for internal purpose
 		if (setSnapShot) {
 			_copy(article, _snapshot);
+			_copy(article, _previous);
 		}
 
 		if (!_snapshot.__id && raw.__id) _snapshot.__id = raw.__id;
@@ -52,6 +54,10 @@
 			this.relation = this.entityType;
 			this.type = 'connection';
 		}
+
+		var __cid = parseInt(Math.random() * 1000000, 10);
+
+		this.__defineGetter__('cid', function() { return __cid; });
 
 		//Fileds to be ignored while update operation
 		var _ignoreTheseFields = ["__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
@@ -92,10 +98,12 @@
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
 			} else throw new Error('.attributes() called with an incorrect number of arguments. 0, 1, 2 are supported.');
+
+			return article.__attributes;
 		};
 
-		//accessor function to get chaned attributes
-		this.getChangedAttributes = function() {
+		//accessor function to get changed attributes
+		var _getChangedAttributes = function() {
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
 			for (var property in article.__attributes) {
@@ -112,6 +120,8 @@
 			if (!isDirty) return null;
 			return changeSet;
 		};
+
+		this.getChangedAttributes = _getChangedAttributes;
 
 		// accessor function for the article's aggregates
 		this.aggregates = function() {
@@ -169,9 +179,84 @@
 			return _tags;
 		};
 
-		this.getRemovedTags = function() {
-			return _removetags;
+		this.getRemovedTags = function() { return _removetags; };
+
+		var _getChanged = function(isInternal) {
+			var isDirty = false;
+			var changeSet = JSON.parse(JSON.stringify(_snapshot));
+			for (var property in article) {
+				if (typeof article[property] == 'undefined' || article[property] === null) {
+					changeSet[property] = null;
+					isDirty = true;
+				} else if (article[property] != _snapshot[property]) {
+					changeSet[property] = article[property];
+					isDirty = true;
+				} else if (article[property] == _snapshot[property]) {
+					delete changeSet[property];
+				}
+			}
+
+			try {
+				_ignoreTheseFields.forEach(function(c) {
+					if (changeSet[c]) delete changeSet[c];
+				});
+			} catch(e) {}
+
+			if (isInternal) {
+				delete changeSet["__tags"];
+				if (article.__tags && article.__tags.length > 0) changeSet["__addtags"] = this.getChangedTags();
+				if (_removeTags && _removeTags.length > 0) changeSet["__removetags"] = _removeTags;
+			} else {
+				if (article.__tags && article.__tags.length > 0) changeSet["__tags"] = this.getChangedTags();
+			}
+
+			var attrs = _getChangedAttributes();
+			if (attrs) changeSet["__attributes"] = attrs;
+			else delete changeSet["__attributes"];
+
+			if (isDirty) return changeSet
+			return false;
 		};
+
+		this.__defineGetter__('changed', function() {
+			return _getChanged();
+		});
+
+		this.hasChanged = function() {
+			var changeSet = _getChanged(true);
+			if (arguments.length === 0) {
+				return changeSet ? true : false;
+			} else if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length > 0) {
+				if (changeSet[arguments[0]]) {
+					return true;
+				} return false;
+			}
+			return null;
+		};
+
+		this.changedAttributes  = function() {
+			var changeSet = _getChanged(true);
+			
+			if (arguments.length === 0) {
+				return changeSet;
+			} else if (arguments.length == 1 && typeof arguments[0] == 'object' && arguments[0].length) {
+				var attrs = {};
+				arguments[0].forEach(function(c) {
+					if (changeSet[c]) attrs.push(changeSet[c]);
+				});
+				return attrs;
+			}
+			return false;
+		};
+
+		this.previous = function() {
+			if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length) {
+				return _previous[arguments];	
+			}
+			return null
+		};
+
+		this.previousAttributes = function() { return _previous; };
 
 		var _fields = '';
 
@@ -206,6 +291,22 @@
 		 	try { delete article[key]; } catch(e) {}
 			return this;
 		};
+
+		this.has = function(key) {
+			if (!key || typeof key != 'string' ||  key.length == 0) return false; 
+			if (article[key] && typeof article[key] != 'undefined') return true;
+			return false;
+		};
+
+		this.isNew = function() {
+			if (article.__id && article.__id.length) return false;
+			return true;
+		};
+
+		this.clone = function() {
+			if (this.type == 'article') return new Appacitive.Article(article);
+			return new Appacitive.connection(article);
+		}
 
 		this.copy = function(properties) { 
 			if (properties) _copy(properties, article); 
@@ -284,37 +385,9 @@
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			var isDirty = false;
-			var changeSet = JSON.parse(JSON.stringify(_snapshot));
-			for (var property in article) {
-				if (typeof article[property] == 'undefined' || article[property] === null) {
-					changeSet[property] = null;
-					isDirty = true;
-				} else if (article[property] != _snapshot[property]) {
-					changeSet[property] = article[property];
-					isDirty = true;
-				} else if (article[property] == _snapshot[property]) {
-					delete changeSet[property];
-				}
-			}
-
-			try {
-				_ignoreTheseFields.forEach(function(c) {
-					if (changeSet[c]) delete changeSet[c];
-				});
-			} catch(e) {}
-
-			if (article.__tags && article.__tags.length > 0)
-				changeSet["__addtags"] = this.getChangedTags();
-
-			if (_removeTags && _removeTags.length > 0)
-				changeSet["__removetags"] = _removeTags;
-
-			var attrs = this.getChangedAttributes();
-			if (attrs) changeSet["__attributes"] = attrs;
-
+			var changeSet = _getChanged(true);
 			var that = this;
-			if (isDirty) {
+			if (changeSet) {
 				var _updateRequest = new global.Appacitive.HttpRequest();
 				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, _fields);
 				
@@ -327,6 +400,8 @@
 				_updateRequest.data = changeSet;
 				_updateRequest.onSuccess = function(data) {
 					if (data && (data.article || data.connection || data.user || data.device)) {
+						//copy article changes to previous
+						_copy(article, _previous);
 						_snapshot = data.article || data.connection || data.user || data.device;
 						_copy(_snapshot, article);
 						_removeTags = [];
@@ -396,7 +471,7 @@
 			// else delete the article and remove from collection
 
 			if (!article['__id'] && this.___collection) {
-				this.___collection.removeByCId(this.__cid);
+				this.___collection.removeByCId(__cid);
 				if (typeof onSuccess == 'function') onSuccess(this);
 				return;
 			}
