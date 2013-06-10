@@ -22,7 +22,7 @@
 					if (response) onSuccess(response);
 					else onError();
 				});
-			} else  onError();
+			} else  onError({code: '404' , message: 'fb account not found'});
 		};
 		r.onError = onError;
 		global.Appacitive.http.send(r);
@@ -146,8 +146,8 @@
 				}
 			};
 			request.onError = function(d) {
-				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				d = d || { message : 'Server error', code: 400 };
+				if (typeof onError == 'function') onError(d);
 			}
 			global.Appacitive.http.send(request);
 		} else {

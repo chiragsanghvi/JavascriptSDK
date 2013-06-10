@@ -105,13 +105,14 @@
 
 		var _removeTags = []; 
 		if (!article.__tags) article.__tags = [];
+		if (!_snapshot.__tags) _snapshot.__tags = [];
 
 		this.__defineGetter__('tags', function() {
 			if (!article.__tags) return [];
 			return article.__tags;
 		});
 
-		this.addTags = function(tag) {
+		this.addTag = function(tag) {
 			if (!tag || typeof tag != 'string' || !tag.length) return this;
 		    //tag = tag.toLowerCase();
 		    article.__tags.push(tag);
@@ -123,7 +124,7 @@
 			return this;
 		};
 
-		this.removeTags = function(tag) {
+		this.removeTag = function(tag) {
 			if (!tag || typeof tag != 'string' || !tag.length) return this;
 			//tag = tag.toLowerCase();
 			_removeTags.push(tag);
@@ -133,6 +134,19 @@
 			var index = article.__tags.indexOf(tag);
 			if (index != -1) article.__tags.splice(index, 1);
 			return this;
+		};
+
+		this.getChangedTags = function() {
+			var _tags = [];
+			article.__tags.every(function(a) {
+				if (_snapshot.indexOf(a) == -1)
+					_tags.push(a);
+			});
+			return _tags;
+		};
+
+		this.getRemovedTags = function() {
+			return __removetags;
 		};
 
 		var _fields = '';
@@ -267,7 +281,7 @@
 			} catch(e) {}
 
 			if (article.__tags && article.__tags.length > 0)
-				changeSet["__addtags"] = article.__tags;
+				changeSet["__addtags"] = this.getChangedTags();
 
 			if (_removeTags && _removeTags.length > 0)
 				changeSet["__removetags"] = _removeTags;
@@ -288,6 +302,7 @@
 					if (data && (data.article || data.connection || data.user || data.device)) {
 						_snapshot = data.article || data.connection || data.user || data.device;
 						_copy(_snapshot, article);
+						_removeTags = [];
 						global.Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updated', 'base', { object: that });
 						if (typeof onSuccess == 'function') onSuccess(that);
 					} else {

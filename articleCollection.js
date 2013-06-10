@@ -172,11 +172,21 @@
 		};
 
 		var parseArticles = function (data, onSuccess, onError) {
+
+			data = data || {};
 			var articles = data.articles;
+
 			if (!articles) {
-				onError(data.status);
-				return;
+				if (data.status && data.status.code && data.status.code == '200') {
+					articles = [];
+				} else {
+					var d = data.status || { message : 'Server error', code: 400 };
+			        if (typeof onError == 'function') onError(d, that);
+					return;
+				}
 			}
+
+			
 			if (!articles.length || articles.length === 0) articles = [];
 			articles.forEach(function (article) {
 				var _a = new global.Appacitive.Article(article, true);
@@ -195,7 +205,12 @@
 			_queryRequest.onSuccess = function(data) {
 				parseArticles(data, onSuccess, onError);
 			};
+			_queryRequest.onError = function(d) {
+				d = d || { message : 'Server error', code: 400 };
+			    if (typeof onError == 'function') onError(d, that);
+			};
 			global.Appacitive.http.send(_queryRequest);
+
 			return this;
 		};
 

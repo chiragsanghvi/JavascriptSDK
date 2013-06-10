@@ -182,8 +182,9 @@
 
 		var parseConnections = function (data, onSuccess, onError, queryType) {
 			data = data || {};
+			
 			var connections = data.connections;
-
+			
 			if (queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && data.connection)
 				connections = [data.connection];
 
@@ -191,10 +192,13 @@
 				if (data.status && data.status.code && data.status.code == '200') {
 					connections = [];
 				} else {
-					onError(data.status);
+					var d = data.status || { message : 'Server error', code: 400 };
+			        if (typeof onError == 'function') onError(d, that);
 					return;
 				}
 			}
+
+
 			if (!connections.length || connections.length === 0) connections = [];
 			connections.forEach(function (connection) {
 				var _c = new global.Appacitive.Connection(connection, true);
@@ -232,6 +236,10 @@
 			var _queryRequest = _query.toRequest();
 			_queryRequest.onSuccess = function(data) {
 				parseConnections(data, onSuccess, onError, _query.queryType);
+			};
+			_queryRequest.onError = function(d) {
+				d = d || { message : 'Server error', code: 400 };
+				if (typeof onError == 'function') onError(d);
 			};
 			global.Appacitive.http.send(_queryRequest);
 			return this;

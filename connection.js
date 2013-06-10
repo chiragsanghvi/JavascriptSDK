@@ -172,8 +172,8 @@
 			}
 		};
 		request.onError = function(d) {
-			d = d || {};
-			if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			d = d || { message : 'Server error', code: 400 };
+			if (typeof onError == 'function') onError(d);
 		};
 		global.Appacitive.http.send(request);
 	};
@@ -205,15 +205,15 @@
 			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
 				if (d && d.code == '200') {
-					onSuccess();
+					if (typeof onSuccess == 'function') onSuccess();
 				} else {
 					d = d || {};
-					onError(d || { message : 'Server error', code: 400 });
+					if (typeof onError == 'function') onError(d || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				onError(d || { message : 'Server error', code: 400 });
+				if (typeof onError == 'function') onError(d || { message : 'Server error', code: 400 });
 			}
 			global.Appacitive.http.send(request);
 		} else onSuccess();
@@ -239,7 +239,7 @@
 			if (d && d.status && d.status.code == '200') {
 			   if (typeof onSuccess == 'function') {
 			     var conn = d.connection ? new global.Appacitive.Connection(d.connection) : null;
-			     onSuccess(conn);
+			     if (typeof onSuccess == 'function') onSuccess(conn);
 			   }
 			} else {
 				d = d || {};

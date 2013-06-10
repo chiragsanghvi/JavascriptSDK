@@ -1755,13 +1755,14 @@ Depends on  NOTHING
 
 		var _removeTags = []; 
 		if (!article.__tags) article.__tags = [];
+		if (!_snapshot.__tags) _snapshot.__tags = [];
 
 		this.__defineGetter__('tags', function() {
 			if (!article.__tags) return [];
 			return article.__tags;
 		});
 
-		this.addTags = function(tag) {
+		this.addTag = function(tag) {
 			if (!tag || typeof tag != 'string' || !tag.length) return this;
 		    //tag = tag.toLowerCase();
 		    article.__tags.push(tag);
@@ -1773,7 +1774,7 @@ Depends on  NOTHING
 			return this;
 		};
 
-		this.removeTags = function(tag) {
+		this.removeTag = function(tag) {
 			if (!tag || typeof tag != 'string' || !tag.length) return this;
 			//tag = tag.toLowerCase();
 			_removeTags.push(tag);
@@ -1783,6 +1784,19 @@ Depends on  NOTHING
 			var index = article.__tags.indexOf(tag);
 			if (index != -1) article.__tags.splice(index, 1);
 			return this;
+		};
+
+		this.getChangedTags = function() {
+			var _tags = [];
+			article.__tags.every(function(a) {
+				if (_snapshot.indexOf(a) == -1)
+					_tags.push(a);
+			});
+			return _tags;
+		};
+
+		this.getRemovedTags = function() {
+			return __removetags;
 		};
 
 		var _fields = '';
@@ -1917,7 +1931,7 @@ Depends on  NOTHING
 			} catch(e) {}
 
 			if (article.__tags && article.__tags.length > 0)
-				changeSet["__addtags"] = article.__tags;
+				changeSet["__addtags"] = this.getChangedTags();
 
 			if (_removeTags && _removeTags.length > 0)
 				changeSet["__removetags"] = _removeTags;
@@ -1938,6 +1952,7 @@ Depends on  NOTHING
 					if (data && (data.article || data.connection || data.user || data.device)) {
 						_snapshot = data.article || data.connection || data.user || data.device;
 						_copy(_snapshot, article);
+						_removeTags = [];
 						global.Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updated', 'base', { object: that });
 						if (typeof onSuccess == 'function') onSuccess(that);
 					} else {
@@ -2302,11 +2317,21 @@ Depends on  NOTHING
 		};
 
 		var parseArticles = function (data, onSuccess, onError) {
+
+			data = data || {};
 			var articles = data.articles;
+
 			if (!articles) {
-				onError(data.status);
-				return;
+				if (data.status && data.status.code && data.status.code == '200') {
+					articles = [];
+				} else {
+					var d = data.status || { message : 'Server error', code: 400 };
+			        if (typeof onError == 'function') onError(d, that);
+					return;
+				}
 			}
+
+			
 			if (!articles.length || articles.length === 0) articles = [];
 			articles.forEach(function (article) {
 				var _a = new global.Appacitive.Article(article, true);
@@ -2325,7 +2350,12 @@ Depends on  NOTHING
 			_queryRequest.onSuccess = function(data) {
 				parseArticles(data, onSuccess, onError);
 			};
+			_queryRequest.onError = function(d) {
+				d = d || { message : 'Server error', code: 400 };
+			    if (typeof onError == 'function') onError(d, that);
+			};
 			global.Appacitive.http.send(_queryRequest);
+
 			return this;
 		};
 
@@ -2565,8 +2595,9 @@ Depends on  NOTHING
 
 		var parseConnections = function (data, onSuccess, onError, queryType) {
 			data = data || {};
+			
 			var connections = data.connections;
-
+			
 			if (queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && data.connection)
 				connections = [data.connection];
 
@@ -2574,10 +2605,13 @@ Depends on  NOTHING
 				if (data.status && data.status.code && data.status.code == '200') {
 					connections = [];
 				} else {
-					onError(data.status);
+					var d = data.status || { message : 'Server error', code: 400 };
+			        if (typeof onError == 'function') onError(d, that);
 					return;
 				}
 			}
+
+
 			if (!connections.length || connections.length === 0) connections = [];
 			connections.forEach(function (connection) {
 				var _c = new global.Appacitive.Connection(connection, true);
@@ -2615,6 +2649,10 @@ Depends on  NOTHING
 			var _queryRequest = _query.toRequest();
 			_queryRequest.onSuccess = function(data) {
 				parseConnections(data, onSuccess, onError, _query.queryType);
+			};
+			_queryRequest.onError = function(d) {
+				d = d || { message : 'Server error', code: 400 };
+				if (typeof onError == 'function') onError(d);
 			};
 			global.Appacitive.http.send(_queryRequest);
 			return this;
@@ -2689,7 +2727,7 @@ Depends on  NOTHING
 					if (response) onSuccess(response);
 					else onError();
 				});
-			} else  onError();
+			} else  onError({code: '404' , message: 'fb account not found'});
 		};
 		r.onError = onError;
 		global.Appacitive.http.send(r);
@@ -2813,8 +2851,8 @@ Depends on  NOTHING
 				}
 			};
 			request.onError = function(d) {
-				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				d = d || { message : 'Server error', code: 400 };
+				if (typeof onError == 'function') onError(d);
 			}
 			global.Appacitive.http.send(request);
 		} else {
@@ -3011,8 +3049,8 @@ Depends on  NOTHING
 			}
 		};
 		request.onError = function(d) {
-			d = d || {};
-			if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			d = d || { message : 'Server error', code: 400 };
+			if (typeof onError == 'function') onError(d);
 		};
 		global.Appacitive.http.send(request);
 	};
@@ -3044,15 +3082,15 @@ Depends on  NOTHING
 			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
 				if (d && d.code == '200') {
-					onSuccess();
+					if (typeof onSuccess == 'function') onSuccess();
 				} else {
 					d = d || {};
-					onError(d || { message : 'Server error', code: 400 });
+					if (typeof onError == 'function') onError(d || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				onError(d || { message : 'Server error', code: 400 });
+				if (typeof onError == 'function') onError(d || { message : 'Server error', code: 400 });
 			}
 			global.Appacitive.http.send(request);
 		} else onSuccess();
@@ -3078,7 +3116,7 @@ Depends on  NOTHING
 			if (d && d.status && d.status.code == '200') {
 			   if (typeof onSuccess == 'function') {
 			     var conn = d.connection ? new global.Appacitive.Connection(d.connection) : null;
-			     onSuccess(conn);
+			     if (typeof onSuccess == 'function') onSuccess(conn);
 			   }
 			} else {
 				d = d || {};
