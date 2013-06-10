@@ -45,7 +45,7 @@ asyncTest('Happy path for create two articles and connect them', function() {
 	});
 });
 
-asyncTest('Happy path for create connection with two article objects', function() {
+asyncTest('Happy path for create connection with two article objects passed in proper api endpoints', function() {
 	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
 	var school = schools.createNewArticle();
 	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
@@ -72,6 +72,31 @@ asyncTest('Happy path for create connection with two article objects', function(
 	});
 });
 
+asyncTest('Happy path for create connection with two article objects passed in sdk endpoint objects', function() {
+	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
+	var school = schools.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
+	var connectOptions = {
+		endpoints: [{
+			article: school,
+			label: 'school'
+		}, {
+			article: profile,
+			label: 'profile'
+		}],
+		relation: 'myschool'
+	};
+
+	var connection = new Appacitive.Connection(connectOptions);
+	connection.save(function(conn) {
+		ok(true, 'Save worked ');
+		console.dir(conn);
+		start();
+	}, function() {
+		ok(false, 'Could not save connection.');
+		start();
+	});
+});
 
 asyncTest('Happy path to fetch connection using its id', function() {
 	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
@@ -86,11 +111,11 @@ asyncTest('Happy path to fetch connection using its id', function() {
 		__endpointb: {
 			article: profile,
 			label: 'profile'
-		}
+		},
+		relation: 'myschool'
 	};
 
-	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
-	var connection = cC.createNewConnection(connectOptions);
+	var connection = new Appacitive.Connection(connectOptions);
 	connection.save(function(conn) {
 		console.dir(conn);
 		var relSchool = new Appacitive.Connection({__id: conn.get('__id'), relation : 'myschool'});
@@ -116,19 +141,17 @@ asyncTest('Verify connection create using article as one endpoint and articleid 
 	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
 	user.save( function() {
 		var connectOptions = {
-			__endpointa: {
+			endpoints: [{
 				article: profile,
 				label: 'profile'
-			},
-			__endpointb: {
+			}, {
 				articleid: user.get('__id'),
 				label: 'user'
-			},
+			}],
 			relation : 'userprofile'
 		};
 		var connection = new Appacitive.Connection(connectOptions);
 		connection.save(function(conn) {
-			console.dir(conn);
 			var relSchool = new Appacitive.Connection(conn.getConnection());
 			relSchool.fetch(function() {
 				ok(true, 'Connection fetched successfully.');
@@ -149,17 +172,18 @@ asyncTest('Verify connection create using article as one endpoint and articleid 
 });
 
 asyncTest('Verify connection update after it is created', function() {
-	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var school = schools.createNewArticle();
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	
 	var connectOptions = {
 		__endpointa: {
-			article: school,
+			article: {
+				__schematype: 'school',
+				name: 'Chirag Sanghvi'
+			},
 			label: 'school'
 		},
 		__endpointb: {
-			article: profile,
+			article: {
+				__schematype: 'profile'
+			},
 			label: 'profile'
 		},
 		year: '2003'
@@ -168,9 +192,14 @@ asyncTest('Verify connection update after it is created', function() {
 	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
 	var connection = cC.createNewConnection(connectOptions);
 	connection.save(function(conn) {
-		console.dir(conn);
+		equal(conn.get('year'), '2003', 'Connection properly created');
+		if (conn.endpointA.article && conn.endpointA.article.getArticle && conn.endpointB.article && conn.endpointB.article.getArticle) 
+			ok(true, 'Article set properly in connection');
+		else
+			ok(false, 'Article not set in connection');
+
 		var year = '2005';
-		conn.set('year',year);
+		conn.set('year', year);
 		conn.save(function(conn) {
 			equal(conn.get('year'), year, 'Connection property value changed successfully');
 			start();
@@ -183,7 +212,6 @@ asyncTest('Verify connection update after it is created', function() {
 		start();
 	});
 });
-
 
 asyncTest('Verify connection update directly', function() {
 	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
