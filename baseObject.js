@@ -42,19 +42,21 @@
 		if (raw.__schematype) { 
 			raw.__schematype = raw.__schematype.toLowerCase();
 			this.entityType = raw.__schematype;
+			this.schema = this.entityType;
 			//if __schematype is user/device then set specific
 			if (raw.__schematype == 'user' || raw.__schematype == 'device') this.type = raw.__schematype;
 			else this.type = 'article';
 		} else if (raw.__relationtype) {
 			raw.__relationtype = raw.__relationtype.toLowerCase();
 			this.entityType = raw.__relationtype;
+			this.relation = this.entityType;
 			this.type = 'connection';
 		}
 
 		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__revision","__endpointa","__endpointb","__createdby","__lastmodifiedby","__schematype","__relationtype","__utcdatecreated","__utclastupdateddate","__tags","__authType","__link"];
+		var _ignoreTheseFields = ["__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
 		
-		var _allowObjectSetOperations = ["__link","__endpointa","__endpointb"];
+		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
 
 		/* parse api output to get error info
 		   TODO: define error objects in future depending on codes and messages */
@@ -73,6 +75,9 @@
 
 		this.__defineSetter__('id', function(value) { this.set('__id', value); });
 
+		if (!article.__attributes) article.__attributes = {};
+		if (!_snapshot.__attributes) _snapshot.__attributes = {};
+
 		// accessor function for the article's attributes
 		this.attributes = function() {
 			if (arguments.length === 0) {
@@ -82,11 +87,30 @@
 				if (!article.__attributes) article.__attributes = {};
 				return article.__attributes[arguments[0]];
 			} else if (arguments.length == 2) {
-				if(typeof(arguments[1]) !== 'string')
+				if (typeof(arguments[1]) !== 'string' && arguments[1] != null)
 					throw new Error('only string values can be stored in attributes.');
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
 			} else throw new Error('.attributes() called with an incorrect number of arguments. 0, 1, 2 are supported.');
+		};
+
+		//accessor function to get chaned attributes
+		this.getChangedAttributes = function() {
+			var isDirty = false;
+			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
+			for (var property in article.__attributes) {
+				if (typeof article.__attributes[property] == 'undefined' || article.__attributes[property] === null) {
+					changeSet[property] = null;
+					isDirty = true;
+				} else if (article.__attributes[property] != _snapshot.__attributes[property]) {
+					changeSet[property] = article.__attributes[property];
+					isDirty = true;
+				} else if (article.__attributes[property] == _snapshot.__attributes[property]) {
+					delete changeSet[property];
+				}
+			}
+			if (!isDirty) return null;
+			return changeSet;
 		};
 
 		// accessor function for the article's aggregates
@@ -139,14 +163,14 @@
 		this.getChangedTags = function() {
 			var _tags = [];
 			article.__tags.every(function(a) {
-				if (_snapshot.indexOf(a) == -1)
+				if (_snapshot.__tags.indexOf(a) == -1)
 					_tags.push(a);
 			});
 			return _tags;
 		};
 
 		this.getRemovedTags = function() {
-			return __removetags;
+			return _removetags;
 		};
 
 		var _fields = '';
@@ -285,6 +309,9 @@
 
 			if (_removeTags && _removeTags.length > 0)
 				changeSet["__removetags"] = _removeTags;
+
+			var attrs = this.getChangedAttributes();
+			if (attrs) changeSet["__attributes"] = attrs;
 
 			var that = this;
 			if (isDirty) {
