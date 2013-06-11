@@ -120,7 +120,7 @@
 		this.setCurrentUser = function(user, token, expiry) {
 			if (!user || typeof user != 'object' || user.length >= 0) throw new Error('Cannot set null object as user');
 			var userObject = user;
-			if (!user.getArticle) userObject = new global.Appacitive.User(user); 
+			if (!user.getArticle) userObject = new global.Appacitive.User(user, true); 
 			if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
@@ -139,7 +139,7 @@
 			_authenticatedUser.linkFacebookAccount = function(onSuccess, onError) {
 				var _callback = function() {
 					_link(Appacitive.Facebook.accessToken, _authenticatedUser, function(base) {
-						global.Appacitive.eventManager.fire('user.' + base.get('__id') + '.updated', base, { object: base });
+						global.Appacitive.eventManager.fire('user..article.' + base.get('__id') + '.updated', base, { object: base });
 						if (typeof onSuccess == 'function') onSuccess(base);
 					}, onError);
 				};
@@ -158,7 +158,7 @@
 			_authenticatedUser.unlinkFacebookAccount = function(onSuccess, onError) {
 
 				_link('facebook', this, function(base) {
-					global.Appacitive.eventManager.fire('user.' + base.get('__id') + '.updated', base, { object: base });
+					global.Appacitive.eventManager.fire('user.article.' + base.get('__id') + '.updated', base, { object: base });
 					if (typeof onSuccess == 'function') onSuccess(base);
 				}, onError);
 				
@@ -167,7 +167,7 @@
 
 			_authenticatedUser.logout = function(callback) { Appacitive.Users.logout(callback); };
 
-			global.Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
+			global.Appacitive.eventManager.clearAndSubscribe('user.article.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
 			});
 

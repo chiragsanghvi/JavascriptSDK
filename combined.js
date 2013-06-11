@@ -2011,14 +2011,13 @@ Depends on  NOTHING
 					}
 
 					if (that.type == 'connection') that.parseConnection();
-
-					global.Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.created', 'base', { object : that });
+					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
 					if (typeof onSuccess == 'function') onSuccess(that);
 				} else {
 					data = data || {};
 					data.status =  data.status || {};
 					data.status = _getOutpuStatus(data.status);
-					global.Appacitive.eventManager.fire((that.__schematype || that.__relationtype) + '.' + that.type + '.createFailed', 'base', { error: data.status });
+					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
 					if (typeof onError == 'function') onError(data.status, that);
 				}
 			};
@@ -2055,13 +2054,13 @@ Depends on  NOTHING
 						_snapshot = data.article || data.connection || data.user || data.device;
 						_copy(_snapshot, article);
 						_removeTags = [];
-						global.Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updated', 'base', { object: that });
+						global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + that.type + "." + article.__id +  '.updated', that, { object : that });
 						if (typeof onSuccess == 'function') onSuccess(that);
 					} else {
 						data = data || {};
 						data.status =  data.status || {};
 						data.status = _getOutpuStatus(data.status);
-						global.Appacitive.eventManager.fire(that.type + '.' + article.__id + '.updateFailed', 'base', { object: data.status });
+						global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + that.type + "." + article.__id +  '.updateFailed', that, { object : data.status });
 						if (typeof onError == 'function') onError(data.status, that);
 					}
 				};
@@ -3352,7 +3351,7 @@ Depends on  NOTHING
 		this.setCurrentUser = function(user, token, expiry) {
 			if (!user || typeof user != 'object' || user.length >= 0) throw new Error('Cannot set null object as user');
 			var userObject = user;
-			if (!user.getArticle) userObject = new global.Appacitive.User(user); 
+			if (!user.getArticle) userObject = new global.Appacitive.User(user, true); 
 			if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
@@ -3371,7 +3370,7 @@ Depends on  NOTHING
 			_authenticatedUser.linkFacebookAccount = function(onSuccess, onError) {
 				var _callback = function() {
 					_link(Appacitive.Facebook.accessToken, _authenticatedUser, function(base) {
-						global.Appacitive.eventManager.fire('user.' + base.get('__id') + '.updated', base, { object: base });
+						global.Appacitive.eventManager.fire('user..article.' + base.get('__id') + '.updated', base, { object: base });
 						if (typeof onSuccess == 'function') onSuccess(base);
 					}, onError);
 				};
@@ -3390,7 +3389,7 @@ Depends on  NOTHING
 			_authenticatedUser.unlinkFacebookAccount = function(onSuccess, onError) {
 
 				_link('facebook', this, function(base) {
-					global.Appacitive.eventManager.fire('user.' + base.get('__id') + '.updated', base, { object: base });
+					global.Appacitive.eventManager.fire('user.article.' + base.get('__id') + '.updated', base, { object: base });
 					if (typeof onSuccess == 'function') onSuccess(base);
 				}, onError);
 				
@@ -3399,7 +3398,7 @@ Depends on  NOTHING
 
 			_authenticatedUser.logout = function(callback) { Appacitive.Users.logout(callback); };
 
-			global.Appacitive.eventManager.clearAndSubscribe('user.' + userObject.get('__id') + '.updated', function(sender, args) {
+			global.Appacitive.eventManager.clearAndSubscribe('user.article.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
 			});
 
