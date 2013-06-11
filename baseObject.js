@@ -9,7 +9,6 @@
 	var _BaseObject = function(objectOptions, setSnapShot) {
 
 		var _snapshot = {};
-		var _previous = {};
 
 		//Copy properties to current object
 		var _copy = function(src, des) {
@@ -35,7 +34,6 @@
 		//will be used in case of creating an appacitive article for internal purpose
 		if (setSnapShot) {
 			_copy(article, _snapshot);
-			_copy(article, _previous);
 		}
 
 		if (!_snapshot.__id && raw.__id) _snapshot.__id = raw.__id;
@@ -189,8 +187,12 @@
 					changeSet[property] = null;
 					isDirty = true;
 				} else if (article[property] != _snapshot[property]) {
-					changeSet[property] = article[property];
-					isDirty = true;
+					if (property == '__tags' || property == '__attributes') {
+						delete changeSet[property];
+					} else {
+						changeSet[property] = article[property];
+						isDirty = true;
+					}
 				} else if (article[property] == _snapshot[property]) {
 					delete changeSet[property];
 				}
@@ -203,18 +205,29 @@
 			} catch(e) {}
 
 			if (isInternal) {
-				delete changeSet["__tags"];
-				if (article.__tags && article.__tags.length > 0) changeSet["__addtags"] = this.getChangedTags();
-				if (_removeTags && _removeTags.length > 0) changeSet["__removetags"] = _removeTags;
+				if (article.__tags && article.__tags.length > 0) { 
+					changeSet["__addtags"] = this.getChangedTags(); 
+					isDirty = true;
+				}
+				if (_removeTags && _removeTags.length > 0) {
+				    changeSet["__removetags"] = _removeTags;
+				    isDirty = true;
+				}
 			} else {
-				if (article.__tags && article.__tags.length > 0) changeSet["__tags"] = this.getChangedTags();
+				if (article.__tags && article.__tags.length > 0) { 
+					changeSet["__tags"] = this.getChangedTags();
+					isDirty = true;
+			  	}
 			}
 
 			var attrs = _getChangedAttributes();
-			if (attrs) changeSet["__attributes"] = attrs;
+			if (attrs) { 
+				changeSet["__attributes"] = attrs;
+				isDirty = true;
+			}
 			else delete changeSet["__attributes"];
 
-			if (isDirty) return changeSet
+			if (isDirty) return changeSet;
 			return false;
 		};
 
@@ -227,11 +240,11 @@
 			if (arguments.length === 0) {
 				return changeSet ? true : false;
 			} else if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length > 0) {
-				if (changeSet[arguments[0]]) {
+				if (changeSet && changeSet[arguments[0]]) {
 					return true;
 				} return false;
 			}
-			return null;
+			return false;
 		};
 
 		this.changedAttributes  = function() {
@@ -251,12 +264,12 @@
 
 		this.previous = function() {
 			if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length) {
-				return _previous[arguments];	
+				return _snapshot[arguments[0]];	
 			}
 			return null
 		};
 
-		this.previousAttributes = function() { return _previous; };
+		this.previousAttributes = function() { return _snapshot; };
 
 		var _fields = '';
 
@@ -399,8 +412,6 @@
 				_updateRequest.data = changeSet;
 				_updateRequest.onSuccess = function(data) {
 					if (data && (data.article || data.connection || data.user || data.device)) {
-						//copy article changes to previous
-						_copy(article, _previous);
 						_snapshot = data.article || data.connection || data.user || data.device;
 						_copy(_snapshot, article);
 						_removeTags = [];
