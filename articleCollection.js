@@ -121,7 +121,7 @@
 					index = i;
 				}
 			});
-			if (index !=+ null) {
+			if (index != null) {
 				_articles.splice(index, 1);
 			} else {
 				_articles.push(article);
@@ -248,6 +248,7 @@
 		this.map = function() { return _articles.map.apply(this, arguments); };
 		this.forEach = function() { return _articles.forEach.apply(this, arguments); };
 		this.filter = function() { return _articles.filter.apply(this, arguments); };
+
 	};
 
 	global.Appacitive.ArticleCollection = _ArticleCollection;
@@ -264,5 +265,8 @@
 		return this.getAll();
 	});
 
+	global.Appacitive.ArticleCollection.prototype.__defineGetter__('length', function() {
+		return this.articles.length;
+	});
 
 })(global);

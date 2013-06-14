@@ -71,7 +71,7 @@
 			return data;
 		};
 
-		this.getObject = function() { return article; };
+		this.getObject = function() { return JSON.parse(JSON.stringify(article)); };
 
 		this.toJSON = function() { return article; };
 
@@ -168,7 +168,7 @@
 			return this;
 		};
 
-		this.getChangedTags = function() {
+		var _getChangedTags = function() {
 			var _tags = [];
 			article.__tags.every(function(a) {
 				if (_snapshot.__tags.indexOf(a) == -1)
@@ -176,6 +176,8 @@
 			});
 			return _tags;
 		};
+
+		this.getChangedTags = _getChangedTags;
 
 		this.getRemovedTags = function() { return _removetags; };
 
@@ -206,7 +208,7 @@
 
 			if (isInternal) {
 				if (article.__tags && article.__tags.length > 0) { 
-					changeSet["__addtags"] = this.getChangedTags(); 
+					changeSet["__addtags"] = _getChangedTags(); 
 					isDirty = true;
 				}
 				if (_removeTags && _removeTags.length > 0) {
@@ -215,7 +217,7 @@
 				}
 			} else {
 				if (article.__tags && article.__tags.length > 0) { 
-					changeSet["__tags"] = this.getChangedTags();
+					changeSet["__tags"] = _getChangedTags();
 					isDirty = true;
 			  	}
 			}
