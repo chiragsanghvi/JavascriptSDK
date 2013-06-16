@@ -624,4 +624,3 @@ Appacitive.Users.currentUser.checkin({
 }, function(err) {
 	alert("There was an error checking in");
 });
-```
