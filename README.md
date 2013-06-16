@@ -2,13 +2,11 @@ Javascript SDK for appacitive
 =====================
 
 This open source library allows you to integrate applications built using javascript with the Appacitive platform.
-
 To learn more about the Appacitive platform, please visit [www.appacitive.com](https://www.appacitive.com).
 
 LICENSE
 
 Except as otherwise noted, the Javascript SDK for Appacitive is licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html).
-
 
 # Documentation 
 
@@ -348,7 +346,7 @@ The success callback is given one argument: `authresult`
 * The `token` field is the user token. This is similar to the session token, but instead of authenticating the app with the server, it authenticates the logged in user with the app. More on this later, in the authentication section.
 * The `user` field is the Appacitive User object. The data that exists in the user field got pulled from facebook when he/she logged in. Note: <span style="font-weight: bold">The user must agree to share his/her  email address with your app to be able to use facebook to signup/login.</span>
 
-## Retrieve
+### Retrieve
 
 There are three ways you could retreive the user
 
@@ -384,7 +382,7 @@ Appacitive.Users.getUserByToken("{{usertoken}}", function(obj) {
 	alert('Could not fetch user with id 12345');
 });
 ```
-## Update
+### Update
 Again, there's no difference between updating a user and updating any other data. It is done via the `save` method.
 ```javascript
 user.set('firstname', 'Superman');
@@ -395,7 +393,7 @@ user.save(function(obj) {
 });
 ```
 
-## Delete
+### Delete
 There are 3 ways of deleting a user.
 #### Via the user id
 ```javascript
@@ -426,9 +424,9 @@ Appacitive.Users.deleteCurrentUser(function() {
 	// delete failed
 });
 ```
-## Authentication
+### Authentication
 
-Authentication is the core of user management. You can authenticate (log in) users in multiple ways. Once the user has authenticated successfully, you will be provided the user's details and an access token. This access token identifies the currently logged in user and will be used to implement access control. Each instance of an app can have one logged in user at any given time. However, you need to explicitly tell the SDK to start using the access token.
+Authentication is the core of user management. You can authenticate (log in) users in multiple ways. Once the user has authenticated successfully, you will be provided the user's details and an access token. This access token identifies the currently logged in user and will be used to implement access control. Each instance of an app can have one logged in user at any given time. You can also explicitly set the accesstoken and tell the SDK to start using the access token.
 ```javascript
 // the access token
 // var token = /* ... */
@@ -442,7 +440,7 @@ Appacitive.session.setUserAuthHeader(token);
 Appacitive.session.removeUserAuthHeader();
 // Access control has been disabled
 ```
-## Signup and login
+#### Signup and login
 
 This method allows to create a user, authenticate it and set it as current user
 ```javascript
@@ -463,7 +461,7 @@ Appacitive.Users.singup(userDetails , function(obj) {
 });
 ```
 
-## Login via username + password
+#### Login via username + password
 
 You can ask your users to authenticate via their username and password.
 ```javascript
@@ -481,7 +479,7 @@ Appacitive.Users.login("username", "password", function (authResult) {
 }
 ```
 
-## Login with facebook
+#### Login with facebook
 
 You can ask your users to log in via facebook. The process is very similar to signing up with facebook.
 ```javascript
@@ -499,11 +497,38 @@ Appacitive.Users.loginWithFacebook(function (authResult) {
 }
 ```
 
-## Login with twitter
+#### Current User
 
+Whenever you use any signup or login method, the user is stored in localStorage and can be retrieved using `Appacitive.Users.currentUser`.So, everytime your app opens, you just need to check this value, to be sure whether the user is logged-in or logged-out.
+```javascript
+var cUser = Appacitive.User.currentUser;
+if (cUser) {
+    // user is logged in
+} else {
+    // user is not logged in
+}
+```
+You can clear this value, calling `Appacitive.Users.logout()` method.
+```javascript
+Appacitive.Users.log0ut();
+// this will now be null
+var cUser = Appacitive.Users.currentUsers;  
+```
 
-Documentation Coming Soon!
+### User Session Management
 
+User session validation is used to check whether the user is authenticated and his usertoken is valid or not.
+```javascript
+
+// to check whether user is loggedin locally. This won't make any explicit apicall to validate user
+Appacitive.Users.validateCurrentUser(function(isValid){
+	if(isValid) //user is logged in
+});
+// to check whether user is loggedin, explicitly making apicall to validate usertoken
+Appacitive.Users.validateCurrentUser(function(isValid){
+	if (isValid)  //user is logged in
+}, true); // set to true to validate usertoken making an apicall
+```
 
 ## Linking accounts
 
