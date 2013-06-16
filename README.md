@@ -136,7 +136,7 @@ Lets verify that our player is indeed called 'John Doe'
 	alert(player.getArticle().name);	// John Doe
 
 
-### Saving
+#### Saving
 
 
 Saving a player to the server is easy.
@@ -173,7 +173,7 @@ This is what is available in the `player` object after a successful save.
 	}
 	*/
 
-You'll see a bunch of fields that were created automatically by the server. They are used for housekeeping and storing meta-information about the object. All system generated fields start with `__`. Your values will be different than the ones shown here.
+You'll see a bunch of fields that were created automatically by the server. They are used for housekeeping and storing meta-information about the object. All system generated fields start with `__`, avoid changing their values. Your values will be different than the ones shown here.
 
 ### Retrieving
 
@@ -188,6 +188,18 @@ Retrieving is done via the `fetch` method. Here's an example
 	// retrieve the player
 	player.fetch(function(obj) {
 		alert('Fetched player with name: ' + player.get('name'));
+	}, function(err, obj) {
+		alert('Could not fetch, probably because of an incorrect id');
+	});
+
+
+You can also retreive an article using get method on Appacitive.Article
+
+	// retrieve the player
+	Appacitive.Article.get({ 
+		schema:'player', id: '{{existing__id}}'
+	}, function(obj) {
+		alert('Fetched player with name: ' + obj.get('name')); // artice obj is returned as argument to onsuccess
 	}, function(err, obj) {
 		alert('Could not fetch, probably because of an incorrect id');
 	});
