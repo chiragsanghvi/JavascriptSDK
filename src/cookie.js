@@ -12,7 +12,9 @@ var cookieManager = function () {
 		
 		//for now lets make this a session cookie if it is not an erase
 		if (!erase) var expires = '';
-		document.cookie = name + "=" + value + expires + "; path=/";
+
+		var domain = 'domain=' + window.location.hostname;
+		document.cookie = name + "=" + value + expires + "; path=/;" + domain;
 	};
 
 	this.readCookie = function (name) {
