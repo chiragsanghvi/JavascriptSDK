@@ -298,6 +298,7 @@ var global = {};
 		}
 
 		_super.send = function (request, callbacks, states) {
+			if (!gloabl.Appacitive.Session.initalized) throw new Error("Initialize Appacitvie SDK");
 			if (typeof request.beforeSend == 'function') {
 				request.beforeSend(request);
 			}

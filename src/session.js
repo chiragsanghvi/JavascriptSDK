@@ -10,6 +10,9 @@
 		/**
 		 * @constructor
 		 */
+
+		this.initialized = false;
+
 		var _sessionRequest = function() {
 			this.apikey = '';
 			this.isnonsliding = false;
@@ -27,25 +30,15 @@
 			global.Appacitive.Session.create(_options);
 		};
 
-		this.create = function(options) {
-			
-			options = options || {};
-			_options = options;
+		this.create = function(onSuccess, onError) {
 
-			// track the application 
-			_appName = options.app || '';
+			if (!this.initialized) throw new Error("Intialize Appacitvie SDK");
 
 			// create the session
 			var _sRequest = new _sessionRequest();
 
-			if (options.apikey) {
-				_sRequest.apikey = options.apikey || '';
-				_apikey = _sRequest.apikey;
-			} else {
-				_sRequest.apikey = _apikey
-			}
+			_sRequest.apikey = _apikey
 			
-
 			_sRequest.isnonsliding = options.isnonsliding || _sRequest.isnonsliding;
 			_sRequest.usagecount = options.usagecount || _sRequest.usagecount;
 			_sRequest.windowtime = options.windowtime || _sRequest.windowtime;
@@ -58,13 +51,14 @@
 				if (data && data.status && data.status.code == '200') {
 					_sessionKey = data.session.sessionkey;
 					global.Appacitive.Session.useApiKey = false;
-					global.Appacitive.eventManager.fire('session.success', {}, data);
+					if (onSuccess && typeof onSuccess == 'function') onSuccess(data);
 					global.Appacitive.Session.onSessionCreated();
 				}
 				else {
-					global.Appacitive.eventManager.fire('session.error', {}, data);
+					if (onError && typeof onError == 'function') onError(data);
 				}
 			};
+			_request.onError = onError;
 			global.Appacitive.http.send(_request);
 		};
 
@@ -213,9 +207,15 @@
 	global.Appacitive.Session = new SessionManager();
 
 	global.Appacitive.initialize = function(options) {
-		global.Appacitive.Session.setApiKey( options.apikey || '' ) ;
-		global.Appacitive.Session.environment = ( options.env || '' );
+		if (this.initialized) return;
+		
+		if (!options.apikey || _options.apikey.length == 0) throw new Error("apikey is amndatory");
+		
+		global.Appacitive.Session.setApiKey( options.apikey) ;
+		global.Appacitive.Session.environment = ( options.env || 'live' );
 		global.Appacitive.useApiKey = true;
+  		
+  		this.initialized = true;
 
 		if (options.userToken) {
 

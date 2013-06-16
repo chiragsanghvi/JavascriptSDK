@@ -476,7 +476,7 @@
 		};
 
 		// delete the article
-		this.del = function(onSuccess, onError, options) {
+		this.del = function(onSuccess, onError, deleteConnections) {
 
 			// if the article does not have __id set, 
 			// just remove it from the collection
@@ -504,7 +504,7 @@
 			}
 
 			// if deleteConnections is specified
-			if (options.deleteConnections && options.deleteConnections === true) {
+			if (deleteConnections && deleteConnections === true) {
 				if (url.indexOf('?') == -1) url += '?deleteconnections=true';
 				else url += '&deleteconnections=true';
 			}
