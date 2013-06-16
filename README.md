@@ -153,11 +153,13 @@ When you call save, the entity is taken and stored on Appacitive's servers. A un
 This is what is available in the `player` object after a successful save.
 
 	player.save(function(obj) {
-		console.dir(player.id); //14696753262625025
+		console.log("ID : " + player.id); //
+		console.dir(palyer.getArticle());
 	});
 
 	// output
 	/* 
+	ID: 14696753262625025
 	{
 		"__id": "14696753262625025",
 	  	"__schematype": "player",
@@ -205,7 +207,7 @@ You can also retreive an article using get method on Appacitive.Article
 	});
 
 
-**Note**:  You can also mention in your object exactly which all fields you want returned so as to reduce payload. By default all fields are returned. '__id' and `__schematype` are the fields which will always be returned. Every create, update and get call will return only these fields if specified.
+**Note**:  You can also mention in your object exactly which all fields you want returned so as to reduce payload. By default all fields are returned. Fiedls '__id' and `__schematype` are the fields which will always be returned. Every create, update and get call will return only these fields if specified.
 
     player.fields = ["name", "age", "__createby"] //will set fields to return __id, __schematype, name, age and __createdby
     player.fields = [] //will set fields to return only __id and __schematype
