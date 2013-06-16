@@ -3,6 +3,7 @@ module('Environment tests');
 test('Verify default environment is sandbox', function() {
 	var r = new Appacitive.HttpRequest();
 	r.url = 'http://google.co.in';
+	Appacitive.initialize({apikey: testConstants.apiKey});
 	r.beforeSend = function(r) {
 		var environmentHeader = r.headers.filter(function(h) {
 			return h.key.toLowerCase() == 'appacitive-environment';

@@ -4,8 +4,13 @@ asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.Session.resetSession();
 	Appacitive.Session.removeUserAuthHeader();
 	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox' });
-	ok(true, 'Session created successfully.');
-	start();
+	Appacitive.Session.create(function() {
+		ok(true, 'Session created successfully.');
+		start();
+	}, function() {
+		ok(true, 'Could not created session.');
+		start();
+	});
 });
 
 asyncTest('Verify user auth header can be added', function() {

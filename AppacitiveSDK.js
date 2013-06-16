@@ -330,7 +330,7 @@ var global = {};
 		}
 
 		_super.send = function (request, callbacks, states) {
-			if (!gloabl.Appacitive.Session.initalized) throw new Error("Initialize Appacitvie SDK");
+			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
 			if (typeof request.beforeSend == 'function') {
 				request.beforeSend(request);
 			}
@@ -982,10 +982,6 @@ Depends on  NOTHING
 
 			_sRequest.apikey = _apikey
 			
-			_sRequest.isnonsliding = options.isnonsliding || _sRequest.isnonsliding;
-			_sRequest.usagecount = options.usagecount || _sRequest.usagecount;
-			_sRequest.windowtime = options.windowtime || _sRequest.windowtime;
-
 			var _request = new global.Appacitive.HttpRequest();
 			_request.url = global.Appacitive.config.apiBaseUrl + 'application.svc/session';
 			_request.method = 'put';
@@ -1150,15 +1146,15 @@ Depends on  NOTHING
 	global.Appacitive.Session = new SessionManager();
 
 	global.Appacitive.initialize = function(options) {
-		if (this.initialized) return;
+		if (global.Appacitive.Session.initialized) return;
 		
-		if (!options.apikey || _options.apikey.length == 0) throw new Error("apikey is amndatory");
+		if (!options.apikey || options.apikey.length == 0) throw new Error("apikey is mandatory");
 		
 		global.Appacitive.Session.setApiKey( options.apikey) ;
-		global.Appacitive.Session.environment = ( options.env || 'live' );
+		global.Appacitive.Session.environment = ( options.env || 'sandbox' );
 		global.Appacitive.useApiKey = true;
   		
-  		this.initialized = true;
+  		global.Appacitive.Session.initialized = true;
 
 		if (options.userToken) {
 
@@ -2141,7 +2137,6 @@ Depends on  NOTHING
 
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
-			options = options || {};
 
 			// delete this article
 			var that = this;

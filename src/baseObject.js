@@ -490,7 +490,6 @@
 
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
-			options = options || {};
 
 			// delete this article
 			var that = this;
