@@ -588,7 +588,7 @@ Appacitive.Users.unlinkFacebookAccount(function() {
 }, function(err){
 	alert("Could not delink facebook account");
 });
-
+```
 ### Password Management
 
 #### Reset Password
@@ -612,16 +612,16 @@ Appacitive.Users.currentUser.updatePassword('{oldPassword}','{newPassword}', fun
 },function(){
 	alert("Failed to updated password for user");
 });
-
+```
 ### Check-in
 
 Users can check-in at a particular co-ordinate uing this call. Basically this call updates users location.
 ```javascript
 Appacitive.Users.currentUser.checkin({
-	lat:18.57, lnh: '75.55'
+	lat:18.57, lng: '75.55'
 }, function() {
 	alert("Checked in successfully");
 }, function(err) {
 	alert("There was an error checking in");
 });
-
+```
