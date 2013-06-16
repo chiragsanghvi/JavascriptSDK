@@ -52,23 +52,21 @@ Now you are ready to use the SDK
 
 Appacitive also provides a way to use sessions instead of apikey directly in your API calls. You can create a session as
 
-    Appacitive.session.create({ apikey: {{your_api_key_here}} });
-    Appacitive.eventManager.subscribe('session.success', function () {
-        // your session is created and stored within the sdk and is commanded to use session instead of apikey
-    });
-    Appacitive.eventManager.subscribe('session.error', function () {
-        // your session creation failed.
+    Appacitive.Session.create({ apikey: {{your_api_key_here}} }, function() {
+    	// your session is created and stored within the sdk and is commanded to use session instead of apikey
+    }, function(err) {
+    	// your session creation failed.
     });
 
 **Note** : On successful creation of session, SDK sets `Appacitive.session.useApiKey` to false which is true by default. This flag indicates whether to use ApiKey or Session for api calls. To change it use
 
     Appacitive.session.useApiKey = /*true or false */
 
-To get the session use `Appacitive.session.get()`.
+To get the session use `Appacitive.Session.get()`.
 
-To set the session use `Appacitive.session.setSession('/* session */')`.
+To set the session use `Appacitive.Session.setSession('/* session */')`.
 
-To set the apikey use `Appacitive.session.setApiKey('/* apikey */')`.
+To set the apikey use `Appacitive.Session.setApiKey('/* apikey */')`.
 
 ## Conventions
 
