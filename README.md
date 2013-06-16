@@ -521,39 +521,70 @@ User session validation is used to check whether the user is authenticated and h
 ```javascript
 
 // to check whether user is loggedin locally. This won't make any explicit apicall to validate user
-Appacitive.Users.validateCurrentUser(function(isValid){
+Appacitive.Users.validateCurrentUser(function(isValid) {
 	if(isValid) //user is logged in
 });
 // to check whether user is loggedin, explicitly making apicall to validate usertoken
-Appacitive.Users.validateCurrentUser(function(isValid){
+Appacitive.Users.validateCurrentUser(function(isValid) {
 	if (isValid)  //user is logged in
 }, true); // set to true to validate usertoken making an apicall
 ```
 
-## Linking accounts
+### Linking and Unlinking accounts
 
+#### Linking Facebook account
 
-Documentation Coming Soon!
+If you want to associate an existing Appacitive.User to a Facebook account, you can link it like so
+```javascript
+var user = Appacitive.User.currentUser;
+user.linkFacebookAccount(function(obj) {
+	console.dir(user.linkedAccounts);//You can access linked accounts of a user, using this field
+}, function(err, obj){
+	alert("Could not link FB account");
+});
+```
+Under the hood the same steps followed for login are executed, except in this case the user is linked with facebook account.
 
+#### Create Facebook linked accounts
 
-## Create linked accounts
+If you want to associate a new Appacitive.User to a Facebook account, you can link it like so
+```javascript
+//create user object
+var user = new Appacitive.User({
+	username: 'john.doe@appacitive.com',
+	password: /* password as string */,
+	email: 'johndoe@appacitive.com',
+	firstname: 'John',
+	lastname: 'Doe'	
+});
+//link facebook account
+user.linkFacebookAccount(function(obj) {
+	console.dir(user.linkedAccounts);//You can access linked accounts of a user, using this field
+}, function(err, obj){
+	alert("Could not link FB account");
+});
+//create the user on server
+user.save(function(obj) {
+	console.dir(user.linkedAccounts);
+}, function(err, obj) {
+	alert('An error occured while saving the user.');
+});
 
+```
+Under the hood the same steps followed for login are executed.
 
-Documentation Coming Soon!
-
-
-## Retreiving linked accounts
-
-
-Documentation Coming Soon!
-
-
-## Updating linked accounts
-
-
-Documentation Coming Soon!
-
-
-## Deleting linked accounts
-
-Documentation Coming Soon!
+#### Retreiving Facebook linked account
+```javascript
+Appacitive.Users.currentUser.getAllLinkedAccounts(function() {
+	console.dir(Appacitive.Users.currentUser.linkedAccounts);
+}, function(err){
+	alert("Could not reteive facebook linked account")
+});
+```
+#### Delinking Facebook account
+```javascript
+Appacitive.Users.unlinkFacebookAccount(function() {
+	alert("Facebook acoount delinked successfully");
+}, function(err){
+	alert("Could not delink facebook account");
+});
