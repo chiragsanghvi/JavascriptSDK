@@ -593,6 +593,12 @@ var global = {};
             getGetUrl: function (userId, fields) {
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
+            getUserByTokenUrl: function(userToken) {
+                return string.format("{0}/me?useridtype=token&token=", this.userServiceUrl, userToken);
+            },
+            getUserByUsernameUrl: function(username) {
+                return string.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
+            },
             getUpdateUrl: function (userId, fields) {
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
@@ -620,6 +626,9 @@ var global = {};
             },
             getDelinkAccountUrl: function(userId, type){
                 return String.format("{0}/{1}/{2}/delink", this.userServiceUrl, userId, type);
+            },
+            getCheckinUrl: function(userId, lat, lng) {
+                return String.format("{0}/{1}/chekin?lat={2}&lng={3}", this.userServiceUrl, userId, lat, lng);
             }
         };
         this.device = {
@@ -3303,6 +3312,29 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request);
 		};
 
+		var _checkin = function(coords, base, onSuccess, onError) {
+			var userId = base.get('__id');
+			if (!userId || typeof userId !== 'string' || userId.length == 0) {
+				if (onSuccess && typeof onSuccess == 'function') onSuccess();
+			}
+			if (!coords || !coords.lat || !coords.lng) throw new Error("Invalid coordinates provides");
+
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getCheckinUrl(userId, coords.lat, coords.lng);
+			request.method = 'post';
+			request.onSuccess = function(a) {
+				if (a && a.code == '200') { 
+					if (typeof onSuccess == 'function') onSuccess(accounts, base);
+				}
+				else { if (typeof onError == 'function') onError(a, base); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request);
+		};
+
 		var _link = function(accessToken, base, onSuccess, onError) {
 
 			onSuccess = onSuccess || function() {};
@@ -3412,6 +3444,10 @@ Depends on  NOTHING
 
 			_authenticatedUser.logout = function(callback) { Appacitive.Users.logout(callback); };
 
+			_authenticatedUser.checkin = function(coords, onSuccess, onError) {
+				_checkin(coords, this, onSuccess, onError);
+				return this;
+			};
 			global.Appacitive.eventManager.clearAndSubscribe('user.article.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
 			});
@@ -3570,7 +3606,11 @@ Depends on  NOTHING
 			this.authenticateUser(authRequest, onSuccess, onError, 'BASIC');
 		};
 
-		this.loginWithFacebook = function(onSuccess, onError, ignoreFBLogin) {
+		this.signupWithFacebook = function(onSuccess, onError) {
+			this.loginWithFacebook(onSuccess, onError, false, true);
+		};
+
+		this.loginWithFacebook = function(onSuccess, onError, ignoreFBLogin, isNew) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 			var that = this;
@@ -3581,7 +3621,7 @@ Depends on  NOTHING
 					"accesstoken": global.Appacitive.Facebook.accessToken,
 					"type": "facebook",
 					"expiry": 86400000,
-					"createnew": true
+					"createnew": isNew
 				};
 
 				that.authenticateUser(authRequest, function(a) {
@@ -3658,6 +3698,33 @@ Depends on  NOTHING
 			};
 			request.onError = onError;
 			global.Appacitive.http.send(request); 
+		};
+
+		var _getUserByIdType = function(url, onSuccess, onError){
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = url;
+			request.method = 'get';
+			request.onSuccess = function(data) {
+				if (data && data.user) if (typeof onSuccess == 'function') onSuccess(new Appacitive.User(data.user));
+				else if (typeof onError == 'function') onError(data.status);
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request);
+		};
+
+		this.getUserByToken = function(token, onSuccess, onError) {
+			if (!token || typeof token != 'string' || token.length == 0) throw new Error("Please specify valid token");
+			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByTokenUrl(token);
+			_getUserByIdType(url, onSuccess, onError);
+		};
+
+		this.getUserByUsername = function(username, onSuccess, onError) {
+			if (!username || typeof username != 'string' || username.length == 0) throw new Error("Please specify valid username");
+			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByUsernameUrl(username);
+			_getUserByIdType(url, onSuccess, onError);
 		};
 
 		this.logout = function(callback, avoidApiCall) {

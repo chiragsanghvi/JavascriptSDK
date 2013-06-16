@@ -114,6 +114,12 @@
             getGetUrl: function (userId, fields) {
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
+            getUserByTokenUrl: function(userToken) {
+                return string.format("{0}/me?useridtype=token&token=", this.userServiceUrl, userToken);
+            },
+            getUserByUsernameUrl: function(username) {
+                return string.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
+            },
             getUpdateUrl: function (userId, fields) {
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
@@ -141,6 +147,9 @@
             },
             getDelinkAccountUrl: function(userId, type){
                 return String.format("{0}/{1}/{2}/delink", this.userServiceUrl, userId, type);
+            },
+            getCheckinUrl: function(userId, lat, lng) {
+                return String.format("{0}/{1}/chekin?lat={2}&lng={3}", this.userServiceUrl, userId, lat, lng);
             }
         };
         this.device = {

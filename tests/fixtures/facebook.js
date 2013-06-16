@@ -224,7 +224,7 @@ asyncTest('Verify getting current facebook user info via Appacitive sdk', functi
 asyncTest('Signup with facebook', function() {
 	try {
 		var accessToken = Appacitive.Facebook.accessToken;
-		Appacitive.Users.loginWithFacebook(function(user) {
+		Appacitive.Users.signupWithFacebook(function(user) {
 			ok(true, 'Signed up with facebook: ' + JSON.stringify(user));
 			start();
 		}, function(err) {
