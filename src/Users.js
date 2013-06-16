@@ -109,6 +109,7 @@
 			request.method = 'post';
 			request.onSuccess = function(a) {
 				if (a && a.code == '200') {
+					base.set('__link', null);
 					if (typeof onSuccess == 'function') onSuccess(base);
 				}
 				else { onError(a, base); }
@@ -157,7 +158,7 @@
 
 			_authenticatedUser.unlinkFacebookAccount = function(onSuccess, onError) {
 
-				_link('facebook', this, function(base) {
+				_unlink('facebook', this, function(base) {
 					global.Appacitive.eventManager.fire('user.article.' + base.get('__id') + '.updated', base, { object: base });
 					if (typeof onSuccess == 'function') onSuccess(base);
 				}, onError);
@@ -203,7 +204,6 @@
 			var that = this;
 
 			_getAllLinkedAccounts(this, function(accounts) {
-				that.linkedAccounts = accounts;
 				if (typeof onSuccess == 'function') onSuccess(accounts, that);
 			}, onError);
 			return this;
@@ -221,11 +221,11 @@
 			_unlink('facebook', this, function() {
 				var accounts = that.get('__link');
 			
-				if(!accounts) accounts = [];
-				else if(!(accounts.length >= 0)) accounts = accounts[0];
+				if (!accounts) accounts = [];
+				else if(!(accounts.length >= 0)) accounts = [accounts];
 
 				if (accounts.length > 0) {
-					if (accounts[0].name == 'name') {
+					if (accounts[0].name == 'facebook') {
 						that.set('__link', null);
 					}
 				}
