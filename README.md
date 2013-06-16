@@ -584,7 +584,44 @@ Appacitive.Users.currentUser.getAllLinkedAccounts(function() {
 #### Delinking Facebook account
 ```javascript
 Appacitive.Users.unlinkFacebookAccount(function() {
-	alert("Facebook acoount delinked successfully");
+	alert("Facebook account delinked successfully");
 }, function(err){
 	alert("Could not delink facebook account");
 });
+
+### Password Management
+
+#### Reset Password
+
+Users often forget their passwords for your app. So you are provided with an API to reset their passwords.To start, you ask the user for his username and call
+
+```javascript
+Appacitive.Users.sendResetPasswordEmail("{username}", "{subject for the mail}", function(){
+	alert("Password reset mail sent successfully"); 
+},function(){
+	alert("Failed to reset password for user");
+});
+```
+
+#### Update Password
+Users need to change their passwords whenever they've compromised it. You can update it using this call:
+```javascript
+//You can make this call only for a loggedin user
+Appacitive.Users.currentUser.updatePassword('{oldPassword}','{newPassword}', function(){
+	alert("Password updated successfully"); 
+},function(){
+	alert("Failed to updated password for user");
+});
+
+### Check-in
+
+Users can check-in at a particular co-ordinate uing this call. Basically this call updates users location.
+```javascript
+Appacitive.Users.currentUser.checkin({
+	lat:18.57, lnh: '75.55'
+}, function() {
+	alert("Checked in successfully");
+}, function(err) {
+	alert("There was an error checking in");
+});
+
