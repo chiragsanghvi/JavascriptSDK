@@ -313,10 +313,10 @@ You can give your users the option of signing up or logging in via facebook. For
 ```javascript
 window.fbAsyncInit = function() {
 	Appacitive.Facebook.initialize({
-	appId      : 'YOUR_APP_ID', // Facebook App ID
-	status     : true, // check login status
-	cookie     : true, // enable cookies to allow Parse to access the session
-	xfbml      : true  // parse XFBML
+		appId      : 'YOUR_APP_ID', // Facebook App ID
+		status     : true, // check login status
+		cookie     : true, // enable cookies to allow Appacitive to access the session
+		xfbml      : true  // parse XFBML
 	});
 	// Additional initialization code here
 };
@@ -334,7 +334,7 @@ So simple? Indeed.
 These're the steps followed
  1. The user is shown Facebook login modal.
  2. After the user logs in successfully, our App gets the userinfo for that user and creates an Appacitive User.
- 3. After creating the user is logged-in and set as current user
+ 3. After creating, the user is logged-in and set as current user
 
 The success callback is given one argument: `authresult`
 ```javascript
