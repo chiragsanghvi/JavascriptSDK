@@ -121,7 +121,10 @@ Lets verify that our player is indeed called 'John Doe'
 alert(player.get('name'));	// John Doe
 
 // direct access via the raw object data
-alert(player.getArticle().name);	// John Doe
+alert(player.toJSON().name);	// John Doe
+
+//getting stringified respresentation of object
+alert(player.toString());
 ```
 #### Saving
 Saving a player to the server is easy.
@@ -131,14 +134,15 @@ player.save(function() {
 	alert('saved successfully!');
 }, function(err) {
 	alert('error while saving!');
-});
+}, ["name", "age"] //optional
+);
 ```
 When you call save, the entity is taken and stored on Appacitive's servers. A unique identifier called `__id` is generated and is stored along with the player object. This identifier is also returned to the object on the client-side. You can access it directly using `id`.
 This is what is available in the `player` object after a successful save.
 ```javascript
 player.save(function(obj) {
 	console.log("ID : " + player.id); //
-	console.dir(palyer.getArticle());
+	console.dir(palyer.toJSON());
 });
 // output
 /* 
@@ -185,14 +189,15 @@ player.fetch(function(obj) {
 	alert('Fetched player with name: ' + player.get('name'));
 }, function(err, obj) {
 	alert('Could not fetch, probably because of an incorrect id');
-});
+}, ["name", "age"]//optional
+);
 ```
 
-**Note**:  You can also mention in your object exactly which all fields you want returned so as to reduce payload. By default all fields are returned. Fiedls `__id` and `__schematype` are the fields which will always be returned. Every create, update and get call will return only these fields if specified.
+**Note**:  You can mention exactly which all fields you want returned so as to reduce payload. By default all fields are returned. Fiedls `__id` and `__schematype` are the fields which will always be returned. Every create, save and fetch call will return only these fields, if they're specified in third argument to these calls.
 ```javascript
-player.fields = ["name", "age", "__createby"] //will set fields to return __id, __schematype, name, age and __createdby
-player.fields = [] //will set fields to return only __id and __schematype
-player.fields = [*] //will set fields to return all user-defined properties and __id and __schematype
+["name", "age", "__createby"] //will set fields to return __id, __schematype, name, age and __createdby
+[] //will set fields to return only __id and __schematype
+[*] //will set fields to return all user-defined properties and __id and __schematype
 ```
 You can also retrieve multiple articles at a time, which will return an array of `Appacitive.Article` objects in its onSuccess callback. Here's an example
 ```javascript
@@ -224,7 +229,7 @@ player.save(function() {
 	       alert(player.get('name')); // Jane Doe
 	}, function(err, obj) {
 	       alert('update failed');
-	});
+	}, ["name", "age"]);
 });
 ```
 As you might notice, update is done via the save method as well. The SDK combines the create operation and the update operation under the hood and provides a unified interface. This is done be detecting the presence of the property `__id` to decide whether the object has been created and needs updating or whether the object needs to be created. 
@@ -360,7 +365,8 @@ user.fetch(function (obj) {
 	alert('Could not fetch user with id 12345');
 });
 ```
-**Note**: All `Appacitve.Article` operations can be performed on a `Appacitive.User` object. Infact its a subclass of `Appacitive.Article` class. So, above data documenation is valid for users too.
+**Note**: All `Appacitive.Article` operations can be performed on a `Appacitive.User` object. Infact its a subclass of `Appacitive.Article` class. So, above data documenation is valid for users too.
+But, you need a user logged in to perform user-specific operations.
 #### By username
 
 ```javascript
