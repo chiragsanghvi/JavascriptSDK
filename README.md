@@ -162,19 +162,6 @@ You'll see a bunch of fields that were created automatically by the server. They
 
 ### Retrieving
 
-Retrieving is done via the `fetch` method. Here's an example
-```javascript
-var player = new Appacitive.Article('player'); //You can initialize article in this way too.
-// set an (existing) id in the object
-player.id = {{existing_id}};
-// retrieve the player
-player.fetch(function(obj) {
-	alert('Fetched player with name: ' + player.get('name'));
-}, function(err, obj) {
-	alert('Could not fetch, probably because of an incorrect id');
-});
-```
-You can also retreive an article using get method on Appacitive.Article
 ```javascript
 // retrieve the player
 Appacitive.Article.get({ 
@@ -183,6 +170,19 @@ Appacitive.Article.get({
 	fields: ["name"] //optional
 }, function(obj) {
 	alert('Fetched player with name: ' + obj.get('name')); // artice obj is returned as argument to onsuccess
+}, function(err, obj) {
+	alert('Could not fetch, probably because of an incorrect id');
+});
+```
+
+Retrieving can also be done via the `fetch` method. Here's an example
+```javascript
+var player = new Appacitive.Article('player'); //You can initialize article in this way too.
+// set an (existing) id in the object
+player.id = {{existing_id}};
+// retrieve the player
+player.fetch(function(obj) {
+	alert('Fetched player with name: ' + player.get('name'));
 }, function(err, obj) {
 	alert('Could not fetch, probably because of an incorrect id');
 });
