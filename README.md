@@ -615,7 +615,7 @@ Appacitive.Users.currentUser.updatePassword('{oldPassword}','{newPassword}', fun
 Users can check-in at a particular co-ordinate uing this call. Basically this call updates users location.
 ```javascript
 Appacitive.Users.currentUser.checkin({
-	lat:18.57, lng: '75.55'
+	lat:18.57, lng: 75.55
 }, function() {
 	alert("Checked in successfully");
 }, function(err) {
