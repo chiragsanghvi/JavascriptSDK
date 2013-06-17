@@ -193,7 +193,7 @@ player.fetch(function(obj) {
 );
 ```
 
-**Note**:  You can mention exactly which all fields you want returned so as to reduce payload. By default all fields are returned. Fiedls `__id` and `__schematype` are the fields which will always be returned. Every create, save and fetch call will return only these fields, if they're specified in third argument to these calls.
+**Note**:  You can mention exactly which all fields you want returned so as to reduce payload. By default all fields are returned. Fields `__id` and `__schematype` are the fields which will always be returned. Every create, save and fetch call will return only these fields, if they're specified in third argument to these calls.
 ```javascript
 ["name", "age", "__createby"] //will set fields to return __id, __schematype, name, age and __createdby
 [] //will set fields to return only __id and __schematype
