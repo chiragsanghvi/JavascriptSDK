@@ -237,17 +237,15 @@ player.del(function(obj) {
 }, function(err, obj) {
 	alert('Delete failed')
 });
-```
-You can also delete article with its connections in a simple call.
-```javascript
+
+//You can also delete article with its connections in a simple call.
 player.del(function(obj) {
 	alert('Deleted successfully');
 }, function(err, obj) {
 	alert('Delete failed')
 }, true); // setting the third argument to true will delete its connections if they exist
-```
-You can also delete multiple articles at a time. Here's an example
-```javascript
+
+// Multiple articles can also be deleted at a time. Here's an example
 Appacitive.Article.multiDelete({ 	
 	schema: 'players', //name of schema
 	ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of article ids to delete
@@ -293,7 +291,7 @@ var users = new Appacitive.ArticleCollection({ schema: 'user' });
 var newUser = users.createNewArticle(userDetails);
 
 //or you might create user using basic article route
-var newUser new Appacitive.User(userDetails);
+var newUser = new Appacitive.User(userDetails);
 
 //and then call save on that object
 newUser.save(function(obj) {
@@ -320,9 +318,8 @@ window.fbAsyncInit = function() {
 	});
 	// Additional initialization code here
 };
-```
-Registering via facebook is done like so
-```javascript
+
+//Registering via facebook is done like so
 Appacitive.Users.signupWithFacebook(function (authResult) {
 	// user has been successfully signed up and set as current user
 	// authresult contains the user and Appacitive-usertoken
