@@ -178,7 +178,9 @@ You can also retreive an article using get method on Appacitive.Article
 ```javascript
 // retrieve the player
 Appacitive.Article.get({ 
-	schema:'player', id: '{{existing__id}}'
+	schema: 'player', //mandatory
+	id: '{{existing__id}}', //mandatory
+	fields: ["name"] //optional
 }, function(obj) {
 	alert('Fetched player with name: ' + obj.get('name')); // artice obj is returned as argument to onsuccess
 }, function(err, obj) {
@@ -186,7 +188,7 @@ Appacitive.Article.get({
 });
 ```
 
-**Note**:  You can also mention in your object exactly which all fields you want returned so as to reduce payload. By default all fields are returned. Fiedls '__id' and `__schematype` are the fields which will always be returned. Every create, update and get call will return only these fields if specified.
+**Note**:  You can also mention in your object exactly which all fields you want returned so as to reduce payload. By default all fields are returned. Fiedls `__id` and `__schematype` are the fields which will always be returned. Every create, update and get call will return only these fields if specified.
 ```javascript
 player.fields = ["name", "age", "__createby"] //will set fields to return __id, __schematype, name, age and __createdby
 player.fields = [] //will set fields to return only __id and __schematype
@@ -195,9 +197,9 @@ player.fields = [*] //will set fields to return all user-defined properties and 
 You can also retrieve multiple articles at a time, which will return an array of `Appacitive.Article` objects in its onSuccess callback. Here's an example
 ```javascript
 Appacitive.Article.multiGet({ 
-	schema: 'players', //name of schema
-	ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of article ids to get,
-	fields: ["name"]// this denotes the fields to be returned in the article object, to avoid increasing the payload
+	schema: 'players', //name of schema : mandatory
+	ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of article ids to get : mandatory
+	fields: ["name"]// this denotes the fields to be returned in the article object, to avoid increasing the payload : optional
 }, function(articles) { 
 	// articles is an array of article objects
 }, function(err) {
