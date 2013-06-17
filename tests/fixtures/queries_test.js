@@ -1,19 +1,19 @@
 module('Search All Query');
 test('Basic search all query for articles', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile'
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=200&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=200&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false';
 
 	equal(url, request.url, 'Request url generated is ok');
 	equal('get', request.method.toLowerCase(), 'Request method is ok');
 });
 
 test('Basic search all query for articles with sorting', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		orderBy: 'name',
@@ -21,10 +21,10 @@ test('Basic search all query for articles with sorting', function() {
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=200&pnum=1&orderBy=name&isAsc=true';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=200&pnum=1&orderBy=name&isAsc=true';
 	equal(url, request.url, 'Url generated has correct sort options - ascending');
 	
-	query = new Appacitive.Queries.BasicFilterQuery({
+	query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		orderBy: 'name2',
@@ -32,32 +32,32 @@ test('Basic search all query for articles with sorting', function() {
 	});
 	request = query.toRequest();
 
-	url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=200&pnum=1&orderBy=name2&isAsc=false';
+	url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=200&pnum=1&orderBy=name2&isAsc=false';
 	equal(url, request.url, 'Url generated has correct sort options - descending');	
 });
 
 test('Basic search all query for articles with pagination', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		pageNumber: 3
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=200&pnum=3&orderBy=__UtcLastUpdatedDate&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=200&pnum=3&orderBy=__UtcLastUpdatedDate&isAsc=false';
 	equal(url, request.url, 'Url generated has correct pagination options - page number');
 	
-	query = new Appacitive.Queries.BasicFilterQuery({
+	query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		pageSize: 100
 	});
 	request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=100&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false';
 	equal(url, request.url, 'Url generated has correct pagination options - page size');
 
-	query = new Appacitive.Queries.BasicFilterQuery({
+	query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		pageSize: 100,
@@ -65,12 +65,12 @@ test('Basic search all query for articles with pagination', function() {
 	});
 	request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=100&pnum=10&orderBy=__UtcLastUpdatedDate&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=10&orderBy=__UtcLastUpdatedDate&isAsc=false';
 	equal(url, request.url, 'Url generated has correct pagination options - page size & page number');
 });
 
 test('Basic search all query with sorting and pagination', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		pageSize: 100,
@@ -80,14 +80,14 @@ test('Basic search all query with sorting and pagination', function() {
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=100&pnum=10&orderBy=name&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=10&orderBy=name&isAsc=false';
 	equal(url, request.url, 'Url generated has correct pagination and sorting options');
 });
 
 
 // check query with articleCollection.setQuery
 test('Verify default basic search all query in article collection', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile'
 	});
@@ -97,7 +97,7 @@ test('Verify default basic search all query in article collection', function() {
 });
 
 test('Verify custom search all query in article collection', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		pageNumber: 3,
@@ -121,7 +121,7 @@ test('Verify query modification using setOptions in articleCollection', function
 		type: 'article',
 		schema: 'profile'
 	};
-	var query = new Appacitive.Queries.BasicFilterQuery(options);
+	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default query setting correctly in articleCollection.');
@@ -134,7 +134,7 @@ test('Verify query modification using setOptions in articleCollection', function
 		orderBy: '__UtcLastUpdatedDate',
 		isAscending: true
 	};
-	query = new Appacitive.Queries.BasicFilterQuery(options);
+	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setOptions(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Query modification correctly done in articleCollection.');
@@ -149,8 +149,8 @@ test('Verify basic filtered search query', function() {
 		schema: 'profile',
 		filter: 'some_field == "some_value"'
 	};
-	var filteredQuery = new Appacitive.Queries.BasicFilterQuery(options);
-	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=200&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false'
+	var filteredQuery = new Appacitive.Queries.FindAllQuery(options);
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=200&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false'
 	url += '&query=some_field == "some_value"';
 	equal(filteredQuery.toRequest().url, url, 'Url formation correct in basic filtered query');
 });
@@ -165,8 +165,8 @@ test('Verify customized filtered search query', function() {
 		isAscending: false,
 		filter: 'some_field2 == "some_value2"'
 	};
-	var filteredQuery = new Appacitive.Queries.BasicFilterQuery(options);
-	var url = Appacitive.config.apiBaseUrl + 'article.svc/profile/find/all?psize=100&pnum=2&orderBy=name&isAsc=false'
+	var filteredQuery = new Appacitive.Queries.FindAllQuery(options);
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=2&orderBy=name&isAsc=false'
 	url += '&query=some_field2 == "some_value2"';
 	equal(filteredQuery.toRequest().url, url, 'Url formation correct in customized filtered query');
 });
@@ -175,7 +175,7 @@ test('Verify customized filtered search query', function() {
 // properties search with article collection
 // check query with articleCollection.setQuery
 test('Verify default filtered query in article collection', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile'
 	});
@@ -185,7 +185,7 @@ test('Verify default filtered query in article collection', function() {
 });
 
 test('Verify custom filtered query in article collection', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		pageNumber: 3,
@@ -214,7 +214,7 @@ test('Verify filtered query modification using setOptions in articleCollection',
 		schema: 'profile',
 		filter: 'q within_circle (1,2,3km)'
 	};
-	var query = new Appacitive.Queries.BasicFilterQuery(options);
+	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
@@ -228,7 +228,7 @@ test('Verify filtered query modification using setOptions in articleCollection',
 		isAscending: true,
 		filter: 'q < 1234567890'
 	};
-	query = new Appacitive.Queries.BasicFilterQuery(options);
+	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setOptions(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
@@ -240,7 +240,7 @@ test('Verify filter modification using setFilter in articleCollection', function
 		schema: 'profile',
 		filter: 'q within_circle (1,2,3km)'
 	};
-	var query = new Appacitive.Queries.BasicFilterQuery(options);
+	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
@@ -250,14 +250,14 @@ test('Verify filter modification using setFilter in articleCollection', function
 		schema: 'profile',
 		filter: 'q < 1234567890'
 	};
-	query = new Appacitive.Queries.BasicFilterQuery(options);
+	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setFilter('q < 1234567890');
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
 });
 
 test('Verify custom filtered and freetext query in article collection', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		pageNumber: 3,
@@ -289,7 +289,7 @@ test('Verify filter and freetxt query modification using setOptions in articleCo
 		filter: 'q within_circle (1,2,3km)',
 		freeText: ['test']
 	};
-	var query = new Appacitive.Queries.BasicFilterQuery(options);
+	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
@@ -304,7 +304,7 @@ test('Verify filter and freetxt query modification using setOptions in articleCo
 		filter: 'q < 1234567890',
 		freeText: 'newprofile'
 	};
-	query = new Appacitive.Queries.BasicFilterQuery(options);
+	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setOptions(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
@@ -317,7 +317,7 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 		filter: 'q within_circle (1,2,3km)',
 		freeText: 'test'
 	};
-	var query = new Appacitive.Queries.BasicFilterQuery(options);
+	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
@@ -328,14 +328,14 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 		filter: 'q within_circle (1,2,3km)',
 		freeText: 'updatedtest'
 	};
-	query = new Appacitive.Queries.BasicFilterQuery(options);
+	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setFreeText('updatedtest');
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Filtered and freetext query modification correctly done in articleCollection.');
 });
 
 test('Verify custom fields and freetext query in article collection', function() {
-	var query = new Appacitive.Queries.BasicFilterQuery({
+	var query = new Appacitive.Queries.FindAllQuery({
 		type: 'article',
 		schema: 'profile',
 		pageNumber: 3,
@@ -368,7 +368,7 @@ test('Verify filtered, freetext and fields query modification using setOptions i
 		freeText: ['test'],
 		fields: 'name,__id'
 	};
-	var query = new Appacitive.Queries.BasicFilterQuery(options);
+	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
@@ -384,7 +384,7 @@ test('Verify filtered, freetext and fields query modification using setOptions i
 		freeText: 'newprofile',
 		fields: ['name', '__id']
 	};
-	query = new Appacitive.Queries.BasicFilterQuery(options);
+	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setOptions(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
@@ -398,7 +398,7 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 		freeText: 'test',
 		fields: ['name', '__id']
 	};
-	var query = new Appacitive.Queries.BasicFilterQuery(options);
+	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
 	var collectionQuery = collection.query;
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
@@ -410,7 +410,7 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 		freeText: 'updatedtest',
 		fields: ['name','__id']
 	};
-	query = new Appacitive.Queries.BasicFilterQuery(options);
+	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.query.freeText = ['updatedtest'];
 	collection.query.fields = 'name,__id';
 	var collectionQuery = collection.query;

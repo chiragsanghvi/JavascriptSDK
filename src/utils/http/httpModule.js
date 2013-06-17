@@ -285,6 +285,10 @@ var global = {};
 				headers: request.headers,
 				data: request.data,
 				onSuccess: function(data, xhr) {
+					if (!data) {
+					 	that.onError(request, { code:'400', messgae: 'Invalid request' });
+						return;
+					}
 					// Hack to make things work in FF
 					try { data = JSON.parse(data); } catch (e) {}
 					// execute the callbacks first

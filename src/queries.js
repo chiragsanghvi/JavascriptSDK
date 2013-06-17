@@ -64,7 +64,7 @@
 	/** 
 	* @constructor
 	**/
-	var BaseQuery = function(o) {
+	global.Appacitive.Queries.BasicQuery = function(o) {
 
 		var options = o || {};
 
@@ -72,12 +72,11 @@
 		var _filter = '';
 		var _freeText = '';
 		var _fields = '';
-		var _queryType = o.queryType;
+		var _queryType = options.queryType || 'BasicQuery';
 		var _pageQuery = new PageQuery(o);
 		var _sortQuery = new SortQuery(o);
-		var _entityType = o.schema || o.relation;
-		var _type = (o.schema) ? 'article' : 'connection';
-
+		var _entityType = options.schema || options.relation;
+		var _type = (options.relation) ? 'connection' : 'article';
 
 
 		//define getter for type (article/connection)
@@ -165,7 +164,7 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + _entityType + '/find/all?' + this.getQueryString();
+			return global.Appacitive.config.apiBaseUrl + _type + '/' + _entityType + '/find/all?' + this.getQueryString();
 		};
 
 		this.toRequest = function() {
@@ -217,32 +216,23 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.BasicFilterQuery = function(options) {
+	global.Appacitive.Queries.FindAllQuery = function(options) {
 
 		options = options || {};
 
 		if ((!options.schema && !options.relation) || (options.schema && options.relation)) 
-			throw new Error('Specify either schema or relation for basic filter query');
+		    throw new Error('Specify either schema or relation for basic filter query');
 
 		options.queryType = 'BasicFilterQuery';
 
-		var inner = new BaseQuery(options);
-		
-		inner.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
-            r.method = 'get';
-			return r;
-		};
-		
-		inner.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl +
-				   this.type + '.svc/' +
-				   this.entityType + '/find/all?' + this.getQueryString();
-		};
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
-		return inner;
+		return this;
 	};
+
+	global.Appacitive.Queries.FindAllQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+
+	global.Appacitive.Queries.FindAllQuery.prototype.constructor = global.Appacitive.Queries.FindAllQuery;
 
 	/** 
 	* @constructor
@@ -257,28 +247,31 @@
 
 		options.queryType = 'ConnectedArticlesQuery';
 
-		var inner = new BaseQuery(options);
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
-		inner.articleId = options.articleId;
-		inner.relation = options.relation;
-		inner.label = '';
-		if (options.label && typeof options.label == 'string' && options.label.length > 0) inner.label = '&label=' + options.label;
+		this.articleId = options.articleId;
+		this.relation = options.relation;
+		this.label = '';
+		if (options.label && typeof options.label == 'string' && options.label.length > 0) this.label = '&label=' + options.label;
 
-		inner.toRequest = function() {
+		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = this.toUrl();
 			r.method = 'get';
 			return r;
 		};
 
-		inner.toUrl = function() {
+		this.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.articleId + '/find?' +
 				this.getQueryString() + this.label;
 		};
 
-		return inner;
+		return this;
 	};
 
+	global.Appacitive.Queries.ConnectedArticlesQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+
+	global.Appacitive.Queries.ConnectedArticlesQuery.prototype.constructor = global.Appacitive.Queries.ConnectedArticlesQuery;
 
 	/** 
 	* @constructor
@@ -294,28 +287,32 @@
 
 		options.queryType = 'GetConnectionsQuery';
 
-		var inner = new BaseQuery(options);
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
-		inner.articleId = options.articleId;
-		inner.relation = options.relation;
-		inner.label = options.label;
+		this.articleId = options.articleId;
+		this.relation = options.relation;
+		this.label = options.label;
 
-		inner.toRequest = function() {
+		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = this.toUrl();
 			r.method = 'get';
 			return r;
 		};
 
-		inner.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + inner.relation + '/find/all?' +
+		this.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
 				'articleid=' + this.articleId +
 				'&label=' +this.label +
-				inner.getQueryString();
+				this.getQueryString();
 		};
 
-		return inner;
+		return this;
 	};
+
+	global.Appacitive.Queries.GetConnectionsQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+
+	global.Appacitive.Queries.GetConnectionsQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsQuery;
 
 	/** 
 	* @constructor
@@ -330,34 +327,41 @@
 
 		options.queryType = queryType || 'GetConnectionsBetweenArticlesQuery';
 
-		var inner = new BaseQuery(options);
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
-		inner.articleAId = options.articleAId;
-		inner.articleBId = options.articleBId;
-		inner.label = (inner.queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label == 'string' && options.label.length > 0) ? '&label=' + options.label : '';;
-		inner.relation = (options.relation && typeof options.relation == 'string' && options.relation.length > 0) ? options.relation + '/' : '';
+		this.articleAId = options.articleAId;
+		this.articleBId = options.articleBId;
+		this.label = (this.queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label == 'string' && options.label.length > 0) ? '&label=' + options.label : '';;
+		this.relation = (options.relation && typeof options.relation == 'string' && options.relation.length > 0) ? options.relation + '/' : '';
 		
-		inner.toRequest = function() {
+		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = this.toUrl();
 			r.method = 'get';
 			return r;
 		};
 
-		inner.toUrl = function() {
+		this.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.articleAId + '/' + this.articleBId + '?'
 				+ this.getQueryString() + this.label;
 		};
 
-		return inner;
+		return this;
 	};
+
+	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+
+	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery;
 
 	/** 
 	* @constructor
 	**/
 	global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery = function(options) {
+		
 		options = options || {};
+		
 		if (!options.relation) throw new Error('Specify relation for GetConnectionsBetweenArticlesForRelationQuery query');
+		
 		var inner = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options, 'GetConnectionsBetweenArticlesForRelationQuery');
 
 		inner.fetch = function(onSuccess, onError) {
@@ -395,12 +399,12 @@
 
 		options.queryType = 'InterconnectsQuery';
 
-		var inner = new BaseQuery(options);
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
-		inner.articleAId = options.articleAId;
-		inner.articleBIds = options.articleBIds;
+		this.articleAId = options.articleAId;
+		this.articleBIds = options.articleBIds;
 		
-		inner.toRequest = function() {
+		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = this.toUrl();
 			r.method = 'post';
@@ -411,13 +415,16 @@
 			return r;
 		};
 
-		inner.toUrl = function() {
+		this.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString();
 		};
 
-		return inner;
+		return this;
 	};
 
+	global.Appacitive.Queries.InterconnectsQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+
+	global.Appacitive.Queries.InterconnectsQuery.prototype.constructor = global.Appacitive.Queries.InterconnectsQuery;
 
 	/** 
 	* @constructor

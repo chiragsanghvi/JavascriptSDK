@@ -36,7 +36,7 @@
 			if (options.relation) _relation = options.relation;
 			else options.relation = _relation;
 
-			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
+			_query = new global.Appacitive.Queries.FindAllQuery(options);
 			_options = options;
 
 			return that;
@@ -47,7 +47,7 @@
 			_options.type = 'connection';
 			if (_query) _query.filter = filterString;
 			else {
-				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 			return this;
@@ -60,7 +60,7 @@
             _options.type = 'connection';
             if (_query) _query.freeText = tokens;
 			else {
-				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 
@@ -74,7 +74,7 @@
             _options.type = 'connection';
             if (_query) _query.fields = fields;
 			else {
-				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 			return this;

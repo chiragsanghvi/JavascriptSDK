@@ -28,7 +28,7 @@
 			if (options.schema) _schema = options.schema;
 			else options.schema = _schema;
 
-			_query = new global.Appacitive.Queries.BasicFilterQuery(options);
+			_query = new global.Appacitive.Queries.FindAllQuery(options);
 			_options = options;
 			that.extendOptions = _query.extendOptions;
 		};
@@ -38,7 +38,7 @@
 			_options.type = 'article';
 			if (_query) _query.filter = filterString;
 			else {
-				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 			return this;
@@ -51,7 +51,7 @@
             _options.type = 'article';
             if (_query) _query.freeText = tokens;
 			else {
-				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 			return this;
@@ -64,7 +64,7 @@
             _options.type = 'article';
             if (_query) _query.fields = fields;
 			else {
-				_query = new global.Appacitive.Queries.BasicFilterQuery(_options);
+				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
 			}
 			return this;
