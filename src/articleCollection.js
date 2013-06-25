@@ -171,46 +171,32 @@
 			return this;
 		};
 
-		var parseArticles = function (data, onSuccess, onError) {
-
-			data = data || {};
-			var articles = data.articles;
-
-			if (!articles) {
-				if (data.status && data.status.code && data.status.code == '200') {
-					articles = [];
-				} else {
-					var d = data.status || { message : 'Server error', code: 400 };
-			        if (typeof onError == 'function') onError(d, that);
-					return;
-				}
-			}
-
-			
+		var parseArticles = function (articles, pagingInfo, onSuccess) {
 			if (!articles.length || articles.length === 0) articles = [];
+			
 			articles.forEach(function (article) {
-				var _a = new global.Appacitive.Article(article, true);
-				_a.___collection = that;
-				_articles.push(_a);
+				article.___collection = that;
+				_articles.push(article);
 			});
-			var pagingInfo = data.paginginfo || {};
-			onSuccess(pagingInfo, that);
+
+			if (typeof onSuccess == 'function') onSuccess(pagingInfo, that);
 		};
 
 		this.fetch = function(onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
-			_articles.length = 0;
-			var _queryRequest = _query.toRequest();
-			_queryRequest.onSuccess = function(data) {
-				parseArticles(data, onSuccess, onError);
-			};
-			_queryRequest.onError = function(d) {
-				d = d || { message : 'Server error', code: 400 };
-			    if (typeof onError == 'function') onError(d, that);
-			};
-			global.Appacitive.http.send(_queryRequest);
 
+			_articles.length = 0;
+			
+			this.query.fetch(function(articles, pagingInfo) {
+				parseArticles(articles, pagingInfo, onSuccess);
+			}, function(err) {
+				if (typeof onError == 'function') onError(err, that);
+			});
+
+			return this;
+		};
+
+		this.count = function(onSuccess, onError) {
+			this.query.count(onSuccess, onError);
 			return this;
 		};
 

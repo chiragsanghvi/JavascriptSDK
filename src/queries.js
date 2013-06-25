@@ -41,16 +41,16 @@
 		var _orderBy = '__UtcLastUpdatedDate';
 		var _isAscending = false;
 
-		//define getter for pagenumber
+		//define getter for orderby
 		this.__defineGetter__('orderBy', function() { return _orderBy; });
 
-		//define setter for pagenumber
+		//define setter for orderby
 		this.__defineSetter__('orderBy', function(value) { _orderBy = value || '__UtcLastUpdatedDate'; });
 
-		//define getter for pagenumber
+		//define getter for isAscending
 		this.__defineGetter__('isAscending', function() { return _isAscending; });
 
-		//define setter for pagenumber
+		//define setter for isAscending
 		this.__defineSetter__('isAscending', function(value) {  _isAscending = typeof value == 'undefined' ? false : value; });
 
 		this.orderBy = options.orderBy;
@@ -64,7 +64,7 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.BasicQuery = function(o) {
+	var BasicQuery = function(o) {
 
 		var options = o || {};
 
@@ -93,9 +93,33 @@
 		//define getter for pagequery 
 		this.__defineGetter__('pageQuery', function() { return _pageQuery; });
 
+		//define getter for pageNumber
+		this.__defineGetter__('pageNumber', function() { return _pageQuery.pageNumber; });
+
+		//define setter for pageNumber
+		this.__defineSetter__('pageNumber', function(value) {  _pageQuery.pageNumber = value; });
+
+		//define getter for pageSize
+		this.__defineGetter__('pageSize', function() { return _pageQuery.pageSize; });
+
+		//define setter for pagenumber
+		this.__defineSetter__('pageSize', function(value) { _pageQuery.pageSize = value; });
+
+
 		//define getter for sortquery
 		this.__defineGetter__('sortQuery', function() { return _sortQuery; });
 
+		//define getter for orderby
+		this.__defineGetter__('orderBy', function() { return _sortQuery.orderBy; });
+
+		//define setter for orderby
+		this.__defineSetter__('orderBy', function(value) { _sortQuery.orderBy = value; });
+
+		//define getter for isAscending
+		this.__defineGetter__('isAscending', function() { return _sortQuery.isAscending; });
+
+		//define setter for isAscending
+		this.__defineSetter__('isAscending', function(value) {  _sortQuery.isAscending = value; });
 
 
 		//define getter for filter
@@ -103,7 +127,6 @@
 
 		//define setter for filter
 		this.__defineSetter__('filter', function(value) { _filter = value; });
-
 
 
 		//define getter for freetext
@@ -114,8 +137,6 @@
 			if (typeof value == 'string') _freeText = value;
 			else if (typeof value == 'object' && value.length) _freeText = value.join(' ');
 		});
-
-
 
 		//define getter for fields
 		this.__defineGetter__('fields', function() { return _fields; });
@@ -142,6 +163,7 @@
 			}
 			_pageQuery = new PageQuery(options);
 			_sortQuery = new SortQuery(options);
+			return this;
 		};
 
 		this.getQueryString = function() {
@@ -189,7 +211,7 @@
 			if (!entities) entities = [];
 			var eType = (_type == 'article') ? 'Article' : 'Connection';
 			entities.forEach(function(e) {
-				entityObjects.push(new global.Appacitive[eType](e));
+				entityObjects.push(new global.Appacitive[eType](e, true));
 			});
 			return entityObjects;
 		};
@@ -211,6 +233,55 @@
 			global.Appacitive.http.send(request);
 			return this;
 		};
+
+		this.count = function(onSuccess, onError) {
+			onSuccess = onSuccess || function() {};
+			onError = onError || function() {};
+
+			var _pSize = _pageQuery.pageSize;
+			var _pNum = _pageQuery.pageNumber;
+
+			_pageQuery.pageSize = 1;
+			_pageQuery.pageNumber = 999999999;
+
+			var that = this;
+
+			var _restoreOldPaging = function() {
+				_pageQuery.pageSize = _pSize;
+				_pageQuery.pageNumber = _pNum;
+			};
+
+			var _queryRequest = this.toRequest();
+			_queryRequest.onSuccess = function(data) {
+
+				_restoreOldPaging();
+
+				data = data || {};
+				var pagingInfo = data.paginginfo;
+
+				var count = 0;
+				if (!pagingInfo) {
+					if (data.status && data.status.code && data.status.code == '200') {
+						count = 0;
+					} else {
+						var d = data.status || { message : 'Server error', code: 400 };
+				        if (typeof onError == 'function') onError(d, that);
+						return;
+					}
+				} else {
+					count = pagingInfo.totalrecords;
+				}
+				if (typeof onSuccess == 'function') onSuccess(count);
+			};
+			_queryRequest.onError = function(d) {
+				_restoreOldPaging();
+				d = d || { message : 'Server error', code: 400 };
+			    if (typeof onError == 'function') onError(d, that);
+			};
+			global.Appacitive.http.send(_queryRequest);
+
+			return this;
+		};
 	};
 
 	/** 
@@ -225,12 +296,12 @@
 
 		options.queryType = 'BasicFilterQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		return this;
 	};
 
-	global.Appacitive.Queries.FindAllQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.FindAllQuery.prototype.constructor = global.Appacitive.Queries.FindAllQuery;
 
@@ -247,7 +318,7 @@
 
 		options.queryType = 'ConnectedArticlesQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		this.articleId = options.articleId;
 		this.relation = options.relation;
@@ -269,7 +340,7 @@
 		return this;
 	};
 
-	global.Appacitive.Queries.ConnectedArticlesQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.ConnectedArticlesQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.ConnectedArticlesQuery.prototype.constructor = global.Appacitive.Queries.ConnectedArticlesQuery;
 
@@ -287,7 +358,7 @@
 
 		options.queryType = 'GetConnectionsQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		this.articleId = options.articleId;
 		this.relation = options.relation;
@@ -310,7 +381,7 @@
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.GetConnectionsQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.GetConnectionsQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsQuery;
 
@@ -327,7 +398,7 @@
 
 		options.queryType = queryType || 'GetConnectionsBetweenArticlesQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		this.articleAId = options.articleAId;
 		this.articleBId = options.articleBId;
@@ -349,7 +420,7 @@
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery;
 
@@ -399,7 +470,7 @@
 
 		options.queryType = 'InterconnectsQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		this.articleAId = options.articleAId;
 		this.articleBIds = options.articleBIds;
@@ -422,7 +493,7 @@
 		return this;
 	};
 
-	global.Appacitive.Queries.InterconnectsQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.InterconnectsQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.InterconnectsQuery.prototype.constructor = global.Appacitive.Queries.InterconnectsQuery;
 

@@ -215,7 +215,7 @@ var global = {};
 
 	var _XMLHttpRequest = null;
 
-	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
+	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : Titanium.Network.createHTTPClient;
 
 	var _XMLHttp = function(request, doNotStringify) {
 
@@ -1260,16 +1260,16 @@ Depends on  NOTHING
 		var _orderBy = '__UtcLastUpdatedDate';
 		var _isAscending = false;
 
-		//define getter for orderby
+		//define getter for pagenumber
 		this.__defineGetter__('orderBy', function() { return _orderBy; });
 
-		//define setter for orderby
+		//define setter for pagenumber
 		this.__defineSetter__('orderBy', function(value) { _orderBy = value || '__UtcLastUpdatedDate'; });
 
-		//define getter for isAscending
+		//define getter for pagenumber
 		this.__defineGetter__('isAscending', function() { return _isAscending; });
 
-		//define setter for isAscending
+		//define setter for pagenumber
 		this.__defineSetter__('isAscending', function(value) {  _isAscending = typeof value == 'undefined' ? false : value; });
 
 		this.orderBy = options.orderBy;
@@ -1283,7 +1283,7 @@ Depends on  NOTHING
 	/** 
 	* @constructor
 	**/
-	var BasicQuery = function(o) {
+	global.Appacitive.Queries.BasicQuery = function(o) {
 
 		var options = o || {};
 
@@ -1312,33 +1312,9 @@ Depends on  NOTHING
 		//define getter for pagequery 
 		this.__defineGetter__('pageQuery', function() { return _pageQuery; });
 
-		//define getter for pageNumber
-		this.__defineGetter__('pageNumber', function() { return _pageQuery.pageNumber; });
-
-		//define setter for pageNumber
-		this.__defineSetter__('pageNumber', function(value) {  _pageQuery.pageNumber = value; });
-
-		//define getter for pageSize
-		this.__defineGetter__('pageSize', function() { return _pageQuery.pageSize; });
-
-		//define setter for pagenumber
-		this.__defineSetter__('pageSize', function(value) { _pageQuery.pageSize = value; });
-
-
 		//define getter for sortquery
 		this.__defineGetter__('sortQuery', function() { return _sortQuery; });
 
-		//define getter for orderby
-		this.__defineGetter__('orderBy', function() { return _sortQuery.orderBy; });
-
-		//define setter for orderby
-		this.__defineSetter__('orderBy', function(value) { _sortQuery.orderBy = value; });
-
-		//define getter for isAscending
-		this.__defineGetter__('isAscending', function() { return _sortQuery.isAscending; });
-
-		//define setter for isAscending
-		this.__defineSetter__('isAscending', function(value) {  _sortQuery.isAscending = value; });
 
 
 		//define getter for filter
@@ -1346,6 +1322,7 @@ Depends on  NOTHING
 
 		//define setter for filter
 		this.__defineSetter__('filter', function(value) { _filter = value; });
+
 
 
 		//define getter for freetext
@@ -1356,6 +1333,8 @@ Depends on  NOTHING
 			if (typeof value == 'string') _freeText = value;
 			else if (typeof value == 'object' && value.length) _freeText = value.join(' ');
 		});
+
+
 
 		//define getter for fields
 		this.__defineGetter__('fields', function() { return _fields; });
@@ -1382,7 +1361,6 @@ Depends on  NOTHING
 			}
 			_pageQuery = new PageQuery(options);
 			_sortQuery = new SortQuery(options);
-			return this;
 		};
 
 		this.getQueryString = function() {
@@ -1430,7 +1408,7 @@ Depends on  NOTHING
 			if (!entities) entities = [];
 			var eType = (_type == 'article') ? 'Article' : 'Connection';
 			entities.forEach(function(e) {
-				entityObjects.push(new global.Appacitive[eType](e, true));
+				entityObjects.push(new global.Appacitive[eType](e));
 			});
 			return entityObjects;
 		};
@@ -1452,55 +1430,6 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request);
 			return this;
 		};
-
-		this.count = function(onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
-
-			var _pSize = _pageQuery.pageSize;
-			var _pNum = _pageQuery.pageNumber;
-
-			_pageQuery.pageSize = 1;
-			_pageQuery.pageNumber = 999999999;
-
-			var that = this;
-
-			var _restoreOldPaging = function() {
-				_pageQuery.pageSize = _pSize;
-				_pageQuery.pageNumber = _pNum;
-			};
-
-			var _queryRequest = this.toRequest();
-			_queryRequest.onSuccess = function(data) {
-
-				_restoreOldPaging();
-
-				data = data || {};
-				var pagingInfo = data.paginginfo;
-
-				var count = 0;
-				if (!pagingInfo) {
-					if (data.status && data.status.code && data.status.code == '200') {
-						count = 0;
-					} else {
-						var d = data.status || { message : 'Server error', code: 400 };
-				        if (typeof onError == 'function') onError(d, that);
-						return;
-					}
-				} else {
-					count = pagingInfo.totalrecords;
-				}
-				if (typeof onSuccess == 'function') onSuccess(count);
-			};
-			_queryRequest.onError = function(d) {
-				_restoreOldPaging();
-				d = d || { message : 'Server error', code: 400 };
-			    if (typeof onError == 'function') onError(d, that);
-			};
-			global.Appacitive.http.send(_queryRequest);
-
-			return this;
-		};
 	};
 
 	/** 
@@ -1515,12 +1444,12 @@ Depends on  NOTHING
 
 		options.queryType = 'BasicFilterQuery';
 
-		BasicQuery.call(this, options);
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
 		return this;
 	};
 
-	global.Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
+	global.Appacitive.Queries.FindAllQuery.prototype = new global.Appacitive.Queries.BasicQuery();
 
 	global.Appacitive.Queries.FindAllQuery.prototype.constructor = global.Appacitive.Queries.FindAllQuery;
 
@@ -1537,7 +1466,7 @@ Depends on  NOTHING
 
 		options.queryType = 'ConnectedArticlesQuery';
 
-		BasicQuery.call(this, options);
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
 		this.articleId = options.articleId;
 		this.relation = options.relation;
@@ -1559,7 +1488,7 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.ConnectedArticlesQuery.prototype = new BasicQuery();
+	global.Appacitive.Queries.ConnectedArticlesQuery.prototype = new global.Appacitive.Queries.BasicQuery();
 
 	global.Appacitive.Queries.ConnectedArticlesQuery.prototype.constructor = global.Appacitive.Queries.ConnectedArticlesQuery;
 
@@ -1577,7 +1506,7 @@ Depends on  NOTHING
 
 		options.queryType = 'GetConnectionsQuery';
 
-		BasicQuery.call(this, options);
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
 		this.articleId = options.articleId;
 		this.relation = options.relation;
@@ -1600,7 +1529,7 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsQuery.prototype = new BasicQuery();
+	global.Appacitive.Queries.GetConnectionsQuery.prototype = new global.Appacitive.Queries.BasicQuery();
 
 	global.Appacitive.Queries.GetConnectionsQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsQuery;
 
@@ -1617,7 +1546,7 @@ Depends on  NOTHING
 
 		options.queryType = queryType || 'GetConnectionsBetweenArticlesQuery';
 
-		BasicQuery.call(this, options);
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
 		this.articleAId = options.articleAId;
 		this.articleBId = options.articleBId;
@@ -1639,7 +1568,7 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype = new BasicQuery();
+	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype = new global.Appacitive.Queries.BasicQuery();
 
 	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery;
 
@@ -1689,7 +1618,7 @@ Depends on  NOTHING
 
 		options.queryType = 'InterconnectsQuery';
 
-		BasicQuery.call(this, options);
+		global.Appacitive.Queries.BasicQuery.call(this, options);
 
 		this.articleAId = options.articleAId;
 		this.articleBIds = options.articleBIds;
@@ -1712,7 +1641,7 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.InterconnectsQuery.prototype = new BasicQuery();
+	global.Appacitive.Queries.InterconnectsQuery.prototype = new global.Appacitive.Queries.BasicQuery();
 
 	global.Appacitive.Queries.InterconnectsQuery.prototype.constructor = global.Appacitive.Queries.InterconnectsQuery;
 
@@ -2517,32 +2446,46 @@ Depends on  NOTHING
 			return this;
 		};
 
-		var parseArticles = function (articles, pagingInfo, onSuccess) {
-			if (!articles.length || articles.length === 0) articles = [];
-			
-			articles.forEach(function (article) {
-				article.___collection = that;
-				_articles.push(article);
-			});
+		var parseArticles = function (data, onSuccess, onError) {
 
-			if (typeof onSuccess == 'function') onSuccess(pagingInfo, that);
+			data = data || {};
+			var articles = data.articles;
+
+			if (!articles) {
+				if (data.status && data.status.code && data.status.code == '200') {
+					articles = [];
+				} else {
+					var d = data.status || { message : 'Server error', code: 400 };
+			        if (typeof onError == 'function') onError(d, that);
+					return;
+				}
+			}
+
+			
+			if (!articles.length || articles.length === 0) articles = [];
+			articles.forEach(function (article) {
+				var _a = new global.Appacitive.Article(article, true);
+				_a.___collection = that;
+				_articles.push(_a);
+			});
+			var pagingInfo = data.paginginfo || {};
+			onSuccess(pagingInfo, that);
 		};
 
 		this.fetch = function(onSuccess, onError) {
-
+			onSuccess = onSuccess || function() {};
+			onError = onError || function() {};
 			_articles.length = 0;
-			
-			this.query.fetch(function(articles, pagingInfo) {
-				parseArticles(articles, pagingInfo, onSuccess);
-			}, function(err) {
-				if (typeof onError == 'function') onError(err, that);
-			});
+			var _queryRequest = _query.toRequest();
+			_queryRequest.onSuccess = function(data) {
+				parseArticles(data, onSuccess, onError);
+			};
+			_queryRequest.onError = function(d) {
+				d = d || { message : 'Server error', code: 400 };
+			    if (typeof onError == 'function') onError(d, that);
+			};
+			global.Appacitive.http.send(_queryRequest);
 
-			return this;
-		};
-
-		this.count = function(onSuccess, onError) {
-			this.query.count(onSuccess, onError);
 			return this;
 		};
 
@@ -2783,28 +2726,46 @@ Depends on  NOTHING
 			return this;
 		};
 
-		var parseConnections = function (connections, pagingInfo, onSuccess) {
-			if (_query.queryType == "GetConnectionsBetweenArticlesForRelationQuery") connections = [connections];
+		var parseConnections = function (data, onSuccess, onError, queryType) {
+			data = data || {};
+			
+			var connections = data.connections;
+			
+			if (queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && data.connection)
+				connections = [data.connection];
+
+			if (!connections) {
+				if (data.status && data.status.code && data.status.code == '200') {
+					connections = [];
+				} else {
+					var d = data.status || { message : 'Server error', code: 400 };
+			        if (typeof onError == 'function') onError(d, that);
+					return;
+				}
+			}
+
 
 			if (!connections.length || connections.length === 0) connections = [];
 			connections.forEach(function (connection) {
-				connection.___collection = that;
+				var _c = new global.Appacitive.Connection(connection, true);
+				_c.___collection = that;
 				
 				// if this is a connected articles call...
-				if (connection.endpointA.article || connection.endpointB.article) {
-					var _a = connection.endpointA.article || connection.endpointB.article;
+				if (_c.endpointA.article || _c.endpointB.article) {
+					var _a = _c.endpointA.article || _c.endpointB.article;
 					_a.___collection = that;
 					_articles.push(_a);
 				}
 				try {
-					if (!connection.___collection.connectedArticle)
-						delete connection.connectedArticle;
+					if (!_c.___collection.connectedArticle)
+						delete _c.connectedArticle;
 				} catch(e) {}
 
-				_connections.push(connection);
+				_connections.push(_c);
 			});
 
-			if (typeof onSuccess == 'function') onSuccess(pagingInfo, that);
+			var pagingInfo = data.paginginfo || {};
+			onSuccess(pagingInfo, that);
 		};
 
 		this.getConnectedArticle = function(articleId) {
@@ -2815,19 +2776,18 @@ Depends on  NOTHING
 		};
 
 		this.fetch = function(onSuccess, onError) {
+			onSuccess = onSuccess || function() {};
+			onError = onError || function() {};
 			_connections.length = 0;
-
-			this.query.fetch(function(connections, pagingInfo) {
-				parseConnections(connections, pagingInfo, onSuccess);
-			}, function(err) {
-				if (typeof onError == 'function') onError(err, that);
-			});
-
-			return this;
-		};
-
-		this.count = function(onSuccess, onError) {
-			this.query.count(onSuccess, onError);
+			var _queryRequest = _query.toRequest();
+			_queryRequest.onSuccess = function(data) {
+				parseConnections(data, onSuccess, onError, _query.queryType);
+			};
+			_queryRequest.onError = function(d) {
+				d = d || { message : 'Server error', code: 400 };
+				if (typeof onError == 'function') onError(d);
+			};
+			global.Appacitive.http.send(_queryRequest);
 			return this;
 		};
 
@@ -3282,7 +3242,24 @@ Depends on  NOTHING
 
 	//takes 2 articles and returns connections between them of particluar relationtype
 	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options, onSuccess, onError) {
-		new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options).fetch(onSuccess, onError);
+		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options);
+		var request = q.toRequest();
+		request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+			   if (typeof onSuccess == 'function') {
+			     var conn = d.connection ? new global.Appacitive.Connection(d.connection) : null;
+			     if (typeof onSuccess == 'function') onSuccess(conn);
+			   }
+			} else {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			}
+		};
+		request.onError = function(d) {
+			d = d || {};
+			if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+		};
+		global.Appacitive.http.send(request);
 	};
 
 })(global);(function (global) {
@@ -3992,43 +3969,53 @@ Depends on  NOTHING
 
 		var _app_id = null;
 
-		var _app_secret = null;
-
 		var _initialized = true;
 
 		this.initialize = function (options) { 
-			if (!Facebook) throw new Error("node-facebook SDK needs be loaded before calling initialize.");
+			if (!Ti.Facebook) throw new Error("Titanium Facebook module needs be loaded before calling initialize.");
 			if (!options.appId) throw new Error("Please provide appid");
-			if (!options.appSecret) throw new Error("Please provide app secret");
-
+			
 			_app_id = options.appId;
-			_app_secret = options.appSecret;
-		    this.FB = new Facebook({ appId: _appId, secret: _app_secret });
+			Ti.Facebook.setAppid(_app_id);
+			Ti.Facebook.setPermissions("email", "user_birthday");
+			this.FB = Ti.Facebook;
 		    _initialized = true;
 		}
 
-		this.requestLogin = function(onSuccess, onError, accessToken) {
-			if (!_initialized) {
-			  if (typeof onError == 'function') onError("Intialize facebook with your appid and appsecret");
-			  return;
-			}
-			_accessToken = accesstoken;
-			FB.setAccessToken(accessToken);
-			Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
+		this.requestLogin = function(onSuccess, onError) {
+			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+		    onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+			Ti.Facebook.addEventListener('login', function(e) {
+			    if (e.success) {
+			        _accessToken = Ti.Facebook.accessToken;
+			        if (typeof onSuccess == 'function') onSuccess({
+			        	id: e.data.id,
+		                access_token: Ti.Facebook.accessToken,
+		                expiration_date: Ti.Facebook.expirationDate
+			        });
+			    } else if (e.error) {
+			        if (typeof onError == 'function') onError();
+			    } else if (e.cancelled) {
+			        if (typeof onError == 'function') onError();
+			    }
+			});
+			Ti.Facebook.authorize();
 		};
 
 		this.getCurrentUserInfo = function(onSuccess, onError) {
 			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
 
-			if(this.FB && _accessToken){
+			if (Ti.Facebook && _accessToken){
 				onSuccess = onSuccess || function(){};
 				onError = onError || function(){};
-				this.FB.api('/me', function(err, response) {
-					if (response) {
-						if (typeof onSuccess == 'function') onSuccess(response);
-					} else {
-						if (typeof onError == 'function') onError("Access token is invalid");
-					}
+				
+				Ti.Facebook.requestWithGraphPath('me', {}, 'GET', function(e) {
+				    if (e.success) {
+				        if (typeof onSuccess == 'function') onSuccess(e);
+				    } else {
+				        if (typeof onError == 'function') onError("Access token is invalid");
+				    }
 				});
 			} else {
 				onError("Either intialize facebook with your appid and appsecret or set accesstoken");
@@ -4040,9 +4027,8 @@ Depends on  NOTHING
 		});
 
 		this.__defineSetter__('accessToken', function(val) {
-			console.log(val);
 			_accessToken = val;
-			if (this.FB) this.FB.setAccessToken(val);
+			if (Ti.Facebook) Ti.Facebook.setAccessToken(val);
 		});
 
 		this.getProfilePictureUrl = function(username) {
@@ -4053,12 +4039,14 @@ Depends on  NOTHING
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
 			Appacitive.facebook.accessToken = "";
+			_accessToken = "";
+			Ti.Facebook.logout();
 			if (typeof onSuccess == 'function') onSuccess();
 		}
 	}
 
 	global.Appacitive.Facebook = global.Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
-
+	
 })(global);(function(global) {
 
 	"use strict";

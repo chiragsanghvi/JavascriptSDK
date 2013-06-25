@@ -180,46 +180,28 @@
 			return this;
 		};
 
-		var parseConnections = function (data, onSuccess, onError, queryType) {
-			data = data || {};
-			
-			var connections = data.connections;
-			
-			if (queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && data.connection)
-				connections = [data.connection];
-
-			if (!connections) {
-				if (data.status && data.status.code && data.status.code == '200') {
-					connections = [];
-				} else {
-					var d = data.status || { message : 'Server error', code: 400 };
-			        if (typeof onError == 'function') onError(d, that);
-					return;
-				}
-			}
-
+		var parseConnections = function (connections, pagingInfo, onSuccess) {
+			if (_query.queryType == "GetConnectionsBetweenArticlesForRelationQuery") connections = [connections];
 
 			if (!connections.length || connections.length === 0) connections = [];
 			connections.forEach(function (connection) {
-				var _c = new global.Appacitive.Connection(connection, true);
-				_c.___collection = that;
+				connection.___collection = that;
 				
 				// if this is a connected articles call...
-				if (_c.endpointA.article || _c.endpointB.article) {
-					var _a = _c.endpointA.article || _c.endpointB.article;
+				if (connection.endpointA.article || connection.endpointB.article) {
+					var _a = connection.endpointA.article || connection.endpointB.article;
 					_a.___collection = that;
 					_articles.push(_a);
 				}
 				try {
-					if (!_c.___collection.connectedArticle)
-						delete _c.connectedArticle;
+					if (!connection.___collection.connectedArticle)
+						delete connection.connectedArticle;
 				} catch(e) {}
 
-				_connections.push(_c);
+				_connections.push(connection);
 			});
 
-			var pagingInfo = data.paginginfo || {};
-			onSuccess(pagingInfo, that);
+			if (typeof onSuccess == 'function') onSuccess(pagingInfo, that);
 		};
 
 		this.getConnectedArticle = function(articleId) {
@@ -230,18 +212,19 @@
 		};
 
 		this.fetch = function(onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
 			_connections.length = 0;
-			var _queryRequest = _query.toRequest();
-			_queryRequest.onSuccess = function(data) {
-				parseConnections(data, onSuccess, onError, _query.queryType);
-			};
-			_queryRequest.onError = function(d) {
-				d = d || { message : 'Server error', code: 400 };
-				if (typeof onError == 'function') onError(d);
-			};
-			global.Appacitive.http.send(_queryRequest);
+
+			this.query.fetch(function(connections, pagingInfo) {
+				parseConnections(connections, pagingInfo, onSuccess);
+			}, function(err) {
+				if (typeof onError == 'function') onError(err, that);
+			});
+
+			return this;
+		};
+
+		this.count = function(onSuccess, onError) {
+			this.query.count(onSuccess, onError);
 			return this;
 		};
 

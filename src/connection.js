@@ -233,24 +233,7 @@
 
 	//takes 2 articles and returns connections between them of particluar relationtype
 	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options, onSuccess, onError) {
-		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options);
-		var request = q.toRequest();
-		request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-			   if (typeof onSuccess == 'function') {
-			     var conn = d.connection ? new global.Appacitive.Connection(d.connection) : null;
-			     if (typeof onSuccess == 'function') onSuccess(conn);
-			   }
-			} else {
-				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
-			}
-		};
-		request.onError = function(d) {
-			d = d || {};
-			if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
-		};
-		global.Appacitive.http.send(request);
+		new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options).fetch(onSuccess, onError);
 	};
 
 })(global);
