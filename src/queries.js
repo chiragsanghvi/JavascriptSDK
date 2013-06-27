@@ -147,7 +147,6 @@
 			else if (typeof value == 'object' && value.length) _fields = value.join(',');
 		});
 
-
 		//set filters , freetext and fields
 		this.filter = options.filter || '';
 		this.freeText = options.freeText || '';
@@ -171,7 +170,7 @@
 			var finalUrl = this.pageQuery.toString() + '&' + this.sortQuery.toString();
 
 			if (this.filter && this.filter.trim().length > 0) {
-				finalUrl += '&query=' + this.filter;
+				finalUrl += '&query=' + this.filter.toString();
 			}
 
 			if (this.freeText && this.freeText.trim().length > 0) {

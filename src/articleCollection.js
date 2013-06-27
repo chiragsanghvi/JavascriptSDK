@@ -33,10 +33,10 @@
 			that.extendOptions = _query.extendOptions;
 		};
 
-		this.setFilter = function(filterString) {
-			_options.filter = filterString;
+		this.setFilter = function(filter) {
+			_options.filter = filter;
 			_options.type = 'article';
-			if (_query) _query.filter = filterString;
+			if (_query) _query.filter = filter;
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;

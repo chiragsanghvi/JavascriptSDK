@@ -52,7 +52,7 @@
 
   global.Appacitive.Date.toISODate = function(date) {
     try {
-      date = date.toISOString()[0];
+      date = date.toISOString().split('T')[0];
       return date;
     } catch(e) { return null; }
   };

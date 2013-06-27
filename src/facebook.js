@@ -61,7 +61,7 @@
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.facebook.accessToken = "";
+			Appacitive.Facebook.accessToken = "";
 			try {
 				FB.logout(function(response) {
 					Appacitive.Users.logout();
@@ -143,7 +143,7 @@
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.facebook.accessToken = "";
+			Appacitive.Facebook.accessToken = "";
 			if (typeof onSuccess == 'function') onSuccess();
 		}
 	}
