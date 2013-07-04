@@ -1168,8 +1168,9 @@ Depends on  NOTHING
 		global.Appacitive.useApiKey = true;
   		
   		global.Appacitive.Session.initialized = true;
-
-		if (options.userToken) {
+  		global.Appacitive.Session.persistUserToken = options.persistUserToken;
+  		
+  		if (options.userToken) {
 
 			if (options.expiry == -1)  options.expiry = null 
 			else if (!options.expiry)  options.expiry = 3600;
@@ -1406,7 +1407,25 @@ Depends on  NOTHING
     _polygonFilter.prototype = new _fieldFilter();
     _polygonFilter.prototype.constructor = _betweenFilter;
 
-    _compundFilter = function(operator, filters) {
+    _tagFilter = function(options) {
+
+        _filter.call(this);
+
+        options = options || {};
+        if (!options.tags || typeof options.tags != 'object' || options.tags.length == 0) throw new Error("Specify valid tags");
+
+        this.tags = options.tags;
+        this.operator = options.operator;
+        
+        this.toString = function() {
+             return String.format("{0}('{1}')", this.operator, this.tags.join(','));
+        };
+    };
+
+    _tagFilter.prototype = new _filter();
+    _tagFilter.prototype.constructor = _tagFilter;
+
+    _compoundFilter = function(operator, filters) {
         
         if (!filters || !filters.length || filters.length < 2) throw new Error("Provide valid or atleast 2 filters");
 
@@ -1431,8 +1450,8 @@ Depends on  NOTHING
         };
     };
 
-    _compundFilter.prototype = new _filter();
-    _compundFilter.prototype.constructor = _compundFilter;
+    _compoundFilter.prototype = new _filter();
+    _compoundFilter.prototype.constructor = _compoundFilter;
 
 
     var _operators = {
@@ -1446,7 +1465,9 @@ Depends on  NOTHING
         withinCircle: "within_circle",
         withinPolygon: "within_polygon",
         or: "or",
-        and: "and"
+        and: "and",
+        taggedWithAll: "tagged_with_all",
+        taggedWithOneOrMore: "tagged_with_one_or_more"
     };
 
     var _primitiveFieldValue = function(value) {
@@ -1718,10 +1739,16 @@ Depends on  NOTHING
             return new _attributeExpression(name)
         },
         Or: function() {
-            return new _compundFilter(_operators.or, arguments); 
+            return new _compoundFilter(_operators.or, arguments); 
         },
         And: function() {
-            return new _compundFilter(_operators.and, arguments); 
+            return new _compoundFilter(_operators.and, arguments); 
+        },
+        taggedWithOneOrMore: function(tags) {
+            return new _tagFilter({ tags: tags, operator: _operators.taggedWithOneOrMore });
+        },
+        taggedWithAll: function(tags) {
+            return new _tagFilter({ tags: tags, operator: _operators.taggedWithAll });
         }
     };
 
@@ -3936,10 +3963,12 @@ Depends on  NOTHING
 		};
 
 		this.setCurrentUser = function(user, token, expiry) {
-			if (!user || typeof user != 'object' || user.length >= 0) throw new Error('Cannot set null object as user');
+			if (!user) throw new Error('Cannot set null object as user');
 			var userObject = user;
-			if (!user.getArticle) userObject = new global.Appacitive.User(user, true); 
-			if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
+			
+			if (!(userObject instanceof Appacitive.User)) userObject = new global.Appacitive.User(user, true); 
+			else if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
+			else user = userObject.toJSON(); 
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
 			if (!expiry) expiry = 60;
@@ -4071,14 +4100,16 @@ Depends on  NOTHING
 		};
 
 		this.deleteCurrentUser = function(onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-
-			if (_authenticatedUser === null) throw new Error('Current user is not yet set for delete operation');
+			
+			var _callback = function() {
+				global.Appacitive.Session.removeUserAuthHeader();
+				if (typeof onSuccess == 'function') onSuccess();
+			}
+			if (_authenticatedUser === null) callback();
 
 			var currentUserId = _authenticatedUser.get('__id');
-			this.deleteUser(currentUserId, function(data) { 
-				global.Appacitive.Session.removeUserAuthHeader();
-				if (typeof onSuccess == 'function') onSuccess(data);
+			this.deleteUser(currentUserId, function() { 
+				_callback();
 			}, onError);
 		};
 
@@ -4096,7 +4127,7 @@ Depends on  NOTHING
 		//method to allow user to signup and then login 
 		this.signup = function(user, onSuccess, onError) {
 			var that = this;
-			this.createUser(user, function(data) {
+			this.createUser(user, function() {
 				that.login(user.username, user.password, onSuccess, onError);
 			}, function(status) {
 				onError(status);
@@ -4178,11 +4209,9 @@ Depends on  NOTHING
 			if (ignoreFBLogin) {
 				_callback();
 			} else { 
-				if (FB) {
-					Appacitive.Facebook.requestLogin(function(authResponse) {
-						_callback();
-					}, onError);
-				} else if (typeof onError == 'function') onError();
+				Appacitive.Facebook.requestLogin(function(authResponse) {
+					_callback();
+				}, onError);
 			}
 		};
 
@@ -4204,19 +4233,16 @@ Depends on  NOTHING
 
 			if (!avoidApiCall) {
 				try {
-					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateTokenUrl(token);
-					_request.method = 'POST';
-					_request.data = {};
-					_request.onSuccess = function(data) {
-						if (typeof(callback) == 'function')
-							callback(data.result);
-					};
-					global.Appacitive.http.send(_request);
+					var that = this;
+					this.getUserByToken(token, function(user) {
+						that.setCurrentUser(user, token);
+						if (typeof(callback) == 'function') callback(true);
+					}, function() {
+						if (typeof(callback) == 'function') callback(false);
+					});
 				} catch (e) { callback(false);}
 			} else {
-				if (typeof(callback) == 'function')
-					callback(true);
+				if (typeof(callback) == 'function') callback(true);
 				return true;
 			}
 		};
@@ -4957,12 +4983,13 @@ var cookieManager = function () {
 		if (minutes) {
 			var date = new Date();
 			date.setTime(date.getTime() + (minutes*60*1000));
-			var expires = "; expires="+date.toGMTString();
+			var expires = "; expires=" + date.toGMTString();
 		}
 		//else var expires = "";
 		
 		//for now lets make this a session cookie if it is not an erase
-		if (!erase) var expires = '';
+		if (!erase && !global.Appacitive.Session.persistUserToken) var expires = '';
+		else var expires = "; expires=" +  new Date("2020-12-31").toGMTString();
 
 		var domain = 'domain=' + window.location.hostname;
 		document.cookie = name + "=" + value + expires + "; path=/;" + domain;

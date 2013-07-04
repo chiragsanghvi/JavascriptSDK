@@ -142,10 +142,12 @@
 		};
 
 		this.setCurrentUser = function(user, token, expiry) {
-			if (!user || typeof user != 'object' || user.length >= 0) throw new Error('Cannot set null object as user');
+			if (!user) throw new Error('Cannot set null object as user');
 			var userObject = user;
-			if (!user.getArticle) userObject = new global.Appacitive.User(user, true); 
-			if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
+			
+			if (!(userObject instanceof Appacitive.User)) userObject = new global.Appacitive.User(user, true); 
+			else if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
+			else user = userObject.toJSON(); 
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
 			if (!expiry) expiry = 60;
@@ -277,14 +279,16 @@
 		};
 
 		this.deleteCurrentUser = function(onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-
-			if (_authenticatedUser === null) throw new Error('Current user is not yet set for delete operation');
+			
+			var _callback = function() {
+				global.Appacitive.Session.removeUserAuthHeader();
+				if (typeof onSuccess == 'function') onSuccess();
+			}
+			if (_authenticatedUser === null) callback();
 
 			var currentUserId = _authenticatedUser.get('__id');
-			this.deleteUser(currentUserId, function(data) { 
-				global.Appacitive.Session.removeUserAuthHeader();
-				if (typeof onSuccess == 'function') onSuccess(data);
+			this.deleteUser(currentUserId, function() { 
+				_callback();
 			}, onError);
 		};
 
@@ -302,7 +306,7 @@
 		//method to allow user to signup and then login 
 		this.signup = function(user, onSuccess, onError) {
 			var that = this;
-			this.createUser(user, function(data) {
+			this.createUser(user, function() {
 				that.login(user.username, user.password, onSuccess, onError);
 			}, function(status) {
 				onError(status);
@@ -384,11 +388,9 @@
 			if (ignoreFBLogin) {
 				_callback();
 			} else { 
-				if (FB) {
-					Appacitive.Facebook.requestLogin(function(authResponse) {
-						_callback();
-					}, onError);
-				} else if (typeof onError == 'function') onError();
+				Appacitive.Facebook.requestLogin(function(authResponse) {
+					_callback();
+				}, onError);
 			}
 		};
 
@@ -410,19 +412,16 @@
 
 			if (!avoidApiCall) {
 				try {
-					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateTokenUrl(token);
-					_request.method = 'POST';
-					_request.data = {};
-					_request.onSuccess = function(data) {
-						if (typeof(callback) == 'function')
-							callback(data.result);
-					};
-					global.Appacitive.http.send(_request);
+					var that = this;
+					this.getUserByToken(token, function(user) {
+						that.setCurrentUser(user, token);
+						if (typeof(callback) == 'function') callback(true);
+					}, function() {
+						if (typeof(callback) == 'function') callback(false);
+					});
 				} catch (e) { callback(false);}
 			} else {
-				if (typeof(callback) == 'function')
-					callback(true);
+				if (typeof(callback) == 'function') callback(true);
 				return true;
 			}
 		};

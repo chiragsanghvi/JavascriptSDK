@@ -212,8 +212,9 @@
 		global.Appacitive.useApiKey = true;
   		
   		global.Appacitive.Session.initialized = true;
-
-		if (options.userToken) {
+  		global.Appacitive.Session.persistUserToken = options.persistUserToken;
+  		
+  		if (options.userToken) {
 
 			if (options.expiry == -1)  options.expiry = null 
 			else if (!options.expiry)  options.expiry = 3600;

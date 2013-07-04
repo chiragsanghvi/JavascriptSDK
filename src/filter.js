@@ -187,7 +187,25 @@
     _polygonFilter.prototype = new _fieldFilter();
     _polygonFilter.prototype.constructor = _betweenFilter;
 
-    _compundFilter = function(operator, filters) {
+    _tagFilter = function(options) {
+
+        _filter.call(this);
+
+        options = options || {};
+        if (!options.tags || typeof options.tags != 'object' || options.tags.length == 0) throw new Error("Specify valid tags");
+
+        this.tags = options.tags;
+        this.operator = options.operator;
+        
+        this.toString = function() {
+             return String.format("{0}('{1}')", this.operator, this.tags.join(','));
+        };
+    };
+
+    _tagFilter.prototype = new _filter();
+    _tagFilter.prototype.constructor = _tagFilter;
+
+    _compoundFilter = function(operator, filters) {
         
         if (!filters || !filters.length || filters.length < 2) throw new Error("Provide valid or atleast 2 filters");
 
@@ -212,8 +230,8 @@
         };
     };
 
-    _compundFilter.prototype = new _filter();
-    _compundFilter.prototype.constructor = _compundFilter;
+    _compoundFilter.prototype = new _filter();
+    _compoundFilter.prototype.constructor = _compoundFilter;
 
 
     var _operators = {
@@ -227,7 +245,9 @@
         withinCircle: "within_circle",
         withinPolygon: "within_polygon",
         or: "or",
-        and: "and"
+        and: "and",
+        taggedWithAll: "tagged_with_all",
+        taggedWithOneOrMore: "tagged_with_one_or_more"
     };
 
     var _primitiveFieldValue = function(value) {
@@ -499,10 +519,16 @@
             return new _attributeExpression(name)
         },
         Or: function() {
-            return new _compundFilter(_operators.or, arguments); 
+            return new _compoundFilter(_operators.or, arguments); 
         },
         And: function() {
-            return new _compundFilter(_operators.and, arguments); 
+            return new _compoundFilter(_operators.and, arguments); 
+        },
+        taggedWithOneOrMore: function(tags) {
+            return new _tagFilter({ tags: tags, operator: _operators.taggedWithOneOrMore });
+        },
+        taggedWithAll: function(tags) {
+            return new _tagFilter({ tags: tags, operator: _operators.taggedWithAll });
         }
     };
 

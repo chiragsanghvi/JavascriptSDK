@@ -6,12 +6,13 @@ var cookieManager = function () {
 		if (minutes) {
 			var date = new Date();
 			date.setTime(date.getTime() + (minutes*60*1000));
-			var expires = "; expires="+date.toGMTString();
+			var expires = "; expires=" + date.toGMTString();
 		}
 		//else var expires = "";
 		
 		//for now lets make this a session cookie if it is not an erase
-		if (!erase) var expires = '';
+		if (!erase && !global.Appacitive.Session.persistUserToken) var expires = '';
+		else var expires = "; expires=" +  new Date("2020-12-31").toGMTString();
 
 		var domain = 'domain=' + window.location.hostname;
 		document.cookie = name + "=" + value + expires + "; path=/;" + domain;
