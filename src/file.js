@@ -28,7 +28,7 @@
           request.headers.push({ key:'content-type', value: type });
           request.onSuccess = onSuccess;
           request.onError = onError;
-          request.send(true);
+          request.send();
       };
 
       this.save = function(onSuccess, onError, contentType) {

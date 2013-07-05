@@ -217,7 +217,7 @@ var global = {};
 
 	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
 
-	var _XMLHttp = function(request, doNotStringify) {
+	var _XMLHttp = function(request) {
 
 	    if (typeof(XDomainRequest) !== "undefined") {
 	      throw new Error("Appacitive doesn't support versions of IE6, IE7, IE8, IE9 due to crossdomain calls");
@@ -227,11 +227,25 @@ var global = {};
 		if (!request.method) request.method = 'GET' ;
 		if (!request.headers) request.headers = [];
 		var data = {};
+		
+		var doNotStringify = true;
+		request.headers.forEach(function(r){
+			if (r.key.toLowerCase() == 'content-type') {
+				doNotStringify = true;
+				if (r.value.toLowerCase() == 'application/json' || r.value.toLowerCase() == "application/javascript") {
+					doNotStringify = false;
+				}
+			}
+		});
+
 		if (doNotStringify) data = request.data;
 		else {
-			try { if (request.data) data = request.data;
-				  data = JSON.stringify(data); 
-			} catch(e) {}
+			if (request.data) { 
+				data = request.data;
+				if (typeof request.data == 'object') {
+					try { data = JSON.stringify(data); } catch(e) {}
+				}
+			}
 		}
 		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
 	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
@@ -309,8 +323,7 @@ var global = {};
 
 		var that = _super;
 
-		var _trigger = function(request, callbacks, states, doNotStringify) {
-			if (!doNotStringify) request.headers.push({ key:'content-type', value: 'application/json' });
+		var _trigger = function(request, callbacks, states) {
 			var xhr = new  _XMLHttp({
 				method: request.method,
 				url: request.url,
@@ -321,8 +334,7 @@ var global = {};
 					 	that.onError(request, { code:'400', messgae: 'Invalid request' });
 						return;
 					}
-					// Hack to make things work in FF
-					try { data = JSON.parse(data); } catch (e) {}
+					try{ data = JSON.parse(data);} catch(e){}
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
 					that.onResponse(data, request);
@@ -446,6 +458,11 @@ var global = {};
 
 		global.Appacitive.http.addProcessor({
 			pre: function (request) {
+				request.headers.push({ key:'content-type', value: 'application/json' });
+				//TODO: uncomment this once post handling implemented
+				//request.headers.push({ key:'content-type', value: 'text/plain' });
+				//request.method = 'POST';
+				try { request.data = JSON.stringify(request.data); } catch(e) {}
 				return request;
 			},
 			post: function (response, request) {
@@ -4724,7 +4741,7 @@ Depends on  NOTHING
           request.headers.push({ key:'content-type', value: type });
           request.onSuccess = onSuccess;
           request.onError = onError;
-          request.send(true);
+          request.send();
       };
 
       this.save = function(onSuccess, onError, contentType) {
