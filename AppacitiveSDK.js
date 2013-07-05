@@ -5012,7 +5012,7 @@ var cookieManager = function () {
 			expires = '; expires=Thu, 01-Jan-1970 00:00:01 GMT';
 		}
 		var domain = 'domain=' + window.location.hostname;
-		if (domain == 'localhost') domain = '';
+		if (window.location.hostname == 'localhost') domain = '';
 		
 		document.cookie = name + "=" + value + expires + "; path=/;" + domain;
 	};
