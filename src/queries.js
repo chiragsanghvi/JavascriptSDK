@@ -435,7 +435,6 @@
 		var inner = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options, 'GetConnectionsBetweenArticlesForRelationQuery');
 
 		inner.fetch = function(onSuccess, onError) {
-			this.toUrl();
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
@@ -499,20 +498,91 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphQuery = function(options) {
+	global.Appacitive.Queries.GraphProjectQuery = function(name, ids, placeholders) {
 
-		options = options || {};
+		if (!name || name.length == 0) throw new Error("Specify name of project query");
+		if (!ids || !ids.length) throw new Error("Specify ids to project");
 		
-		if (!options.graphQuery)
-			throw new Error('graphQuery object is mandatory');
+		this.name = name;
+		this.data = { ids: ids };
+		this.queryType = 'GraphProjectQuery';
+
+		if (placeholders) this.data.placeholders = placeholders;
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = global.Appacitive.config.apiBaseUrl;
-			r.url += global.Appacitive.storage.urlFactory.article.getProjectionQueryUrl();
+			r.url = this.toUrl();
 			r.method = 'post';
-			r.data = options.graphQuery;
+			r.data = this.data;
 			return r;
+		};
+
+		this.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project';
+		};
+
+		var _parseResult = function(result) {
+			var root;
+			for (var key in result) {
+				if (key !== 'status') {
+					root = result[key];
+					break;
+				}
+			}
+			var parseChildren = function(obj, parentLabel, parentId) {
+				var props = [];
+				obj.forEach(function(o) {
+					var children = o.__children;
+					delete o.__children;
+					
+					var edge = o.__edge;
+					delete o.__edge;
+
+					var tmpArticle = new Appacitive.Article(o, true);
+					tmpArticle.project = {};
+					for (var key in children) {
+						tmpArticle.projections[key] = { parent : children[key].parent };
+						tmpArticle.projections[key].values = parseChildren(children[key].values, children[key].parent, tmpArticle.id);
+					}
+
+					if (edge) {
+						edge.__endpointa = {
+							articleid : parentId,
+							label: parentLabel
+						};
+						edge.__endpointb = {
+							articleid: tmpArticle.id,
+							label: edge.label
+						};
+						delete edge.label;
+						tmpArticle.connection = new Appacitive.Connection(edge);
+					}
+					props.push(tmpArticle);
+				});
+				return props;
+			};
+			return parseChildren(root.values);
+		};
+
+		this.fetch = function(onSuccess, onError) {
+			
+			var request = this.toRequest();
+			request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+				   if (typeof onSuccess == 'function') {
+				   		onSuccess(_parseResult(d));
+					}
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			};
+			global.Appacitive.http.send(request);
+			return this;
 		};
 	};
 
