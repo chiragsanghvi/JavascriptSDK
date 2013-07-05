@@ -187,7 +187,7 @@ var global = {};
 	/**
 	 * @constructor
 	 */
-	 var _HttpTransport = function () {
+	var _HttpTransport = function () {
 		var _notImplemented = function () {
 			throw new Error('Not Implemented Exception');
 		}
@@ -206,7 +206,7 @@ var global = {};
 		this.onError = function (request) {
 			_notImplemented()
 		};
-	}
+	};
 
 	// base xmlhttprequest class
 	/**
@@ -217,11 +217,35 @@ var global = {};
 
 	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
 
-	var _XMLHttp = function(request) {
+	var _XDomainRequest = function(request) {
+	    var xdr = new XDomainRequest();
+	    xdr.onload = function() {
+  			var response = xdr.responseText;
+			try {
+				var contentType = xdr.contentType;
+				if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') { 
+					var jData = response;
+					if (!global.Appacitive.runtime.isBrowser) {
+						if (jData[0] != "{") {
+							jData = jData.substr(1, jData.length - 1);
+						}
+					}
+					response = JSON.parse(jData);
+				}
+			} catch(e) {}
+            request.onSuccess(response, this);       
+	    };
+	    xdr.onerror = xdr.ontimeout = function() {
+	       request.onError({code: "400" , message: "Server Error" }, xdr);
+	    };
+	    xdr.onprogress = function() {};
+	    xdr.open(request.method, request.url, true);
+	    xdr.send(data);
+		return xdr;
+	};
 
-	    if (typeof(XDomainRequest) !== "undefined") {
-	      throw new Error("Appacitive doesn't support versions of IE6, IE7, IE8, IE9 due to crossdomain calls");
-	    }
+
+	var _XMLHttp = function(request) {
 
 		if (!request.url) throw new Error("Please specify request url");
 		if (!request.method) request.method = 'GET' ;
@@ -238,6 +262,7 @@ var global = {};
 			}
 		});
 
+
 		if (doNotStringify) data = request.data;
 		else {
 			if (request.data) { 
@@ -250,36 +275,41 @@ var global = {};
 		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
 	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
 	    
-	    var xhr = new _XMLHttpRequest();
-	    xhr.onreadystatechange = function() {
-	    	if (this.readyState == 4) {
-		    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
-					var response = this.responseText;
-					try {
-						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
-						if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') { 
-							var jData = response;
-							if (!global.Appacitive.runtime.isBrowser) {
-								if (jData[0] != "{") {
-									jData = jData.substr(1, jData.length - 1);
+	    if (typeof(XDomainRequest) !== "undefined") {
+			var xdr = new _XDomainRequest(request);
+			return xdr;
+	    } else {
+		    var xhr = new _XMLHttpRequest();
+		    xhr.onreadystatechange = function() {
+		    	if (this.readyState == 4) {
+			    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
+						var response = this.responseText;
+						try {
+							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
+							if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') { 
+								var jData = response;
+								if (!global.Appacitive.runtime.isBrowser) {
+									if (jData[0] != "{") {
+										jData = jData.substr(1, jData.length - 1);
+									}
 								}
+								response = JSON.parse(jData);
 							}
-							response = JSON.parse(jData);
-						}
-					} catch(e) {}
-		            request.onSuccess(response, this);
-		        } else {
-		        	request.onError({code: this.status , message: this.statusText }, this);
-		        }
-	    	}
-	    };
-	    xhr.open(request.method, request.url, true);
-	    for (var x = 0; x < request.headers.length; x += 1)
-			xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
-		if (!global.Appacitive.runtime.isBrowser)
-			xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
-	    xhr.send(data);
-	    return xhr;
+						} catch(e) {}
+			            request.onSuccess(response, this);
+			        } else {
+			        	request.onError({code: this.status , message: this.statusText }, this);
+			        }
+		    	}
+		    };
+		    xhr.open(request.method, request.url, true);
+		    for (var x = 0; x < request.headers.length; x += 1)
+				xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
+			if (!global.Appacitive.runtime.isBrowser)
+				xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
+		    xhr.send(data);
+		    return xhr;
+		}
 	};
 
 
