@@ -3809,7 +3809,7 @@ Depends on  NOTHING
 			options = { __relationtype : rName };
 		}
 
-		if (!options.__relationtype && !options.relation ) throw new error("Cannot set connection without relation");
+		if (!options.__relationtype && !options.relation ) throw new Error("Cannot set connection without relation");
 
 		if (options.relation) {
 			options.__relationtype = options.relation;
