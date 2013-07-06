@@ -1812,7 +1812,7 @@ Depends on  NOTHING
 	var PageQuery = function(o) {
 		var options = o || {};
 		var _pageNumber = 1;
-		var _pageSize = 200;
+		var _pageSize = 20;
 
 		//define getter for pageNumber
 		this.__defineGetter__('pageNumber', function() { return _pageNumber; });
@@ -2389,10 +2389,10 @@ Depends on  NOTHING
 					delete o.__edge;
 
 					var tmpArticle = new Appacitive.Article(o, true);
-					tmpArticle.projections = {};
+					tmpArticle.children = {};
 					for (var key in children) {
-						tmpArticle.projections[key] = { parent : children[key].parent };
-						tmpArticle.projections[key].values = parseChildren(children[key].values, children[key].parent, tmpArticle.id);
+						tmpArticle.children[key] = [];
+						tmpArticle.children[key] = parseChildren(children[key].values, children[key].parent, tmpArticle.id);
 					}
 
 					if (edge) {
