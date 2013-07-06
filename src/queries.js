@@ -169,8 +169,9 @@
 
 			var finalUrl = this.pageQuery.toString() + '&' + this.sortQuery.toString();
 
-			if (this.filter && this.filter.trim().length > 0) {
-				finalUrl += '&query=' + this.filter.toString();
+			var filter = this.filter.toString();
+			if (this.filter && this.filter.length > 0) {
+				finalUrl += '&query=' + filter;
 			}
 
 			if (this.freeText && this.freeText.trim().length > 0) {
