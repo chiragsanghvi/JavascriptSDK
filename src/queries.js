@@ -495,6 +495,55 @@
 
 	global.Appacitive.Queries.InterconnectsQuery.prototype.constructor = global.Appacitive.Queries.InterconnectsQuery;
 
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GraphFilterQuery = function(name, placeholders) {
+
+		if (!name || name.length == 0) throw new Error("Specify name of filter query");
+		
+		this.name = name;
+		this.data = { };
+		this.queryType = 'GraphFilterQuery';
+
+		if (placeholders) this.data.placeholders = placeholders;
+
+		this.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = this.toUrl();
+			r.method = 'post';
+			r.data = this.data;
+			return r;
+		};
+
+		this.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter';
+		};
+
+		this.fetch = function(onSuccess, onError) {
+			
+			var request = this.toRequest();
+			request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+				   if (typeof onSuccess == 'function') {
+				   		onSuccess(d.ids ? d.ids : []);
+					}
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			};
+			global.Appacitive.http.send(request);
+			return this;
+		};
+
+	};
+
 	/** 
 	* @constructor
 	**/
@@ -539,7 +588,7 @@
 					delete o.__edge;
 
 					var tmpArticle = new Appacitive.Article(o, true);
-					tmpArticle.project = {};
+					tmpArticle.projections = {};
 					for (var key in children) {
 						tmpArticle.projections[key] = { parent : children[key].parent };
 						tmpArticle.projections[key].values = parseChildren(children[key].values, children[key].parent, tmpArticle.id);
