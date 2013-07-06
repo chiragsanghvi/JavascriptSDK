@@ -223,7 +223,7 @@
             var value = "(";
             this.innerFilters.forEach(function(f) {
                 if (value.length == 1) value += ' ' + f.toString();
-                else value += String.format('{0} {1}', op, f.toString());
+                else value += String.format(' {0} {1} ', op, f.toString());
             });
             value += ")";
             return value;
