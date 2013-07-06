@@ -3842,7 +3842,7 @@ Depends on  NOTHING
 		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
 	};
 
-	global.Appacitive.Connection.get = function(relationName, id, onSuccess, onError, fields) {
+	global.Appacitive.Connection.get = function(options, onSuccess, onError) {
 		options = options || {};
 		if (!options.relation) throw new Error("Specify relation");
 		if (!options.id) throw new Error("Specify id to fetch");
@@ -3879,7 +3879,7 @@ Depends on  NOTHING
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive article objects
-	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError, fields) {
+	global.Appacitive.Connection.multiGet = function(options, onSuccess, onError) {
 		options = options || {};
 		if (!options.relation || typeof options.relation!= 'string' || options.relation.length == 0) throw new Error("Specify valid relation");
 		if (options.ids && options.ids.length > 0) {
