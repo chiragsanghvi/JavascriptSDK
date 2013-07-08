@@ -67,6 +67,16 @@
        return newArr;
     };
 
+    Object.prototype.isEmpty = function (object) {
+        if(!object) return true;
+        var isEmpty = true;
+        for (keys in object) {
+            isEmpty = false; 
+            break; // exiting since we found that the object is not empty
+        }
+        return isEmpty;
+    }
+
     global.dateFromWcf = function (input, throwOnInvalidInput) {
         var pattern = /Date\(([^)]+)\)/;
         var results = pattern.exec(input);

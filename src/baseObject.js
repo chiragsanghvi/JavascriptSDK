@@ -73,7 +73,7 @@
 
 		this.getObject = function() { return JSON.parse(JSON.stringify(article)); };
 
-		this.toJSON = function() { return article; };
+		this.toJSON = function() { return JSON.parse(JSON.stringify(article)); };
 
 		this.__defineGetter__('id', function() { return this.get('__id'); });
 
@@ -240,7 +240,7 @@
 		this.hasChanged = function() {
 			var changeSet = _getChanged(true);
 			if (arguments.length === 0) {
-				return changeSet ? true : false;
+				return changeSet.isEmpty() ? false : true;
 			} else if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length > 0) {
 				if (changeSet && changeSet[arguments[0]]) {
 					return true;

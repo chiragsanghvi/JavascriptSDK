@@ -372,7 +372,7 @@
 					"accesstoken": global.Appacitive.Facebook.accessToken,
 					"type": "facebook",
 					"expiry": 86400000,
-					"createnew": isNew
+					"createnew": true
 				};
 
 				that.authenticateUser(authRequest, function(a) {
