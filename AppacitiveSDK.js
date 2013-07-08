@@ -597,7 +597,7 @@ var global = {};
        return newArr;
     };
 
-    Object.prototype.isEmpty = function (object) {
+    Object.isEmpty = function (object) {
         if(!object) return true;
         var isEmpty = true;
         for (keys in object) {
@@ -2690,7 +2690,7 @@ Depends on  NOTHING
 		this.hasChanged = function() {
 			var changeSet = _getChanged(true);
 			if (arguments.length === 0) {
-				return changeSet.isEmpty() ? false : true;
+				return Object.isEmpty(changeSet) ? false : true;
 			} else if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length > 0) {
 				if (changeSet && changeSet[arguments[0]]) {
 					return true;

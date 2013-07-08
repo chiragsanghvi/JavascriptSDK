@@ -67,7 +67,7 @@
        return newArr;
     };
 
-    Object.prototype.isEmpty = function (object) {
+    Object.isEmpty = function (object) {
         if(!object) return true;
         var isEmpty = true;
         for (keys in object) {
