@@ -2932,8 +2932,8 @@ Depends on  NOTHING
 			// just remove it from the collection
 			// else delete the article and remove from collection
 
-			if (!article['__id'] && this.___collection) {
-				this.___collection.removeByCId(__cid);
+			if (!article['__id']) {
+				if (this.___collection) this.___collection.removeByCId(__cid);
 				if (typeof onSuccess == 'function') onSuccess(this);
 				return;
 			}
