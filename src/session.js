@@ -61,23 +61,23 @@
 		global.Appacitive.http.addProcessor({
 			pre: function(request) {
 				if (global.Appacitive.Session.useApiKey) {
-					request.headers.push({ key: 'appacitive-apikey', value: _apikey });
+					request.headers.push({ key: 'ak', value: _apikey });
 				} else {
-					request.headers.push({ key: 'appacitive-session', value: _sessionKey });
+					request.headers.push({ key: 'as', value: _sessionKey });
 				}
 
 				if (authEnabled === true) {
 					var userAuthHeader = request.headers.filter(function (uah) {
-						return uah.key == 'appacitive-user-auth';
+						return uah.key == 'ut';
 					});
 					if (userAuthHeader.length == 1) {
 						request.headers.forEach(function (uah) {
-							if (uah.key == 'appacitive-user-auth') {
+							if (uah.key == 'ut') {
 								uah.value = _authToken;
 							}
 						});
 					} else {
-						request.headers.push({ key: 'appacitive-user-auth', value: _authToken });
+						request.headers.push({ key: 'ut', value: _authToken });
 					}
 				}
 			}
@@ -258,7 +258,7 @@
 
 	global.Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'appacitive-environment', value: global.Appacitive.Session.environment });
+			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment });
 		}
 	});
 

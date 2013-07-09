@@ -125,10 +125,10 @@
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getUserByTokenUrl: function(userToken) {
-                return string.format("{0}/me?useridtype=token&token=", this.userServiceUrl, userToken);
+                return String.format("{0}/me?useridtype=token&token=", this.userServiceUrl, userToken);
             },
             getUserByUsernameUrl: function(username) {
-                return string.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
+                return String.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
             },
             getUpdateUrl: function (userId, fields) {
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));

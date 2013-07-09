@@ -20,11 +20,9 @@ asyncTest('Verify user auth header can be added', function() {
 	req1.method = 'get';
 	req1.url = 'https://apis.appacitive.com/article/1/1';
 	req1.beforeSend = function(request) {
-		var userAuthHeader = request.headers.filter(function(header) {
-			return header.key.toLowerCase() == 'appacitive-user-auth';
-		});
+		var userAuthHeader = [JSON.parse(request.data)['ut']];
 		equal(userAuthHeader.length, 1, 'User auth header added');
-		equal(userAuthHeader[0].value, guid, 'User auth header value correct: ' + guid);
+		equal(userAuthHeader[0], guid, 'User auth header value correct: ' + guid);
 		start();
 	};
 	Appacitive.http.send(req1);
@@ -37,11 +35,9 @@ asyncTest('Verify user auth header can be removed', function() {
 	req1.method = 'get';
 	req1.url = 'https://apis.appacitive.com/article/1/1';
 	req1.beforeSend = function(request) {
-		var userAuthHeader = request.headers.filter(function(header) {
-			return header.key.toLowerCase() == 'appacitive-user-auth';
-		});
+		var userAuthHeader = [JSON.parse(request.data)['ut']];
 		equal(userAuthHeader.length, 1, 'User auth header added');
-		equal(userAuthHeader[0].value, guid, 'User auth header value correct: ' + guid);
+		equal(userAuthHeader[0], guid, 'User auth header value correct: ' + guid);
 	};
 	Appacitive.http.send(req1);
 	Appacitive.Session.removeUserAuthHeader();
@@ -49,9 +45,7 @@ asyncTest('Verify user auth header can be removed', function() {
 	req1.method = 'get';
 	req1.url = 'https://apis.appacitive.com/article/1/1';
 	req1.beforeSend = function(request) {
-		var userAuthHeader = request.headers.filter(function(header) {
-			return header.key.toLowerCase() == 'appacitive-user-auth';
-		});
+		var userAuthHeader = JSON.parse(request.data)['ut'] ? ["1"] : [];
 		equal(userAuthHeader.length, 0, 'User auth header removed');
 		start();
 	};

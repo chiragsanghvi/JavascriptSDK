@@ -110,6 +110,25 @@ var global = {};
 			_queue.push(request);
 		};
 
+
+		this.changeRequestForCors = function(request) {
+			var body = {
+				m : request.method.toUpperCase()
+			};
+			request.headers.forEach(function(h) {
+				body[h.key] = h.value;
+			});
+			request.headers = [];
+			request.headers.push({ key:'Content-Type', value: 'text/plain' });
+			request.method = 'POST';
+
+			if (request.data) body.b = request.data
+			delete request.data;
+			
+			try { request.data = JSON.stringify(body); } catch(e) {}
+			return request;
+		};
+
 		// notifies the queue that there are requests pending
 		// this will start firing the requests via the method 
 		// passed while initalizing
@@ -136,6 +155,8 @@ var global = {};
 						_state.push(_preProcessors[processor](toFire));
 					}
 				}
+
+				this.changeRequestForCors(toFire);
 
 				// send the requests
 				// and the callbacks and the 
@@ -456,11 +477,6 @@ var global = {};
 
 		global.Appacitive.http.addProcessor({
 			pre: function (request) {
-				request.headers.push({ key:'content-type', value: 'application/json' });
-				//TODO: uncomment this once post handling implemented
-				//request.headers.push({ key:'content-type', value: 'text/plain' });
-				//request.method = 'POST';
-				try { request.data = JSON.stringify(request.data); } catch(e) {}
 				return request;
 			},
 			post: function (response, request) {

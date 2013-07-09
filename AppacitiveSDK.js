@@ -142,6 +142,25 @@ var global = {};
 			_queue.push(request);
 		};
 
+
+		this.changeRequestForCors = function(request) {
+			var body = {
+				m : request.method.toUpperCase()
+			};
+			request.headers.forEach(function(h) {
+				body[h.key] = h.value;
+			});
+			request.headers = [];
+			request.headers.push({ key:'Content-Type', value: 'text/plain' });
+			request.method = 'POST';
+
+			if (request.data) body.b = request.data
+			delete request.data;
+			
+			try { request.data = JSON.stringify(body); } catch(e) {}
+			return request;
+		};
+
 		// notifies the queue that there are requests pending
 		// this will start firing the requests via the method 
 		// passed while initalizing
@@ -168,6 +187,8 @@ var global = {};
 						_state.push(_preProcessors[processor](toFire));
 					}
 				}
+
+				this.changeRequestForCors(toFire);
 
 				// send the requests
 				// and the callbacks and the 
@@ -488,11 +509,6 @@ var global = {};
 
 		global.Appacitive.http.addProcessor({
 			pre: function (request) {
-				request.headers.push({ key:'content-type', value: 'application/json' });
-				//TODO: uncomment this once post handling implemented
-				//request.headers.push({ key:'content-type', value: 'text/plain' });
-				//request.method = 'POST';
-				try { request.data = JSON.stringify(request.data); } catch(e) {}
 				return request;
 			},
 			post: function (response, request) {
@@ -655,10 +671,10 @@ var global = {};
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getUserByTokenUrl: function(userToken) {
-                return string.format("{0}/me?useridtype=token&token=", this.userServiceUrl, userToken);
+                return String.format("{0}/me?useridtype=token&token=", this.userServiceUrl, userToken);
             },
             getUserByUsernameUrl: function(username) {
-                return string.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
+                return String.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
             },
             getUpdateUrl: function (userId, fields) {
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
@@ -1074,23 +1090,23 @@ Depends on  NOTHING
 		global.Appacitive.http.addProcessor({
 			pre: function(request) {
 				if (global.Appacitive.Session.useApiKey) {
-					request.headers.push({ key: 'appacitive-apikey', value: _apikey });
+					request.headers.push({ key: 'ak', value: _apikey });
 				} else {
-					request.headers.push({ key: 'appacitive-session', value: _sessionKey });
+					request.headers.push({ key: 'as', value: _sessionKey });
 				}
 
 				if (authEnabled === true) {
 					var userAuthHeader = request.headers.filter(function (uah) {
-						return uah.key == 'appacitive-user-auth';
+						return uah.key == 'ut';
 					});
 					if (userAuthHeader.length == 1) {
 						request.headers.forEach(function (uah) {
-							if (uah.key == 'appacitive-user-auth') {
+							if (uah.key == 'ut') {
 								uah.value = _authToken;
 							}
 						});
 					} else {
-						request.headers.push({ key: 'appacitive-user-auth', value: _authToken });
+						request.headers.push({ key: 'ut', value: _authToken });
 					}
 				}
 			}
@@ -1271,7 +1287,7 @@ Depends on  NOTHING
 
 	global.Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'appacitive-environment', value: global.Appacitive.Session.environment });
+			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment });
 		}
 	});
 
