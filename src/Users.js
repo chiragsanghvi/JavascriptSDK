@@ -439,8 +439,9 @@
 			request.method = 'post';
 			request.data = passwordResetOptions;
 			request.onSuccess = function(a) {
-				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess();
-				else { onError(a); }
+				if (a && a.code == '200') {
+				 	if (typeof onSuccess == 'function') onSuccess();
+				} else { onError(a); }
 			};
 			request.onError = onError;
 			global.Appacitive.http.send(request); 
@@ -454,8 +455,9 @@
 			request.url = url;
 			request.method = 'get';
 			request.onSuccess = function(data) {
-				if (data && data.user) if (typeof onSuccess == 'function') onSuccess(new Appacitive.User(data.user));
-				else if (typeof onError == 'function') onError(data.status);
+				if (data && data.user) { 
+					if (typeof onSuccess == 'function') onSuccess(new Appacitive.User(data.user));
+				} else if (typeof onError == 'function') onError(data.status);
 			};
 			request.onError = onError;
 			global.Appacitive.http.send(request);

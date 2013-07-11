@@ -214,6 +214,8 @@
   		global.Appacitive.Session.initialized = true;
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
   		
+		if (options.debug) global.Appacitive.config.debug = true;
+
   		if (options.userToken) {
 
 			if (options.expiry == -1)  options.expiry = null 

@@ -157,6 +157,11 @@ var global = {};
 			if (request.data) body.b = request.data
 			delete request.data;
 			
+			if (global.Appacitive.config.debug) {
+				if (request.url.indexOf('?') == -1) request.url = request.url + '?debug=true';
+				else request.url = request.url + '&debug=true';
+			}
+
 			try { request.data = JSON.stringify(body); } catch(e) {}
 			return request;
 		};
@@ -261,7 +266,7 @@ var global = {};
 	    };
 	    xdr.onprogress = function() {};
 	    xdr.open(request.method, request.url, true);
-	    xdr.send(data);
+	    xdr.send(request.data);
 		return xdr;
 	};
 
@@ -293,10 +298,12 @@ var global = {};
 				}
 			}
 		}
+
 		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
 	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
 	    
-	    if (typeof(XDomainRequest) !== "undefined") {
+	    if (typeof(XDomainRequest) !== "undefined" && typeof (_XMLHttpRequest) == 'undefined') {
+	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;
 	    } else {
@@ -1027,6 +1034,10 @@ Depends on  NOTHING
 		apiBaseUrl: 'https://apis.appacitive.com/'
 	};
 
+	if (typeof XDomainRequest != 'undefined') {
+		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/'
+	}
+
 }(global));(function(global) {
 
 	"use strict";
@@ -1243,6 +1254,8 @@ Depends on  NOTHING
   		global.Appacitive.Session.initialized = true;
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
   		
+		if (options.debug) global.Appacitive.config.debug = true;
+
   		if (options.userToken) {
 
 			if (options.expiry == -1)  options.expiry = null 
@@ -1686,11 +1699,11 @@ Depends on  NOTHING
         };
 
         context.startsWith = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.like });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value + "*"), operator: _operators.like });
         };
 
         context.endsWith = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.like });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value), operator: _operators.like });
         };
 
         context.contains = function(values) {
@@ -1850,7 +1863,7 @@ Depends on  NOTHING
 		this.__defineGetter__('pageSize', function() { return _pageSize; });
 
 		//define setter for pagenumber
-		this.__defineSetter__('pageSize', function(value) { _pageSize = value || 200; });
+		this.__defineSetter__('pageSize', function(value) { _pageSize = value || 20; });
 
 		this.pageNumber = options.pageNumber;
 		this.pageSize = options.pageSize;
@@ -4454,8 +4467,9 @@ Depends on  NOTHING
 			request.method = 'post';
 			request.data = passwordResetOptions;
 			request.onSuccess = function(a) {
-				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess();
-				else { onError(a); }
+				if (a && a.code == '200') {
+				 	if (typeof onSuccess == 'function') onSuccess();
+				} else { onError(a); }
 			};
 			request.onError = onError;
 			global.Appacitive.http.send(request); 
@@ -4469,8 +4483,9 @@ Depends on  NOTHING
 			request.url = url;
 			request.method = 'get';
 			request.onSuccess = function(data) {
-				if (data && data.user) if (typeof onSuccess == 'function') onSuccess(new Appacitive.User(data.user));
-				else if (typeof onError == 'function') onError(data.status);
+				if (data && data.user) { 
+					if (typeof onSuccess == 'function') onSuccess(new Appacitive.User(data.user));
+				} else if (typeof onError == 'function') onError(data.status);
 			};
 			request.onError = onError;
 			global.Appacitive.http.send(request);

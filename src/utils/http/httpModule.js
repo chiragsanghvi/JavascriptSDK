@@ -125,6 +125,11 @@ var global = {};
 			if (request.data) body.b = request.data
 			delete request.data;
 			
+			if (global.Appacitive.config.debug) {
+				if (request.url.indexOf('?') == -1) request.url = request.url + '?debug=true';
+				else request.url = request.url + '&debug=true';
+			}
+
 			try { request.data = JSON.stringify(body); } catch(e) {}
 			return request;
 		};
@@ -229,7 +234,7 @@ var global = {};
 	    };
 	    xdr.onprogress = function() {};
 	    xdr.open(request.method, request.url, true);
-	    xdr.send(data);
+	    xdr.send(request.data);
 		return xdr;
 	};
 
@@ -261,10 +266,12 @@ var global = {};
 				}
 			}
 		}
+
 		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
 	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
 	    
-	    if (typeof(XDomainRequest) !== "undefined") {
+	    if (typeof(XDomainRequest) !== "undefined" && typeof (_XMLHttpRequest) == 'undefined') {
+	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;
 	    } else {

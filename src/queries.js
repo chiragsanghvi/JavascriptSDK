@@ -23,7 +23,7 @@
 		this.__defineGetter__('pageSize', function() { return _pageSize; });
 
 		//define setter for pagenumber
-		this.__defineSetter__('pageSize', function(value) { _pageSize = value || 200; });
+		this.__defineSetter__('pageSize', function(value) { _pageSize = value || 20; });
 
 		this.pageNumber = options.pageNumber;
 		this.pageSize = options.pageSize;
