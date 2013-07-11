@@ -2537,7 +2537,7 @@ Depends on  NOTHING
 		this.__defineGetter__('cid', function() { return __cid; });
 
 		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
+		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
 		
 		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
 
