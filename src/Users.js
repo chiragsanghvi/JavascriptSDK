@@ -284,8 +284,10 @@
 				global.Appacitive.Session.removeUserAuthHeader();
 				if (typeof onSuccess == 'function') onSuccess();
 			}
-			if (_authenticatedUser === null) callback();
-
+			if (_authenticatedUser === null) { 
+				_callback();
+				return;
+			}
 			var currentUserId = _authenticatedUser.get('__id');
 			this.deleteUser(currentUserId, function() { 
 				_callback();

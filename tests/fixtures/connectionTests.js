@@ -469,3 +469,40 @@ asyncTest('Verify created connection shows up in collection after fetching conne
 		start();
 	});
 });
+
+asyncTest('Verify no changeset on article fetched from connectedarticles', function() {
+	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
+	var school = schools.createNewArticle();
+	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
+	var connectOptions = {
+		endpoints: [{
+			article: school,
+			label: 'school'
+		}, {
+			article: profile,
+			label: 'profile'
+		}],
+		relation: 'myschool'
+	};
+
+	var connection = new Appacitive.Connection(connectOptions);
+	connection.save(function(conn) {
+		var a = new Appacitive.Article(profile.toJSON());
+		var cC = a.getConnectedArticles({ relation: 'myschool' });
+		cC.fetch(function() {
+			if (cC.get(0).connectedArticle.hasChanged()) {
+				ok(false, 'Article has not changed');
+				start();
+			} else {
+				ok(true, 'Article has not changed');
+				start();
+			}
+		}, function() {
+			ok(false, 'Error occured on calling fetch for connections');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not save connection.');
+		start();
+	});
+});
