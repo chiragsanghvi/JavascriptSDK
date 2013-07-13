@@ -87,18 +87,18 @@
 			_convertEndpoint(this.get('__endpointa'), typeA, this);
 			_convertEndpoint(this.get('__endpointb'), typeB, this);
 
-			this.__defineGetter__('endpoints', function() {
+			this.endpoints = function() {
 				var endpoints = [];
 				endpoints.push(this.endpointA);
 				endpoints.push(this.endpointB);
 				return endpoints;
-			});
+			};
 
 			return this;
 		};
 
 		if (doNotSetup) {
-			this.__defineGetter__('connectedArticle', function() {
+			this.connectedArticle = function() {
 				if (!this.___collection.connectedArticle) {
 					throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
 				}
@@ -108,8 +108,7 @@
 				if (this.getConnection().__endpointa.articleid == articleId)
 					otherArticleId = this.getConnection().__endpointb.articleid;
 				return this.___collection.getConnectedArticle(otherArticleId);
-
-			});
+			};
 			this.parseConnection(options);
 		} else {
 			if (options.__endpointa && options.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));

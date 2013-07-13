@@ -92,7 +92,7 @@ test('Verify default basic search all query in article collection', function() {
 		schema: 'profile'
 	});
 	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Default query setting correctly in article collection.');
 });
 
@@ -112,7 +112,7 @@ test('Verify custom search all query in article collection', function() {
 		orderBy: 'name',
 		isAscending: false
 	});
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Custom query setting correctly in article collection.');
 });
 
@@ -123,7 +123,7 @@ test('Verify query modification using setOptions in articleCollection', function
 	};
 	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Default query setting correctly in articleCollection.');
 
 	options = {
@@ -136,7 +136,7 @@ test('Verify query modification using setOptions in articleCollection', function
 	};
 	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setOptions(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Query modification correctly done in articleCollection.');
 });
 
@@ -180,7 +180,7 @@ test('Verify default filtered query in article collection', function() {
 		schema: 'profile'
 	});
 	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in article collection.');
 });
 
@@ -204,7 +204,7 @@ test('Verify custom filtered query in article collection', function() {
 		isAscending: false,
 		filter: 'c>3' 
 	});
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Custom filtered query setting correctly in article collection.');
 });
 
@@ -216,7 +216,7 @@ test('Verify filtered query modification using setOptions in articleCollection',
 	};
 	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
 	options = {
@@ -230,7 +230,7 @@ test('Verify filtered query modification using setOptions in articleCollection',
 	};
 	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setOptions(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
 });
 
@@ -242,7 +242,7 @@ test('Verify filter modification using setFilter in articleCollection', function
 	};
 	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
 	options = {
@@ -252,7 +252,7 @@ test('Verify filter modification using setFilter in articleCollection', function
 	};
 	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setFilter('q < 1234567890');
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
 });
 
@@ -278,7 +278,7 @@ test('Verify custom filtered and freetext query in article collection', function
 		filter: 'c>3',
 		freeText: ['test'] 
 	});
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Custom filtered and freetxet query setting correctly in article collection.');
 });
 
@@ -291,7 +291,7 @@ test('Verify filter and freetxt query modification using setOptions in articleCo
 	};
 	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
 	options = {
@@ -306,7 +306,7 @@ test('Verify filter and freetxt query modification using setOptions in articleCo
 	};
 	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setOptions(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
 });
 
@@ -319,7 +319,7 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 	};
 	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
 	var options = {
@@ -330,7 +330,7 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 	};
 	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setFreeText('updatedtest');
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Filtered and freetext query modification correctly done in articleCollection.');
 });
 
@@ -356,7 +356,7 @@ test('Verify custom fields and freetext query in article collection', function()
 		fields: ['name', 'id'],
 		freeText: ['test'],
 	});
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Custom fields and freetext query setting correctly in article collection.');
 });
 
@@ -370,7 +370,7 @@ test('Verify filtered, freetext and fields query modification using setOptions i
 	};
 	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
 	options = {
@@ -386,7 +386,7 @@ test('Verify filtered, freetext and fields query modification using setOptions i
 	};
 	query = new Appacitive.Queries.FindAllQuery(options);
 	collection.setOptions(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Filtered query modification correctly done in articleCollection.');
 });
 
@@ -400,7 +400,7 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 	};
 	var query = new Appacitive.Queries.FindAllQuery(options);
 	var collection = new Appacitive.ArticleCollection(options);
-	var collectionQuery = collection.query;
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Default filtered query setting correctly in articleCollection.');
 
 	options = {
@@ -411,16 +411,16 @@ test('Verify filter and freetext modification using setFilter and setfreetext in
 		fields: ['name','__id']
 	};
 	query = new Appacitive.Queries.FindAllQuery(options);
-	collection.query.freeText = ['updatedtest'];
-	collection.query.fields = 'name,__id';
-	var collectionQuery = collection.query;
+	collection.query().freeText(['updatedtest']);
+	collection.query().fields('name,__id');
+	var collectionQuery = collection.query();
 	deepEqual(query, collectionQuery, 'Filtered and freetext query modification correctly done in articleCollection.');
 });
 
 test('Verify filtered query orderBy in ArticleCollection', function() {
 	var models = new Appacitive.ArticleCollection({ schema: 'profile' });
-	models.filter = 'somep == somev';
-	models.query.extendOptions({ orderBy: 'orderByField' });
-	var qUrl = models.query.toRequest().url;
+	models.setFilter('somep == somev');
+	models.query().extendOptions({ orderBy: 'orderByField' });
+	var qUrl = models.query().toRequest().url;
 	equal(qUrl.indexOf('orderByField') != -1, true, 'orderBy sets properly, url: ' + qUrl);
 })

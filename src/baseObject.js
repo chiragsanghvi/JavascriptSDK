@@ -55,7 +55,7 @@
 
 		var __cid = parseInt(Math.random() * 1000000, 10);
 
-		this.__defineGetter__('cid', function() { return __cid; });
+		this.cid = __cid;
 
 		//Fileds to be ignored while update operation
 		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__schemaid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
@@ -75,9 +75,13 @@
 
 		this.toJSON = function() { return JSON.parse(JSON.stringify(article)); };
 
-		this.__defineGetter__('id', function() { return this.get('__id'); });
-
-		this.__defineSetter__('id', function(value) { this.set('__id', value); });
+		this.id = function() {
+			if (arguments.length === 1) {
+				this.set('__id', arguments[0]);
+				return this;
+			}
+			return this.get('__id');	
+		};
 
 		if (!article.__attributes) article.__attributes = {};
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
@@ -139,10 +143,10 @@
 		if (!article.__tags) article.__tags = [];
 		if (!_snapshot.__tags) _snapshot.__tags = [];
 
-		this.__defineGetter__('tags', function() {
+		this.tags = function()  {
 			if (!article.__tags) return [];
 			return article.__tags;
-		});
+		};
 
 		this.addTag = function(tag) {
 			if (!tag || typeof tag != 'string' || !tag.length) return this;
@@ -233,9 +237,9 @@
 			return false;
 		};
 
-		this.__defineGetter__('changed', function() {
+		this.changed = function() {
 			return _getChanged();
-		});
+		};
 
 		this.hasChanged = function() {
 			var changeSet = _getChanged(true);
@@ -275,14 +279,16 @@
 
 		var _fields = '';
 
-		//define getter for fields
-		this.__defineGetter__('fields', function() { return _fields; });
-
-		//define setter for fields
-		this.__defineSetter__('fields', function(value) {
-			if (typeof value == 'string') _fields = value;
-			else if (typeof value == 'object' && value.length) _fields = value.join(',');
-		});
+		this.fields = function() {
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (typeof value == 'string') _fields = value;
+				else if (typeof value == 'object' && value.length) _fields = value.join(',');
+				return this;
+			} else {
+				return _fields;
+			}
+		};
 
 		this.get = function(key) { if (key) return article[key]; };
 

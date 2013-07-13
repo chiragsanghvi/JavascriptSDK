@@ -190,14 +190,14 @@
 
 		// the name of the environment, simple public property
 		var _env = 'sandbox';
-		this.__defineGetter__('environment', function() {
+		this.environment = function() {
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (value != 'sandbox' && value != 'live')	value = 'sandbox';
+				_env = value;
+			}
 			return _env;
-		});
-		this.__defineSetter__('environment', function(value) {
-			if (value != 'sandbox' && value != 'live')
-				value = 'sandbox';
-			_env = value;
-		});
+		};
 	};
 
 	global.Appacitive.Session = new SessionManager();
@@ -208,7 +208,7 @@
 		if (!options.apikey || options.apikey.length == 0) throw new Error("apikey is mandatory");
 		
 		global.Appacitive.Session.setApiKey( options.apikey) ;
-		global.Appacitive.Session.environment = ( options.env || 'sandbox' );
+		global.Appacitive.Session.environment(options.env || 'sandbox' );
 		global.Appacitive.useApiKey = true;
   		
   		global.Appacitive.Session.initialized = true;
@@ -260,7 +260,7 @@
 
 	global.Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment });
+			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
 		}
 	});
 

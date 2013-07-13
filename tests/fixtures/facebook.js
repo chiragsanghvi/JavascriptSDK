@@ -128,7 +128,7 @@ asyncTest('Create and link facebook user in one api call', function() {
 	var newUser = new Appacitive.User(user);
 	
 	Appacitive.Facebook.requestLogin(function(authResponse) {
-		newUser.linkFacebookAccount(Appacitive.Facebook.accessToken, function() {
+		newUser.linkFacebookAccount(Appacitive.Facebook.accessToken(), function() {
 			if (newUser.linkedAccounts.length > 0){
 				ok(true, "Facebook account linked to user");
 				newUser.save(function() {
@@ -142,7 +142,7 @@ asyncTest('Create and link facebook user in one api call', function() {
 					Appacitive.Users.signup(user1, function() {
 							newUser.del(function() {
 								ok(true, "Deleted current user");
-								Appacitive.Users.currentUser.linkFacebookAccount(function(base) {
+								Appacitive.Users.currentUser().linkFacebookAccount(function(base) {
 									deepEqual(base.linkedAccounts.length, 1, 'User linked to his facebook account');
 									start();
 								}, function() {
@@ -194,7 +194,7 @@ asyncTest('Verify login with facebook via facebook sdk', function() {
 asyncTest('Verify login with facebook via Appacitive sdk', function() {
 	try {
 		Appacitive.Facebook.requestLogin(function(authResponse) {
-			ok(true, 'Facebook login successfull with access token: ' + Appacitive.Facebook.accessToken);
+			ok(true, 'Facebook login successfull with access token: ' + Appacitive.Facebook.accessToken());
 			start();
 		}, function() {
 			ok(false, 'Facebook login failed');
@@ -223,7 +223,7 @@ asyncTest('Verify getting current facebook user info via Appacitive sdk', functi
 
 asyncTest('Signup with facebook', function() {
 	try {
-		var accessToken = Appacitive.Facebook.accessToken;
+		var accessToken = Appacitive.Facebook.accessToken();
 		Appacitive.Users.signupWithFacebook(function(user) {
 			ok(true, 'Signed up with facebook: ' + JSON.stringify(user));
 			start();
@@ -240,7 +240,7 @@ asyncTest('Signup with facebook', function() {
 
 asyncTest('Signin with facebook and verify auth token', function() {
 	try {
-		var accessToken = Appacitive.Facebook.accessToken;
+		var accessToken = Appacitive.Facebook.accessToken();
 		Appacitive.Users.loginWithFacebook(function(user) {
 			equal(typeof user.token, 'string', 'Auth token returned: ' + user.token);
 			ok(true, 'Signed up with facebook: ' + JSON.stringify(user));
@@ -258,9 +258,9 @@ asyncTest('Signin with facebook and verify auth token', function() {
 
 asyncTest('Signin with facebook and verify Appacitive.Users.currentUser', function() {
 	try {
-		var accessToken = Appacitive.Facebook.accessToken;
+		var accessToken = Appacitive.Facebook.accessToken();
 		Appacitive.Users.loginWithFacebook(function(user) {
-			deepEqual(user.user, Appacitive.Users.currentUser, 'Appacitive.Users.currentUser is: ' + user.token);
+			deepEqual(user.user, Appacitive.Users.currentUser(), 'Appacitive.Users.currentUser is: ' + user.token);
 			start();
 		}, function(err) {
 			err = err || {};
@@ -275,7 +275,7 @@ asyncTest('Signin with facebook and verify Appacitive.Users.currentUser', functi
 
 asyncTest('Verify get facebook user if info is requested', function() {
 	try {
-		var accessToken = Appacitive.Facebook.accessToken;
+		var accessToken = Appacitive.Facebook.accessToken();
 		Appacitive.Users.loginWithFacebook(function(data) {
 			var token = data.token;
 			var user = data.user.getArticle();

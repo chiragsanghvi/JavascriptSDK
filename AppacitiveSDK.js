@@ -1230,14 +1230,14 @@ Depends on  NOTHING
 
 		// the name of the environment, simple public property
 		var _env = 'sandbox';
-		this.__defineGetter__('environment', function() {
+		this.environment = function() {
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (value != 'sandbox' && value != 'live')	value = 'sandbox';
+				_env = value;
+			}
 			return _env;
-		});
-		this.__defineSetter__('environment', function(value) {
-			if (value != 'sandbox' && value != 'live')
-				value = 'sandbox';
-			_env = value;
-		});
+		};
 	};
 
 	global.Appacitive.Session = new SessionManager();
@@ -1248,7 +1248,7 @@ Depends on  NOTHING
 		if (!options.apikey || options.apikey.length == 0) throw new Error("apikey is mandatory");
 		
 		global.Appacitive.Session.setApiKey( options.apikey) ;
-		global.Appacitive.Session.environment = ( options.env || 'sandbox' );
+		global.Appacitive.Session.environment(options.env || 'sandbox' );
 		global.Appacitive.useApiKey = true;
   		
   		global.Appacitive.Session.initialized = true;
@@ -1300,7 +1300,7 @@ Depends on  NOTHING
 
 	global.Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment });
+			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
 		}
 	});
 
@@ -1853,23 +1853,29 @@ Depends on  NOTHING
 		var _pageNumber = 1;
 		var _pageSize = 20;
 
-		//define getter for pageNumber
-		this.__defineGetter__('pageNumber', function() { return _pageNumber; });
+		//define getter and setter for pageNumber
+		this.pageNumber =  function() { 
+			if (arguments.length == 1) {
+				_pageNumber = arguments[0] || 1;
+				return this;
+			}
+			return _pageNumber; 
+		};
 
-		//define setter for pageNumber
-		this.__defineSetter__('pageNumber', function(value) {  _pageNumber = value || 1; });
+		//define getter and setter for pageSize
+		this.pageSize =  function() { 
+			if (arguments.length == 1) {
+				_pageSize = arguments[0] || 20;
+				return this;
+			}
+			return _pageSize; 
+		};
 
-		//define getter for pageSize
-		this.__defineGetter__('pageSize', function() { return _pageSize; });
-
-		//define setter for pagenumber
-		this.__defineSetter__('pageSize', function(value) { _pageSize = value || 20; });
-
-		this.pageNumber = options.pageNumber;
-		this.pageSize = options.pageSize;
+		this.pageNumber(options.pageNumber);
+		this.pageSize(options.pageSize);
 	};
 	PageQuery.prototype.toString = function() {
-		return 'psize=' + this.pageSize + '&pnum=' + this.pageNumber;
+		return 'psize=' + this.pageSize() + '&pnum=' + this.pageNumber();
 	};
 
 	// sort query
@@ -1881,23 +1887,29 @@ Depends on  NOTHING
 		var _orderBy = '__UtcLastUpdatedDate';
 		var _isAscending = false;
 
-		//define getter for orderby
-		this.__defineGetter__('orderBy', function() { return _orderBy; });
-
-		//define setter for orderby
-		this.__defineSetter__('orderBy', function(value) { _orderBy = value || '__UtcLastUpdatedDate'; });
+		//define getter/setter for orderby
+		this.orderBy =  function() { 
+			if (arguments.length == 1) {
+				_orderBy = arguments[0] || '__UtcLastUpdatedDate';
+				return this;
+			}
+			return _orderBy; 
+		};
 
 		//define getter for isAscending
-		this.__defineGetter__('isAscending', function() { return _isAscending; });
+		this.isAscending =  function() { 
+			if (arguments.length == 1) {
+				_isAscending = typeof arguments[0] == 'undefined' ? false : arguments[0];
+				return this;
+			}
+			return _isAscending; 
+		};
 
-		//define setter for isAscending
-		this.__defineSetter__('isAscending', function(value) {  _isAscending = typeof value == 'undefined' ? false : value; });
-
-		this.orderBy = options.orderBy;
-		this.isAscending = options.isAscending;
+		this.orderBy(options.orderBy);
+		this.isAscending(options.isAscending);
 	};
 	SortQuery.prototype.toString = function() {
-		return 'orderBy=' + this.orderBy + '&isAsc=' + this.isAscending;
+		return 'orderBy=' + this.orderBy() + '&isAsc=' + this.isAscending();
 	};
 
 	// base query
@@ -1920,81 +1932,97 @@ Depends on  NOTHING
 
 
 		//define getter for type (article/connection)
-		this.__defineGetter__('type', function() { return _type; });
+		this.type = function() { return _type; };
 
 		//define getter for basetype (schema/relation)
-		this.__defineGetter__('entityType', function() { return _entityType; });
+		this.entityType = function() { return _entityType; };
 
 		//define getter for querytype (basic,connectedarticles etc)
-		this.__defineGetter__('queryType', function() { return _queryType; });
-
-
+		this.queryType = function() { return _queryType; };
 
 		//define getter for pagequery 
-		this.__defineGetter__('pageQuery', function() { return _pageQuery; });
+		this.pageQuery = function() { return _pageQuery; };
 
-		//define getter for pageNumber
-		this.__defineGetter__('pageNumber', function() { return _pageQuery.pageNumber; });
+		
+		//define getter and setter for pageNumber
+		this.pageNumber =  function() { 
+			if (arguments.length == 1) {
+				_pageQuery.pageNumber(arguments[0]);
+				return this;
+			}
+			return _pageQuery.pageNumber; 
+		};
 
-		//define setter for pageNumber
-		this.__defineSetter__('pageNumber', function(value) {  _pageQuery.pageNumber = value; });
-
-		//define getter for pageSize
-		this.__defineGetter__('pageSize', function() { return _pageQuery.pageSize; });
-
-		//define setter for pagenumber
-		this.__defineSetter__('pageSize', function(value) { _pageQuery.pageSize = value; });
-
+		//define getter and setter for pageSize
+		this.pageSize =  function() { 
+			if (arguments.length == 1) {
+				_pageQuery.pageSize(arguments[0]);
+				return this;
+			}
+			return _pageQuery.pageSize; 
+		};
 
 		//define getter for sortquery
-		this.__defineGetter__('sortQuery', function() { return _sortQuery; });
+		this.sortQuery = function() { return _sortQuery; };
 
-		//define getter for orderby
-		this.__defineGetter__('orderBy', function() { return _sortQuery.orderBy; });
+		//define getter and setter for orderby
+		this.orderby =  function() { 
+			if (arguments.length == 1) {
+				_sortQuery.orderby(arguments[0]);
+				return this;
+			}
+			return _sortQuery.orderby; 
+		};
 
-		//define setter for orderby
-		this.__defineSetter__('orderBy', function(value) { _sortQuery.orderBy = value; });
+		//define getter and setter for isAscending
+		this.isAscending =  function() { 
+			if (arguments.length == 1) {
+				_sortQuery.isAscending(arguments[0]);
+				return this;
+			}
+			return _sortQuery.isAscending; 
+		};
 
-		//define getter for isAscending
-		this.__defineGetter__('isAscending', function() { return _sortQuery.isAscending; });
-
-		//define setter for isAscending
-		this.__defineSetter__('isAscending', function(value) {  _sortQuery.isAscending = value; });
-
-
-		//define getter for filter
-		this.__defineGetter__('filter', function() { return _filter; });
-
-		//define setter for filter
-		this.__defineSetter__('filter', function(value) { _filter = value; });
-
-
-		//define getter for freetext
-		this.__defineGetter__('freeText', function() { return _freeText; });
-
-		//define setter for freetext
-		this.__defineSetter__('freeText', function(value) {
-			if (typeof value == 'string') _freeText = value;
-			else if (typeof value == 'object' && value.length) _freeText = value.join(' ');
-		});
-
-		//define getter for fields
-		this.__defineGetter__('fields', function() { return _fields; });
-
-		//define setter for fields
-		this.__defineSetter__('fields', function(value) {
-			if (typeof value == 'string') _fields = value;
-			else if (typeof value == 'object' && value.length) _fields = value.join(',');
-		});
+		//define getter and setter for filter
+		this.filter =  function() { 
+			if (arguments.length == 1) {
+				_filter = arguments[0];
+				return this;
+			}
+			return _filter; 
+		};		
+		
+		//define getter and setter for freetext
+		this.freeText =  function() { 
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (typeof value == 'string') _freeText = arguments[0];
+				else if (typeof value == 'object' && value.length) _freeText = arguments[0].join(' ');
+				return this;
+			}
+			return _freeText; 
+		};		
+		
+		
+		this.fields = function() {
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (typeof value == 'string') _fields = value;
+				else if (typeof value == 'object' && value.length) _fields = value.join(',');
+				return this;
+			} else {
+				return _fields;
+			}
+		}
 
 		//set filters , freetext and fields
-		this.filter = options.filter || '';
-		this.freeText = options.freeText || '';
-		this.fields = options.fields || '';
+		this.filter(options.filter || '');
+		this.freeText(options.freeText || '');
+		this.fields(options.fields || '');
 
-		this.setFilter = function() { this.filter = arguments[0]; };
-		this.setFreeText = function() { this.freeText = arguments[0]; };
-        this.setFields = function() { this.fields = arguments[0]; };
+		this.setFilter = function() { this.filter(arguments[0]); };
+		this.setFreeText = function() { this.freeText(arguments[0]); };
+        this.setFields = function() { this.fields(arguments[0]); };
 
         this.extendOptions = function(changes) {
 			for (var key in changes) {
@@ -2007,20 +2035,19 @@ Depends on  NOTHING
 
 		this.getQueryString = function() {
 
-			var finalUrl = this.pageQuery.toString() + '&' + this.sortQuery.toString();
+			var finalUrl = _pageQuery.toString() + '&' + _sortQuery.toString();
 
-			
-			if (this.filter) {
-				var filter = this.filter.toString();
+			if (this.filter()) {
+				var filter = this.filter().toString();
 			    if (filter.trim().length > 0) finalUrl += '&query=' + filter;
 			}
 
-			if (this.freeText && this.freeText.trim().length > 0) {
-                finalUrl += "&freetext=" + this.freeText + "&language=en";
+			if (this.freeText() && this.freeText().trim().length > 0) {
+                finalUrl += "&freetext=" + this.freeText() + "&language=en";
             }
 
-            if (this.fields && this.fields.trim().length > 0) {
-            	finalUrl += "&fields=" + this.fields;
+            if (this.fields() && this.fields().trim().length > 0) {
+            	finalUrl += "&fields=" + this.fields();
             }
 
 			return finalUrl;
@@ -2534,7 +2561,7 @@ Depends on  NOTHING
 
 		var __cid = parseInt(Math.random() * 1000000, 10);
 
-		this.__defineGetter__('cid', function() { return __cid; });
+		this.cid = __cid;
 
 		//Fileds to be ignored while update operation
 		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__schemaid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
@@ -2554,9 +2581,13 @@ Depends on  NOTHING
 
 		this.toJSON = function() { return JSON.parse(JSON.stringify(article)); };
 
-		this.__defineGetter__('id', function() { return this.get('__id'); });
-
-		this.__defineSetter__('id', function(value) { this.set('__id', value); });
+		this.id = function() {
+			if (arguments.length === 1) {
+				this.set('__id', arguments[0]);
+				return this;
+			}
+			return this.get('__id');	
+		};
 
 		if (!article.__attributes) article.__attributes = {};
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
@@ -2618,10 +2649,10 @@ Depends on  NOTHING
 		if (!article.__tags) article.__tags = [];
 		if (!_snapshot.__tags) _snapshot.__tags = [];
 
-		this.__defineGetter__('tags', function() {
+		this.tags = function()  {
 			if (!article.__tags) return [];
 			return article.__tags;
-		});
+		};
 
 		this.addTag = function(tag) {
 			if (!tag || typeof tag != 'string' || !tag.length) return this;
@@ -2712,9 +2743,9 @@ Depends on  NOTHING
 			return false;
 		};
 
-		this.__defineGetter__('changed', function() {
+		this.changed = function() {
 			return _getChanged();
-		});
+		};
 
 		this.hasChanged = function() {
 			var changeSet = _getChanged(true);
@@ -2754,14 +2785,16 @@ Depends on  NOTHING
 
 		var _fields = '';
 
-		//define getter for fields
-		this.__defineGetter__('fields', function() { return _fields; });
-
-		//define setter for fields
-		this.__defineSetter__('fields', function(value) {
-			if (typeof value == 'string') _fields = value;
-			else if (typeof value == 'object' && value.length) _fields = value.join(',');
-		});
+		this.fields = function() {
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (typeof value == 'string') _fields = value;
+				else if (typeof value == 'object' && value.length) _fields = value.join(',');
+				return this;
+			} else {
+				return _fields;
+			}
+		};
 
 		this.get = function(key) { if (key) return article[key]; };
 
@@ -3126,7 +3159,7 @@ Depends on  NOTHING
 		this.setFilter = function(filter) {
 			_options.filter = filter;
 			_options.type = 'article';
-			if (_query) _query.filter = filter;
+			if (_query) _query.filter(filter);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -3139,7 +3172,7 @@ Depends on  NOTHING
                 _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'article';
-            if (_query) _query.freeText = tokens;
+            if (_query) _query.freeText(tokens);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -3148,11 +3181,10 @@ Depends on  NOTHING
         };
 
         this.setFields = function(fields) {
-        	if (!fields)
-                _options.fields = "";
+        	if (!fields) fields = "";
             _options.fields = fields;
             _options.type = 'article';
-            if (_query) _query.fields = fields;
+            if (_query) _query.fields(fields);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -3167,26 +3199,18 @@ Depends on  NOTHING
 			_query = null;
 		};
 
-		this.__defineGetter__("query", function() {
-			return _query;
-		});
-
-		this.getQuery = function() {
-			return _query;
-		};
-
 		var _supportedQueryType = ["BasicFilterQuery"];
 
-		this.__defineSetter__("query", function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
-			_articles.length = 0;
-			_query = query;
-		});
-
-		this.setQuery = function(query) {
-			this.query = query;
-			return this;
+		this.query = function() {
+			if (arguments.length == 1) {
+				var query = arguments[0];
+				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
+				if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
+				_articles.length = 0;
+				_query = query;
+				return this;
+			}
+			return _query;
 		};
 
 		this.setOptions = _parseOptions;
@@ -3276,7 +3300,7 @@ Depends on  NOTHING
 
 			_articles.length = 0;
 			
-			this.query.fetch(function(articles, pagingInfo) {
+			_query.fetch(function(articles, pagingInfo) {
 				parseArticles(articles, pagingInfo, onSuccess);
 			}, function(err) {
 				if (typeof onError == 'function') onError(err, that);
@@ -3337,13 +3361,15 @@ Depends on  NOTHING
 		return this.getAllArticles();
 	};
 
-	global.Appacitive.ArticleCollection.prototype.__defineGetter__('articles', function() {
-		return this.getAll();
-	});
 
-	global.Appacitive.ArticleCollection.prototype.__defineGetter__('length', function() {
+
+	global.Appacitive.ArticleCollection.prototype.articles = function() {
+		return this.getAll();
+	};
+
+	global.Appacitive.ArticleCollection.prototype.length = function() {
 		return this.articles.length;
-	});
+	};
 
 })(global);(function(global) {
 
@@ -3392,7 +3418,7 @@ Depends on  NOTHING
 		this.setFilter = function(filter) {
 			_options.filter = filter;
 			_options.type = 'connection';
-			if (_query) _query.filter = filter;
+			if (_query) _query.filter(filter);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -3401,11 +3427,10 @@ Depends on  NOTHING
 		};
 
 		this.setFreeText = function(tokens) {
-            if(!tokens && tokens.trim().length==0)
-                _options.freeText = "";
+            if (!tokens && tokens.trim().length == 0) _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'connection';
-            if (_query) _query.freeText = tokens;
+            if (_query) _query.freeText(tokens);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -3419,7 +3444,7 @@ Depends on  NOTHING
                 _options.fields = "";
             _options.fields = fields;
             _options.type = 'connection';
-            if (_query) _query.fields = fields;
+            if (_query) _query.fields(fields);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -3427,29 +3452,21 @@ Depends on  NOTHING
 			return this;
         };
 
-		this.__defineGetter__("query", function() {
-			return _query;
-		});
-
-		this.getQuery = function() {
-			return _query;
-		};
+        this.query = function() {
+        	if (arguments.length == 1) {
+        		var query = arguments[0];
+				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
+				if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
+				_articles.length = 0;
+				_connections.length = 0;
+				_query = query;
+				return this;
+        	}
+        	return _query;
+        };
 
 		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery", "GetConnectionsBetweenArticlesForRelationQuery"];
 		
-		this.__defineSetter__("query", function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
-			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
-			_articles.length = 0;
-			_connections.length = 0;
-			_query = query;
-		});
-
-		this.setQuery = function(query) {
-			this.query = query;
-			return this;
-		};
-
 		this.reset = function() {
 			_options = null;
 			_relation = null;
@@ -3561,7 +3578,7 @@ Depends on  NOTHING
 		this.fetch = function(onSuccess, onError) {
 			_connections.length = 0;
 
-			this.query.fetch(function(connections, pagingInfo) {
+			_query.fetch(function(connections, pagingInfo) {
 				parseConnections(connections, pagingInfo, onSuccess);
 			}, function(err) {
 				if (typeof onError == 'function') onError(err, that);
@@ -3571,7 +3588,7 @@ Depends on  NOTHING
 		};
 
 		this.count = function(onSuccess, onError) {
-			this.query.count(onSuccess, onError);
+			_query.count(onSuccess, onError);
 			return this;
 		};
 
@@ -3880,18 +3897,18 @@ Depends on  NOTHING
 			_convertEndpoint(this.get('__endpointa'), typeA, this);
 			_convertEndpoint(this.get('__endpointb'), typeB, this);
 
-			this.__defineGetter__('endpoints', function() {
+			this.endpoints = function() {
 				var endpoints = [];
 				endpoints.push(this.endpointA);
 				endpoints.push(this.endpointB);
 				return endpoints;
-			});
+			};
 
 			return this;
 		};
 
 		if (doNotSetup) {
-			this.__defineGetter__('connectedArticle', function() {
+			this.connectedArticle = function() {
 				if (!this.___collection.connectedArticle) {
 					throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
 				}
@@ -3901,8 +3918,7 @@ Depends on  NOTHING
 				if (this.getConnection().__endpointa.articleid == articleId)
 					otherArticleId = this.getConnection().__endpointb.articleid;
 				return this.___collection.getConnectedArticle(otherArticleId);
-
-			});
+			};
 			this.parseConnection(options);
 		} else {
 			if (options.__endpointa && options.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));
@@ -4037,7 +4053,9 @@ Depends on  NOTHING
 
 		var _authenticatedUser = null;
 
-		this.__defineGetter__('currentUser', function() { return _authenticatedUser; });
+		this.currentUser = function() {
+			return _authenticatedUser;
+		}
 
 		var _updatePassword = function(base, oldPassword, newPassword, onSuccess, onError) {
 			var userId = base.get('__id');
@@ -4068,7 +4086,7 @@ Depends on  NOTHING
 		var _getAllLinkedAccounts = function(base, onSuccess, onError) {
 			var userId = base.get('__id');
 			if (!userId || typeof userId !== 'string' || userId.length == 0) {
-				if (typeof onSuccess == 'function') onSuccess(base.linkedAccounts, base);
+				if (typeof onSuccess == 'function') onSuccess(base.linkedAccounts(), base);
 			}
 
 			onSuccess = onSuccess || function(){};
@@ -4247,7 +4265,7 @@ Depends on  NOTHING
 		global.Appacitive.User.prototype.constructor = global.Appacitive.User;
 
 		//getter to get linkedaccounts
-		global.Appacitive.User.prototype.__defineGetter__("linkedAccounts", function() {
+		global.Appacitive.User.prototype.linkedAccounts = function() {
 			
 			var accounts = this.get('__link');
 			
@@ -4256,7 +4274,7 @@ Depends on  NOTHING
 			else if(!(accounts.length >= 0)) accounts = accounts[0];
 
 			return accounts;
-		});
+		};
 
 		//method for getting all linked accounts
 		global.Appacitive.User.prototype.getAllLinkedAccounts = function(onSuccess, onError) {
@@ -4363,7 +4381,7 @@ Depends on  NOTHING
 						data.user.__authType = provider;
 					}
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					onSuccess({ user : that.currentUser, token: data.token });
+					onSuccess({ user : _authenticatedUser, token: data.token });
 				} else {
 					data = data || {};
 					onError(data.status);
@@ -4411,7 +4429,7 @@ Depends on  NOTHING
 				that.authenticateUser(authRequest, function(a) {
 					if (a.user) {
 						a.user.__authType = 'FB';
-						if (typeof onSuccess == 'function') onSuccess({ user : that.currentUser, token: a.token });
+						if (typeof onSuccess == 'function') onSuccess({ user : _authenticatedUser, token: a.token });
 					} else {
 						a = a || {};
 						if (typeof onError == 'function') onError(a.status);
@@ -4702,13 +4720,13 @@ Depends on  NOTHING
 			});
 		};
 
-		this.__defineGetter__('accessToken', function() {
+		this.accessToken = function() {
+			if (arguments.length == 1) {
+				_accessToken = arguments[0];
+				return this;
+			}
 			return _accessToken;
-		});
-
-		this.__defineSetter__('accessToken', function(val) {
-			_accessToken = val;
-		});
+		};
 
 		this.getProfilePictureUrl = function(username) {
 			return 'https://graph.facebook.com/' + username + '/picture';
@@ -4782,15 +4800,13 @@ Depends on  NOTHING
 			}
 		};
 
-		this.__defineGetter__('accessToken', function() {
+		this.accessToken = function() {
+			if (arguments.length == 1) {
+				_accessToken = arguments[0];
+				return this;
+			}
 			return _accessToken;
-		});
-
-		this.__defineSetter__('accessToken', function(val) {
-			console.log(val);
-			_accessToken = val;
-			if (this.FB) this.FB.setAccessToken(val);
-		});
+		};
 
 		this.getProfilePictureUrl = function(username) {
 			return 'https://graph.facebook.com/' + username + '/picture';

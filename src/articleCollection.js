@@ -36,7 +36,7 @@
 		this.setFilter = function(filter) {
 			_options.filter = filter;
 			_options.type = 'article';
-			if (_query) _query.filter = filter;
+			if (_query) _query.filter(filter);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -49,7 +49,7 @@
                 _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'article';
-            if (_query) _query.freeText = tokens;
+            if (_query) _query.freeText(tokens);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -58,11 +58,10 @@
         };
 
         this.setFields = function(fields) {
-        	if (!fields)
-                _options.fields = "";
+        	if (!fields) fields = "";
             _options.fields = fields;
             _options.type = 'article';
-            if (_query) _query.fields = fields;
+            if (_query) _query.fields(fields);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -77,26 +76,18 @@
 			_query = null;
 		};
 
-		this.__defineGetter__("query", function() {
-			return _query;
-		});
-
-		this.getQuery = function() {
-			return _query;
-		};
-
 		var _supportedQueryType = ["BasicFilterQuery"];
 
-		this.__defineSetter__("query", function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
-			_articles.length = 0;
-			_query = query;
-		});
-
-		this.setQuery = function(query) {
-			this.query = query;
-			return this;
+		this.query = function() {
+			if (arguments.length == 1) {
+				var query = arguments[0];
+				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
+				if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
+				_articles.length = 0;
+				_query = query;
+				return this;
+			}
+			return _query;
 		};
 
 		this.setOptions = _parseOptions;
@@ -186,7 +177,7 @@
 
 			_articles.length = 0;
 			
-			this.query.fetch(function(articles, pagingInfo) {
+			_query.fetch(function(articles, pagingInfo) {
 				parseArticles(articles, pagingInfo, onSuccess);
 			}, function(err) {
 				if (typeof onError == 'function') onError(err, that);
@@ -247,12 +238,14 @@
 		return this.getAllArticles();
 	};
 
-	global.Appacitive.ArticleCollection.prototype.__defineGetter__('articles', function() {
-		return this.getAll();
-	});
 
-	global.Appacitive.ArticleCollection.prototype.__defineGetter__('length', function() {
+
+	global.Appacitive.ArticleCollection.prototype.articles = function() {
+		return this.getAll();
+	};
+
+	global.Appacitive.ArticleCollection.prototype.length = function() {
 		return this.articles.length;
-	});
+	};
 
 })(global);

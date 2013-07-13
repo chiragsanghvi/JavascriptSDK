@@ -490,7 +490,7 @@ asyncTest('Verify no changeset on article fetched from connectedarticles', funct
 		var a = new Appacitive.Article(profile.toJSON());
 		var cC = a.getConnectedArticles({ relation: 'myschool' });
 		cC.fetch(function() {
-			if (cC.get(0).connectedArticle.hasChanged()) {
+			if (cC.get(0).connectedArticle().hasChanged()) {
 				ok(false, 'Article has not changed');
 				start();
 			} else {

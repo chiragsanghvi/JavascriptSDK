@@ -46,13 +46,13 @@
 			});
 		};
 
-		this.__defineGetter__('accessToken', function() {
+		this.accessToken = function() {
+			if (arguments.length == 1) {
+				_accessToken = arguments[0];
+				return this;
+			}
 			return _accessToken;
-		});
-
-		this.__defineSetter__('accessToken', function(val) {
-			_accessToken = val;
-		});
+		};
 
 		this.getProfilePictureUrl = function(username) {
 			return 'https://graph.facebook.com/' + username + '/picture';
@@ -126,15 +126,13 @@
 			}
 		};
 
-		this.__defineGetter__('accessToken', function() {
+		this.accessToken = function() {
+			if (arguments.length == 1) {
+				_accessToken = arguments[0];
+				return this;
+			}
 			return _accessToken;
-		});
-
-		this.__defineSetter__('accessToken', function(val) {
-			console.log(val);
-			_accessToken = val;
-			if (this.FB) this.FB.setAccessToken(val);
-		});
+		};
 
 		this.getProfilePictureUrl = function(username) {
 			return 'https://graph.facebook.com/' + username + '/picture';

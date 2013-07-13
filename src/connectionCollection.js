@@ -45,7 +45,7 @@
 		this.setFilter = function(filter) {
 			_options.filter = filter;
 			_options.type = 'connection';
-			if (_query) _query.filter = filter;
+			if (_query) _query.filter(filter);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -54,11 +54,10 @@
 		};
 
 		this.setFreeText = function(tokens) {
-            if(!tokens && tokens.trim().length==0)
-                _options.freeText = "";
+            if (!tokens && tokens.trim().length == 0) _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'connection';
-            if (_query) _query.freeText = tokens;
+            if (_query) _query.freeText(tokens);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -72,7 +71,7 @@
                 _options.fields = "";
             _options.fields = fields;
             _options.type = 'connection';
-            if (_query) _query.fields = fields;
+            if (_query) _query.fields(fields);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -80,29 +79,21 @@
 			return this;
         };
 
-		this.__defineGetter__("query", function() {
-			return _query;
-		});
-
-		this.getQuery = function() {
-			return _query;
-		};
+        this.query = function() {
+        	if (arguments.length == 1) {
+        		var query = arguments[0];
+				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
+				if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
+				_articles.length = 0;
+				_connections.length = 0;
+				_query = query;
+				return this;
+        	}
+        	return _query;
+        };
 
 		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery", "GetConnectionsBetweenArticlesForRelationQuery"];
 		
-		this.__defineSetter__("query", function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
-			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
-			_articles.length = 0;
-			_connections.length = 0;
-			_query = query;
-		});
-
-		this.setQuery = function(query) {
-			this.query = query;
-			return this;
-		};
-
 		this.reset = function() {
 			_options = null;
 			_relation = null;
@@ -214,7 +205,7 @@
 		this.fetch = function(onSuccess, onError) {
 			_connections.length = 0;
 
-			this.query.fetch(function(connections, pagingInfo) {
+			_query.fetch(function(connections, pagingInfo) {
 				parseConnections(connections, pagingInfo, onSuccess);
 			}, function(err) {
 				if (typeof onError == 'function') onError(err, that);
@@ -224,7 +215,7 @@
 		};
 
 		this.count = function(onSuccess, onError) {
-			this.query.count(onSuccess, onError);
+			_query.count(onSuccess, onError);
 			return this;
 		};
 

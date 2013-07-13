@@ -6,7 +6,9 @@
 
 		var _authenticatedUser = null;
 
-		this.__defineGetter__('currentUser', function() { return _authenticatedUser; });
+		this.currentUser = function() {
+			return _authenticatedUser;
+		}
 
 		var _updatePassword = function(base, oldPassword, newPassword, onSuccess, onError) {
 			var userId = base.get('__id');
@@ -37,7 +39,7 @@
 		var _getAllLinkedAccounts = function(base, onSuccess, onError) {
 			var userId = base.get('__id');
 			if (!userId || typeof userId !== 'string' || userId.length == 0) {
-				if (typeof onSuccess == 'function') onSuccess(base.linkedAccounts, base);
+				if (typeof onSuccess == 'function') onSuccess(base.linkedAccounts(), base);
 			}
 
 			onSuccess = onSuccess || function(){};
@@ -216,7 +218,7 @@
 		global.Appacitive.User.prototype.constructor = global.Appacitive.User;
 
 		//getter to get linkedaccounts
-		global.Appacitive.User.prototype.__defineGetter__("linkedAccounts", function() {
+		global.Appacitive.User.prototype.linkedAccounts = function() {
 			
 			var accounts = this.get('__link');
 			
@@ -225,7 +227,7 @@
 			else if(!(accounts.length >= 0)) accounts = accounts[0];
 
 			return accounts;
-		});
+		};
 
 		//method for getting all linked accounts
 		global.Appacitive.User.prototype.getAllLinkedAccounts = function(onSuccess, onError) {
@@ -332,7 +334,7 @@
 						data.user.__authType = provider;
 					}
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					onSuccess({ user : that.currentUser, token: data.token });
+					onSuccess({ user : _authenticatedUser, token: data.token });
 				} else {
 					data = data || {};
 					onError(data.status);
@@ -380,7 +382,7 @@
 				that.authenticateUser(authRequest, function(a) {
 					if (a.user) {
 						a.user.__authType = 'FB';
-						if (typeof onSuccess == 'function') onSuccess({ user : that.currentUser, token: a.token });
+						if (typeof onSuccess == 'function') onSuccess({ user : _authenticatedUser, token: a.token });
 					} else {
 						a = a || {};
 						if (typeof onError == 'function') onError(a.status);

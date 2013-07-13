@@ -13,23 +13,29 @@
 		var _pageNumber = 1;
 		var _pageSize = 20;
 
-		//define getter for pageNumber
-		this.__defineGetter__('pageNumber', function() { return _pageNumber; });
+		//define getter and setter for pageNumber
+		this.pageNumber =  function() { 
+			if (arguments.length == 1) {
+				_pageNumber = arguments[0] || 1;
+				return this;
+			}
+			return _pageNumber; 
+		};
 
-		//define setter for pageNumber
-		this.__defineSetter__('pageNumber', function(value) {  _pageNumber = value || 1; });
+		//define getter and setter for pageSize
+		this.pageSize =  function() { 
+			if (arguments.length == 1) {
+				_pageSize = arguments[0] || 20;
+				return this;
+			}
+			return _pageSize; 
+		};
 
-		//define getter for pageSize
-		this.__defineGetter__('pageSize', function() { return _pageSize; });
-
-		//define setter for pagenumber
-		this.__defineSetter__('pageSize', function(value) { _pageSize = value || 20; });
-
-		this.pageNumber = options.pageNumber;
-		this.pageSize = options.pageSize;
+		this.pageNumber(options.pageNumber);
+		this.pageSize(options.pageSize);
 	};
 	PageQuery.prototype.toString = function() {
-		return 'psize=' + this.pageSize + '&pnum=' + this.pageNumber;
+		return 'psize=' + this.pageSize() + '&pnum=' + this.pageNumber();
 	};
 
 	// sort query
@@ -41,23 +47,29 @@
 		var _orderBy = '__UtcLastUpdatedDate';
 		var _isAscending = false;
 
-		//define getter for orderby
-		this.__defineGetter__('orderBy', function() { return _orderBy; });
-
-		//define setter for orderby
-		this.__defineSetter__('orderBy', function(value) { _orderBy = value || '__UtcLastUpdatedDate'; });
+		//define getter/setter for orderby
+		this.orderBy =  function() { 
+			if (arguments.length == 1) {
+				_orderBy = arguments[0] || '__UtcLastUpdatedDate';
+				return this;
+			}
+			return _orderBy; 
+		};
 
 		//define getter for isAscending
-		this.__defineGetter__('isAscending', function() { return _isAscending; });
+		this.isAscending =  function() { 
+			if (arguments.length == 1) {
+				_isAscending = typeof arguments[0] == 'undefined' ? false : arguments[0];
+				return this;
+			}
+			return _isAscending; 
+		};
 
-		//define setter for isAscending
-		this.__defineSetter__('isAscending', function(value) {  _isAscending = typeof value == 'undefined' ? false : value; });
-
-		this.orderBy = options.orderBy;
-		this.isAscending = options.isAscending;
+		this.orderBy(options.orderBy);
+		this.isAscending(options.isAscending);
 	};
 	SortQuery.prototype.toString = function() {
-		return 'orderBy=' + this.orderBy + '&isAsc=' + this.isAscending;
+		return 'orderBy=' + this.orderBy() + '&isAsc=' + this.isAscending();
 	};
 
 	// base query
@@ -80,81 +92,97 @@
 
 
 		//define getter for type (article/connection)
-		this.__defineGetter__('type', function() { return _type; });
+		this.type = function() { return _type; };
 
 		//define getter for basetype (schema/relation)
-		this.__defineGetter__('entityType', function() { return _entityType; });
+		this.entityType = function() { return _entityType; };
 
 		//define getter for querytype (basic,connectedarticles etc)
-		this.__defineGetter__('queryType', function() { return _queryType; });
-
-
+		this.queryType = function() { return _queryType; };
 
 		//define getter for pagequery 
-		this.__defineGetter__('pageQuery', function() { return _pageQuery; });
+		this.pageQuery = function() { return _pageQuery; };
 
-		//define getter for pageNumber
-		this.__defineGetter__('pageNumber', function() { return _pageQuery.pageNumber; });
+		
+		//define getter and setter for pageNumber
+		this.pageNumber =  function() { 
+			if (arguments.length == 1) {
+				_pageQuery.pageNumber(arguments[0]);
+				return this;
+			}
+			return _pageQuery.pageNumber; 
+		};
 
-		//define setter for pageNumber
-		this.__defineSetter__('pageNumber', function(value) {  _pageQuery.pageNumber = value; });
-
-		//define getter for pageSize
-		this.__defineGetter__('pageSize', function() { return _pageQuery.pageSize; });
-
-		//define setter for pagenumber
-		this.__defineSetter__('pageSize', function(value) { _pageQuery.pageSize = value; });
-
+		//define getter and setter for pageSize
+		this.pageSize =  function() { 
+			if (arguments.length == 1) {
+				_pageQuery.pageSize(arguments[0]);
+				return this;
+			}
+			return _pageQuery.pageSize; 
+		};
 
 		//define getter for sortquery
-		this.__defineGetter__('sortQuery', function() { return _sortQuery; });
+		this.sortQuery = function() { return _sortQuery; };
 
-		//define getter for orderby
-		this.__defineGetter__('orderBy', function() { return _sortQuery.orderBy; });
+		//define getter and setter for orderby
+		this.orderby =  function() { 
+			if (arguments.length == 1) {
+				_sortQuery.orderby(arguments[0]);
+				return this;
+			}
+			return _sortQuery.orderby; 
+		};
 
-		//define setter for orderby
-		this.__defineSetter__('orderBy', function(value) { _sortQuery.orderBy = value; });
+		//define getter and setter for isAscending
+		this.isAscending =  function() { 
+			if (arguments.length == 1) {
+				_sortQuery.isAscending(arguments[0]);
+				return this;
+			}
+			return _sortQuery.isAscending; 
+		};
 
-		//define getter for isAscending
-		this.__defineGetter__('isAscending', function() { return _sortQuery.isAscending; });
-
-		//define setter for isAscending
-		this.__defineSetter__('isAscending', function(value) {  _sortQuery.isAscending = value; });
-
-
-		//define getter for filter
-		this.__defineGetter__('filter', function() { return _filter; });
-
-		//define setter for filter
-		this.__defineSetter__('filter', function(value) { _filter = value; });
-
-
-		//define getter for freetext
-		this.__defineGetter__('freeText', function() { return _freeText; });
-
-		//define setter for freetext
-		this.__defineSetter__('freeText', function(value) {
-			if (typeof value == 'string') _freeText = value;
-			else if (typeof value == 'object' && value.length) _freeText = value.join(' ');
-		});
-
-		//define getter for fields
-		this.__defineGetter__('fields', function() { return _fields; });
-
-		//define setter for fields
-		this.__defineSetter__('fields', function(value) {
-			if (typeof value == 'string') _fields = value;
-			else if (typeof value == 'object' && value.length) _fields = value.join(',');
-		});
+		//define getter and setter for filter
+		this.filter =  function() { 
+			if (arguments.length == 1) {
+				_filter = arguments[0];
+				return this;
+			}
+			return _filter; 
+		};		
+		
+		//define getter and setter for freetext
+		this.freeText =  function() { 
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (typeof value == 'string') _freeText = arguments[0];
+				else if (typeof value == 'object' && value.length) _freeText = arguments[0].join(' ');
+				return this;
+			}
+			return _freeText; 
+		};		
+		
+		
+		this.fields = function() {
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (typeof value == 'string') _fields = value;
+				else if (typeof value == 'object' && value.length) _fields = value.join(',');
+				return this;
+			} else {
+				return _fields;
+			}
+		}
 
 		//set filters , freetext and fields
-		this.filter = options.filter || '';
-		this.freeText = options.freeText || '';
-		this.fields = options.fields || '';
+		this.filter(options.filter || '');
+		this.freeText(options.freeText || '');
+		this.fields(options.fields || '');
 
-		this.setFilter = function() { this.filter = arguments[0]; };
-		this.setFreeText = function() { this.freeText = arguments[0]; };
-        this.setFields = function() { this.fields = arguments[0]; };
+		this.setFilter = function() { this.filter(arguments[0]); };
+		this.setFreeText = function() { this.freeText(arguments[0]); };
+        this.setFields = function() { this.fields(arguments[0]); };
 
         this.extendOptions = function(changes) {
 			for (var key in changes) {
@@ -167,20 +195,19 @@
 
 		this.getQueryString = function() {
 
-			var finalUrl = this.pageQuery.toString() + '&' + this.sortQuery.toString();
+			var finalUrl = _pageQuery.toString() + '&' + _sortQuery.toString();
 
-			
-			if (this.filter) {
-				var filter = this.filter.toString();
+			if (this.filter()) {
+				var filter = this.filter().toString();
 			    if (filter.trim().length > 0) finalUrl += '&query=' + filter;
 			}
 
-			if (this.freeText && this.freeText.trim().length > 0) {
-                finalUrl += "&freetext=" + this.freeText + "&language=en";
+			if (this.freeText() && this.freeText().trim().length > 0) {
+                finalUrl += "&freetext=" + this.freeText() + "&language=en";
             }
 
-            if (this.fields && this.fields.trim().length > 0) {
-            	finalUrl += "&fields=" + this.fields;
+            if (this.fields() && this.fields().trim().length > 0) {
+            	finalUrl += "&fields=" + this.fields();
             }
 
 			return finalUrl;

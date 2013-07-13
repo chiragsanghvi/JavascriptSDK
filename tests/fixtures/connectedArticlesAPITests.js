@@ -40,7 +40,7 @@ asyncTest('Verify created connection shows up in collection when fetching connec
 						});
 						equal(existingConnection.length, 1, 'Connection fetched on calling get connected articles');
 						
-						if (existingConnection[0].connectedArticle)
+						if (existingConnection[0].connectedArticle())
 							ok('true','Connection has connectedArticle property populated');
 						else
 							ok('false','Connection has connectedArticle property populated');
@@ -98,7 +98,7 @@ asyncTest('Verify connectedArticle property sets properly on returned connection
 	var user = users.createNewArticle();
 	user.save(function() {
 		var connectedProfiles = user.getConnectedArticles({ relation: 'userprofile' });
-		deepEqual(user, connectedProfiles.connectedArticle, 'ConnectionCollection::connectedArticle sets properly');
+		deepEqual(user, connectedProfiles.connectedArticle(), 'ConnectionCollection::connectedArticle sets properly');
 		start();
 	}, function() {
 		ok(false, 'Could not save article of type user');
@@ -137,7 +137,7 @@ asyncTest('Verify article fetched via the collection returned via getConnectedAr
 						var existingConnection = collection.getAll().filter(function (_c) {
 							return _c.get('__id') == id;
 						});
-						var connectedProfile = existingConnection[0].connectedArticle;
+						var connectedProfile = existingConnection[0].connectedArticle();
 						equal(connectedProfile.get('__id'), profile.get('__id'), 'Correct connected article returned');
 						start();
 					}, function() {
@@ -190,7 +190,7 @@ asyncTest('Verify article fetched via the collection returned via getConnectedAr
 						var existingConnection = collection.getAll().filter(function (_c) {
 							return _c.get('__id') == id;
 						});
-						var connectedProfile = existingConnection[0].connectedArticle;
+						var connectedProfile = existingConnection[0].connectedArticle();
 						connectedProfile.fetch(function() {
 							deepEqual(connectedProfile.getArticle(), profile.getArticle(), 'Correct connected article returned: ' + JSON.stringify(connectedProfile.getArticle()));
 							start();
