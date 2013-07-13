@@ -3205,7 +3205,7 @@ Depends on  NOTHING
 			if (arguments.length == 1) {
 				var query = arguments[0];
 				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-				if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
+				if (_supportedQueryType.indexOf(query.queryType()) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
 				_articles.length = 0;
 				_query = query;
 				return this;
@@ -3456,7 +3456,7 @@ Depends on  NOTHING
         	if (arguments.length == 1) {
         		var query = arguments[0];
 				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
-				if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
+				if (_supportedQueryType.indexOf(query.queryType()) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
 				_articles.length = 0;
 				_connections.length = 0;
 				_query = query;
@@ -3705,7 +3705,7 @@ Depends on  NOTHING
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
 		this.connectionCollections.push(collection);
 		
-		collection.query = new global.Appacitive.Queries.GetConnectionsQuery(options);
+		collection.query(new global.Appacitive.Queries.GetConnectionsQuery(options));
 		
 		return collection;
 	};
@@ -3722,7 +3722,7 @@ Depends on  NOTHING
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
 		collection.connectedArticle = this;
 		this.connectionCollections.push(collection);
-		collection.query  = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
+		collection.query(new global.Appacitive.Queries.ConnectedArticlesQuery(options));
 		
 		return collection;
 	};
@@ -4213,7 +4213,7 @@ Depends on  NOTHING
 
 			_authenticatedUser.linkFacebookAccount = function(onSuccess, onError) {
 				var _callback = function() {
-					_link(Appacitive.Facebook.accessToken, _authenticatedUser, function(base) {
+					_link(Appacitive.Facebook.accessToken(), _authenticatedUser, function(base) {
 						global.Appacitive.eventManager.fire('user..article.' + base.get('__id') + '.updated', base, { object: base });
 						if (typeof onSuccess == 'function') onSuccess(base);
 					}, onError);
@@ -4420,7 +4420,7 @@ Depends on  NOTHING
 			var _callback = function() {
 
 				var authRequest = {
-					"accesstoken": global.Appacitive.Facebook.accessToken,
+					"accesstoken": global.Appacitive.Facebook.accessToken(),
 					"type": "facebook",
 					"expiry": 86400000,
 					"createnew": true

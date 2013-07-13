@@ -9,7 +9,7 @@ test('Connection Collection returned on calling getConnectedArticles', function(
 test('Verify connection collection search query url', function() {
 	var id = 1, relation = 'r';
 	var article = new Appacitive.Article({ __id: id, __schematype: 'profile'});
-	var requestUrl = article.getConnectedArticles({ relation: relation }).getQuery().toRequest().url;
+	var requestUrl = article.getConnectedArticles({ relation: relation }).query().toRequest().url;
 	if (requestUrl.indexOf('?') != -1) {
 		requestUrl = requestUrl.substr(requestUrl, requestUrl.indexOf('?'));
 	}

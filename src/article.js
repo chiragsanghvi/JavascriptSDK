@@ -67,7 +67,7 @@
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
 		this.connectionCollections.push(collection);
 		
-		collection.query = new global.Appacitive.Queries.GetConnectionsQuery(options);
+		collection.query(new global.Appacitive.Queries.GetConnectionsQuery(options));
 		
 		return collection;
 	};
@@ -84,7 +84,7 @@
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
 		collection.connectedArticle = this;
 		this.connectionCollections.push(collection);
-		collection.query  = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
+		collection.query(new global.Appacitive.Queries.ConnectedArticlesQuery(options));
 		
 		return collection;
 	};

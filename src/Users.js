@@ -166,7 +166,7 @@
 
 			_authenticatedUser.linkFacebookAccount = function(onSuccess, onError) {
 				var _callback = function() {
-					_link(Appacitive.Facebook.accessToken, _authenticatedUser, function(base) {
+					_link(Appacitive.Facebook.accessToken(), _authenticatedUser, function(base) {
 						global.Appacitive.eventManager.fire('user..article.' + base.get('__id') + '.updated', base, { object: base });
 						if (typeof onSuccess == 'function') onSuccess(base);
 					}, onError);
@@ -373,7 +373,7 @@
 			var _callback = function() {
 
 				var authRequest = {
-					"accesstoken": global.Appacitive.Facebook.accessToken,
+					"accesstoken": global.Appacitive.Facebook.accessToken(),
 					"type": "facebook",
 					"expiry": 86400000,
 					"createnew": true

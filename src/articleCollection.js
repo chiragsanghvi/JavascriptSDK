@@ -82,7 +82,7 @@
 			if (arguments.length == 1) {
 				var query = arguments[0];
 				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-				if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
+				if (_supportedQueryType.indexOf(query.queryType()) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
 				_articles.length = 0;
 				_query = query;
 				return this;

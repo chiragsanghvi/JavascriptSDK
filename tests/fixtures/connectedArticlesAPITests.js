@@ -98,7 +98,7 @@ asyncTest('Verify connectedArticle property sets properly on returned connection
 	var user = users.createNewArticle();
 	user.save(function() {
 		var connectedProfiles = user.getConnectedArticles({ relation: 'userprofile' });
-		deepEqual(user, connectedProfiles.connectedArticle(), 'ConnectionCollection::connectedArticle sets properly');
+		deepEqual(user, connectedProfiles.connectedArticle, 'ConnectionCollection::connectedArticle sets properly');
 		start();
 	}, function() {
 		ok(false, 'Could not save article of type user');
