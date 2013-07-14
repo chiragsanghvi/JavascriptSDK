@@ -30,7 +30,23 @@ try {
       }});
    }
 } catch(defPropException) {/*Do nothing if an exception occurs*/};
-// monolithic file
+
+
+if (!Array.prototype.forEach) {
+    Array.prototype.forEach = function(fun) {
+        var len = this.length >>> 0;
+        if (typeof fun != "function") {
+            throw new TypeError();
+        }
+
+        var thisp = arguments[1];
+        for (var i = 0; i < len; i++) {
+            if (i in this) {
+                fun.call(thisp, this[i], i, this);
+            }
+        }
+    };
+}// monolithic file
 
 var global = {};
 
@@ -3843,12 +3859,12 @@ Depends on  NOTHING
 		if ( endpoint.article && typeof endpoint.article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
-				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article);
+				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			} else {
 				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article.getArticle)
 					base["endpoint" + type].article.copy(endpoint.article);
 				else 
-					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article);
+					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			}
 			base["endpoint" + type].articleid = endpoint.articleid;
 			base["endpoint" + type].label = endpoint.label;

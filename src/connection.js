@@ -33,12 +33,12 @@
 		if ( endpoint.article && typeof endpoint.article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
-				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article);
+				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			} else {
 				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article.getArticle)
 					base["endpoint" + type].article.copy(endpoint.article);
 				else 
-					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article);
+					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			}
 			base["endpoint" + type].articleid = endpoint.articleid;
 			base["endpoint" + type].label = endpoint.label;
