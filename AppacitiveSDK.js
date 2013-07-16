@@ -140,6 +140,29 @@ if (!('some' in Array.prototype)) {
         return false;
     };
 }
+// Override only if native toISOString is not defined
+if (!Date.prototype.toISOString) {
+    // Here we rely on JSON serialization for dates because it matches 
+    // the ISO standard. However, we check if JSON serializer is present 
+    // on a page and define our own .toJSON method only if necessary
+    if (!Date.prototype.toJSON) {
+        Date.prototype.toJSON = function (key) {
+            function f(n) {
+                // Format integers to have at least two digits.
+                return n < 10 ? '0' + n : n;
+        }
+
+        return this.getUTCFullYear()   + '-' +
+            f(this.getUTCMonth() + 1) + '-' +
+            f(this.getUTCDate())      + 'T' +
+            f(this.getUTCHours())     + ':' +
+            f(this.getUTCMinutes())   + ':' +
+            f(this.getUTCSeconds())   + 'Z';
+        };
+    }
+
+    Date.prototype.toISOString = Date.prototype.toJSON;
+}
 // monolithic file
 
 var global = {};
@@ -412,7 +435,7 @@ var global = {};
 		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
 	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
 	    
-	    if (typeof(XDomainRequest) !== "undefined" && (navigator.userAgent.indexOf('MSIE 8') || navigator.userAgent.indexOf('MSIE 9'))) {
+	    if (navigator.userAgent.indexOf('MSIE 8') != -1 || navigator.userAgent.indexOf('MSIE 9') != -1) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;
