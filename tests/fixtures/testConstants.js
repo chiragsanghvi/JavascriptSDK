@@ -1,6 +1,7 @@
 var testConstants = {
 	appName: 'sdk',
 	accountName: 'hub',
+	appId: '14700033921384718',
 	apiKey: 'bY1Oeq3rBLUPpmqX8jKGjJ7gAIYyIIwvyet+nj9/7+c=',
 	adminUserAuthToken: 'eGdQb3NEcTBLRnlUazA3TU1URzJGOUFWek9tMGZJVFFHcnIzRTJ6RGpuS3poNWV5Rm10MHN5WlBoWCtYWDRpMkpwWEVWMFVhdEMrYUt4dldGR1dENldEZnZpeFIrdDBXNzVHaDFpZ2xBVWVCNVRnaU1rYjU1ZEtOeHlNZzZrOG92eERIcVZkREJpaW0zTmJsSGZHUHVCMHd3aUZnNVRTNQ==',
 	environment: 'sandbox',
