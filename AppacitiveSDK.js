@@ -1375,14 +1375,25 @@ Depends on  NOTHING
 
 	global.Appacitive.Session = new SessionManager();
 
+	global.Appacitive.getAppPrefix = function(str) {
+		return global.Appacitive.Session.environment() + '/' + global.Appacitive.appId + '/' + str;
+	};
+
 	global.Appacitive.initialize = function(options) {
+		
+		options = options || {};
+
 		if (global.Appacitive.Session.initialized) return;
 		
 		if (!options.apikey || options.apikey.length == 0) throw new Error("apikey is mandatory");
 		
+		if (!options.appId || options.appId.length == 0) throw new Error("appId is mandatory");
+
+
 		global.Appacitive.Session.setApiKey( options.apikey) ;
 		global.Appacitive.Session.environment(options.env || 'sandbox' );
 		global.Appacitive.useApiKey = true;
+		global.Appacitive.appId = options.appId;
   		
   		global.Appacitive.Session.initialized = true;
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
@@ -5309,6 +5320,7 @@ Depends on  NOTHING
 			      value = JSON.stringify(value);
 			    } catch(e){}
 		    }
+		    key = global.Appacitive.getAppPrefix(key);
 
 			_localStorage[key] = value;
 			return true;
@@ -5316,6 +5328,8 @@ Depends on  NOTHING
 
 		this.get = function(key) {
 			if (!key) return null;
+
+			key = global.Appacitive.getAppPrefix(key);
 
 			var value = _localStorage.getItem(key);
 		   	if (!value) { return null; }
@@ -5332,6 +5346,7 @@ Depends on  NOTHING
 		
 		this.remove = function(key) {
 			if (!key) return;
+			key = global.Appacitive.getAppPrefix(key);
 			try { delete _localStorage[key]; } catch(e){}
 		}
 	};
@@ -5343,6 +5358,7 @@ Depends on  NOTHING
 var cookieManager = function () {
 
 	this.setCookie = function (name, value, minutes, erase) {
+		name = global.Appacitive.getAppPrefix(name);
 		var expires = '';
 		if (minutes) {
 			var date = new Date();
@@ -5364,6 +5380,7 @@ var cookieManager = function () {
 	};
 
 	this.readCookie = function (name) {
+		name = global.Appacitive.getAppPrefix(name);
 		var nameEQ = name + "=";
 		var ca = document.cookie.split(';');
 		for (var i=0; i < ca.length; i++) {

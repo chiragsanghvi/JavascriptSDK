@@ -3,6 +3,7 @@
 var cookieManager = function () {
 
 	this.setCookie = function (name, value, minutes, erase) {
+		name = global.Appacitive.getAppPrefix(name);
 		var expires = '';
 		if (minutes) {
 			var date = new Date();
@@ -24,6 +25,7 @@ var cookieManager = function () {
 	};
 
 	this.readCookie = function (name) {
+		name = global.Appacitive.getAppPrefix(name);
 		var nameEQ = name + "=";
 		var ca = document.cookie.split(';');
 		for (var i=0; i < ca.length; i++) {

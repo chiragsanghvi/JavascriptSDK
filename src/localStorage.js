@@ -15,6 +15,7 @@
 			      value = JSON.stringify(value);
 			    } catch(e){}
 		    }
+		    key = global.Appacitive.getAppPrefix(key);
 
 			_localStorage[key] = value;
 			return true;
@@ -22,6 +23,8 @@
 
 		this.get = function(key) {
 			if (!key) return null;
+
+			key = global.Appacitive.getAppPrefix(key);
 
 			var value = _localStorage.getItem(key);
 		   	if (!value) { return null; }
@@ -38,6 +41,7 @@
 		
 		this.remove = function(key) {
 			if (!key) return;
+			key = global.Appacitive.getAppPrefix(key);
 			try { delete _localStorage[key]; } catch(e){}
 		}
 	};

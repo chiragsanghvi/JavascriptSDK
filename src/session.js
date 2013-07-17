@@ -202,14 +202,25 @@
 
 	global.Appacitive.Session = new SessionManager();
 
+	global.Appacitive.getAppPrefix = function(str) {
+		return global.Appacitive.Session.environment() + '/' + global.Appacitive.appId + '/' + str;
+	};
+
 	global.Appacitive.initialize = function(options) {
+		
+		options = options || {};
+
 		if (global.Appacitive.Session.initialized) return;
 		
 		if (!options.apikey || options.apikey.length == 0) throw new Error("apikey is mandatory");
 		
+		if (!options.appId || options.appId.length == 0) throw new Error("appId is mandatory");
+
+
 		global.Appacitive.Session.setApiKey( options.apikey) ;
 		global.Appacitive.Session.environment(options.env || 'sandbox' );
 		global.Appacitive.useApiKey = true;
+		global.Appacitive.appId = options.appId;
   		
   		global.Appacitive.Session.initialized = true;
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;

@@ -3,7 +3,7 @@ module('Test Cleanup');
 asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.Session.resetSession();
 	Appacitive.Session.removeUserAuthHeader();
-	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox' });
+	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox', appId: '30564516293116567' });
 	ok(true, 'Session created successfully.');
 	start();
 });
