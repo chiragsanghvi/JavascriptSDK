@@ -1,52 +1,14 @@
-/** workaround for __getter__ and __setter__ API's for IE
-**/
-
-try {
-   if (!Object.prototype.__defineGetter__ && Object.defineProperty({},"x",{get: function(){return true}}).x) {
-      Object.defineProperty(Object.prototype, "__defineGetter__",
-         {
-         	enumerable: false, 
-         	configurable: true,
-          	value: function(name,func)
-             {Object.defineProperty(this,name,
-                 {
-                 	get:func,
-                 	enumerable: true,
-                 	configurable: true
-                 });
-      }});
-      Object.defineProperty(Object.prototype, "__defineSetter__",
-         {
-         	enumerable: false, 
-         	configurable: true,
-          	value: function(name,func)
-             {
-             	Object.defineProperty(this,name,
-                 {
-                 	set:func,
-                 	enumerable: true,
-                 	configurable: true
-                 });
-      }});
-   }
-} catch(defPropException) {/*Do nothing if an exception occurs*/};
+/*
+ * AppacitiveSDK.js v0.995 - Javascript SDK to integrate applictions using Appacitive
+ * Copyright (c) 2013 Appacitive Software Pvt Ltd
+ * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
+ * Project      : https://github.com/chiragsanghvi/JavascriptSDK
+ * Contact      : support@appacitive.com | csanghvi@appacitive.com
+ * Build time 	: Wed Jul 17 13:47:02 IST 2013
+ */
 
 
-if (!Array.prototype.forEach) {
-    Array.prototype.forEach = function(fun) {
-        var len = this.length >>> 0;
-        if (typeof fun != "function") {
-            throw new TypeError();
-        }
 
-        var thisp = arguments[1];
-        for (var i = 0; i < len; i++) {
-            if (i in this) {
-                fun.call(thisp, this[i], i, this);
-            }
-        }
-    };
-}
 
 // Add ECMA262-5 method binding if not supported natively
 //
