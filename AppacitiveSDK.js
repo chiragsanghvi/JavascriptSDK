@@ -4,11 +4,8 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Jul 17 13:47:02 IST 2013
+ * Build time 	: Thu Jul 18 11:13:47 IST 2013
  */
-
-
-
 
 // Add ECMA262-5 method binding if not supported natively
 //

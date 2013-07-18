@@ -13,16 +13,6 @@ echo "================Minifying AppacitiveSDK.js============="
 in=AppacitiveSDK.js
 out=AppacitiveSDK.min.js
 
-curl -s \
-  -d compilation_level=SIMPLE_OPTIMIZATIONS \
-  -d output_format=text \
-  -d output_info=compiled_code \
-  --data-urlencode "js_code@${in}" \
-  http://closure-compiler.appspot.com/compile \
-  >> $out
-
-#type=".min"
-
-#cat src/copyright.txt AppacitiveSDK.min.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g" > $out
+java -jar /usr/local/lib/compiler.jar --js $in --js_output_file $out
 
 echo "============Minified AppacitiveSDK.min.js=============="

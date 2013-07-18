@@ -6,6 +6,3 @@
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
  * Build time 	: ${time}
  */
-
-
-
