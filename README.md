@@ -141,7 +141,7 @@ When you call save, the entity is taken and stored on Appacitive's servers. A un
 This is what is available in the `player` object after a successful save.
 ```javascript
 player.save(function(obj) {
-	console.log("ID : " + player.id); //
+	console.log("ID : " + player.id()); //
 	console.dir(palyer.toJSON());
 });
 // output
@@ -183,7 +183,7 @@ Retrieving can also be done via the `fetch` method. Here's an example
 ```javascript
 var player = new Appacitive.Article('player'); //You can initialize article in this way too.
 // set an (existing) id in the object
-player.id = {{existing_id}};
+player.id({{existing_id}});
 // retrieve the player
 player.fetch(function(obj) {
 	alert('Fetched player with name: ' + player.get('name'));
