@@ -147,7 +147,7 @@
 			if (!user) throw new Error('Cannot set null object as user');
 			var userObject = user;
 			
-			if (!(userObject instanceof Appacitive.User)) userObject = new global.Appacitive.User(user, true); 
+			if (!(userObject instanceof global.Appacitive.User)) userObject = new global.Appacitive.User(user, true); 
 			else if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
 			else user = userObject.toJSON(); 
 
@@ -193,7 +193,7 @@
 				return this;
 			};
 
-			_authenticatedUser.logout = function(callback) { Appacitive.Users.logout(callback); };
+			_authenticatedUser.logout = function(callback) { global.Appacitive.Users.logout(callback); };
 
 			_authenticatedUser.checkin = function(coords, onSuccess, onError) {
 				_checkin(coords, this, onSuccess, onError);
@@ -267,7 +267,7 @@
 		};
 
 		global.Appacitive.User.prototype.clone = function() {
-			return new Appacitive.User(this.getObject());
+			return new global.Appacitive.User(this.getObject());
 		};
 
 		this.deleteUser = function(userId, onSuccess, onError) {
@@ -460,7 +460,7 @@
 			request.method = 'get';
 			request.onSuccess = function(data) {
 				if (data && data.user) { 
-					if (typeof onSuccess == 'function') onSuccess(new Appacitive.User(data.user));
+					if (typeof onSuccess == 'function') onSuccess(new global.Appacitive.User(data.user));
 				} else if (typeof onError == 'function') onError(data.status);
 			};
 			request.onError = onError;

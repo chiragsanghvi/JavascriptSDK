@@ -31,8 +31,8 @@
 					onSuccess(d.email);
 				} else {
 					d = d || {};
-					d.status = d.status || {};
-					onError(d.status.message || 'Server error');
+					d.status = d.status || { message: 'Server Error', code: '400'};
+					onError(d.status);
 				}
 			};
 			global.Appacitive.http.send(request);
@@ -103,6 +103,10 @@
 			if (!options.subject || options.subject.trim().length == 0) {
 				throw new Error('Subject is mandatory to send an email');
 			}
+
+			if(!options.from && config.from) {
+				throw new Error('from is mandatory to send an email. Set it in config or send it in options on the portal');
+			} 
 
 			if (!options.body) {
 				throw new Error('body is mandatory to send an email');

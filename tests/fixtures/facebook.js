@@ -1,13 +1,13 @@
 module('Facebook integration');
 
 test('Verify user::getFacebookProfile exists on user object', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' });
+	var users = new global.Appacitive.ArticleCollection({ schema: 'user' });
 	var user = users.createNewArticle();
 	equal(typeof user.getFacebookProfile, 'function', 'user::getFacebookProfile exists on article of type user');
 });
 
 test('Verify article::getFacebookProfile does not exist on articles of schemas other than user', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'profile' });
+	var users = new global.Appacitive.ArticleCollection({ schema: 'profile' });
 	var user = users.createNewArticle();
 	equal(typeof user.getFacebookProfile, 'undefined', 'user::getFacebookProfile does not exist on article of type other than user');
 });
@@ -34,7 +34,7 @@ asyncTest('Cleaning up articles of schema user', function() {
 	    	'expiry': 60,
 	    	'attempts': 10
 	    };
-	    Appacitive.Users.authenticateUser(creds, function(data) {
+	    global.Appacitive.Users.authenticateUser(creds, function(data) {
 	    	Appacitive.Session.setUserAuthHeader(data.token);
 	    	step();
 	    }, function(data) {
@@ -46,7 +46,7 @@ asyncTest('Cleaning up articles of schema user', function() {
 	var deleteUsers = function() {
 		//Appacitive.session.setUserAuthHeader(testConstants.adminUserAuthToken);
 
-		var collection = new Appacitive.ArticleCollection({ schema: 'user' });
+		var collection = new global.Appacitive.ArticleCollection({ schema: 'user' });
 		collection.fetch(function() {
 			var articles = collection.getAll();
 			var total = articles.length, t = articles.length;
@@ -125,7 +125,7 @@ asyncTest('Create and link facebook user in one api call', function() {
 	user.lastname = testConstants.user.lastname;
 	user.email = testConstants.user.email;
 	user.password = testConstants.user.password;
-	var newUser = new Appacitive.User(user);
+	var newUser = new global.Appacitive.User(user);
 	
 	Appacitive.Facebook.requestLogin(function(authResponse) {
 		newUser.linkFacebookAccount(Appacitive.Facebook.accessToken(), function() {
@@ -194,7 +194,7 @@ asyncTest('Verify login with facebook via facebook sdk', function() {
 asyncTest('Verify login with facebook via Appacitive sdk', function() {
 	try {
 		Appacitive.Facebook.requestLogin(function(authResponse) {
-			ok(true, 'Facebook login successfull with access token: ' + Appacitive.Facebook.accessToken());
+			ok(true, 'Facebook login successfull with access token: ' + global.Appacitive.Facebook.accessToken());
 			start();
 		}, function() {
 			ok(false, 'Facebook login failed');
@@ -223,7 +223,7 @@ asyncTest('Verify getting current facebook user info via Appacitive sdk', functi
 
 asyncTest('Signup with facebook', function() {
 	try {
-		var accessToken = Appacitive.Facebook.accessToken();
+		var accessToken = global.Appacitive.Facebook.accessToken();
 		Appacitive.Users.signupWithFacebook(function(user) {
 			ok(true, 'Signed up with facebook: ' + JSON.stringify(user));
 			start();
@@ -240,7 +240,7 @@ asyncTest('Signup with facebook', function() {
 
 asyncTest('Signin with facebook and verify auth token', function() {
 	try {
-		var accessToken = Appacitive.Facebook.accessToken();
+		var accessToken = global.Appacitive.Facebook.accessToken();
 		Appacitive.Users.loginWithFacebook(function(user) {
 			equal(typeof user.token, 'string', 'Auth token returned: ' + user.token);
 			ok(true, 'Signed up with facebook: ' + JSON.stringify(user));
@@ -258,9 +258,9 @@ asyncTest('Signin with facebook and verify auth token', function() {
 
 asyncTest('Signin with facebook and verify Appacitive.Users.currentUser', function() {
 	try {
-		var accessToken = Appacitive.Facebook.accessToken();
+		var accessToken = global.Appacitive.Facebook.accessToken();
 		Appacitive.Users.loginWithFacebook(function(user) {
-			deepEqual(user.user, Appacitive.Users.currentUser(), 'Appacitive.Users.currentUser is: ' + user.token);
+			deepEqual(user.user, global.Appacitive.Users.currentUser(), 'Appacitive.Users.currentUser is: ' + user.token);
 			start();
 		}, function(err) {
 			err = err || {};
@@ -275,14 +275,14 @@ asyncTest('Signin with facebook and verify Appacitive.Users.currentUser', functi
 
 asyncTest('Verify get facebook user if info is requested', function() {
 	try {
-		var accessToken = Appacitive.Facebook.accessToken();
+		var accessToken = global.Appacitive.Facebook.accessToken();
 		Appacitive.Users.loginWithFacebook(function(data) {
 			var token = data.token;
 			var user = data.user.getArticle();
 			Appacitive.Session.setUserAuthHeader(token);
 			var id = user.__id;
 			ok(true, 'Signed up with facebook: ' + JSON.stringify(user));
-			var users = new Appacitive.ArticleCollection({ schema: 'user' });
+			var users = new global.Appacitive.ArticleCollection({ schema: 'user' });
 			var user = users.createNewArticle();
 			user.set('__id', id);
 			user.getFacebookProfile(function(fbProfile) {

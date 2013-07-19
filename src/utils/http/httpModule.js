@@ -270,7 +270,7 @@ var global = {};
 		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
 	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
 	    
-	    if (navigator.userAgent.indexOf('MSIE 8') != -1 || navigator.userAgent.indexOf('MSIE 9') != -1) {
+	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;

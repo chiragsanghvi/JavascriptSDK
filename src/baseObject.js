@@ -325,8 +325,8 @@
 		};
 
 		this.clone = function() {
-			if (this.type == 'article') return new Appacitive.Article(article);
-			return new Appacitive.connection(article);
+			if (this.type == 'article') return new global.Appacitive.Article(article);
+			return new global.Appacitive.connection(article);
 		}
 
 		this.copy = function(properties, setSnapShot) { 

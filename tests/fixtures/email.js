@@ -53,7 +53,8 @@ asyncTest('Verify emails can be sent with proper config details', function() {
 	    	'attempts': -1
 	    };
 	    Appacitive.Users.authenticateUser(creds, function(data) {
-	    	Appacitive.Session.setUserAuthHeader(data.token);
+	    	ok(true, 'User authenticated successfully: ' + JSON.stringify(data));
+    		Appacitive.Session.setUserAuthHeader(data.token);
 	    	step();
 	    }, function(data) {
 	    	ok(false, 'User authentication failed: ' + JSON.stringify(data));
@@ -62,37 +63,24 @@ asyncTest('Verify emails can be sent with proper config details', function() {
 	};
 
 	var sendRawEmail = function() {
-		var creds = {
-	    	'username': testConstants.user.username,
-	    	'password': testConstants.user.password,
-	    	'expiry': -1,
-	    	'attempts': -1
-	    };
-	    Appacitive.Users.authenticateUser(creds, function(data) {
-	    	Appacitive.Session.setUserAuthHeader(data.token);
-	    	ok(true, 'User authenticated successfully: ' + JSON.stringify(data));
-	    	try {
-	    		var emailOptions = {
-	    			to: [Appacitive.Users.currentUser.get('email')],
-	    			subject: 'Hello World!',
-	    			body: '<b>hello world!</b>',
-	    			ishtml : true
-	    		};
-	    		Appacitive.Email.sendRawEmail(emailOptions, function(email) { 
-	    			ok(true, 'Send email successfully: ' + JSON.stringify(email));
-	    			start();
-	    		}, function(a) {
-	    			ok(false, 'Email sending failed: ' + a);
-	    			start();
-	    		});
-	    	} catch (err) {
-	    		ok(true, 'Error : ' + err.message);
-	    		start();
-	    	}
-	    }, function(data) {
-	    	ok(false, 'User authentication failed: ' + JSON.stringify(data));
-	    	start();
-	    });
+    	try {
+    		var emailOptions = {
+    			to: [Appacitive.Users.currentUser().get('email')],
+    			subject: 'Hello World!',
+    			body: '<b>hello world!</b>',
+    			ishtml : true
+    		};
+    		Appacitive.Email.sendRawEmail(emailOptions, function(email) { 
+    			ok(true, 'Send email successfully: ' + JSON.stringify(email));
+    			start();
+    		}, function(a) {
+    			ok(false, 'Email sending failed: ' + a);
+    			start();
+    		});
+    	} catch (err) {
+    		ok(true, 'Error : ' + err.message);
+    		start();
+    	}
 	}
 	createDefaultUser(function() {
 		authenticateDefaultUser(function() {

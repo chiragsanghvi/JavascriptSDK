@@ -132,7 +132,7 @@
 			if (_authToken  && !avoidApiCall) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
+					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 					_authToken = null;
 					_request.method = 'POST';
 					_request.data = {};

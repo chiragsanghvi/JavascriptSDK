@@ -183,7 +183,7 @@
 		if (!options.relation || typeof options.relation!= 'string' || options.relation.length == 0) throw new Error("Specify valid relation");
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
 			request.method = 'get';
 			return _fetch(request, onSuccess, onError); 
 		} else { 
@@ -199,7 +199,7 @@
 
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
 			request.method = 'post';
 			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
@@ -220,19 +220,19 @@
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options, onSuccess, onError) {
-		var q = new Appacitive.Queries.InterconnectsQuery(options);
+		var q = new global.Appacitive.Queries.InterconnectsQuery(options);
 		_fetch(q.toRequest(), request, onSuccess, onError);
 	};
 
 	//takes 2 articleids and returns connections between them
 	global.Appacitive.Connection.getBetweenArticles = function(options, onSuccess, onError) {
-		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
+		var q = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
 		_fetch(q.toRequest(), onSuccess, onError);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype
 	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options, onSuccess, onError) {
-		new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options).fetch(onSuccess, onError);
+		new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options).fetch(onSuccess, onError);
 	};
 
 })(global);

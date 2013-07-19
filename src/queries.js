@@ -616,7 +616,7 @@
 					var edge = o.__edge;
 					delete o.__edge;
 
-					var tmpArticle = new Appacitive.Article(o, true);
+					var tmpArticle = new global.Appacitive.Article(o, true);
 					tmpArticle.children = {};
 					for (var key in children) {
 						tmpArticle.children[key] = [];
@@ -633,7 +633,7 @@
 							label: edge.label
 						};
 						delete edge.label;
-						tmpArticle.connection = new Appacitive.Connection(edge);
+						tmpArticle.connection = new global.Appacitive.Connection(edge);
 					}
 					props.push(tmpArticle);
 				});

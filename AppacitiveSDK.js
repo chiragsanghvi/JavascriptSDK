@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Jul 18 11:13:47 IST 2013
+ * Build time 	: Fri Jul 19 15:46:57 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -394,7 +394,7 @@ var global = {};
 		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
 	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
 	    
-	    if (navigator.userAgent.indexOf('MSIE 8') != -1 || navigator.userAgent.indexOf('MSIE 9') != -1) {
+	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;
@@ -1264,7 +1264,7 @@ Depends on  NOTHING
 			if (_authToken  && !avoidApiCall) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
+					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 					_authToken = null;
 					_request.method = 'POST';
 					_request.data = {};
@@ -2559,7 +2559,7 @@ Depends on  NOTHING
 					var edge = o.__edge;
 					delete o.__edge;
 
-					var tmpArticle = new Appacitive.Article(o, true);
+					var tmpArticle = new global.Appacitive.Article(o, true);
 					tmpArticle.children = {};
 					for (var key in children) {
 						tmpArticle.children[key] = [];
@@ -2576,7 +2576,7 @@ Depends on  NOTHING
 							label: edge.label
 						};
 						delete edge.label;
-						tmpArticle.connection = new Appacitive.Connection(edge);
+						tmpArticle.connection = new global.Appacitive.Connection(edge);
 					}
 					props.push(tmpArticle);
 				});
@@ -2934,8 +2934,8 @@ Depends on  NOTHING
 		};
 
 		this.clone = function() {
-			if (this.type == 'article') return new Appacitive.Article(article);
-			return new Appacitive.connection(article);
+			if (this.type == 'article') return new global.Appacitive.Article(article);
+			return new global.Appacitive.connection(article);
 		}
 
 		this.copy = function(properties, setSnapShot) { 
@@ -3843,7 +3843,7 @@ Depends on  NOTHING
 			onError = onError || function(){};
 
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiDeleteUrl(options.schema);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiDeleteUrl(options.schema);
 			request.method = 'post';
 			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
@@ -3876,7 +3876,7 @@ Depends on  NOTHING
 		if (!options.schema || typeof options.schema!= 'string' || options.schema.length == 0) throw new Error("Specify valid schema");
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
 			request.method = 'get';
 			request.onSuccess = function(d) {
 				if (d && d.articles) {
@@ -4096,7 +4096,7 @@ Depends on  NOTHING
 		if (!options.relation || typeof options.relation!= 'string' || options.relation.length == 0) throw new Error("Specify valid relation");
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
 			request.method = 'get';
 			return _fetch(request, onSuccess, onError); 
 		} else { 
@@ -4112,7 +4112,7 @@ Depends on  NOTHING
 
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
 			request.method = 'post';
 			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
@@ -4133,19 +4133,19 @@ Depends on  NOTHING
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options, onSuccess, onError) {
-		var q = new Appacitive.Queries.InterconnectsQuery(options);
+		var q = new global.Appacitive.Queries.InterconnectsQuery(options);
 		_fetch(q.toRequest(), request, onSuccess, onError);
 	};
 
 	//takes 2 articleids and returns connections between them
 	global.Appacitive.Connection.getBetweenArticles = function(options, onSuccess, onError) {
-		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
+		var q = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
 		_fetch(q.toRequest(), onSuccess, onError);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype
 	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options, onSuccess, onError) {
-		new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options).fetch(onSuccess, onError);
+		new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options).fetch(onSuccess, onError);
 	};
 
 })(global);(function (global) {
@@ -4297,7 +4297,7 @@ Depends on  NOTHING
 			if (!user) throw new Error('Cannot set null object as user');
 			var userObject = user;
 			
-			if (!(userObject instanceof Appacitive.User)) userObject = new global.Appacitive.User(user, true); 
+			if (!(userObject instanceof global.Appacitive.User)) userObject = new global.Appacitive.User(user, true); 
 			else if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
 			else user = userObject.toJSON(); 
 
@@ -4343,7 +4343,7 @@ Depends on  NOTHING
 				return this;
 			};
 
-			_authenticatedUser.logout = function(callback) { Appacitive.Users.logout(callback); };
+			_authenticatedUser.logout = function(callback) { global.Appacitive.Users.logout(callback); };
 
 			_authenticatedUser.checkin = function(coords, onSuccess, onError) {
 				_checkin(coords, this, onSuccess, onError);
@@ -4417,7 +4417,7 @@ Depends on  NOTHING
 		};
 
 		global.Appacitive.User.prototype.clone = function() {
-			return new Appacitive.User(this.getObject());
+			return new global.Appacitive.User(this.getObject());
 		};
 
 		this.deleteUser = function(userId, onSuccess, onError) {
@@ -4610,7 +4610,7 @@ Depends on  NOTHING
 			request.method = 'get';
 			request.onSuccess = function(data) {
 				if (data && data.user) { 
-					if (typeof onSuccess == 'function') onSuccess(new Appacitive.User(data.user));
+					if (typeof onSuccess == 'function') onSuccess(new global.Appacitive.User(data.user));
 				} else if (typeof onError == 'function') onError(data.status);
 			};
 			request.onError = onError;
@@ -4671,8 +4671,8 @@ Depends on  NOTHING
 					onSuccess(d.email);
 				} else {
 					d = d || {};
-					d.status = d.status || {};
-					onError(d.status.message || 'Server error');
+					d.status = d.status || { message: 'Server Error', code: '400'};
+					onError(d.status);
 				}
 			};
 			global.Appacitive.http.send(request);
@@ -4743,6 +4743,10 @@ Depends on  NOTHING
 			if (!options.subject || options.subject.trim().length == 0) {
 				throw new Error('Subject is mandatory to send an email');
 			}
+
+			if(!options.from && config.from) {
+				throw new Error('from is mandatory to send an email. Set it in config or send it in options on the portal');
+			} 
 
 			if (!options.body) {
 				throw new Error('body is mandatory to send an email');
