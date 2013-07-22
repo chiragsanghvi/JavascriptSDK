@@ -76,16 +76,16 @@
 
 		options = options || {};
 		if (typeof options == 'string') {
-			rName = options;
-			options = { relation: rName };
-		}	
+			options = { relation: options, schema: this.entityType };
+		}
 
 		options.articleId = this.get('__id');
+		
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
+		collection.query(new global.Appacitive.Queries.ConnectedArticlesQuery(options));
 		collection.connectedArticle = this;
 		this.connectionCollections.push(collection);
-		collection.query(new global.Appacitive.Queries.ConnectedArticlesQuery(options));
-		
+
 		return collection;
 	};
 

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Jul 19 15:46:57 IST 2013
+ * Build time 	: Mon Jul 22 18:43:44 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2285,7 +2285,10 @@ Depends on  NOTHING
 
 		if (!options.relation) throw new Error('Specify relation for connected articles query');
 		if (!options.articleId) throw new Error('Specify articleId for connected articles query');
-		if (options.schema) delete options.schema;
+		if (!options.schema) throw new Error('Specify schema of article id for connected articles query');
+		
+		var schema = options.schema;
+		delete options.schema;
 
 		options.queryType = 'ConnectedArticlesQuery';
 
@@ -2293,6 +2296,8 @@ Depends on  NOTHING
 
 		this.articleId = options.articleId;
 		this.relation = options.relation;
+		this.schema = schema;
+
 		this.label = '';
 		if (options.label && typeof options.label == 'string' && options.label.length > 0) this.label = '&label=' + options.label;
 
@@ -2304,8 +2309,52 @@ Depends on  NOTHING
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.articleId + '/find?' +
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.schema + '/' + this.articleId + '/find?' +
 				this.getQueryString() + this.label;
+		};
+
+
+		var parseNodes = function(nodes, endpointA) {
+			var connections = [];
+			nodes.forEach(function(o) {
+				var edge = o.__edge;
+				delete o.__edge;
+
+				var tmpArticle = new global.Appacitive.Article(o, true);
+				
+				edge.__endpointa = endpointA;
+				edge.__endpointb = {
+					article: tmpArticle,
+					label: edge.label,
+					type: tmpArticle.entityType
+				};
+				delete edge.label;
+
+				var connection = new Appacitive.Connection(edge, true);
+
+				connections.push(connection);
+			});
+			return connections;
+		};
+
+		this.fetch = function(onSuccess, onError) {
+			var request = this.toRequest();
+			request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+				   if (typeof onSuccess == 'function') {
+				   		onSuccess(parseNodes( d.nodes, { articleid : options.articleId, type: schema, label: d.parent }));
+				   }
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			};
+			global.Appacitive.http.send(request);
+			return this;
 		};
 
 		return this;
@@ -3817,16 +3866,16 @@ Depends on  NOTHING
 
 		options = options || {};
 		if (typeof options == 'string') {
-			rName = options;
-			options = { relation: rName };
-		}	
+			options = { relation: options, schema: this.entityType };
+		}
 
 		options.articleId = this.get('__id');
+		
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
+		collection.query(new global.Appacitive.Queries.ConnectedArticlesQuery(options));
 		collection.connectedArticle = this;
 		this.connectionCollections.push(collection);
-		collection.query(new global.Appacitive.Queries.ConnectedArticlesQuery(options));
-		
+
 		return collection;
 	};
 
