@@ -332,7 +332,9 @@
 		this.copy = function(properties, setSnapShot) { 
 			if (properties) { 
 				_copy(properties, article);
-				_copy(properties,_snapshot);
+				if (setSnapShot) {
+					_copy(properties,_snapshot);
+				}
 			}
 			return this;
 		};

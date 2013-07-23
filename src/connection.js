@@ -35,12 +35,12 @@
 				base["endpoint" + type] = {};
 				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article.getArticle)
-					base["endpoint" + type].article.copy(endpoint.article);
+				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article instanceof Appacitive.Article)
+					base["endpoint" + type].article.copy(endpoint.article, true);
 				else 
 					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			}
-			base["endpoint" + type].articleid = endpoint.articleid;
+			base["endpoint" + type].articleid = endpoint.article.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
 
@@ -104,9 +104,9 @@
 				}
 				var articleId = this.___collection.connectedArticle.get('__id');
 				if (!articleId) return null;
-				var otherArticleId = this.getConnection().__endpointa.articleid;
-				if (this.getConnection().__endpointa.articleid == articleId)
-					otherArticleId = this.getConnection().__endpointb.articleid;
+				var otherArticleId = this.endpointA.articleid;
+				if (otherArticleId == articleId)
+					otherArticleId = this.endpointB.articleid;
 				return this.___collection.getConnectedArticle(otherArticleId);
 			};
 			this.parseConnection(options);

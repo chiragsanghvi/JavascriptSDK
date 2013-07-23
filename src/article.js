@@ -76,9 +76,10 @@
 
 		options = options || {};
 		if (typeof options == 'string') {
-			options = { relation: options, schema: this.entityType };
+			options = { relation: options };
 		}
 
+		options.schema = this.entityType;
 		options.articleId = this.get('__id');
 		
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });

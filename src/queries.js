@@ -377,13 +377,11 @@
 				var edge = o.__edge;
 				delete o.__edge;
 
-				var tmpArticle = new global.Appacitive.Article(o, true);
-				
 				edge.__endpointa = endpointA;
 				edge.__endpointb = {
-					article: tmpArticle,
+					article: o,
 					label: edge.label,
-					type: tmpArticle.entityType
+					type: o.__schematype
 				};
 				delete edge.label;
 
@@ -399,7 +397,7 @@
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
 				   if (typeof onSuccess == 'function') {
-				   		onSuccess(parseNodes( d.nodes, { articleid : options.articleId, type: schema, label: d.parent }));
+				   		onSuccess(parseNodes( d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent }));
 				   }
 				} else {
 					d = d || {};

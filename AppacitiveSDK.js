@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Jul 22 18:43:44 IST 2013
+ * Build time 	: Tue Jul 23 15:53:50 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2320,13 +2320,11 @@ Depends on  NOTHING
 				var edge = o.__edge;
 				delete o.__edge;
 
-				var tmpArticle = new global.Appacitive.Article(o, true);
-				
 				edge.__endpointa = endpointA;
 				edge.__endpointb = {
-					article: tmpArticle,
+					article: o,
 					label: edge.label,
-					type: tmpArticle.entityType
+					type: o.__schematype
 				};
 				delete edge.label;
 
@@ -2342,7 +2340,7 @@ Depends on  NOTHING
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
 				   if (typeof onSuccess == 'function') {
-				   		onSuccess(parseNodes( d.nodes, { articleid : options.articleId, type: schema, label: d.parent }));
+				   		onSuccess(parseNodes( d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent }));
 				   }
 				} else {
 					d = d || {};
@@ -2990,7 +2988,9 @@ Depends on  NOTHING
 		this.copy = function(properties, setSnapShot) { 
 			if (properties) { 
 				_copy(properties, article);
-				_copy(properties,_snapshot);
+				if (setSnapShot) {
+					_copy(properties,_snapshot);
+				}
 			}
 			return this;
 		};
@@ -3866,9 +3866,10 @@ Depends on  NOTHING
 
 		options = options || {};
 		if (typeof options == 'string') {
-			options = { relation: options, schema: this.entityType };
+			options = { relation: options };
 		}
 
+		options.schema = this.entityType;
 		options.articleId = this.get('__id');
 		
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
@@ -3997,12 +3998,12 @@ Depends on  NOTHING
 				base["endpoint" + type] = {};
 				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article.getArticle)
-					base["endpoint" + type].article.copy(endpoint.article);
+				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article instanceof Appacitive.Article)
+					base["endpoint" + type].article.copy(endpoint.article, true);
 				else 
 					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			}
-			base["endpoint" + type].articleid = endpoint.articleid;
+			base["endpoint" + type].articleid = endpoint.article.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
 
@@ -4066,9 +4067,9 @@ Depends on  NOTHING
 				}
 				var articleId = this.___collection.connectedArticle.get('__id');
 				if (!articleId) return null;
-				var otherArticleId = this.getConnection().__endpointa.articleid;
-				if (this.getConnection().__endpointa.articleid == articleId)
-					otherArticleId = this.getConnection().__endpointb.articleid;
+				var otherArticleId = this.endpointA.articleid;
+				if (otherArticleId == articleId)
+					otherArticleId = this.endpointB.articleid;
 				return this.___collection.getConnectedArticle(otherArticleId);
 			};
 			this.parseConnection(options);
