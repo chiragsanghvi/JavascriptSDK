@@ -74,6 +74,7 @@
 				cc: options.cc || [],
 				bcc: options.bcc || [],
 				subject: options.subject,
+				from: options.from,
 				body: {
 					templatename: options.templateName || '',
 					data : options.data || {},
@@ -117,6 +118,7 @@
 				cc: options.cc || [],
 				bcc: options.bcc || [],
 				subject: options.subject,
+				from: options.from,
 				body: {
 					content: options.body || '',
 					ishtml: (options.isHtml == false) ? false : true
