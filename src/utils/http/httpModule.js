@@ -494,11 +494,13 @@ var global = {};
 			post: function (response, request) {
 				try {
 					var _valid = global.Appacitive.Session.isSessionValid(response);
-					if (!_valid) {
-						if (global.Appacitive.Session.get() != null) {
-							global.Appacitive.Session.resetSession();
+					if (!_valid.status) {
+						if (_valid.isSession) {
+							if (global.Appacitive.Session.get() != null) {
+								global.Appacitive.Session.resetSession();
+							}
+							global.Appacitive.http.send(request);
 						}
-						global.Appacitive.http.send(request);
 					} else {
 						if (response && ((response.status && response.status.code && response.status.code == '8036') || (response.code &&response.code == '8036'))) {
 							global.Appacitive.Users.logout(function(){}, true);

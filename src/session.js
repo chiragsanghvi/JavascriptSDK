@@ -154,15 +154,15 @@
 			if (response.status) {
 				if (response.status.code) {
 					if (response.status.code == '8027' || response.status.code == '8002') {
-						return false;
+						return { status: false, isSession: (response.status.code == '8027') ? true : false };
 					}
 				}
 			} else if (response.code) {
 				if (response.code == '8027' || response.code == '8002') {
-					return false;
+					return { status: false, isSession: (response.code == '8027') ? true : false };
 				}
 			}
-			return true;
+			return { status: true };
 		};
 
 		this.resetSession = function() {

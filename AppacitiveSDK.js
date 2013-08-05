@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Aug  5 16:57:05 IST 2013
+ * Build time 	: Mon Aug  5 17:09:42 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -618,11 +618,13 @@ var global = {};
 			post: function (response, request) {
 				try {
 					var _valid = global.Appacitive.Session.isSessionValid(response);
-					if (!_valid) {
-						if (global.Appacitive.Session.get() != null) {
-							global.Appacitive.Session.resetSession();
+					if (!_valid.status) {
+						if (_valid.isSession) {
+							if (global.Appacitive.Session.get() != null) {
+								global.Appacitive.Session.resetSession();
+							}
+							global.Appacitive.http.send(request);
 						}
-						global.Appacitive.http.send(request);
 					} else {
 						if (response && ((response.status && response.status.code && response.status.code == '8036') || (response.code &&response.code == '8036'))) {
 							global.Appacitive.Users.logout(function(){}, true);
@@ -1291,15 +1293,15 @@ Depends on  NOTHING
 			if (response.status) {
 				if (response.status.code) {
 					if (response.status.code == '8027' || response.status.code == '8002') {
-						return false;
+						return { status: false, isSession: (response.status.code == '8027') ? true : false };
 					}
 				}
 			} else if (response.code) {
 				if (response.code == '8027' || response.code == '8002') {
-					return false;
+					return { status: false, isSession: (response.code == '8027') ? true : false };
 				}
 			}
-			return true;
+			return { status: true };
 		};
 
 		this.resetSession = function() {
