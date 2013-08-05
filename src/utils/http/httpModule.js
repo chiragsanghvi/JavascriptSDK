@@ -233,6 +233,11 @@ var global = {};
 	       request.onError({code: "400" , message: "Server Error" }, xdr);
 	    };
 	    xdr.onprogress = function() {};
+	    if (request.url.indexOf('?') == -1)
+            request.url = request.url + '?ua=ie';
+        else
+            request.url = request.url + '&ua=ie';
+
 	    xdr.open(request.method, request.url, true);
 	    xdr.send(request.data);
 		return xdr;

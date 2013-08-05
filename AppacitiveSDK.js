@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Jul 25 14:17:46 IST 2013
+ * Build time 	: Mon Aug  5 12:46:19 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -357,6 +357,11 @@ var global = {};
 	       request.onError({code: "400" , message: "Server Error" }, xdr);
 	    };
 	    xdr.onprogress = function() {};
+	    if (request.url.indexOf('?') == -1)
+            request.url = request.url + '?ua=ie';
+        else
+            request.url = request.url + '&ua=ie';
+
 	    xdr.open(request.method, request.url, true);
 	    xdr.send(request.data);
 		return xdr;
