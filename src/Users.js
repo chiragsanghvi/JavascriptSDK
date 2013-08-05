@@ -29,7 +29,9 @@
 			request.method = 'post';
 			request.data = updatedPasswordOptions;
 			request.onSuccess = function(a) {
-				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess(base);
+				if (a && a.code == '200') {
+					if (typeof onSuccess == 'function') onSuccess(base);
+				}
 				else { onError(a, base); }
 			};
 			request.onError = onError;

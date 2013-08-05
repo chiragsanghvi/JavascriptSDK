@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Aug  5 12:46:19 IST 2013
+ * Build time 	: Mon Aug  5 16:57:05 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -4234,7 +4234,9 @@ Depends on  NOTHING
 			request.method = 'post';
 			request.data = updatedPasswordOptions;
 			request.onSuccess = function(a) {
-				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess(base);
+				if (a && a.code == '200') {
+					if (typeof onSuccess == 'function') onSuccess(base);
+				}
 				else { onError(a, base); }
 			};
 			request.onError = onError;
