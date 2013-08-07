@@ -33,7 +33,7 @@ To get started, add sdk to your page.
 
 Before we dive into using the SDK, we need to grok a couple of things about the apikey.
 
-ApiKey is central to interacting with the API as every call to the API needs to be authenticated. To access the ApiKey for your app, go to your app via the [portal](https://portal.appacitive.com) and go to the api key section from the left side. 
+ApiKey is central to interacting with the API as every call to the API needs to be authenticated. To access the ApiKey for your app, go to app listing via the [portal](https://portal.appacitive.com) and click on the key icon on right side. 
 
 !["Getting your apikey"](http:\/\/appacitive.github.io\/images\/portal-apikey-small.png)
 
