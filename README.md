@@ -41,8 +41,9 @@ ApiKey is central to interacting with the API as every call to the API needs to 
 
 ```javascript
 Appacitive.initialize({ 
-	apikey: /* a string, set your apikey over here : Mandatory*/, 
-	env: /* a string, set it as 'live' or sandbox, default is live */ 
+	apikey: /* a string, set your apikey over here : Mandatory */, 
+	env: /* a string, set it as 'live' or sandbox, default is live */, 
+	appId: /* a string, set your appId over here : Mandatory */
 });
 ```
 Now you are ready to use the SDK
@@ -365,7 +366,7 @@ user.fetch(function (obj) {
 	alert('Could not fetch user with id 12345');
 });
 ```
-**Note**: All `Appacitive.Article` operations can be performed on a `Appacitive.User` object. Infact its a subclass of `Appacitive.Article` class. So, above data documenation is valid for users too.
+**Note**: All `Appacitive.Article` operations can be performed on `Appacitive.User` object. Infact its a subclass of `Appacitive.Article` class. So, above data documenation is valid for users too.
 But, you need a user logged in to perform user-specific operations.
 #### By username
 
@@ -506,7 +507,7 @@ Appacitive.Users.loginWithFacebook(function (authResult) {
 
 Whenever you use any signup or login method, the user is stored in localStorage and can be retrieved using `Appacitive.Users.currentUser`.So, everytime your app opens, you just need to check this value, to be sure whether the user is logged-in or logged-out.
 ```javascript
-var cUser = Appacitive.User.currentUser;
+var cUser = Appacitive.User.currentUser();
 if (cUser) {
     // user is logged in
 } else {
@@ -515,9 +516,9 @@ if (cUser) {
 ```
 You can clear this value, calling `Appacitive.Users.logout()` method.
 ```javascript
-Appacitive.Users.log0ut();
+Appacitive.Users.logout();
 // this will now be null
-var cUser = Appacitive.Users.currentUsers;  
+var cUser = Appacitive.Users.currentUser();  
 ```
 
 ### User Session Management
@@ -539,9 +540,9 @@ Appacitive.Users.validateCurrentUser(function(isValid) {
 
 #### Linking Facebook account
 
-If you want to associate an existing Appacitive.User to a Facebook account, you can link it like so
+If you want to associate an existing loggedin Appacitive.User to a Facebook account, you can link it like so
 ```javascript
-var user = Appacitive.User.currentUser;
+var user = Appacitive.User.currentUser();
 user.linkFacebookAccount(function(obj) {
 	console.dir(user.linkedAccounts);//You can access linked accounts of a user, using this field
 }, function(err, obj){
@@ -580,7 +581,7 @@ Under the hood the same steps followed for login are executed.
 
 #### Retreiving Facebook linked account
 ```javascript
-Appacitive.Users.currentUser.getAllLinkedAccounts(function() {
+Appacitive.Users.currentUser().getAllLinkedAccounts(function() {
 	console.dir(Appacitive.Users.currentUser.linkedAccounts);
 }, function(err){
 	alert("Could not reteive facebook linked account")
@@ -588,7 +589,7 @@ Appacitive.Users.currentUser.getAllLinkedAccounts(function() {
 ```
 #### Delinking Facebook account
 ```javascript
-Appacitive.Users.unlinkFacebookAccount(function() {
+Appacitive.UserscurrentUser().unlinkFacebookAccount(function() {
 	alert("Facebook account delinked successfully");
 }, function(err){
 	alert("Could not delink facebook account");
@@ -612,7 +613,7 @@ Appacitive.Users.sendResetPasswordEmail("{username}", "{subject for the mail}", 
 Users need to change their passwords whenever they've compromised it. You can update it using this call:
 ```javascript
 //You can make this call only for a loggedin user
-Appacitive.Users.currentUser.updatePassword('{oldPassword}','{newPassword}', function(){
+Appacitive.Users.currentUser().updatePassword('{oldPassword}','{newPassword}', function(){
 	alert("Password updated successfully"); 
 },function(){
 	alert("Failed to updated password for user");
@@ -622,7 +623,7 @@ Appacitive.Users.currentUser.updatePassword('{oldPassword}','{newPassword}', fun
 
 Users can check-in at a particular co-ordinate uing this call. Basically this call updates users location.
 ```javascript
-Appacitive.Users.currentUser.checkin({
+Appacitive.Users.currentUser().checkin({
 	lat:18.57, lng: 75.55
 }, function() {
 	alert("Checked in successfully");
