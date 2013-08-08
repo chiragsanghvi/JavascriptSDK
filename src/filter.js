@@ -252,13 +252,13 @@
 
     var _primitiveFieldValue = function(value) {
 
-        if (!value || value.length == 0) throw new Error("Specify value");
+        if (value == null || value == undefined || value.length == 0) throw new Error("Specify value");
 
         this.value = value;
 
         this.getValue = function() {
             if (typeof this.value == 'string') return "'" + this.value + "'";
-            else if (typeof this.value == 'number') return this.value;  
+            else if (typeof this.value == 'number' || typeof this.value == 'boolean') return this.value;  
             else if (typeof this.value == 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
         };

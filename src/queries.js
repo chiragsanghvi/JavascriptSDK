@@ -477,7 +477,7 @@
 
 		this.articleAId = options.articleAId;
 		this.articleBId = options.articleBId;
-		this.label = (this.queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label == 'string' && options.label.length > 0) ? '&label=' + options.label : '';;
+		this.label = (this.queryType() == 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label == 'string' && options.label.length > 0) ? '&label=' + options.label : '';;
 		this.relation = (options.relation && typeof options.relation == 'string' && options.relation.length > 0) ? options.relation + '/' : '';
 		
 		this.toRequest = function() {
