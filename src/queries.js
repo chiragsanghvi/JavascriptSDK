@@ -514,7 +514,7 @@
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') onSuccess(new global.Appacitive.Connection(d.connection));
+				   if (typeof onSuccess == 'function') onSuccess(d.connection ? new global.Appacitive.Connection(d.connection) :  null);
 				} else {
 					d = d || {};
 					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
