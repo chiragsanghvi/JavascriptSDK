@@ -92,7 +92,7 @@
         	return _query;
         };
 
-		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery", "GetConnectionsBetweenArticlesForRelationQuery"];
+		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery"];
 		
 		this.reset = function() {
 			_options = null;

@@ -71,7 +71,7 @@
 			delete options.endpoints;
 		}
 
-		global.Appacitive.BaseObject.call(this, options);
+		global.Appacitive.BaseObject.call(this, options, doNotSetup);
 		this.type = 'connection';
 		this.getConnection = this.getObject;
 

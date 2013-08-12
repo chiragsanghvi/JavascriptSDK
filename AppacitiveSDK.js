@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Aug  9 10:40:12 IST 2013
+ * Build time 	: Mon Aug 12 18:46:08 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2734,9 +2734,13 @@ Depends on  NOTHING
 			return data;
 		};
 
-		this.getObject = function() { return JSON.parse(JSON.stringify(article)); };
+		this.attributes = this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(article)); };
 
-		this.toJSON = function() { return JSON.parse(JSON.stringify(article)); };
+		this.properties = function() {
+			var properties = this.attributes();
+			delete properties.__attributes;
+			delete properties.__tags;
+		};
 
 		this.id = function() {
 			if (arguments.length === 1) {
@@ -2750,7 +2754,7 @@ Depends on  NOTHING
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
 
 		// accessor function for the article's attributes
-		this.attributes = function() {
+		this.attr = function() {
 			if (arguments.length === 0) {
 				if (!article.__attributes) article.__attributes = {};
 				return article.__attributes;
@@ -2762,7 +2766,7 @@ Depends on  NOTHING
 					throw new Error('only string values can be stored in attributes.');
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
-			} else throw new Error('.attributes() called with an incorrect number of arguments. 0, 1, 2 are supported.');
+			} else throw new Error('.attr() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 
 			return article.__attributes;
 		};
@@ -2957,7 +2961,7 @@ Depends on  NOTHING
 
 		this.set = function(key, value) {
 
-			if(!key || typeof key != 'string' ||  key.length == 0) return this; 
+			if(!key || typeof key != 'string' ||  key.length == 0 || key.trim().indexOf('$') == 0) return this; 
 		 	
 		 	if (value == null || value == 'undefined') { article[key] = null;}
 		 	else if (typeof value == 'string') { article[key] = value; }
@@ -2988,9 +2992,9 @@ Depends on  NOTHING
 		};
 
 		this.clone = function() {
-			if (this.type == 'article') return new global.Appacitive.Article(article);
+			if (this.type == 'article') return new global.Appacitive.Article(this.toJSON());
 			return new global.Appacitive.connection(article);
-		}
+		};
 
 		this.copy = function(properties, setSnapShot) { 
 			if (properties) { 
@@ -3624,7 +3628,7 @@ Depends on  NOTHING
         	return _query;
         };
 
-		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery", "GetConnectionsBetweenArticlesForRelationQuery"];
+		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery"];
 		
 		this.reset = function() {
 			_options = null;
@@ -4041,7 +4045,7 @@ Depends on  NOTHING
 			delete options.endpoints;
 		}
 
-		global.Appacitive.BaseObject.call(this, options);
+		global.Appacitive.BaseObject.call(this, options, doNotSetup);
 		this.type = 'connection';
 		this.getConnection = this.getObject;
 
