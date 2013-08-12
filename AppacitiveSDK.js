@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Aug 12 18:46:08 IST 2013
+ * Build time 	: Mon Aug 12 18:51:06 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2740,6 +2740,7 @@ Depends on  NOTHING
 			var properties = this.attributes();
 			delete properties.__attributes;
 			delete properties.__tags;
+			return properties;
 		};
 
 		this.id = function() {

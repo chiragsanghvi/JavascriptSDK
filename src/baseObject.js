@@ -77,6 +77,7 @@
 			var properties = this.attributes();
 			delete properties.__attributes;
 			delete properties.__tags;
+			return properties;
 		};
 
 		this.id = function() {
