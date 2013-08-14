@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Aug 12 18:51:06 IST 2013
+ * Build time 	: Wed Aug 14 12:12:16 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2330,7 +2330,7 @@ Depends on  NOTHING
 				edge.__endpointa = endpointA;
 				edge.__endpointb = {
 					article: o,
-					label: edge.label,
+					label: edge.__label,
 					type: o.__schematype
 				};
 				delete edge.label;

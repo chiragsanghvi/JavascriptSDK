@@ -380,7 +380,7 @@
 				edge.__endpointa = endpointA;
 				edge.__endpointb = {
 					article: o,
-					label: edge.label,
+					label: edge.__label,
 					type: o.__schematype
 				};
 				delete edge.label;
