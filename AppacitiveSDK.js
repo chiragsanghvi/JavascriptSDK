@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Aug 14 12:12:16 IST 2013
+ * Build time 	: Fri Aug 16 16:53:55 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2627,9 +2627,9 @@ Depends on  NOTHING
 						};
 						edge.__endpointb = {
 							articleid: tmpArticle.id,
-							label: edge.label
+							label: edge.__label
 						};
-						delete edge.label;
+						delete edge.__label;
 						tmpArticle.connection = new global.Appacitive.Connection(edge);
 					}
 					props.push(tmpArticle);

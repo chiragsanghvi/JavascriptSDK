@@ -677,9 +677,9 @@
 						};
 						edge.__endpointb = {
 							articleid: tmpArticle.id,
-							label: edge.label
+							label: edge.__label
 						};
-						delete edge.label;
+						delete edge.__label;
 						tmpArticle.connection = new global.Appacitive.Connection(edge);
 					}
 					props.push(tmpArticle);
