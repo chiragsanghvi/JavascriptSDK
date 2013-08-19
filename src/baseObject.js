@@ -361,8 +361,12 @@
 		 	else if (typeof value == 'string') { article[key] = value; }
 		 	else if (typeof value == 'number' || typeof value == 'boolean') { article[key] = value + ''; }
 		 	else if (typeof value == 'object') {
-		 		if (value.length >= 0) article[key] = value; 
-		 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
+		 		if (value instanceof Date) {
+		 			article[key] = Appacitive.Date.toISOString(value);
+		 		} else {
+			 		if (value.length >= 0) article[key] = value; 
+			 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
+			 	}
 			}
 		 	
 		 	return this;

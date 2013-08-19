@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Aug 19 18:01:40 IST 2013
+ * Build time 	: Mon Aug 19 18:57:24 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -3024,8 +3024,12 @@ Depends on  NOTHING
 		 	else if (typeof value == 'string') { article[key] = value; }
 		 	else if (typeof value == 'number' || typeof value == 'boolean') { article[key] = value + ''; }
 		 	else if (typeof value == 'object') {
-		 		if (value.length >= 0) article[key] = value; 
-		 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
+		 		if (value instanceof Date) {
+		 			article[key] = Appacitive.Date.toISOString(value);
+		 		} else {
+			 		if (value.length >= 0) article[key] = value; 
+			 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
+			 	}
 			}
 		 	
 		 	return this;
