@@ -295,7 +295,63 @@
 			}
 		};
 
-		this.get = function(key) { if (key) return article[key]; };
+		var _types = {
+			"integer": function(value) { 
+				if (value) {
+					var res = parseInt(value);
+					if (!isNaN(res)) return res;
+				}
+				return value;
+			}, 
+			"decimal": function(value) { 
+				if (value) {
+					var res = parseFloat(value);
+					if (!isNaN(res)) return res;
+				}
+				return value;
+			}, "boolean": function(value) { 
+				if (value == 'true' || value == true || value > 0) return true;
+				return false;
+			}, "date": function(value) { 
+				if (value) {
+					var res = Appacitive.Date.parseISODate(value);
+					if (res) return res;
+				}
+				return value;
+			}, "datetime": function(value) { 
+				if (value) {
+					var res = Appacitive.Date.parseISODate(value);
+					if (res) return res;
+				}
+				return value;
+			}, "time": function(value) { 
+				if (value) {
+					var res = Appacitive.Date.parseISOTime(value);
+					if (res) return res;
+				}
+				return value;
+			}, "string": function(value) { 
+				if (value) return value.toSting();
+				return value;
+			}
+		};
+
+		this.get = function(key, type) { 
+			var val = "";
+			if (key) { 
+				if (type && _types[type.toLowerCase()]) {
+					var res = _types[type.toLowerCase()](article[key]);
+					return res;
+				} 
+				return article[key]; 
+			}
+		};
+
+		this.tryGet = function(key, value, type) {
+			var res = this.get(key, type);
+			if (res != undefined) return res;
+			return value;
+		};
 
 		this.set = function(key, value) {
 
@@ -303,7 +359,7 @@
 		 	
 		 	if (value == null || value == 'undefined') { article[key] = null;}
 		 	else if (typeof value == 'string') { article[key] = value; }
-		 	else if (typeof value == 'number') { article[key] = value + ''; }
+		 	else if (typeof value == 'number' || typeof value == 'boolean') { article[key] = value + ''; }
 		 	else if (typeof value == 'object') {
 		 		if (value.length >= 0) article[key] = value; 
 		 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;

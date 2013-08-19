@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Aug 16 16:53:55 IST 2013
+ * Build time 	: Mon Aug 19 18:01:40 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2958,7 +2958,63 @@ Depends on  NOTHING
 			}
 		};
 
-		this.get = function(key) { if (key) return article[key]; };
+		var _types = {
+			"integer": function(value) { 
+				if (value) {
+					var res = parseInt(value);
+					if (!isNaN(res)) return res;
+				}
+				return value;
+			}, 
+			"decimal": function(value) { 
+				if (value) {
+					var res = parseFloat(value);
+					if (!isNaN(res)) return res;
+				}
+				return value;
+			}, "boolean": function(value) { 
+				if (value == 'true' || value == true || value > 0) return true;
+				return false;
+			}, "date": function(value) { 
+				if (value) {
+					var res = Appacitive.Date.parseISODate(value);
+					if (res) return res;
+				}
+				return value;
+			}, "datetime": function(value) { 
+				if (value) {
+					var res = Appacitive.Date.parseISODate(value);
+					if (res) return res;
+				}
+				return value;
+			}, "time": function(value) { 
+				if (value) {
+					var res = Appacitive.Date.parseISOTime(value);
+					if (res) return res;
+				}
+				return value;
+			}, "string": function(value) { 
+				if (value) return value.toSting();
+				return value;
+			}
+		};
+
+		this.get = function(key, type) { 
+			var val = "";
+			if (key) { 
+				if (type && _types[type.toLowerCase()]) {
+					var res = _types[type.toLowerCase()](article[key]);
+					return res;
+				} 
+				return article[key]; 
+			}
+		};
+
+		this.tryGet = function(key, value, type) {
+			var res = this.get(key, type);
+			if (res != undefined) return res;
+			return value;
+		};
 
 		this.set = function(key, value) {
 
@@ -2966,7 +3022,7 @@ Depends on  NOTHING
 		 	
 		 	if (value == null || value == 'undefined') { article[key] = null;}
 		 	else if (typeof value == 'string') { article[key] = value; }
-		 	else if (typeof value == 'number') { article[key] = value + ''; }
+		 	else if (typeof value == 'number' || typeof value == 'boolean') { article[key] = value + ''; }
 		 	else if (typeof value == 'object') {
 		 		if (value.length >= 0) article[key] = value; 
 		 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
@@ -5310,14 +5366,15 @@ Depends on  NOTHING
   global.Appacitive.Date.parseISOTime = function(str) {
     try {
       var date = new Date();
+    
+      var parts = str.split('T');
+      if (parts.length == 1) parts.push(parts[0]);
       
       var regexp = new RegExp("^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z$");
-      if (!regexp.exec(str)) {
+      if (!regexp.exec(parts[1])) {
          return null;
       }
 
-      var parts = str.split('T');
-      if (parts.length == 1) parts.push(parts[0]);
       var timeParts = parts[1].split('Z'),
       timeSubParts = timeParts[0].split(':'),
       timeSecParts = timeSubParts[2].split('.'),

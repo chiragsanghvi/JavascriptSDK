@@ -68,14 +68,15 @@
   global.Appacitive.Date.parseISOTime = function(str) {
     try {
       var date = new Date();
+    
+      var parts = str.split('T');
+      if (parts.length == 1) parts.push(parts[0]);
       
       var regexp = new RegExp("^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z$");
-      if (!regexp.exec(str)) {
+      if (!regexp.exec(parts[1])) {
          return null;
       }
 
-      var parts = str.split('T');
-      if (parts.length == 1) parts.push(parts[0]);
       var timeParts = parts[1].split('Z'),
       timeSubParts = timeParts[0].split(':'),
       timeSecParts = timeSubParts[2].split('.'),
