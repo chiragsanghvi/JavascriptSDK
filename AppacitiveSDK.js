@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Aug 19 18:57:24 IST 2013
+ * Build time 	: Wed Aug 21 16:32:07 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2774,6 +2774,8 @@ Depends on  NOTHING
 
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
+			if (!_snapshot.__attributes) return null;
+
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
 			for (var property in article.__attributes) {
@@ -2818,7 +2820,9 @@ Depends on  NOTHING
 
 		this.addTag = function(tag) {
 			if (!tag || typeof tag != 'string' || !tag.length) return this;
-		    //tag = tag.toLowerCase();
+		    
+		    if (!article.__tags) article.__tags = [];
+
 		    article.__tags.push(tag);
 		    article.__tags = Array.distinct(article.__tags);
 
@@ -2841,6 +2845,9 @@ Depends on  NOTHING
 		};
 
 		var _getChangedTags = function() {
+			if (!article.__tags) return [];
+			if (!_snapshot.__tags) return article.__tags;
+
 			var _tags = [];
 			article.__tags.every(function(a) {
 				if (_snapshot.__tags.indexOf(a) == -1)
@@ -3079,13 +3086,17 @@ Depends on  NOTHING
 		};
 
 		// to create the article
-		var _create = function(onSuccess, onError) {
+		var _create = function(onSuccess, onError, fields) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function() {};
 
+			if (typeof fields == 'string') _fields = value;
+			else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
+			else fields = _fields;
+
 			// save this article
 			var that = this;
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, _fields);
+			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, fields);
 
 			// for User and Device articles
 			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
@@ -3134,15 +3145,20 @@ Depends on  NOTHING
 		};
 
 		// to update the article
-		var _update = function(onSuccess, onError) {
+		var _update = function(onSuccess, onError, fields) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
 			var changeSet = _getChanged(true);
 			var that = this;
 			if (changeSet) {
+
+				if (typeof fields == 'string') _fields = value;
+				else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
+				else fields = _fields;
+
 				var _updateRequest = new global.Appacitive.HttpRequest();
-				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, _fields);
+				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, fields);
 				
 				// for User and Device articles
 				if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
@@ -3180,16 +3196,21 @@ Depends on  NOTHING
 		};
 
 		// fetch ( by id )
-		this.fetch = function(onSuccess, onError) {
+		this.fetch = function(onSuccess, onError, fields) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function() {};
 			if (!article.__id) {
 				if (typeof onError == 'function') onError( {code:'400', message: 'Please specify id for get operation'} ,this);
 				return;
 			}
+
+			if (typeof fields == 'string') _fields = value;
+			else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
+			else fields = _fields;
+
 			// get this article by id
 			var that = this;
-			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[this.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, _fields);
+			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[this.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, fields);
 			var _getRequest = new global.Appacitive.HttpRequest();
 			_getRequest.url = url;
 			_getRequest.method = 'get';
