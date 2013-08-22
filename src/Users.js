@@ -486,6 +486,45 @@
 			_authenticatedUser = null;
 			global.Appacitive.Session.removeUserAuthHeader(callback, avoidApiCall);
 		};
+
+		this.resetPassword = function(token, newPassword, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!token) throw new Error("Please specify token");
+			if (!newPassword || newPassword.length == 0) throw new Error("Please specify password");
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getResetPasswordUrl(token);
+			request.method = 'post';
+			request.data = { newpassword: newPassword };
+			request.onSuccess = function(a) {
+				if (a && a.code == '200') {
+				 	if (typeof onSuccess == 'function') onSuccess();
+				} else { onError(a); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request); 
+		};
+
+		this.validateResetPasswordToken = function(token, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!token) throw new Error("Please specify token");
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateResetPasswordUrl(token);
+			request.method = 'post';
+			request.data = {};
+			request.onSuccess = function(a) {
+				if (a.status && a.status.code == '200') {
+				 	if (typeof onSuccess == 'function') onSuccess(a.user);
+				} else { onError(a.status); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request); 
+		};
 	};
 
 	global.Appacitive.Users = new UserManager();

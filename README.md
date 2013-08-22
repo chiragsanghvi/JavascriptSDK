@@ -642,6 +642,41 @@ Appacitive.Users.sendResetPasswordEmail("{username}", "{subject for the mail}", 
 });
 ```
 
+This'll basically send the user an email, with a reset password link. When user clicks on the link, he'll be redirected to an Appacitive page, which will allow him to enter new password and save it.
+
+You can also create a custom reset password page or provide a custom reset password page URL from our UI.
+
+On setting custom URL, the reset password link in the email will redirect user to that URL with a reset password token appended in the query string.
+
+```javascript
+//consider your url is 
+http://help.appacitive.com
+
+//after user clicks on the link, he'll be redirected to this url
+http://help.appacitive.com?token=dfwfer43243tfdhghfog909043094
+```
+The token provided in url can then be used to change the password for that user.
+
+So basically, following flow can be utilized for reset password
+
+1. Validate token specified in URL
+
+```javascript
+Appacitive.Users.validateResetPasswordToken(token, function(user) {
+	//token is valid and json user object is returned for that token
+}, function(status) { 
+	//token is invalid
+});
+```
+2.If valid then allow the user to enter his new password and save it
+```javascript
+Appacitive.Users.resetPassword(token, newPassword, function() {
+	//password for user has been updated successfully
+}, function(status) { 
+	//token is invalid
+});
+```
+
 #### Update Password
 Users need to change their passwords whenever they've compromised it. You can update it using this call:
 ```javascript

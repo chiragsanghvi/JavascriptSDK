@@ -160,6 +160,12 @@
             },
             getCheckinUrl: function(userId, lat, lng) {
                 return String.format("{0}/{1}/chekin?lat={2}&lng={3}", this.userServiceUrl, userId, lat, lng);
+            },
+            getResetPasswordUrl: function(token) {
+                return String.format("{0}/resetpassword?token={1}", this.userServiceUrl, token);
+            },
+            getValidateResetPasswordUrl: function(token) {
+                return String.format("{0}/validateresetpasswordtoken?token={1}", this.userServiceUrl, token);
             }
         };
         this.device = {

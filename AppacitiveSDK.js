@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Aug 22 15:46:28 IST 2013
+ * Build time 	: Thu Aug 22 18:41:41 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -812,6 +812,12 @@ var global = {};
             },
             getCheckinUrl: function(userId, lat, lng) {
                 return String.format("{0}/{1}/chekin?lat={2}&lng={3}", this.userServiceUrl, userId, lat, lng);
+            },
+            getResetPasswordUrl: function(token) {
+                return String.format("{0}/resetpassword?token={1}", this.userServiceUrl, token);
+            },
+            getValidateResetPasswordUrl: function(token) {
+                return String.format("{0}/validateresetpasswordtoken?token={1}", this.userServiceUrl, token);
             }
         };
         this.device = {
@@ -4778,6 +4784,45 @@ Depends on  NOTHING
 			callback = callback || function() {};
 			_authenticatedUser = null;
 			global.Appacitive.Session.removeUserAuthHeader(callback, avoidApiCall);
+		};
+
+		this.resetPassword = function(token, newPassword, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!token) throw new Error("Please specify token");
+			if (!newPassword || newPassword.length == 0) throw new Error("Please specify password");
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getResetPasswordUrl(token);
+			request.method = 'post';
+			request.data = { newpassword: newPassword };
+			request.onSuccess = function(a) {
+				if (a && a.code == '200') {
+				 	if (typeof onSuccess == 'function') onSuccess();
+				} else { onError(a); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request); 
+		};
+
+		this.validateResetPasswordToken = function(token, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!token) throw new Error("Please specify token");
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateResetPasswordUrl(token);
+			request.method = 'post';
+			request.data = {};
+			request.onSuccess = function(a) {
+				if (a.status && a.status.code == '200') {
+				 	if (typeof onSuccess == 'function') onSuccess(a.user);
+				} else { onError(a.status); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request); 
 		};
 	};
 
