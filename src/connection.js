@@ -35,7 +35,7 @@
 				base["endpoint" + type] = {};
 				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article instanceof Appacitive.Article)
+				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article instanceof global.Appacitive.Article)
 					base["endpoint" + type].article.copy(endpoint.article, true);
 				else 
 					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Aug 21 16:32:07 IST 2013
+ * Build time 	: Thu Aug 22 15:46:28 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2335,7 +2335,7 @@ Depends on  NOTHING
 				};
 				delete edge.label;
 
-				var connection = new Appacitive.Connection(edge, true);
+				var connection = new global.Appacitive.Connection(edge, true);
 
 				connections.push(connection);
 			});
@@ -2984,19 +2984,19 @@ Depends on  NOTHING
 				return false;
 			}, "date": function(value) { 
 				if (value) {
-					var res = Appacitive.Date.parseISODate(value);
+					var res = global.Appacitive.Date.parseISODate(value);
 					if (res) return res;
 				}
 				return value;
 			}, "datetime": function(value) { 
 				if (value) {
-					var res = Appacitive.Date.parseISODate(value);
+					var res = global.Appacitive.Date.parseISODate(value);
 					if (res) return res;
 				}
 				return value;
 			}, "time": function(value) { 
 				if (value) {
-					var res = Appacitive.Date.parseISOTime(value);
+					var res = global.Appacitive.Date.parseISOTime(value);
 					if (res) return res;
 				}
 				return value;
@@ -3032,7 +3032,7 @@ Depends on  NOTHING
 		 	else if (typeof value == 'number' || typeof value == 'boolean') { article[key] = value + ''; }
 		 	else if (typeof value == 'object') {
 		 		if (value instanceof Date) {
-		 			article[key] = Appacitive.Date.toISOString(value);
+		 			article[key] = global.Appacitive.Date.toISOString(value);
 		 		} else {
 			 		if (value.length >= 0) article[key] = value; 
 			 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
@@ -4091,7 +4091,7 @@ Depends on  NOTHING
 				base["endpoint" + type] = {};
 				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article instanceof Appacitive.Article)
+				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article instanceof global.Appacitive.Article)
 					base["endpoint" + type].article.copy(endpoint.article, true);
 				else 
 					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
@@ -5420,7 +5420,7 @@ Depends on  NOTHING
 
 	var A_LocalStorage = function() {
 
-		var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : {};
+		var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null } };
 
 		this.set = function(key, value) {
 			value = value || '';

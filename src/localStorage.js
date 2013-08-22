@@ -4,7 +4,7 @@
 
 	var A_LocalStorage = function() {
 
-		var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : {};
+		var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null } };
 
 		this.set = function(key, value) {
 			value = value || '';

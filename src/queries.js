@@ -385,7 +385,7 @@
 				};
 				delete edge.label;
 
-				var connection = new Appacitive.Connection(edge, true);
+				var connection = new global.Appacitive.Connection(edge, true);
 
 				connections.push(connection);
 			});

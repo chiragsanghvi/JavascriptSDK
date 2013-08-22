@@ -321,19 +321,19 @@
 				return false;
 			}, "date": function(value) { 
 				if (value) {
-					var res = Appacitive.Date.parseISODate(value);
+					var res = global.Appacitive.Date.parseISODate(value);
 					if (res) return res;
 				}
 				return value;
 			}, "datetime": function(value) { 
 				if (value) {
-					var res = Appacitive.Date.parseISODate(value);
+					var res = global.Appacitive.Date.parseISODate(value);
 					if (res) return res;
 				}
 				return value;
 			}, "time": function(value) { 
 				if (value) {
-					var res = Appacitive.Date.parseISOTime(value);
+					var res = global.Appacitive.Date.parseISOTime(value);
 					if (res) return res;
 				}
 				return value;
@@ -369,7 +369,7 @@
 		 	else if (typeof value == 'number' || typeof value == 'boolean') { article[key] = value + ''; }
 		 	else if (typeof value == 'object') {
 		 		if (value instanceof Date) {
-		 			article[key] = Appacitive.Date.toISOString(value);
+		 			article[key] = global.Appacitive.Date.toISOString(value);
 		 		} else {
 			 		if (value.length >= 0) article[key] = value; 
 			 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
