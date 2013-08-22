@@ -127,6 +127,39 @@ alert(player.toJSON().name);	// John Doe
 //getting stringified respresentation of object
 alert(player.toString());
 ```
+#### Getting typed values
+Appacitive returns all properties as string.Thus, there may be chances where we may need to cast them into native datatypes. 
+SDK supports this, by allowing you to get values cast into a specific type.
+
+```javascript
+//get a 'date' object from a 'birth_date' property, birth_date is an property of date type in Appacitive
+alert(player.get('birth_date', 'date'));
+
+//get an 'integer' object from an 'age' property.
+alert(player.get('age', 'integer'));
+
+//get a 'boolean' object from an 'isenabled' property.
+alert(player.get('isenabled', 'boolean'));
+
+```
+
+Types supported are `date`, `datetime`, `time`, `integer`, `decimal`, `boolean` and `string` 
+
+#### Try-Get values
+
+There're scenarios, when a user might need to get a non-null value for a property, so that his code doesn't needs to do null check.
+This can be accomplished using `tryget` method.
+```javascript
+//get players age, if it is null return `12` as value
+alert(player.tryGet('age', 12))
+```
+You can also type cast these values
+```javascript
+//get players age type casted into integer datatype, if it is null return 12 as value 
+alert(player.tryGet('age', 12, 'integer'))
+```
+
+
 #### Saving
 Saving a player to the server is easy.
 ```javascript
