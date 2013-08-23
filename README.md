@@ -12,8 +12,9 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
 
 ##### Table of Contents  
 
+* [Setup](#setup)  
 * [Initialize](#initialize)  
-  * [API Sessions and Security](#api-sessions-and-security)  
+* [API Sessions and Security](#api-sessions-and-security)  
 * [Conventions](#conventions)  
 * [Data storage and retrieval](#data-storage-and-retrieval)  
   * [Creating](#creating)  
@@ -30,6 +31,13 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
   * [Linking and Unlinking accounts](#linking-and-unlinking-accounts)  
   * [Password Management](#password-management)  
   * [Check-in](#check-in)  
+* [Connections](#connections)  
+  * [Creating & Saving](#creating)  
+  * [Retrieving](#retrieving-1)  
+  * [Updating](#updating-1)  
+  * [Deleting](#deleting-1)  
+
+## Setup
 
 To get started, add sdk to your page.
 
@@ -577,6 +585,20 @@ var cUser = Appacitive.Users.currentUser();
 
 ### User Session Management
 
+Once the user has authenticated successfully, you will be provided the user's details and an access token. This access token identifies the currently logged in user and will be used to implement access control. Each instance of an app can have one logged in user at any given time.By default the SDK takes care of setting and unsetting this token. However, you can explicitly tell the SDK to start using another access token.
+```javascript
+// the access token
+// var token = /* ... */
+
+// setting it in the SDK
+Appacitive.session.setUserAuthHeader(token);
+// now the sdk will send this token with all requests to the server
+// Access control has started
+
+// removing the auth token
+Appacitive.session.removeUserAuthHeader();
+// Access control has been disabled
+```
 User session validation is used to check whether the user is authenticated and his usertoken is valid or not.
 ```javascript
 
@@ -719,3 +741,181 @@ Appacitive.Users.currentUser().checkin({
 }, function(err) {
 	alert("There was an error checking in");
 });
+```
+## Connections
+
+All data that resides in the Appacitive platform is relational, like in the real world. This means you can do operations like fetching all games that any particular player has played, adding a new player to a team or disbanding a team whilst still keeping the team and the `players` data perfectly intact.
+
+Two entities can be connected via a relation. ex. two entites of type `person` might be connected via a relation `friend` or `enemy` and so on. An entity of type `person` might be connected to an entity of type `house` via a relation `owns`. Still here? OK, lets carry on.
+
+One more thing to grok is the concept of labels. Consider an entity of type `person`. This entity is connected to another `person` via relation `marriage`. Within the context of the relation `marriage`, one person is a `husband` and the other is a `wife`. Similarly the same entity can be connected to an entity of type `house` via the relation `owns_house`. In context of this relation, the entity of type `person` can be referred to as the `owner`. 
+
+`Wife`, `husband` and `owner` from the previous example are `labels`. Labels are used within the scope of a relation to give contextual meaning to the entities involved in that relation. They have no meaning or impact outside of the relation.
+
+As with entities (articles), relations are also contained in collections.
+
+Let's jump in!
+
+
+### Creating &amp; Saving
+
+#### New Connection between two existing Articles
+
+Before we go about creating connections, we need two entities. Consider the following
+
+```javascript
+var people = new Appacitive.ArticleCollection({ schema: 'person' })
+		, tarzan = people.createNewArticle({ name: 'Tarzan' })
+		, jane = people.createNewArticle({ name: 'Jane' });
+	
+// save the entites tarzan and jane
+// ...
+// ...
+
+// initialize a connection collection
+var marriages = new Appacitive.ConnectionCollection({ relation: 'marriage' });
+
+// setup the connection of type 'marriage'
+var marriage = marriages.createNewConnection({ 
+  endpoints: [{
+      articleid: tarzan.id(),  //mandatory
+      label: 'husband'  //mandatory
+  }, {
+      articleid: jane.id(),  //mandatory
+      label: 'wife' //mandatory
+  }] 
+});
+
+```
+
+If you've read the previous guide, most of this should be familiar. What happens in the `createConnection` method is that the relation is configured to actually connect the two entities. We initialize with the `__id`s of the two entities and specify which is which ex. here, tarzan is the husband and jane is the wife. 
+
+In case you are wondering, this is necessary as it allows you to structure queries like 'who is tarzan's wife?' or 'which houses does tarzan own?' and much more. Queries are covered on later guides.
+
+`marriage` is an instance of `Appacitive.Connection`. Similar to an entity, you may call `toJSON` on a connection to get to the underlying object.
+
+#### New Connection between two new Articles
+
+There is another easier way to connect two new entities. You can pass the actual new entities themselves to the connection while creating it.
+
+```javascript
+var tarzan = new Appacitive.Article({ schema: 'person', name: 'Tarzan' })
+		, jane = new Appacitive.Article({ schema: 'person', name: 'Jane' });
+
+// initialize and sets up a connection
+// This is an other way to initialize a connection object without collection
+// You can pass same options to previous way of creating connection too
+var marriage = new Appacitive.Connection({ 
+  relation: 'marriage',
+  endpoints: [{
+      article: tarzan,  //mandatory
+      label: 'husband'  //mandatory
+  }, {
+      article: jane,  //mandatory
+      label: 'wife' //mandatory
+  }],
+  date: '01-01-2010'
+});
+
+// call save
+marriage.save(function() {
+    alert('saved successfully!');
+}, function() {
+    alert('error while saving!');
+});
+
+```
+
+This is the recommended way to do it. In this case, the marriage relation will create the entities tarzan and jane first and then connect them using relation `marriage`.
+
+Here's the kicker: it doesn't matter whether tarzan and jane have been saved to the server yet. If they've been saved, then they will get connected via the relation 'marriage'. And if both (or one) haven't been saved yet, when you call `marriage.save()`, the required entities will get connected and stored on the server. So you could create the two entities and connect them via a single `.save()` call, and if you check the two entities are also reflected with save changes, so your object is synced.
+
+#### Setting Values
+```javascript
+//This works exactly the same as in case of your standard entities.
+marriage.set('date', '01-10-2010');
+```
+
+#### Getting values
+```javascript
+//Again, this is similar to the entities.
+alert(marriage.get('date')) // returns 01-01-2010
+
+//You can also get typed values similar to standard entities.
+alert(marriage.get('date', 'date'));
+
+//and it also supports the tryget similar to standard entities
+alert(marriage.get('date', new Date(), 'date'));
+```
+
+### Retrieving
+
+```javascript
+Appacitive.Connection.get({
+	relation: 'marriage', //mandatory
+    id: '{{existing__id}}', //mandatory
+    fields: ["name"] //optional
+},function(obj) {
+	alert('Fetched marriage which occured on: ' + obj.get('date'));
+}, function(err) {
+	alert('Could not fetch, probably because of an incorrect __id');
+});
+```
+Retrieving can also be done via the `fetch` method. Here's an example
+```javascript
+var marriage = new Appacitive.Connection('marriage');
+
+// set an (existing) id in the object
+marriage.set('__id', '{{existing_id}}');
+
+// retrieve the marriage connection
+marriage.fetch(function(obj) {
+    alert('Fetched marriage which occured on: ' + marriage.get('date'));
+}, function(err, obj) {
+    alert('Could not fetch, probably because of an incorrect __id');
+}, ["date"] //optional
+);
+```
+The marriage object is similar to article object, except you get two new fields viz. endpointA and endpointB which contains the id and label of the two entities that this object connects.
+
+```javascript
+//marriage.endpointA
+{label: "husband", type: "person", articleid: "35097613532529604"}
+
+//marriage.endpointB
+{label: "wife", type: "person", articleid: "435097612324235325"}
+
+//marriage.enpoints()
+[
+  {label: "husband", type: "person", articleid: "35097613532529604"},
+  {label: "wife", type: "person", articleid: "435097612324235325"}
+]
+```
+### Updating
+
+
+Updating is done exactly in the same way as entities, i.e. via the `save()` method. 
+
+*Important*: Updating the endpoints (the `__endpointa` and the `__endpointb` property) will not have any effect and will fail the call. In case you need to change the connected entities, you need to delete the connection and create a new one. 
+```javascript
+marriage.set('location', 'Las Vegas');
+
+marriage.save(function(obj) {
+    alert('saved successfully!');
+}, function(err, obj) {
+    alert('error while saving!');
+});
+```
+As before, do not modify the `__id` property.
+
+ 
+### Deleting
+
+Deleting is also provided via the `del` method.
+```javascript
+marriage.del(function() {
+	alert('Tarzan and Jane are no longer married.');
+}, function(err, obj) {
+	alert('Delete failed, they are still married.')
+});
+```

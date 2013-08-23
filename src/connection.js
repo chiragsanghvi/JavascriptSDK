@@ -139,6 +139,15 @@
 
 		// 2
 		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
+
+		// 3
+		this.endpoints = function() {
+			var endpoints = [];
+			endpoints.push(this.endpointA);
+			endpoints.push(this.endpointB);
+			return endpoints;
+		};
+
 	};
 
 	global.Appacitive.Connection.get = function(options, onSuccess, onError) {

@@ -555,6 +555,11 @@
 				if (data && (data.article || data.connection || data.user || data.device)) {
 					_snapshot = data.article || data.connection || data.user || data.device;
 					_copy(_snapshot, article);
+					if (data.connection) {
+						if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
+							that.setupConnection(article.__endpointa, article.__endpointb);
+						}
+					}
 					if (that.___collection && ( that.___collection.collectionType == 'article')) that.___collection.addToCollection(that);
 					if (typeof onSuccess == 'function') onSuccess(that);
 				} else {

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Aug 23 12:23:34 IST 2013
+ * Build time 	: Fri Aug 23 15:43:54 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -3224,6 +3224,11 @@ Depends on  NOTHING
 				if (data && (data.article || data.connection || data.user || data.device)) {
 					_snapshot = data.article || data.connection || data.user || data.device;
 					_copy(_snapshot, article);
+					if (data.connection) {
+						if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
+							that.setupConnection(article.__endpointa, article.__endpointb);
+						}
+					}
 					if (that.___collection && ( that.___collection.collectionType == 'article')) that.___collection.addToCollection(that);
 					if (typeof onSuccess == 'function') onSuccess(that);
 				} else {
@@ -4200,6 +4205,15 @@ Depends on  NOTHING
 
 		// 2
 		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
+
+		// 3
+		this.endpoints = function() {
+			var endpoints = [];
+			endpoints.push(this.endpointA);
+			endpoints.push(this.endpointB);
+			return endpoints;
+		};
+
 	};
 
 	global.Appacitive.Connection.get = function(options, onSuccess, onError) {
