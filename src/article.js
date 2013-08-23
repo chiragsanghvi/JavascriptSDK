@@ -165,8 +165,7 @@
 		if (options.schema.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: options.id });
 		else obj = new global.Appacitive.Article({ __schematype: options.schema, __id: options.id });
 		
-		obj.fields = options.fields;
-		obj.fetch(onSuccess, onError);
+		obj.fetch(onSuccess, onError, options.fields);
 
 		return obj;
 	};

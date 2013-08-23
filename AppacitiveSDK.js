@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Aug 22 18:41:41 IST 2013
+ * Build time 	: Fri Aug 23 12:23:34 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -4054,8 +4054,7 @@ Depends on  NOTHING
 		if (options.schema.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: options.id });
 		else obj = new global.Appacitive.Article({ __schematype: options.schema, __id: options.id });
 		
-		obj.fields = options.fields;
-		obj.fetch(onSuccess, onError);
+		obj.fetch(onSuccess, onError, options.fields);
 
 		return obj;
 	};
