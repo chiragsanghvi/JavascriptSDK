@@ -32,7 +32,7 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
   * [Password Management](#password-management)  
   * [Check-in](#check-in)  
 * [Connections](#connections)  
-  * [Creating & Saving](#creating)  
+  * [Creating & Saving](#creating--saving)  
   * [Retrieving](#retrieving-1)  
   * [Updating](#updating-1)  
   * [Deleting](#deleting-1)  
@@ -129,7 +129,7 @@ What is a schema? In short, think of schemas as tables in a contemporary relatio
 
 Every `ArticleCollection` has a method called `createNewArticle` that initializes an empty entity (aka article) and returns it. Thus, `player` is an empty, initialized entity.
 
-The player object is an instance of `Appactive.Article`. An `Appacitive.Article` is a class which encapsulates the data (the actual entity or the article) and methods that provide ways to update it, delete it etc. To see the raw entity that is stored within the `Appacitive.Article`, fire `player.getArticle()`.
+The player object is an instance of `Appacitive.Article`. An `Appacitive.Article` is a class which encapsulates the data (the actual entity or the article) and methods that provide ways to update it, delete it etc. To see the raw entity that is stored within the `Appacitive.Article`, fire `player.getArticle()`.
 
 **Note**:  You can also instantiate an article object without using `ArticleCollection`. Doing so will return you `Appacitive.Article` object, on which you can perform all CRUD operations.
 ```javascript
@@ -744,11 +744,11 @@ Appacitive.Users.currentUser().checkin({
 ```
 ## Connections
 
-All data that resides in the Appacitive platform is relational, like in the real world. This means you can do operations like fetching all games that any particular player has played, adding a new player to a team or disbanding a team whilst still keeping the team and the `players` data perfectly intact.
+All data that resides in the Appacitive platform is relational, like in the real world. This means you can do operations like fetching all games that any particular player has played, adding a new player to a team or disbanding a team whilst still keeping the other teams and their `players` data perfectly intact.
 
-Two entities can be connected via a relation. ex. two entites of type `person` might be connected via a relation `friend` or `enemy` and so on. An entity of type `person` might be connected to an entity of type `house` via a relation `owns`. Still here? OK, lets carry on.
+Two entities can be connected via a relation, for example two entites of type `person` might be connected via a relation `friend` or `enemy` and so on. An entity of type `person` might be connected to an entity of type `house` via a relation `owns`. Still here? OK, lets carry on.
 
-One more thing to grok is the concept of labels. Consider an entity of type `person`. This entity is connected to another `person` via relation `marriage`. Within the context of the relation `marriage`, one person is a `husband` and the other is a `wife`. Similarly the same entity can be connected to an entity of type `house` via the relation `owns_house`. In context of this relation, the entity of type `person` can be referred to as the `owner`. 
+One more thing to grok is the concept of labels. Consider an entity of type `person`. This entity is connected to another `person` via relation `marriage`. Within the context of the relation `marriage`, one person is the `husband` and the other is the `wife`. Similarly the same entity can be connected to an entity of type `house` via the relation `owns_house`. In context of this relation, the entity of type `person` can be referred to as the `owner`. 
 
 `Wife`, `husband` and `owner` from the previous example are `labels`. Labels are used within the scope of a relation to give contextual meaning to the entities involved in that relation. They have no meaning or impact outside of the relation.
 
@@ -788,23 +788,23 @@ var marriage = marriages.createNewConnection({
 
 ```
 
-If you've read the previous guide, most of this should be familiar. What happens in the `createConnection` method is that the relation is configured to actually connect the two entities. We initialize with the `__id`s of the two entities and specify which is which ex. here, tarzan is the husband and jane is the wife. 
+If you've read the previous guide, most of this should be familiar. What happens in the `createConnection` method is that the relation is configured to actually connect the two entities. We initialize with the `__id`s of the two entities and specify which is which for example here, Tarzan is the husband and Jane is the wife. 
 
-In case you are wondering, this is necessary as it allows you to structure queries like 'who is tarzan's wife?' or 'which houses does tarzan own?' and much more. Queries are covered on later guides.
+In case you are wondering why this is necessary then here is the answer, it allows you to structure queries like 'who is tarzan's wife?' or 'which houses does tarzan own?' and much more. Queries are covered in later guides.
 
 `marriage` is an instance of `Appacitive.Connection`. Similar to an entity, you may call `toJSON` on a connection to get to the underlying object.
 
 #### New Connection between two new Articles
 
-There is another easier way to connect two new entities. You can pass the actual new entities themselves to the connection while creating it.
+There is another easier way to connect two new entities. You can pass the new entities themselves to the connection while creating it.
 
 ```javascript
 var tarzan = new Appacitive.Article({ schema: 'person', name: 'Tarzan' })
 		, jane = new Appacitive.Article({ schema: 'person', name: 'Jane' });
 
 // initialize and sets up a connection
-// This is an other way to initialize a connection object without collection
-// You can pass same options to previous way of creating connection too
+// This is another way to initialize a connection object without collection
+// You can pass same options in the previous way of creating connection as well
 var marriage = new Appacitive.Connection({ 
   relation: 'marriage',
   endpoints: [{
@@ -826,9 +826,9 @@ marriage.save(function() {
 
 ```
 
-This is the recommended way to do it. In this case, the marriage relation will create the entities tarzan and jane first and then connect them using relation `marriage`.
+This is the recommended way to do it. In this case, the marriage relation will create the entities tarzan and jane first and then connect them using the relation `marriage`.
 
-Here's the kicker: it doesn't matter whether tarzan and jane have been saved to the server yet. If they've been saved, then they will get connected via the relation 'marriage'. And if both (or one) haven't been saved yet, when you call `marriage.save()`, the required entities will get connected and stored on the server. So you could create the two entities and connect them via a single `.save()` call, and if you check the two entities are also reflected with save changes, so your object is synced.
+Here's the kicker: it doesn't matter whether tarzan and jane have been saved to the server yet. If they've been saved, then they will get connected via the relation 'marriage'. And if both (or one) hasn't been saved yet, when you call `marriage.save()`, the required entities will get connected and stored on the server. So you could create the two entities and connect them via a single `.save()` call, and if you see the two entities will also get reflected with save changes, so your object is synced.
 
 #### Setting Values
 ```javascript
@@ -876,7 +876,7 @@ marriage.fetch(function(obj) {
 }, ["date"] //optional
 );
 ```
-The marriage object is similar to article object, except you get two new fields viz. endpointA and endpointB which contains the id and label of the two entities that this object connects.
+The marriage object is similar to the article object, except you get two new fields viz. endpointA and endpointB which contain the id and label of the two entities that this object connects.
 
 ```javascript
 //marriage.endpointA
