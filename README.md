@@ -10,6 +10,27 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
 
 # Documentation 
 
+##### Table of Contents  
+
+* [Initialize](#initialize)  
+  * [API Sessions and Security](#api-sessions-and-security)  
+* [Conventions](#conventions)  
+* [Data storage and retrieval](#data-storage-and-retrieval)  
+  * [Creating](#creating)  
+  * [Retrieving](#retrieving)  
+  * [Updating](#updating)  
+  * [Deleting](#deleting)  
+* [User Management](#user-management)  
+  * [Create](#create)  
+  * [Retrieve](#retrieve)   
+  * [Update](#update)  
+  * [Delete](#delete)  
+  * [Authentication](#authentication)  
+  * [User Session Management](#user-session-management)  
+  * [Linking and Unlinking accounts](#linking-and-unlinking-accounts)  
+  * [Password Management](#password-management)  
+  * [Check-in](#check-in)  
+
 To get started, add sdk to your page.
 
 ```html
