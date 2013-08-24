@@ -44,7 +44,14 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
 * [Emails](#emails)  
   * [Configuring](#configuring)  
   * [Sending Raw Emails](#sending-raw-emails)
-  * [Sending Templated Emails](#sending-templated-emails)
+  * [Sending Templated Emails](#sending-templated-emails)  
+* [Push Notifications](#push-notifications)  
+  * [Broadcast](#broadcast)  
+  * [Platform specific Devices](#platform-specific-devices)  
+  * [Specific List of Devices](#specific-list-of-devices)  
+  * [To List of Channels](#to-list-of-channels)  
+  * [Query](#query)
+  
 
 ## Setup
 
@@ -751,6 +758,9 @@ Appacitive.Users.currentUser().checkin({
 	alert("There was an error checking in");
 });
 ```
+
+----------
+
 ## Connections
 
 All data that resides in the Appacitive platform is relational, like in the real world. This means you can do operations like fetching all games that any particular player has played, adding a new player to a team or disbanding a team whilst still keeping the other teams and their `players` data perfectly intact.
@@ -1057,6 +1067,8 @@ Appacitive.Article.multiDelete({
 });
 ```
 
+----------
+
 ## Emails
 
 ### Configuring
@@ -1140,3 +1152,187 @@ Appacitive.Email.sendTemplatedEmail(email, function (email) {
 ```
 
 `Note`: Emails are not transactional. That means that a successful operation means that your email provider was able to dispatch the email. It DOES NOT mean that the intended recipient(s) actually received that email.
+
+----------
+
+## Push Notifications
+
+Using Appacitive platform you can send push notification to iOS devices, Android base devices and Windows phone.
+ 
+We recommend you to go through **[this](http://appacitive.github.io/docs/current/rest/push/index.html)** section, which explains how you can configure Appacitive app for Push notification. You will need to provide some basic one time configurations like certificates, using which we will setup push notification channels for different platforms for you. Also we provide a Push Console using which you can send push notification to the users.
+
+In Javascript SDK, static object  provides methods to send push notification.
+
+Appacitive provides four ways to select the sender list
+
+* Broadcast
+* Platform specific Devices
+* Specific List of Devices
+* To List of Channels
+* Query
+
+First we'll see how to send a push notification and then we will discuss above methods with its options one by one.
+
+```javascript
+var options = {..}; //Some options specific to senders
+Appacitive.Push.send(options, function(notification) {
+	alert('Push notification send successfully');
+}, function(err) {
+	alert('Sending Push Notification failed.');
+});
+```
+
+### Broadcast
+
+If you want to send push notification to all active devices, you can use these options
+
+```javascript
+var options = {
+	"broadcast": true, // set this to true for broadcast
+	"platformoptions": {
+    	// platform specific options
+		"ios": {
+			"sound": "test"
+		},
+		"android": {
+			"title": "test title"
+		}
+	},
+    "data": {
+    	// message to send
+		"alert": "Push works!!!",
+        // Increment existing badge by 1
+		"badge": "+1",
+        //Custom data field1 and field2
+		"field1": "my custom value",
+        "field2": "my custom value"
+	},
+	"expireafter": "100000" // Expiry in seconds
+}
+```
+
+### Platform specific Devices
+
+If you want to send push notification to specific platforms, you can use this option, to do so you will need to provide the devicetype in query.
+
+```javascript
+var options = {
+	"query": "*devicetype == 'ios'",
+	"broadcast": false, // set this to true for broadcast
+	"platformoptions": {
+    	// platform specific options
+		"ios": {
+			"sound": "test"
+		},
+		"android": {
+			"title": "test title"
+		}
+	},
+    "data": {
+    	// message to send
+		"alert": "Push works!!!",
+        // Increment existing badge by 1
+		"badge": "+1",
+        //Custom data field1 and field2
+		"field1": "my custom value",
+        "field2": "my custom value"
+	},
+	"expireafter": "100000" // Expiry in seconds
+}
+```
+
+### Specific List of Devices
+
+If you want to send push notification to specific devices, you can use this option, to do so you will need to provide the device ids.
+
+```javascript
+var options = {
+	"deviceids": [
+		"{deviceId}",
+		"{deviceId2}",
+		"{deviceId3}"
+	],
+	"broadcast": false, // set this to true for broadcast
+	"platformoptions": {
+    	// platform specific options
+		"ios": {
+			"sound": "test"
+		},
+		"android": {
+			"title": "test title"
+		}
+	},
+    "data": {
+    	// message to send
+		"alert": "Push works!!!",
+        // Increment existing badge by 1
+		"badge": "+1",
+        //Custom data field1 and field2
+		"field1": "my custom value",
+        "field2": "my custom value"
+	},
+	"expireafter": "100000" // Expiry in seconds
+}
+```
+
+### To List of Channels
+
+Device object has a Channel property, using which you can club multiple devices. If you want to send push notification using channel.
+
+```javascript
+var options = {
+	"channels": [
+		"{nameOfChannel}"
+	],
+	"broadcast": false, // set this to true for broadcast
+	"platformoptions": {
+    	// platform specific options
+		"ios": {
+			"sound": "test"
+		},
+		"android": {
+			"title": "test title"
+		}
+	},
+    "data": {
+    	// message to send
+		"alert": "Push works!!!",
+        // Increment existing badge by 1
+		"badge": "+1",
+        //Custom data field1 and field2
+		"field1": "my custom value",
+        "field2": "my custom value"
+	},
+	"expireafter": "100000" // Expiry in seconds
+}
+```
+
+### Query
+
+You can send push notifications to devices using a Query. All the devices which comes out as result for the query will receive the push notification.
+
+```javascript
+var options = {
+	"query": "{{add your query here}}",
+	"broadcast": false, // set this to true for broadcast
+	"platformoptions": {
+    	// platform specific options
+		"ios": {
+			"sound": "test"
+		},
+		"android": {
+			"title": "test title"
+		}
+	},
+    "data": {
+    	// message to send
+		"alert": "Push works!!!",
+        // Increment existing badge by 1
+		"badge": "+1",
+        //Custom data field1 and field2
+		"field1": "my custom value",
+        "field2": "my custom value"
+	},
+	"expireafter": "100000" // Expiry in seconds
+}
+```
