@@ -850,6 +850,8 @@ alert(marriage.get('date', new Date(), 'date'));
 
 ### Retrieving
 
+#### Get Connection by Id
+
 ```javascript
 Appacitive.Connection.get({
 	relation: 'marriage', //mandatory
@@ -891,6 +893,105 @@ The marriage object is similar to the article object, except you get two new fie
   {label: "wife", type: "person", articleid: "435097612324235325"}
 ]
 ```
+
+#### Get Connected Articles
+
+Consider `Jane` has a lot of freinds whom she wants to invite to her marriage. She can simply get all her freinds who're of type `person` connected with `Jane` through a relation `freinds` with label for jane as `me` and freinds as `freind` using this search
+
+```javascript
+//Get an instance of person Article for Jane 
+var jane = new Appacitive.Article({ __id : '123345456', schema : 'person');
+
+//call fetchConnectedArticles with all options that're supported by queries syntax
+// we'll cover queries in next section
+jane.fetchConnectedArticles({ 
+	relation : 'freinds', //mandatory
+    label: 'freind' //madatory for a relation between same schema and differenct labels
+}, function(obj, pi) {
+	console.log(jane.children["freinds"]);
+}, function (err, obj) {
+	alert("code:" + err.code + "\nmessage:" + err.message);
+});
+
+```
+On success, `jane` object is populated with a freind property in its `children`. So, `jane.children.freinds` will give you a list of all freinds of `Appacitive.Article` type.
+These articles also contain a connection property which consists of its link properties with `jane`.
+
+```javascript
+// list of all connected articles to jane
+jane.children.freinds
+
+//connection connecting jane to each article
+jane.children.freinds[0].connection
+```
+
+In this query, you provide a relation type (name) and a label if both endpoints are of same type and what is returned is a list of all the articles connected to above article. 
+
+Such queries come helpful in a situation where you want to know all the interactions of a specific kind for of a particular article in the system.
+
+#### Get Connection by Endpoint Article Ids
+
+Appacitive also provides a reverse way to fetch a connection  between two articles.
+If you provide two article ids of same or different schema types, all connections between those two articles are returned.
+
+Consider you want to check whether `Tarzan` and `Jane` are married, you can do it as
+```javascript
+//'marriage' is the relation between person schema
+//and 'husband' and 'wife' are the endpoint labels
+Appacitive.Connection.getBetweenArticlesForRelation({ 
+    relation: "marriage", //mandatory
+    articleAId : "22322", //mandatory 
+    articleBId : "33422", //mandatory
+    label : "wife" //madatory for a relation between same schema and differenct labels
+}, function(marriage){
+	if(marriage != null) {
+    	// connection obj is returned as argument to onsuccess
+    	alert('Tarzan and jane are married at location ', marriage.get('location'));
+    } else {
+    	alert('Tarzan and jane are not married');
+    }
+}, function(err) {
+    alert('Could not fetch, probably because of an incorrect id');
+});
+
+//For a relation between same schema type and differenct endpoint labels
+//'label' parameter becomes mandatory for the get call
+
+```
+
+Conside you want to check that a particular `house` is owned by `Jane`, you can do it by fetching connection for relation `owns_house` between `person` and `house`.
+```javascript
+Appacitive.Connection.getBetweenArticlesForRelation({ 
+    relation: "owns_house", 
+    articleAId : "22322", // person schema entity id
+    articleBId : "33422" //house schema entity id
+}, function(obj){
+    if(obj != null) {
+    	alert('Jane owns this house');
+    } else {
+    	alert("Jane doesn't owns this house");
+    }
+}, function(err, obj) {
+    alert('Could not fetch, probably because of an incorrect id');
+});
+```
+
+#### Get all connections between two Article Ids
+
+Consider `jane` is connected to `tarzan` via a `marriage` and a `freind` relationship. If we want to fetch al connections between them we could do this as
+
+```javascript
+Appacitive.Connection.getBetweenArticles({
+	articleAId : "22322", // id of jane
+    articleBId : "33422" // id of tarzan
+}, function(connections, pi) {
+	console.log(connections);
+}, function(err) {
+	alert("code:" + err.code + "\nmessage:" + err.message);
+});
+```
+On success, we get a list of all connections that connects `jane` and `tarzan`.
+
 ### Updating
 
 
@@ -911,11 +1012,22 @@ As before, do not modify the `__id` property.
  
 ### Deleting
 
-Deleting is also provided via the `del` method.
+Deleting is provided via the `del` method.
 ```javascript
 marriage.del(function() {
 	alert('Tarzan and Jane are no longer married.');
 }, function(err, obj) {
 	alert('Delete failed, they are still married.')
+});
+
+
+// Multiple coonection can also be deleted at a time. Here's an example
+Appacitive.Article.multiDelete({ 	
+	relation: 'freinds', //name of relation
+	ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of connection ids to delete
+}, function() { 
+	//successfully deleted all connections
+}, function(err) {
+	alert("code:" + err.code + "\nmessage:" + err.message);
 });
 ```

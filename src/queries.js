@@ -354,8 +354,11 @@
 		this.articleId = options.articleId;
 		this.relation = options.relation;
 		this.schema = schema;
+		this.prev = options.prev;
 
 		this.label = '';
+		var that = this;
+
 		if (options.label && typeof options.label == 'string' && options.label.length > 0) this.label = '&label=' + options.label;
 
 		this.toRequest = function() {
@@ -372,6 +375,30 @@
 
 
 		var parseNodes = function(nodes, endpointA) {
+			var articles = [];
+			nodes.forEach(function(o) {
+				var edge = o.__edge;
+				delete o.__edge;
+
+				edge.__endpointa = endpointA;
+				edge.__endpointb = {
+					articleid: o.__id,
+					label: edge.__label,
+					type: o.__schematype
+				};
+				delete edge.label;
+
+				var connection = new global.Appacitive.Connection(edge, true);
+				var tmpArticle = new global.Appacitive.Article(o, true);
+				tmpArticle.connection = connection;
+				
+				articles.push(tmpArticle);
+			});
+			return articles;
+		};
+
+
+		var	prevParseNodes = function(nodes, endpointA) {
 			var connections = [];
 			nodes.forEach(function(o) {
 				var edge = o.__edge;
@@ -397,8 +424,10 @@
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
 				   if (typeof onSuccess == 'function') {
-				   		onSuccess(parseNodes( d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent }), d.paginginfo);
-				   }
+					   var cb = parseNodes;
+					   if (that.prev) cb = prevParseNodes;
+				   	   onSuccess(cb( d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent }), d.paginginfo);   
+				   	}
 				} else {
 					d = d || {};
 					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
@@ -676,7 +705,7 @@
 							label: parentLabel
 						};
 						edge.__endpointb = {
-							articleid: tmpArticle.id,
+							articleid: tmpArticle.id(),
 							label: edge.__label
 						};
 						delete edge.__label;

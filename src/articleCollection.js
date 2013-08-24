@@ -17,6 +17,8 @@
 
 		this.collectionType = 'article';
 
+		this.type = function() { return _schema; };
+
 		if (!_options || !_options.schema) throw new Error('Must provide schema while initializing ArticleCollection.');
 		
 		_schema = _options.schema;
@@ -238,14 +240,12 @@
 		return this.getAllArticles();
 	};
 
-
-
 	global.Appacitive.ArticleCollection.prototype.articles = function() {
 		return this.getAll();
 	};
 
 	global.Appacitive.ArticleCollection.prototype.length = function() {
-		return this.articles.length;
+		return this.articles().length;
 	};
 
 })(global);

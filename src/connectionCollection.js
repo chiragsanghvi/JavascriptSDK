@@ -24,6 +24,8 @@
 
 		this.collectionType = 'connection';
 
+		this.type = function() { return _relation; };
+
 		var that = this;
 
 		if (!options || !options.relation) throw new Error('Must provide relation while initializing ConnectionCollection.');
@@ -204,7 +206,7 @@
 
 		this.fetch = function(onSuccess, onError) {
 			_connections.length = 0;
-
+			_query.prev = true;
 			_query.fetch(function(connections, pagingInfo) {
 				parseConnections(connections, pagingInfo, onSuccess);
 			}, function(err) {
@@ -251,16 +253,27 @@
 		};
 
 		this.map = function() { return _connections.map.apply(this, arguments); };
-
-		this.forEach = function(delegate, context) {
-			context = context || this;
-			return _connections.forEach(delegate, context);
-		};
-
+		this.forEach = function() { return _connections.forEach.apply(this, arguments); };
 		this.filter = function() { return _connections.filter.apply(this, arguments); };
 
 	};
 
 	global.Appacitive.ConnectionCollection = _ConnectionCollection;
+
+	global.Appacitive.ConnectionCollection.prototype.toString = function() {
+		return JSON.stringify(this.getAllConnections());
+	};
+
+	global.Appacitive.ConnectionCollection.prototype.toJSON = function() {
+		return this.getAllConnections();
+	};
+
+	global.Appacitive.ConnectionCollection.prototype.connections = function() {
+		return this.getAll();
+	};
+
+	global.Appacitive.ConnectionCollection.prototype.length = function() {
+		return this.connections().length;
+	};
 
 })(global);

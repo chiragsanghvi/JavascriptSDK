@@ -48,6 +48,7 @@
 		this.type = 'article';
 		this.connectionCollections = [];
 		this.getArticle = this.getObject;
+		this.children = {};
 
 		if (this.get('__schematype').toLowerCase() == 'user') this.getFacebookProfile = _getFacebookProfile;
 
@@ -81,13 +82,35 @@
 
 		options.schema = this.entityType;
 		options.articleId = this.get('__id');
-		
+		options.prev = true;
+
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
 		collection.query(new global.Appacitive.Queries.ConnectedArticlesQuery(options));
 		collection.connectedArticle = this;
 		this.connectionCollections.push(collection);
 
 		return collection;
+	};
+
+	global.Appacitive.Article.prototype.fetchConnectedArticles = function(options, onSuccess, onError) {
+		options = options || {};
+		if (typeof options == 'string') {
+			options = { relation: options };
+		}
+
+		options.schema = this.entityType;
+		options.articleId = this.get('__id');
+
+		var that = this;
+
+		var query = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
+
+		query.fetch(function(articles, pagingInfo) {
+			that.children[options.relation] = articles;
+			if (onSuccess && typeof onSuccess == 'function') onSuccess(that, pagingInfo);
+		}, onError);		
+
+		return query; 
 	};
 
 	global.Appacitive.Article.multiDelete = function(options, onSuccess, onError) {
