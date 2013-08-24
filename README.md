@@ -34,6 +34,11 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
 * [Connections](#connections)  
   * [Creating & Saving](#creating--saving)  
   * [Retrieving](#retrieving-1)  
+     * [Get Connection by Id](#get-connection-by-id)  
+     * [Get Connected Articles](#get-connected-articles)  
+     * [Get Connection by Endpoint Article Ids](#get-connection-by-endpoint-article-ids)  
+     * [Get all connections between two Article Ids](#get-all-connections-between-two-article-ids)  
+     * [Get Interconnections between one and multiple Article Ids](#get-interconnections-between-one-and-multiple-article-ids)
   * [Updating](#updating-1)  
   * [Deleting](#deleting-1)  
 
@@ -991,6 +996,22 @@ Appacitive.Connection.getBetweenArticles({
 });
 ```
 On success, we get a list of all connections that connects `jane` and `tarzan`.
+
+#### Get Interconnections between one and multiple Article Ids
+
+Consider, `jane` wants to what type of connections exists between her and a group of persons and houses , she could do this as
+```javascript
+Appacitive.Connection.getInterconnects({
+	articleAId: '13432',
+    articleBIds: ['32423423', '2342342', '63453425', '345345342']
+}, function(connections) {
+	console.log(connections);
+}, function(err) {
+	alert("code:" + err.code + "\nmessage:" + err.message);
+});
+```
+
+This would return all connections with article id 13432 on one side and '32423423', '2342342', '63453425' or '345345342' on the other side, if they exist.
 
 ### Updating
 
