@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Aug 24 14:23:04 IST 2013
+ * Build time 	: Sun Aug 25 12:00:33 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -964,8 +964,12 @@ var global = {};
 
             fileServiceUrl: 'file',
 
-            getUploadUrl: function (contentType) {
-                return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
+            getUploadUrl: function (contentType, fileName) {
+                if (fileName && fileName.length > 0) {
+                    return String.format('{0}/uploadurl?contenttype={1}&expires=20&filename={2}', this.fileServiceUrl, escape(contentType), escape(fileName));
+                } else {
+                    return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
+                }
             },
 
             getUpdateUrl: function (fileId, contentType) {
@@ -5345,10 +5349,10 @@ Depends on  NOTHING
           if (!that.fileData) throw new Error('Please specify filedata');
           if (contentType || typeof contentType == 'string') that.contentType = contentType;
           else {
-              if (!that.contentType || typeof contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
+              if (!that.contentType || typeof that.contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
               try { that.contentType = file.type; } catch(e) {}
           }
-          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType);
+          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
           onSuccess = onSuccess || function(){};
           onError = onError || function(){};
 
@@ -5440,6 +5444,29 @@ Depends on  NOTHING
           return this;
       };
 
+      this.getUploadUrl = function(onSuccess, onError, contentType) {
+          var that = this;
+
+          if (contentType || typeof contentType == 'string') this.contentType = contentType;
+          else {
+              if (!this.contentType || typeof this.contentType !== 'string' || this.contentType.length == 0) this.contentType = 'text/plain';
+          }
+
+          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');
+          onSuccess = onSuccess || function() {};
+          onError = onError || function() {};
+
+          _getUrls(url, function(response) {
+              if (response && response.status && response.status.code == '200') {
+                  that.url = response.url;
+                  onSuccess(response.url, that);
+              } else if (typeof onError == 'function') {
+                  onError(response.status, that);
+              }
+          }, onError);
+      };
+
+      return this;
   };
 
   global.Appacitive.File = _file;

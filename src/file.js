@@ -42,10 +42,10 @@
           if (!that.fileData) throw new Error('Please specify filedata');
           if (contentType || typeof contentType == 'string') that.contentType = contentType;
           else {
-              if (!that.contentType || typeof contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
+              if (!that.contentType || typeof that.contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
               try { that.contentType = file.type; } catch(e) {}
           }
-          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType);
+          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
           onSuccess = onSuccess || function(){};
           onError = onError || function(){};
 
@@ -137,6 +137,29 @@
           return this;
       };
 
+      this.getUploadUrl = function(onSuccess, onError, contentType) {
+          var that = this;
+
+          if (contentType || typeof contentType == 'string') this.contentType = contentType;
+          else {
+              if (!this.contentType || typeof this.contentType !== 'string' || this.contentType.length == 0) this.contentType = 'text/plain';
+          }
+
+          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');
+          onSuccess = onSuccess || function() {};
+          onError = onError || function() {};
+
+          _getUrls(url, function(response) {
+              if (response && response.status && response.status.code == '200') {
+                  that.url = response.url;
+                  onSuccess(response.url, that);
+              } else if (typeof onError == 'function') {
+                  onError(response.status, that);
+              }
+          }, onError);
+      };
+
+      return this;
   };
 
   global.Appacitive.File = _file;

@@ -50,7 +50,11 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
   * [Platform specific Devices](#platform-specific-devices)  
   * [Specific List of Devices](#specific-list-of-devices)  
   * [To List of Channels](#to-list-of-channels)  
-  * [Query](#query)
+  * [Query](#query)  
+* [Files](#files)  
+  * [Creating Appacitive.File Object](#creating-appacitivefile-object)  
+  * [Uploading](#uploading)  
+  * [Downloading](#downloading)
   
 
 ## Setup
@@ -681,7 +685,7 @@ Appacitive.Users.currentUser().getAllLinkedAccounts(function() {
 ```
 #### Delinking Facebook account
 ```javascript
-Appacitive.UserscurrentUser().unlinkFacebookAccount(function() {
+Appacitive.Users.currentUser().unlinkFacebookAccount(function() {
 	alert("Facebook account delinked successfully");
 }, function(err){
 	alert("Could not delink facebook account");
@@ -1161,7 +1165,7 @@ Using Appacitive platform you can send push notification to iOS devices, Android
  
 We recommend you to go through **[this](http://appacitive.github.io/docs/current/rest/push/index.html)** section, which explains how you can configure Appacitive app for Push notification. You will need to provide some basic one time configurations like certificates, using which we will setup push notification channels for different platforms for you. Also we provide a Push Console using which you can send push notification to the users.
 
-In Javascript SDK, static object  provides methods to send push notification.
+In Javascript SDK, static object `Appacitive.Push` provides methods to send push notification.
 
 Appacitive provides four ways to select the sender list
 
@@ -1335,4 +1339,126 @@ var options = {
 	},
 	"expireafter": "100000" // Expiry in seconds
 }
+```
+
+----------------
+
+## Files
+
+Appacitive supports file storage and provides api's for you to easily upload and download file. In the background we use amazon's S3 services for persistance. To upload or download files SDK provides `Appacitive.File` class, which you instantiate to perform operations on file.
+
+### Creating Appacitive.File Object
+
+To construct an instance of `Appacitive.File` class you must know the content type (mimeType) of the file, because this is a required parameter, optionally you can provide name/id of the file by which it will be saved on the server.
+
+Here are the options you need to initialize a file object
+```javascript
+var options = {
+	fileId: //  a unique string representing the filename on server,
+    contentType: // Mimetype of file,
+    fileData: // data to be uploaded, this could be bytes or HTML5 fileupload instance data
+};
+```
+
+If you don't provide contentType, then SDK will try to get the MimeType from the HTML5 fileData object or it'll set it as 'text/plain'.
+
+To upload file, SDK provides three ways.
+
+#### Byte Stream
+
+If you have a byte stream, you can use this following interface to upload data.
+```javascript
+var bytes = [ 0xAB, 0xDE, 0xCA, 0xAC, 0XAE ];
+
+//create file object
+var file = new Appacitive.File({
+	fileId: 'serverFile.png',
+    fileData: bytes,
+    contentType: 'image/png'
+});
+```
+
+#### HTML5 File Object
+
+If you've a fileupload control in your HTML5 app , which allows the user to pick a file from their local drive to upload, you can simply create the object as
+```javascript
+//consider this as your fileupload control
+<input type="file" id="imgUpload">
+
+//in a handler or in a function you could get a reference to it, if you've selected a file
+var fileData = $('#imgUpload')[0].files[0];
+
+//create file object
+var file = new Appacitive.File({
+	fileId: fileData.name,
+    fileData: fileData
+});
+```
+Here, we gave the fileId as the name of original file. There're three things to be noted :
+
+1. If you don't provide a fileId, a unique id for the file is generated on save by the server.
+
+2. If you provide fileId, and if it exists on server, then on save that file will get replaced by this new file.
+
+3. If you don't provide contentType, then the SDK will infer it from the fileData object or set it as text/plain.
+
+#### Custom Upload
+
+If you want to upload a file without using SDK, you can get an upload URL by calling its instance method `getUploadUrl`, and simplpy upload your file onto this url.
+```javascript
+file.getUploadUrl(function(url) {
+   //alert("Upload url:" + url);
+}, function(err) {
+   //alert("Error getting upload url for file");
+});
+```
+
+### Uploading
+
+Once we're done creating `Appacitive.File` object, simply call save to save it on server.
+```javascript
+// save it on server
+file.save(function(url) {
+  alert('Download url is ' + url);
+}, function(err) {
+  //alert("Error uploading file");
+});
+```
+
+After save, the onSuccess callback gets a url in response, which can be saved in your object and is also reflected in the file object. This url is basically a download url, which you could use to render it in your DOM.
+
+```javascript
+//file object after upload
+{
+  fileId: 'test.png',
+  contentType: 'image/png',
+  url: '{{some url}}'
+}
+
+//if you don't provide fileId while upload, then you'll get a unique fileId set in you file object
+{
+  fileId: '3212jgfjs93798',
+  contentType: 'image/png',
+  url: '{{some url}}'
+}
+```
+
+### Downloading
+
+Using the method `getDownloadUrl` in file object you can download a file which was uploaded to the Apppacitive system
+
+To construct the instance of `Appacitive.File`, you will need to provide the fileId of the file, which was returned by the system or set by you when you uploaded the file.
+```javascript
+//create file object
+var file = new Appacitive.File({
+	fileId: "test.png"
+});
+
+// call to get donwload url
+file.getDownloadUrl(function(url) {
+    alert("Download url:" + url);
+    $("#imgUpload").attr('src',file.url);
+}, function(err) {
+	alert("Downloading file");
+});
 ```

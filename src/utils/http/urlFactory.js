@@ -312,8 +312,12 @@
 
             fileServiceUrl: 'file',
 
-            getUploadUrl: function (contentType) {
-                return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
+            getUploadUrl: function (contentType, fileName) {
+                if (fileName && fileName.length > 0) {
+                    return String.format('{0}/uploadurl?contenttype={1}&expires=20&filename={2}', this.fileServiceUrl, escape(contentType), escape(fileName));
+                } else {
+                    return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
+                }
             },
 
             getUpdateUrl: function (fileId, contentType) {
