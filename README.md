@@ -1082,7 +1082,7 @@ Sending emails from the sdk is quite easy. There are primarily two types of emai
 * Raw Emails
 * Templated Emails
 
-Email is accessed through the Appacitive.Email module. Before you get to sending emails, you need to configure smtp settings. You can either configure it from the portal or in the `Email` module with your mail provider settings.
+Email is accessed through the Appacitive.Email module. Before you get to sending emails, you need to configure smtp settings. You can either configure it from the portal or in the `Email` module with your mail provider's settings.
 
 ```javascript
 Appacitive.Email.setupEmail({
@@ -1099,7 +1099,7 @@ Now you are ready to send emails.
 
 ### Sending Raw Emails
 
-A raw email is one where you specify the entire body of the email. An email has the structure
+A raw email is one where you can specify the entire body of the email. An email has the structure
 ```javascript
 var email = {
     to: /* a string array containing the recipient email addresses */,
@@ -1155,7 +1155,7 @@ Appacitive.Email.sendTemplatedEmail(email, function (email) {
 });
 ```
 
-`Note`: Emails are not transactional. That means that a successful operation means that your email provider was able to dispatch the email. It DOES NOT mean that the intended recipient(s) actually received that email.
+`Note`: Emails are not transactional. This implies that a successful send operation would mean that your email provider was able to dispatch the email. It DOES NOT mean that the intended recipient(s) actually received that email.
 
 ----------
 
@@ -1175,12 +1175,12 @@ Appacitive provides four ways to select the sender list
 * To List of Channels
 * Query
 
-First we'll see how to send a push notification and then we will discuss above methods with its options one by one.
+First we'll see how to send a push notification and then we will discuss the above methods with their options one by one.
 
 ```javascript
 var options = {..}; //Some options specific to senders
 Appacitive.Push.send(options, function(notification) {
-	alert('Push notification send successfully');
+	alert('Push notification sent successfully');
 }, function(err) {
 	alert('Sending Push Notification failed.');
 });
@@ -1188,7 +1188,7 @@ Appacitive.Push.send(options, function(notification) {
 
 ### Broadcast
 
-If you want to send push notification to all active devices, you can use these options
+If you want to send a push notification to all active devices, you can use the following options
 
 ```javascript
 var options = {
@@ -1217,7 +1217,7 @@ var options = {
 
 ### Platform specific Devices
 
-If you want to send push notification to specific platforms, you can use this option, to do so you will need to provide the devicetype in query.
+If you want to send push notifications to specific platforms, you can use this option. To do so you will need to provide the devicetype in the query.
 
 ```javascript
 var options = {
@@ -1247,7 +1247,7 @@ var options = {
 
 ### Specific List of Devices
 
-If you want to send push notification to specific devices, you can use this option, to do so you will need to provide the device ids.
+If you want to send push notifications to specific devices, you can use this option. To do so you will need to provide the device ids.
 
 ```javascript
 var options = {
@@ -1281,7 +1281,7 @@ var options = {
 
 ### To List of Channels
 
-Device object has a Channel property, using which you can club multiple devices. If you want to send push notification using channel.
+Device object has a Channel property, using which you can club multiple devices. This is helpful if you want to send push notification using channel.
 
 ```javascript
 var options = {
@@ -1313,7 +1313,7 @@ var options = {
 
 ### Query
 
-You can send push notifications to devices using a Query. All the devices which comes out as result for the query will receive the push notification.
+You can send push notifications to devices using a Query. All the devices which comes out as result of the query will receive the push notification.
 
 ```javascript
 var options = {
@@ -1345,13 +1345,13 @@ var options = {
 
 ## Files
 
-Appacitive supports file storage and provides api's for you to easily upload and download file. In the background we use amazon's S3 services for persistance. To upload or download files SDK provides `Appacitive.File` class, which you instantiate to perform operations on file.
+Appacitive supports file storage and provides api's for you to easily upload and download file. In the background we use amazon's S3 services for persistance. To upload or download files, the SDK provides `Appacitive.File` class, which you can instantiate to perform operations on file.
 
 ### Creating Appacitive.File Object
 
-To construct an instance of `Appacitive.File` class you must know the content type (mimeType) of the file, because this is a required parameter, optionally you can provide name/id of the file by which it will be saved on the server.
+To construct an instance of `Appacitive.File` class, you must know the content type (mimeType) of the file because this is a required parameter. Optionally you can provide name/id of the file by which it will be saved on the server.
 
-Here are the options you need to initialize a file object
+Thses are the options you need to initialize a file object
 ```javascript
 var options = {
 	fileId: //  a unique string representing the filename on server,
@@ -1360,13 +1360,13 @@ var options = {
 };
 ```
 
-If you don't provide contentType, then SDK will try to get the MimeType from the HTML5 fileData object or it'll set it as 'text/plain'.
+If you don't provide contentType, then the SDK will try to get the MimeType from the HTML5 fileData object or it'll set it as 'text/plain'.
 
-To upload file, SDK provides three ways.
+To upload a file, the SDK provides three ways.
 
 #### Byte Stream
 
-If you have a byte stream, you can use this following interface to upload data.
+If you have a byte stream, you can use the following interface to upload data.
 ```javascript
 var bytes = [ 0xAB, 0xDE, 0xCA, 0xAC, 0XAE ];
 
@@ -1380,7 +1380,7 @@ var file = new Appacitive.File({
 
 #### HTML5 File Object
 
-If you've a fileupload control in your HTML5 app , which allows the user to pick a file from their local drive to upload, you can simply create the object as
+If you've a fileupload control in your HTML5 app which allows the user to pick a file from their local drive to upload, you can simply create the object as
 ```javascript
 //consider this as your fileupload control
 <input type="file" id="imgUpload">
@@ -1394,17 +1394,17 @@ var file = new Appacitive.File({
     fileData: fileData
 });
 ```
-Here, we gave the fileId as the name of original file. There're three things to be noted :
+Here, we gave the fileId as the name of the original file. There're three things to be noted :
 
-1. If you don't provide a fileId, a unique id for the file is generated on save by the server.
+1. If you don't provide a fileId, a unique id for the file is generated and saved by the server.
 
-2. If you provide fileId, and if it exists on server, then on save that file will get replaced by this new file.
+2. If you provide a fileId which already exists on the server, then on saving, this new file will replace the old file.
 
 3. If you don't provide contentType, then the SDK will infer it from the fileData object or set it as text/plain.
 
 #### Custom Upload
 
-If you want to upload a file without using SDK, you can get an upload URL by calling its instance method `getUploadUrl`, and simplpy upload your file onto this url.
+If you want to upload a file without using SDK, you can get an upload URL by calling its instance method `getUploadUrl`, and simply upload your file onto this url.
 ```javascript
 file.getUploadUrl(function(url) {
    //alert("Upload url:" + url);
@@ -1415,7 +1415,7 @@ file.getUploadUrl(function(url) {
 
 ### Uploading
 
-Once we're done creating `Appacitive.File` object, simply call save to save it on server.
+Once you're done creating `Appacitive.File` object, simply call save to save it on the server.
 ```javascript
 // save it on server
 file.save(function(url) {
@@ -1425,7 +1425,7 @@ file.save(function(url) {
 });
 ```
 
-After save, the onSuccess callback gets a url in response, which can be saved in your object and is also reflected in the file object. This url is basically a download url, which you could use to render it in your DOM.
+After save, the onSuccess callback gets a url in response which can be saved in your object and is also reflected in the file object. This url is basically a download url which you could use to render it in your DOM.
 
 ```javascript
 //file object after upload
@@ -1445,7 +1445,7 @@ After save, the onSuccess callback gets a url in response, which can be saved in
 
 ### Downloading
 
-Using the method `getDownloadUrl` in file object you can download a file which was uploaded to the Apppacitive system
+Using the method `getDownloadUrl` in file object you can download a file which was uploaded to the Appacitive system.
 
 To construct the instance of `Appacitive.File`, you will need to provide the fileId of the file, which was returned by the system or set by you when you uploaded the file.
 ```javascript
