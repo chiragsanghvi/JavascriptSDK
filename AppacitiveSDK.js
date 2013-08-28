@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sun Aug 25 12:00:33 IST 2013
+ * Build time 	: Wed Aug 28 18:39:00 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2070,7 +2070,7 @@ Depends on  NOTHING
 				_pageQuery.pageNumber(arguments[0]);
 				return this;
 			}
-			return _pageQuery.pageNumber; 
+			return _pageQuery.pageNumber(); 
 		};
 
 		//define getter and setter for pageSize
@@ -2079,19 +2079,19 @@ Depends on  NOTHING
 				_pageQuery.pageSize(arguments[0]);
 				return this;
 			}
-			return _pageQuery.pageSize; 
+			return _pageQuery.pageSize(); 
 		};
 
 		//define getter for sortquery
 		this.sortQuery = function() { return _sortQuery; };
 
 		//define getter and setter for orderby
-		this.orderby =  function() { 
+		this.orderBy =  function() { 
 			if (arguments.length == 1) {
 				_sortQuery.orderby(arguments[0]);
 				return this;
 			}
-			return _sortQuery.orderby; 
+			return _sortQuery.orderby(); 
 		};
 
 		//define getter and setter for isAscending
@@ -2100,7 +2100,7 @@ Depends on  NOTHING
 				_sortQuery.isAscending(arguments[0]);
 				return this;
 			}
-			return _sortQuery.isAscending; 
+			return _sortQuery.isAscending(); 
 		};
 
 		//define getter and setter for filter
@@ -3992,6 +3992,27 @@ Depends on  NOTHING
 
 		if (this.get('__schematype').toLowerCase() == 'user') this.getFacebookProfile = _getFacebookProfile;
 
+		this.toJSON = function(recursive) {
+			if (recursive) {
+				var parseChildren = function(root) {
+					var articles = [];
+					root.forEach(function(obj) {
+						var tmp = obj.getObject();
+						if (obj.children && !Object.isEmpty(obj.children)) {
+							tmp.children = {};
+							for (var c in obj.children) {
+								tmp.children[c] = parseChildren(obj.children[c]);
+							}
+						}
+						articles.push(tmp);
+					});
+					return articles;
+				};
+				return parseChildren([this])[0];
+			} else {
+				return this.getObject();
+			}
+		};
 		return this;
 	};
 

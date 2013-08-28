@@ -110,7 +110,7 @@
 				_pageQuery.pageNumber(arguments[0]);
 				return this;
 			}
-			return _pageQuery.pageNumber; 
+			return _pageQuery.pageNumber(); 
 		};
 
 		//define getter and setter for pageSize
@@ -119,19 +119,19 @@
 				_pageQuery.pageSize(arguments[0]);
 				return this;
 			}
-			return _pageQuery.pageSize; 
+			return _pageQuery.pageSize(); 
 		};
 
 		//define getter for sortquery
 		this.sortQuery = function() { return _sortQuery; };
 
 		//define getter and setter for orderby
-		this.orderby =  function() { 
+		this.orderBy =  function() { 
 			if (arguments.length == 1) {
 				_sortQuery.orderby(arguments[0]);
 				return this;
 			}
-			return _sortQuery.orderby; 
+			return _sortQuery.orderby(); 
 		};
 
 		//define getter and setter for isAscending
@@ -140,7 +140,7 @@
 				_sortQuery.isAscending(arguments[0]);
 				return this;
 			}
-			return _sortQuery.isAscending; 
+			return _sortQuery.isAscending(); 
 		};
 
 		//define getter and setter for filter

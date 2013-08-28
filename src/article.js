@@ -52,6 +52,27 @@
 
 		if (this.get('__schematype').toLowerCase() == 'user') this.getFacebookProfile = _getFacebookProfile;
 
+		this.toJSON = function(recursive) {
+			if (recursive) {
+				var parseChildren = function(root) {
+					var articles = [];
+					root.forEach(function(obj) {
+						var tmp = obj.getObject();
+						if (obj.children && !Object.isEmpty(obj.children)) {
+							tmp.children = {};
+							for (var c in obj.children) {
+								tmp.children[c] = parseChildren(obj.children[c]);
+							}
+						}
+						articles.push(tmp);
+					});
+					return articles;
+				};
+				return parseChildren([this])[0];
+			} else {
+				return this.getObject();
+			}
+		};
 		return this;
 	};
 
