@@ -252,10 +252,9 @@
 			return _a;
 		};
 
-		this.map = function() { return _connections.map.apply(this, arguments); };
-		this.forEach = function() { return _connections.forEach.apply(this, arguments); };
-		this.filter = function() { return _connections.filter.apply(this, arguments); };
-
+		this.map = function(delegate, context) { return _connections.map.apply(delegate, context || this); };
+		this.forEach = function(delegate, context) { return _connections.forEach(delegate, context); };
+		this.filter = function(delegate, context) { return _connections.filter.apply(delegate, context || this); };
 	};
 
 	global.Appacitive.ConnectionCollection = _ConnectionCollection;

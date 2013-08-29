@@ -64,6 +64,7 @@
 								tmp.children[c] = parseChildren(obj.children[c]);
 							}
 						}
+						if (obj.connection) tmp.__connection = obj.connection.toJSON();
 						articles.push(tmp);
 					});
 					return articles;

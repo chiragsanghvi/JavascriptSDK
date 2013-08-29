@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Aug 28 18:39:00 IST 2013
+ * Build time 	: Thu Aug 29 17:38:07 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -3636,9 +3636,9 @@ Depends on  NOTHING
 			return _a;
 		};
 
-		this.map = function() { return _articles.map.apply(this, arguments); };
-		this.forEach = function() { return _articles.forEach.apply(this, arguments); };
-		this.filter = function() { return _articles.filter.apply(this, arguments); };
+		this.map = function(delegate, context) { return _articles.map.apply(delegate, context || this); };
+		this.forEach = function(delegate, context) { return _articles.forEach(delegate, context); };
+		this.filter = function(delegate, context) { return _articles.filter.apply(delegate, context || this); };
 
 	};
 
@@ -3914,10 +3914,9 @@ Depends on  NOTHING
 			return _a;
 		};
 
-		this.map = function() { return _connections.map.apply(this, arguments); };
-		this.forEach = function() { return _connections.forEach.apply(this, arguments); };
-		this.filter = function() { return _connections.filter.apply(this, arguments); };
-
+		this.map = function(delegate, context) { return _connections.map.apply(delegate, context || this); };
+		this.forEach = function(delegate, context) { return _connections.forEach(delegate, context); };
+		this.filter = function(delegate, context) { return _connections.filter.apply(delegate, context || this); };
 	};
 
 	global.Appacitive.ConnectionCollection = _ConnectionCollection;
@@ -4004,6 +4003,7 @@ Depends on  NOTHING
 								tmp.children[c] = parseChildren(obj.children[c]);
 							}
 						}
+						if (obj.connection) tmp.__connection = obj.connection.toJSON();
 						articles.push(tmp);
 					});
 					return articles;

@@ -224,9 +224,9 @@
 			return _a;
 		};
 
-		this.map = function() { return _articles.map.apply(this, arguments); };
-		this.forEach = function() { return _articles.forEach.apply(this, arguments); };
-		this.filter = function() { return _articles.filter.apply(this, arguments); };
+		this.map = function(delegate, context) { return _articles.map.apply(delegate, context || this); };
+		this.forEach = function(delegate, context) { return _articles.forEach(delegate, context); };
+		this.filter = function(delegate, context) { return _articles.filter.apply(delegate, context || this); };
 
 	};
 
