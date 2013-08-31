@@ -217,7 +217,7 @@ var global = {};
   			var response = xdr.responseText;
 			try {
 				var contentType = xdr.contentType;
-				if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') { 
+				if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 					var jData = response;
 					if (!global.Appacitive.runtime.isBrowser) {
 						if (jData[0] != "{") {
@@ -255,7 +255,7 @@ var global = {};
 		request.headers.forEach(function(r){
 			if (r.key.toLowerCase() == 'content-type') {
 				doNotStringify = true;
-				if (r.value.toLowerCase() == 'application/json' || r.value.toLowerCase() == "application/javascript") {
+				if (r.value.toLowerCase() == 'application/json' || r.value.toLowerCase() == "application/javascript" || r.value.toLowerCase() == 'application/json; charset=utf-8' || r.value.toLowerCase() == 'application/json; charset=utf-8;') {
 					doNotStringify = false;
 				}
 			}
@@ -287,7 +287,7 @@ var global = {};
 						var response = this.responseText;
 						try {
 							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
-							if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') { 
+							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 								var jData = response;
 								if (!global.Appacitive.runtime.isBrowser) {
 									if (jData[0] != "{") {

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Aug 29 17:38:07 IST 2013
+ * Build time 	: Sat Aug 31 10:43:57 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -341,7 +341,7 @@ var global = {};
   			var response = xdr.responseText;
 			try {
 				var contentType = xdr.contentType;
-				if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') { 
+				if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 					var jData = response;
 					if (!global.Appacitive.runtime.isBrowser) {
 						if (jData[0] != "{") {
@@ -379,7 +379,7 @@ var global = {};
 		request.headers.forEach(function(r){
 			if (r.key.toLowerCase() == 'content-type') {
 				doNotStringify = true;
-				if (r.value.toLowerCase() == 'application/json' || r.value.toLowerCase() == "application/javascript") {
+				if (r.value.toLowerCase() == 'application/json' || r.value.toLowerCase() == "application/javascript" || r.value.toLowerCase() == 'application/json; charset=utf-8' || r.value.toLowerCase() == 'application/json; charset=utf-8;') {
 					doNotStringify = false;
 				}
 			}
@@ -411,7 +411,7 @@ var global = {};
 						var response = this.responseText;
 						try {
 							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
-							if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') { 
+							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 								var jData = response;
 								if (!global.Appacitive.runtime.isBrowser) {
 									if (jData[0] != "{") {
