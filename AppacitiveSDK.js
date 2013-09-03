@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Sep  3 17:25:54 IST 2013
+ * Build time 	: Tue Sep  3 18:36:22 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2965,7 +2965,11 @@ Depends on  NOTHING
 			}
 			else delete changeSet["__attributes"];
 
-			if (isDirty) return changeSet;
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
+			if (isDirty && !Object.isEmpty(changeSet)) return changeSet;
 			return false;
 		};
 
@@ -3178,6 +3182,10 @@ Depends on  NOTHING
 			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
 				url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getCreateUrl();
 
+			for (var p in article) {
+				if (p[0] == '$') delete article[p];
+			}
+
 			var _saveRequest = new global.Appacitive.HttpRequest();
 			_saveRequest.url = url;
 			_saveRequest.method = 'put';
@@ -3227,7 +3235,11 @@ Depends on  NOTHING
 
 			var cb = function(revision) {
 				var changeSet = _getChanged(true);
-				if (changeSet) {
+				for (var p in changeSet) {
+					if (p[0] == '$') delete changeSet[p];
+				}
+
+				if (!Object.isEmpty(changeSet)) {
 
 					if (typeof fields == 'string') _fields = value;
 					else if (typeof fields == 'object' && fields.length) fields = fields.join(',');

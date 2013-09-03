@@ -247,7 +247,11 @@
 			}
 			else delete changeSet["__attributes"];
 
-			if (isDirty) return changeSet;
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
+			if (isDirty && !Object.isEmpty(changeSet)) return changeSet;
 			return false;
 		};
 
@@ -460,6 +464,10 @@
 			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
 				url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getCreateUrl();
 
+			for (var p in article) {
+				if (p[0] == '$') delete article[p];
+			}
+
 			var _saveRequest = new global.Appacitive.HttpRequest();
 			_saveRequest.url = url;
 			_saveRequest.method = 'put';
@@ -509,7 +517,11 @@
 
 			var cb = function(revision) {
 				var changeSet = _getChanged(true);
-				if (changeSet) {
+				for (var p in changeSet) {
+					if (p[0] == '$') delete changeSet[p];
+				}
+
+				if (!Object.isEmpty(changeSet)) {
 
 					if (typeof fields == 'string') _fields = value;
 					else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
