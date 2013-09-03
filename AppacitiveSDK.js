@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Aug 31 10:43:57 IST 2013
+ * Build time 	: Tue Sep  3 14:15:03 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2835,12 +2835,12 @@ Depends on  NOTHING
 		this.getChangedAttributes = _getChangedAttributes;
 
 		// accessor function for the article's aggregates
-		this.aggregates = function() {
+		this.aggregate = function() {
 			var aggregates = {};
 			for (var key in article) {
 				if (!article.hasOwnProperty(key)) return;
 				if (key[0] == '$') {
-					aggregates[key] = article[key];
+					aggregates[key.substring(1)] = article[key];
 				}
 			}
 			if (arguments.length === 0) return aggregates;

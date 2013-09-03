@@ -133,12 +133,12 @@
 		this.getChangedAttributes = _getChangedAttributes;
 
 		// accessor function for the article's aggregates
-		this.aggregates = function() {
+		this.aggregate = function() {
 			var aggregates = {};
 			for (var key in article) {
 				if (!article.hasOwnProperty(key)) return;
 				if (key[0] == '$') {
-					aggregates[key] = article[key];
+					aggregates[key.substring(1)] = article[key];
 				}
 			}
 			if (arguments.length === 0) return aggregates;
