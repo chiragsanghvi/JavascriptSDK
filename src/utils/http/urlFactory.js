@@ -130,8 +130,12 @@
             getUserByUsernameUrl: function(username) {
                 return String.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
             },
-            getUpdateUrl: function (userId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
+            getUpdateUrl: function (userId, fields, revision) {
+                if (!revision) {
+                    return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
+                } else {
+                    return String.format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
+                }
             },
             getDeleteUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
@@ -177,8 +181,12 @@
             getGetUrl: function (deviceId, fields) {
                 return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
-            getUpdateUrl: function (deviceId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
+            getUpdateUrl: function (deviceId, fields, revision) {
+                if (!revision) {
+                    return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
+                } else {
+                    return String.format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
+                }
             },
             getDeleteUrl: function (deviceId) {
                 return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
@@ -219,8 +227,12 @@
             getGetUrl: function (schemaName, articleId, fields) {
                 return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
             },
-            getUpdateUrl: function (schemaName, articleId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
+            getUpdateUrl: function (schemaName, articleId, fields, revision) {
+                if (!revision) {
+                    return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
+                } else {
+                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.articleServiceUrl, schemaName, articleId, _getFields(fields), revision);
+                }
             },
             getDeleteUrl: function (schemaName, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
@@ -242,8 +254,12 @@
             getCreateUrl: function (relationName, fields) {
                 return String.format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, _getFields(fields));
             },
-            getUpdateUrl: function (relationName, connectionId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
+            getUpdateUrl: function (relationName, connectionId, fields, revision) {
+                if (!revision) {
+                    return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
+                } else {
+                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields), revision);
+                }
             },
             getDeleteUrl: function (relationName, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
