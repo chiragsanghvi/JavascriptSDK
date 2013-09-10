@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Sep  3 18:36:22 IST 2013
+ * Build time 	: Tue Sep 10 10:19:42 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2104,10 +2104,10 @@ Depends on  NOTHING
 		//define getter and setter for orderby
 		this.orderBy =  function() { 
 			if (arguments.length == 1) {
-				_sortQuery.orderby(arguments[0]);
+				_sortQuery.orderBy(arguments[0]);
 				return this;
 			}
-			return _sortQuery.orderby(); 
+			return _sortQuery.orderBy(); 
 		};
 
 		//define getter and setter for isAscending

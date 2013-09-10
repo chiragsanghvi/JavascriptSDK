@@ -128,10 +128,10 @@
 		//define getter and setter for orderby
 		this.orderBy =  function() { 
 			if (arguments.length == 1) {
-				_sortQuery.orderby(arguments[0]);
+				_sortQuery.orderBy(arguments[0]);
 				return this;
 			}
-			return _sortQuery.orderby(); 
+			return _sortQuery.orderBy(); 
 		};
 
 		//define getter and setter for isAscending
