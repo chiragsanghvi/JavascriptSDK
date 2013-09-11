@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Sep 10 10:19:42 IST 2013
+ * Build time 	: Wed Sep 11 18:00:36 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -3040,7 +3040,7 @@ Depends on  NOTHING
 				}
 				return value;
 			}, "boolean": function(value) { 
-				if (value == 'true' || value == true || value > 0) return true;
+				if (value != undefined && value != null && (value.toString().toLowerCase() == 'true' || value == true || value > 0)) return true;
 				return false;
 			}, "date": function(value) { 
 				if (value) {

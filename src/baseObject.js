@@ -322,7 +322,7 @@
 				}
 				return value;
 			}, "boolean": function(value) { 
-				if (value == 'true' || value == true || value > 0) return true;
+				if (value != undefined && value != null && (value.toString().toLowerCase() == 'true' || value == true || value > 0)) return true;
 				return false;
 			}, "date": function(value) { 
 				if (value) {
