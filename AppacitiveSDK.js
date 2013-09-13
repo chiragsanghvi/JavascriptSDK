@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Sep 11 18:00:36 IST 2013
+ * Build time 	: Fri Sep 13 15:33:07 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2320,6 +2320,7 @@ Depends on  NOTHING
 		if (!options.articleId) throw new Error('Specify articleId for connected articles query');
 		if (!options.schema) throw new Error('Specify schema of article id for connected articles query');
 		
+
 		var schema = options.schema;
 		delete options.schema;
 
@@ -2331,7 +2332,10 @@ Depends on  NOTHING
 		this.relation = options.relation;
 		this.schema = schema;
 		this.prev = options.prev;
-
+		
+		this.returnEdge = true;
+		if (options.returnEdge != undefined || options.returnEdge != null && !options.returnEdge && !this.prev) this.returnEdge = false;
+		
 		this.label = '';
 		var that = this;
 
@@ -2353,21 +2357,25 @@ Depends on  NOTHING
 		var parseNodes = function(nodes, endpointA) {
 			var articles = [];
 			nodes.forEach(function(o) {
-				var edge = o.__edge;
-				delete o.__edge;
+				var tmpArticle = null;
+				if (o.__edge) {
+					var edge = o.__edge;
+					delete o.__edge;
 
-				edge.__endpointa = endpointA;
-				edge.__endpointb = {
-					articleid: o.__id,
-					label: edge.__label,
-					type: o.__schematype
-				};
-				delete edge.label;
+					edge.__endpointa = endpointA;
+					edge.__endpointb = {
+						articleid: o.__id,
+						label: edge.__label,
+						type: o.__schematype
+					};
+					delete edge.label;
 
-				var connection = new global.Appacitive.Connection(edge, true);
-				var tmpArticle = new global.Appacitive.Article(o, true);
-				tmpArticle.connection = connection;
-				
+					var connection = new global.Appacitive.Connection(edge, true);
+					tmpArticle = new global.Appacitive.Article(o, true);
+					tmpArticle.connection = connection;
+				} else {
+					tmpArticle = new global.Appacitive.Article(o, true);
+				}
 				articles.push(tmpArticle);
 			});
 			return articles;
