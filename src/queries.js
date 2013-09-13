@@ -374,7 +374,7 @@
 
 		this.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.schema + '/' + this.articleId + '/find?' +
-				this.getQueryString() + this.label;
+				this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge;
 		};
 
 

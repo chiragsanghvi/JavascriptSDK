@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Sep 13 15:33:07 IST 2013
+ * Build time 	: Fri Sep 13 15:41:38 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -2350,7 +2350,7 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.schema + '/' + this.articleId + '/find?' +
-				this.getQueryString() + this.label;
+				this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge;
 		};
 
 
