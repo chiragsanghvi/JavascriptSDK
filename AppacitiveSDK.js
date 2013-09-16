@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Sep 13 15:41:38 IST 2013
+ * Build time 	: Mon Sep 16 16:37:06 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -1711,7 +1711,7 @@ Depends on  NOTHING
         
         this.getValue = function() {
             if (typeof this.value == 'object' && this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
-            else return "date('" + this.value + "'')";
+            else return "date('" + this.value + "')";
         };
     };
 
@@ -1720,7 +1720,7 @@ Depends on  NOTHING
         
         this.getValue = function() {
             if (typeof this.value == 'object' && this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
-            else return "time('" + this.value + "'')";
+            else return "time('" + this.value + "')";
         };
     };
 
@@ -1729,7 +1729,7 @@ Depends on  NOTHING
         
         this.getValue = function() {
             if (typeof this.value == 'object' && this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
-            else return "datetime('" + this.value + "'')";
+            else return "datetime('" + this.value + "')";
         };
     };
 

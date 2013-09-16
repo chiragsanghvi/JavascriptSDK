@@ -269,7 +269,7 @@
         
         this.getValue = function() {
             if (typeof this.value == 'object' && this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
-            else return "date('" + this.value + "'')";
+            else return "date('" + this.value + "')";
         };
     };
 
@@ -278,7 +278,7 @@
         
         this.getValue = function() {
             if (typeof this.value == 'object' && this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
-            else return "time('" + this.value + "'')";
+            else return "time('" + this.value + "')";
         };
     };
 
@@ -287,7 +287,7 @@
         
         this.getValue = function() {
             if (typeof this.value == 'object' && this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
-            else return "datetime('" + this.value + "'')";
+            else return "datetime('" + this.value + "')";
         };
     };
 
