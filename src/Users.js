@@ -453,7 +453,7 @@
 			global.Appacitive.http.send(request); 
 		};
 
-		var _getUserByIdType = function(url, onSuccess, onError){
+		var _getUserByIdType = function(url, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
@@ -472,6 +472,7 @@
 		this.getUserByToken = function(token, onSuccess, onError) {
 			if (!token || typeof token != 'string' || token.length == 0) throw new Error("Please specify valid token");
 			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByTokenUrl(token);
+			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
 			_getUserByIdType(url, onSuccess, onError);
 		};
 

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Sep 16 16:37:06 IST 2013
+ * Build time 	: Wed Sep 18 09:33:07 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -777,7 +777,7 @@ var global = {};
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getUserByTokenUrl: function(userToken) {
-                return String.format("{0}/me?useridtype=token&token=", this.userServiceUrl, userToken);
+                return String.format("{0}/me?useridtype=token&token={1}", this.userServiceUrl, userToken);
             },
             getUserByUsernameUrl: function(username) {
                 return String.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
@@ -4952,7 +4952,7 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request); 
 		};
 
-		var _getUserByIdType = function(url, onSuccess, onError){
+		var _getUserByIdType = function(url, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
@@ -4971,6 +4971,7 @@ Depends on  NOTHING
 		this.getUserByToken = function(token, onSuccess, onError) {
 			if (!token || typeof token != 'string' || token.length == 0) throw new Error("Please specify valid token");
 			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByTokenUrl(token);
+			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
 			_getUserByIdType(url, onSuccess, onError);
 		};
 
