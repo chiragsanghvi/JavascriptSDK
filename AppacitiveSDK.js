@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Sep 18 09:33:07 IST 2013
+ * Build time 	: Wed Sep 18 10:43:12 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -4331,8 +4331,8 @@ Depends on  NOTHING
 		this.parseConnection = function() {
 			
 			var typeA = 'A', typeB ='B';
-			if ( options.__endpointa.label == this.get('__endpointb').label ) {
-				if ((options.__endpointa.label != options.__endpointb.label) && (options.__endpointa.articleid == this.get('__endpointb').articleid || !options.__endpointa.articleid)) {
+			if ( options.__endpointa.label.toLowerCase() == this.get('__endpointb').label.toLowerCase() ) {
+				if ((options.__endpointa.label.toLowerCase() != options.__endpointb.label.toLowerCase()) && (options.__endpointa.articleid == this.get('__endpointb').articleid || !options.__endpointa.articleid)) {
 				 	typeA = 'B', typeB = 'A';
 				}
 			}
