@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Sep 18 10:43:12 IST 2013
+ * Build time 	: Wed Sep 25 13:49:25 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -122,6 +122,24 @@ if (!Date.prototype.toISOString) {
 
     Date.prototype.toISOString = Date.prototype.toJSON;
 }
+
+String.addSlashes = function (str) {
+    if (!str) return str;
+    str = str.replace(/\\/g, '\\\\');
+    str = str.replace(/\'/g, '\\\'');
+    str = str.replace(/\"/g, '\\"');
+    str = str.replace(/\0/g, '\\0');
+    return str;
+};
+
+String.stripSlashes = function (str) {
+    if (!str) return str;
+    str = str.replace(/\\'/g, '\'');
+    str = str.replace(/\\"/g, '"');
+    str = str.replace(/\\0/g, '\0');
+    str = str.replace(/\\\\/g, '\\');
+    return str;
+};
 // monolithic file
 
 var global = {};
@@ -1699,7 +1717,7 @@ Depends on  NOTHING
         this.value = value;
 
         this.getValue = function() {
-            if (typeof this.value == 'string') return "'" + this.value + "'";
+            if (typeof this.value == 'string') return "'" + String.addSlashes(this.value) + "'";
             else if (typeof this.value == 'number' || typeof this.value == 'boolean') return this.value;  
             else if (typeof this.value == 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
@@ -5594,43 +5612,36 @@ Depends on  NOTHING
   
   global.Appacitive.Date = {};
 
+  var pad = function (n) {
+      if (n < 10) return '0' + n;
+      return n
+  };
+
   global.Appacitive.Date.parseISODate = function (str) {
     try {
-      var date = new Date(str);
-      if (isNaN(date)) {
-        var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z$");
-        var isOnlyDate = false;
-        if (!regexp.exec(str)) {
-           regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})");
-           if (!regexp.exec(str)) {
-              return null  
-           } else {
-              isOnlyDate = true;
-           }
-        }  
+        var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
 
+        var isOnlyDate = false;
+        if (!regexp.exec(str)) return new Date(str);
+          
         var parts = str.split('T'),
-        dateParts = parts[0].split('-'),
-        timeParts = parts[1].split('Z'),
-        timeSubParts = timeParts[0].split(':'),
-        timeSecParts = timeSubParts[2].split('.'),
-        timeHours = Number(timeSubParts[0]),
-        date = new Date();
+          dateParts = parts[0].split('-'),
+          timeParts = parts[1].split('Z'),
+          timeSubParts = timeParts[0].split(':'),
+          timeSecParts = timeSubParts[2].split('.'),
+          timeHours = Number(timeSubParts[0]),
+          date = new Date();
 
         date.setUTCFullYear(Number(dateParts[0]));
         date.setUTCMonth(Number(dateParts[1])-1);
         date.setUTCDate(Number(dateParts[2]));
         
-        if (!isOnlyDate) {
-          date.setUTCHours(Number(timeHours));
-          date.setUTCMinutes(Number(timeSubParts[1]));
-          date.setUTCSeconds(Number(timeSecParts[0]));
-          if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
-        }
+        date.setUTCHours(Number(timeHours));
+        date.setUTCMinutes(Number(timeSubParts[1]));
+        date.setUTCSeconds(Number(timeSecParts[0]));
+        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
+
         return date;
-      } else {
-        return date;
-      }
     } catch(e) {return null;}
   };
 
@@ -5643,18 +5654,22 @@ Depends on  NOTHING
   };
 
   global.Appacitive.Date.toISODate = function(date) {
-    try {
-      date = date.toISOString().split('T')[0];
-      return date;
-    } catch(e) { return null; }
+    if (date instanceof Date) return String.format("{0}-{1}-{2}", date.getFullYear(), pad((date.getMonth() + 1)), pad(date.getDate()));
+    throw new Error("Invalid date provided Appacitive.Date.toISODate method");
   };
 
   global.Appacitive.Date.toISOTime = function(date) {
-    try {
-      date = date.toISOString().split('T')[1];
-      date = date.replace('Z','0000Z');
-      return date;
-    } catch(e) { return null; }
+    var padMilliseconds = function (n) {
+                if (n < 10) return n + '000000';
+           else if (n < 100) return n + '00000';
+           else if (n < 1000) return n + '0000';
+           else if (n < 10000) return n + '000';
+           else if (n < 100000) return n + '00';
+           else if (n < 1000000) return n + '0';
+           return n;
+    };
+    if (date instanceof Date) return String.format("{0}:{1}:{2}.{3}", pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds()), padMilliseconds(date.getMilliseconds()));
+    throw new Error("Invalid date provided Appacitive.Date.toISOTime method");
   };
 
   global.Appacitive.Date.parseISOTime = function(str) {
@@ -5664,7 +5679,7 @@ Depends on  NOTHING
       var parts = str.split('T');
       if (parts.length == 1) parts.push(parts[0]);
       
-      var regexp = new RegExp("^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z$");
+      var regexp = new RegExp("^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
       if (!regexp.exec(parts[1])) {
          return null;
       }
@@ -5674,11 +5689,18 @@ Depends on  NOTHING
       timeSecParts = timeSubParts[2].split('.'),
       timeHours = Number(timeSubParts[0]);
       
-      date.setUTCHours(Number(timeHours));
-      date.setUTCMinutes(Number(timeSubParts[1]));
-      date.setUTCSeconds(Number(timeSecParts[0]));
-      if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
-    
+      if (parts.length > 1) {
+        date.setUTCHours(Number(timeHours));
+        date.setUTCMinutes(Number(timeSubParts[1]));
+        date.setUTCSeconds(Number(timeSecParts[0]));
+        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
+      } else {
+        date.setHours(Number(timeHours));
+        date.setMinutes(Number(timeSubParts[1]));
+        date.setSeconds(Number(timeSecParts[0]));
+        if (timeSecParts[1]) date.setMilliseconds(Number(timeSecParts[1]));
+      }
+
       return date;
     } catch(e) {return null;}
   };
