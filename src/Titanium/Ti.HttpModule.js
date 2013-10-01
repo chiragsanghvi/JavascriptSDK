@@ -19,8 +19,7 @@ var global = {};
 		if (!global.Appacitive) {
 			global.Appacitive = {
 				runtime: {
-					isNode: typeof process != typeof t,
-					isBrowser: typeof window != typeof t
+					isBrowser: true
 				}
 			};
 		}
@@ -252,10 +251,8 @@ var global = {};
 							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
 							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 								var jData = response;
-								if (!global.Appacitive.runtime.isBrowser) {
-									if (jData[0] != "{") {
-										jData = jData.substr(1, jData.length - 1);
-									}
+								if (jData[0] != "{") {
+									jData = jData.substr(1, jData.length - 1);
 								}
 								response = JSON.parse(jData);
 							}

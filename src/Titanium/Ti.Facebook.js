@@ -76,7 +76,7 @@
 
 		this.logout = function(onSuccess) {
 			onSuccess = onSuccess || function() {};
-			Appacitive.facebook.accessToken = "";
+			global.Appacitive.facebook.accessToken = "";
 			_accessToken = "";
 			Ti.Facebook.logout();
 			if (typeof onSuccess == 'function') onSuccess();

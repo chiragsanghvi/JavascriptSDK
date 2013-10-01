@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Sep 30 18:30:52 IST 2013
+ * Build time 	: Tue Oct  1 14:33:10 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -161,8 +161,7 @@ var global = {};
 		if (!global.Appacitive) {
 			global.Appacitive = {
 				runtime: {
-					isNode: typeof process != typeof t,
-					isBrowser: typeof window != typeof t
+					isBrowser: true
 				}
 			};
 		}
@@ -394,10 +393,8 @@ var global = {};
 							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
 							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 								var jData = response;
-								if (!global.Appacitive.runtime.isBrowser) {
-									if (jData[0] != "{") {
-										jData = jData.substr(1, jData.length - 1);
-									}
+								if (jData[0] != "{") {
+									jData = jData.substr(1, jData.length - 1);
 								}
 								response = JSON.parse(jData);
 							}
@@ -5231,7 +5228,7 @@ Depends on  NOTHING
 
 		this.logout = function(onSuccess) {
 			onSuccess = onSuccess || function() {};
-			Appacitive.facebook.accessToken = "";
+			global.Appacitive.facebook.accessToken = "";
 			_accessToken = "";
 			Ti.Facebook.logout();
 			if (typeof onSuccess == 'function') onSuccess();
@@ -5659,48 +5656,21 @@ Depends on  NOTHING
 
 var cookieManager = function () {
 
-	this.setCookie = function (name, value, minutes, erase) {
-		name = global.Appacitive.getAppPrefix(name);
-		var expires = '';
-		if (minutes) {
-			var date = new Date();
-			date.setTime(date.getTime() + (minutes*60*1000));
-			expires = "; expires=" + date.toGMTString();
-		}
-
-		if (!erase) {
-			//for now lets make this a session cookie if it is not an erase
-			if (!global.Appacitive.Session.persistUserToken) expires = '';
-			else expires = "; expires=" +  new Date("2020-12-31").toGMTString();
-		} else {
-			expires = '; expires=Thu, 01-Jan-1970 00:00:01 GMT';
-		}
-		var domain = 'domain=' + window.location.hostname;
-		if (window.location.hostname == 'localhost') domain = '';
-		
-		document.cookie = name + "=" + value + expires + "; path=/;" + domain;
+	this.setCookie = function (name, value) {
+		global.Appacitive.localStorage.set(name, value);
 	};
 
 	this.readCookie = function (name) {
-		name = global.Appacitive.getAppPrefix(name);
-		var nameEQ = name + "=";
-		var ca = document.cookie.split(';');
-		for (var i=0; i < ca.length; i++) {
-			var c = ca[i];
-			while (c.charAt(0)==' ') c = c.substring(1,c.length);
-			if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-		}
-		return null;
+		return global.Appacitive.localStorage.get(name);
 	};
 
 	this.eraseCookie = function (name) {
-		this.setCookie(name, "" ,-1, true);
+		global.Appacitive.localStorage.remove(name);
 	};
 
 };
 
-if (global.Appacitive.runtime.isBrowser)
-	global.Appacitive.Cookie = new cookieManager();
+global.Appacitive.Cookie = new cookieManager();
 
 })(global);
-if (typeof module != 'undefined' && !global.Appacitive.runtime.isBrowser) module.exports =  global.Appacitive;
+module.exports =  global.Appacitive;
