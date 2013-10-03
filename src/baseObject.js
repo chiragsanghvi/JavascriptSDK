@@ -552,7 +552,7 @@
 							data = data || {};
 							data.status =  data.status || {};
 							data.status = _getOutpuStatus(data.status);
-							if (data.status.code == '7008' && _atomicProps.length > 0) {
+							if (data.status.code == '14008' && _atomicProps.length > 0) {
 								_update(onSuccess, onError, fields);
 							}  else {
 								global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updateFailed', that, { object : data.status });
@@ -564,7 +564,7 @@
 						err = err || {};
 						err.message = err.message || 'Server error';
 						err.code = err.code || '500';
-						if (err.code == '7008' && _atomicProps.length > 0) {
+						if (err.code == '14008' && _atomicProps.length > 0) {
 							_update(onSuccess, onError, fields);
 						} else {
 							if (typeof onError == 'function') onError(err, that);

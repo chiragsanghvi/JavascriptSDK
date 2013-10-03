@@ -462,7 +462,7 @@ var global = {};
 							global.Appacitive.http.send(request);
 						}
 					} else {
-						if (response && ((response.status && response.status.code && response.status.code == '8036') || (response.code &&response.code == '8036'))) {
+						if (response && ((response.status && response.status.code && response.status.code == '19036') || (response.code &&response.code == '19036'))) {
 							global.Appacitive.Users.logout(function(){}, true);
 						} else {
 							global.Appacitive.Session.incrementExpiry();
