@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Oct  1 14:33:10 IST 2013
+ * Build time 	: Thu Oct  3 12:23:03 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -604,7 +604,7 @@ var global = {};
 							global.Appacitive.http.send(request);
 						}
 					} else {
-						if (response && ((response.status && response.status.code && response.status.code == '8036') || (response.code &&response.code == '8036'))) {
+						if (response && ((response.status && response.status.code && response.status.code == '19036') || (response.code &&response.code == '19036'))) {
 							global.Appacitive.Users.logout(function(){}, true);
 						} else {
 							global.Appacitive.Session.incrementExpiry();
@@ -1296,13 +1296,13 @@ Depends on  NOTHING
 			if (!response) return true;
 			if (response.status) {
 				if (response.status.code) {
-					if (response.status.code == '8027' || response.status.code == '8002') {
-						return { status: false, isSession: (response.status.code == '8027') ? true : false };
+					if (response.status.code == '19027' || response.status.code == '19002') {
+						return { status: false, isSession: (response.status.code == '19027') ? true : false };
 					}
 				}
 			} else if (response.code) {
-				if (response.code == '8027' || response.code == '8002') {
-					return { status: false, isSession: (response.code == '8027') ? true : false };
+				if (response.code == '19027' || response.code == '19002') {
+					return { status: false, isSession: (response.code == '19027') ? true : false };
 				}
 			}
 			return { status: true };
@@ -2439,9 +2439,9 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
-				'articleid=' + this.articleId +
-				'&label=' +this.label +
-				this.getQueryString();
+				this.getQueryString() + 
+				'&articleid=' + this.articleId +
+				'&label=' + this.label;
 		};
 
 		return this;
@@ -3256,7 +3256,7 @@ Depends on  NOTHING
 							data = data || {};
 							data.status =  data.status || {};
 							data.status = _getOutpuStatus(data.status);
-							if (data.status.code == '7008' && _atomicProps.length > 0) {
+							if (data.status.code == '14008' && _atomicProps.length > 0) {
 								_update(onSuccess, onError, fields);
 							}  else {
 								global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updateFailed', that, { object : data.status });
@@ -3268,7 +3268,7 @@ Depends on  NOTHING
 						err = err || {};
 						err.message = err.message || 'Server error';
 						err.code = err.code || '500';
-						if (err.code == '7008' && _atomicProps.length > 0) {
+						if (err.code == '14008' && _atomicProps.length > 0) {
 							_update(onSuccess, onError, fields);
 						} else {
 							if (typeof onError == 'function') onError(err, that);

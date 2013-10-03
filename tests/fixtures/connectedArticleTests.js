@@ -13,7 +13,7 @@ test('Verify connection collection search query url', function() {
 	if (requestUrl.indexOf('?') != -1) {
 		requestUrl = requestUrl.substr(requestUrl, requestUrl.indexOf('?'));
 	}
-	var url = Appacitive.config.apiBaseUrl + 'connection/' + relation + '/' + id + '/find';
+	var url = Appacitive.config.apiBaseUrl + 'connection/' + relation + '/profile/' + id + '/find';
 	equal(requestUrl, url, 0, 'Connection collection returned proper url: ' + requestUrl);
 });
 

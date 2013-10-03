@@ -203,7 +203,8 @@ asyncTest('Verify connection update after it is created', function() {
 		conn.save(function(conn) {
 			equal(conn.get('year'), year, 'Connection property value changed successfully');
 			start();
-		}, function() {
+		}, function(status) {
+			console.log(status);
 			ok(false, 'Could not update connection.');
 			start();
 		});		
