@@ -1,12 +1,45 @@
 module('Test Cleanup');
 
 asyncTest('Creating session with valid Apikey', function() {
+	Appacitive.initialize({apikey: testConstants.apiKey, env: testConstants.environment, appId: testConstants.appId });
 	Appacitive.Session.resetSession();
 	Appacitive.Session.removeUserAuthHeader();
-	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox', appId: '14700033921384718' });
 	ok(true, 'Session created successfully.');
 	start();
 });
+
+
+
+asyncTest('Cleaning up articles of schema school', function() {
+	var collection = new Appacitive.ArticleCollection({ schema: 'school' });
+	collection.fetch(function() {
+		var articles = collection.getAll();
+		var total = articles.length;
+		if (articles.length == 0) {
+			ok(true, 'No articles to delete');
+			start();
+			return;
+		}
+
+		articles.forEach(function (article) {
+			article.del(function() {
+				total -= 1;
+				if (total == 0) {
+					ok(true, articles.length + ' articles of type school deleted successfully');
+					start();
+				}
+			}, function() {
+				ok(false, 'Article delete failed for connections with id: ' + article.get('__id'));
+				start();
+			}, true);
+		});
+
+	}, function() {
+		ok(false, 'Could not fetch articles for schema school');
+		start();
+	});
+});
+
 
 asyncTest('Cleaning up connections of relation userprofile', function() {
 	var collection = new Appacitive.ConnectionCollection({ relation: 'userprofile' });
@@ -18,6 +51,12 @@ asyncTest('Cleaning up connections of relation userprofile', function() {
 			start();
 			return;
 		}
+
+		var ids = [];
+		connections.forEach(function (article) {
+			ids.push(article.get('__id'));
+		});
+
 		connections.forEach(function (connection) {
 			connection.del(function() {
 				total -= 1;
@@ -26,7 +65,7 @@ asyncTest('Cleaning up connections of relation userprofile', function() {
 					start();
 				}
 			}, function() {
-				ok(false, 'Article delete failed for connections with id: ' + connection.get('__id'));
+				ok(false, 'Connection delete failed for connections with id: ' + connection.get('__id'));
 				start();
 			})
 		});
@@ -56,7 +95,7 @@ asyncTest('Cleaning up connections of relation myschool', function() {
 			ok(true, connections.length + ' connections of type myschool deleted successfully');
 			start();
 		}, function() {
-			ok(false, 'Article delete failed for all connections' );
+			ok(false, 'Connection delete failed for all connections' );
 			start();
 		});
 
@@ -94,35 +133,6 @@ asyncTest('Cleaning up articles of schema profile', function() {
 		start();
 	});
 });
-
-asyncTest('Cleaning up articles of schema school', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'school' });
-	collection.fetch(function() {
-		var articles = collection.getAll();
-		var total = articles.length;
-		if (articles.length == 0) {
-			ok(true, 'No articles to delete');
-			start();
-			return;
-		}
-		var ids = [];
-		articles.forEach(function (article) {
-			ids.push(article.get('__id'));
-		});
-
-		Appacitive.Article.multiDelete({ schema: "school", ids: ids }, function() {
-			ok(true, articles.length + ' articles of type school deleted successfully');
-			start();
-		}, function() {
-			ok(false, 'Article delete failed for all articles');
-			start();
-		});
-	}, function() {
-		ok(false, 'Could not fetch articles for schema school');
-		start();
-	});
-});
-
 
 asyncTest('Cleaning up articles of schema user', function() {
 
