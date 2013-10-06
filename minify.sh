@@ -12,7 +12,6 @@ cat src/copyright.txt src/utils/getterSetter.js src/Titanium/Ti.HttpModule.js sr
 
 echo "Done combining Ti.AppacitiveSDK.js"
 
-
 echo "================Minifying AppacitiveSDK.js============="
 
 in=AppacitiveSDK.js
