@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Oct  3 12:23:03 IST 2013
+ * Build time 	: Sun Oct  6 12:22:11 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -5536,7 +5536,7 @@ Depends on  NOTHING
         date.setUTCHours(Number(timeHours));
         date.setUTCMinutes(Number(timeSubParts[1]));
         date.setUTCSeconds(Number(timeSecParts[0]));
-        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
+        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1].substring(0, 3)));
 
         return date;
     } catch(e) {return null;}
@@ -5590,12 +5590,12 @@ Depends on  NOTHING
         date.setUTCHours(Number(timeHours));
         date.setUTCMinutes(Number(timeSubParts[1]));
         date.setUTCSeconds(Number(timeSecParts[0]));
-        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
+        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1].substring(0, 3)));
       } else {
         date.setHours(Number(timeHours));
         date.setMinutes(Number(timeSubParts[1]));
         date.setSeconds(Number(timeSecParts[0]));
-        if (timeSecParts[1]) date.setMilliseconds(Number(timeSecParts[1]));
+        if (timeSecParts[1]) date.setMilliseconds(Number(timeSecParts[1].substring(0, 3)));
       }
 
       return date;

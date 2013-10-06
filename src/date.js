@@ -29,7 +29,7 @@
         date.setUTCHours(Number(timeHours));
         date.setUTCMinutes(Number(timeSubParts[1]));
         date.setUTCSeconds(Number(timeSecParts[0]));
-        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
+        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1].substring(0, 3)));
 
         return date;
     } catch(e) {return null;}
@@ -83,12 +83,12 @@
         date.setUTCHours(Number(timeHours));
         date.setUTCMinutes(Number(timeSubParts[1]));
         date.setUTCSeconds(Number(timeSecParts[0]));
-        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
+        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1].substring(0, 3)));
       } else {
         date.setHours(Number(timeHours));
         date.setMinutes(Number(timeSubParts[1]));
         date.setSeconds(Number(timeSecParts[0]));
-        if (timeSecParts[1]) date.setMilliseconds(Number(timeSecParts[1]));
+        if (timeSecParts[1]) date.setMilliseconds(Number(timeSecParts[1].substring(0, 3)));
       }
 
       return date;
