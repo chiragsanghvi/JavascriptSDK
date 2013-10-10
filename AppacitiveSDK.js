@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sun Oct  6 12:21:57 IST 2013
+ * Build time 	: Thu Oct 10 14:11:59 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -1710,16 +1710,19 @@ Depends on  NOTHING
         taggedWithOneOrMore: "tagged_with_one_or_more"
     };
 
-    var _primitiveFieldValue = function(value) {
+    var _primitiveFieldValue = function(value, type) {
 
         if (value == null || value == undefined || value.length == 0) throw new Error("Specify value");
 
         this.value = value;
 
+        if (type) this.type = type;
+        else this.type = typeof this.value; 
+
         this.getValue = function() {
-            if (typeof this.value == 'string') return "'" + String.addSlashes(this.value) + "'";
-            else if (typeof this.value == 'number' || typeof this.value == 'boolean') return this.value;  
-            else if (typeof this.value == 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            if (this.type == 'string') return "'" + String.addSlashes(this.value) + "'";
+            else if (this.type == 'number' || typeof this.value == 'boolean') return this.value;  
+            else if (this.type == 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
         };
     };
@@ -1762,6 +1765,10 @@ Depends on  NOTHING
         /* Helper functions for EqualTo */
         context.equalTo = function(value) {
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isEqualTo });
+        };
+
+        context.equalToNumber = function(value){
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isEqualTo });
         };
 
         context.equalToDate = function(value) {

@@ -250,16 +250,19 @@
         taggedWithOneOrMore: "tagged_with_one_or_more"
     };
 
-    var _primitiveFieldValue = function(value) {
+    var _primitiveFieldValue = function(value, type) {
 
         if (value == null || value == undefined || value.length == 0) throw new Error("Specify value");
 
         this.value = value;
 
+        if (type) this.type = type;
+        else this.type = typeof this.value; 
+
         this.getValue = function() {
-            if (typeof this.value == 'string') return "'" + String.addSlashes(this.value) + "'";
-            else if (typeof this.value == 'number' || typeof this.value == 'boolean') return this.value;  
-            else if (typeof this.value == 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            if (this.type == 'string') return "'" + String.addSlashes(this.value) + "'";
+            else if (this.type == 'number' || typeof this.value == 'boolean') return this.value;  
+            else if (this.type == 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
         };
     };
@@ -302,6 +305,10 @@
         /* Helper functions for EqualTo */
         context.equalTo = function(value) {
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isEqualTo });
+        };
+
+        context.equalToNumber = function(value){
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isEqualTo });
         };
 
         context.equalToDate = function(value) {
