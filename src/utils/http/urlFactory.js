@@ -125,7 +125,7 @@
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getUserByTokenUrl: function(userToken) {
-                return String.format("{0}/me?useridtype=token&token=", this.userServiceUrl, userToken);
+                return String.format("{0}/me?useridtype=token&token={1}", this.userServiceUrl, userToken);
             },
             getUserByUsernameUrl: function(username) {
                 return String.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);

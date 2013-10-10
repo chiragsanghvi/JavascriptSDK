@@ -3,7 +3,7 @@ module('Connection API tests');
 asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.Session.resetSession();
 	Appacitive.Session.removeUserAuthHeader();
-	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox', appId: '14700033921384718' });
+	Appacitive.initialize({apikey: testConstants.apiKey, env: testConstants.environment, appId: testConstants.appId });
 	ok(true, 'Session created successfully.');
 	start();
 });
@@ -203,7 +203,8 @@ asyncTest('Verify connection update after it is created', function() {
 		conn.save(function(conn) {
 			equal(conn.get('year'), year, 'Connection property value changed successfully');
 			start();
-		}, function() {
+		}, function(status) {
+			console.log(status);
 			ok(false, 'Could not update connection.');
 			start();
 		});		

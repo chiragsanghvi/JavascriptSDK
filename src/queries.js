@@ -485,9 +485,9 @@
 
 		this.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
-				'articleid=' + this.articleId +
-				'&label=' +this.label +
-				this.getQueryString();
+				this.getQueryString() + 
+				'&articleid=' + this.articleId +
+				'&label=' + this.label;
 		};
 
 		return this;

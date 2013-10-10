@@ -15,7 +15,7 @@ test('Verify article::getFacebookProfile does not exist on articles of schemas o
 asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.Session.resetSession();
 	Appacitive.Session.removeUserAuthHeader();
-	Appacitive.initialize({apikey: testConstants.apiKey, env: 'sandbox', appId: '14700033921384718' });
+	Appacitive.initialize({apikey: testConstants.apiKey, env: testConstants.environment, appId: testConstants.appId });
 	ok(true, 'Session created successfully.');
 	start();
 });

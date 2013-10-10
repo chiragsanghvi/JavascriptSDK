@@ -1,35 +1,145 @@
-/** workaround for __getter__ and __setter__ API's for IE
-**/
+/*
+ * AppacitiveSDK.js v0.995 - Javascript SDK to integrate applictions using Appacitive
+ * Copyright (c) 2013 Appacitive Software Pvt Ltd
+ * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
+ * Project      : https://github.com/chiragsanghvi/JavascriptSDK
+ * Contact      : support@appacitive.com | csanghvi@appacitive.com
+ * Build time 	: Thu Oct 10 14:20:02 IST 2013
+ */
 
-try {
-   if (!Object.prototype.__defineGetter__ && Object.defineProperty({},"x",{get: function(){return true}}).x) {
-      Object.defineProperty(Object.prototype, "__defineGetter__",
-         {
-         	enumerable: false, 
-         	configurable: true,
-          	value: function(name,func)
-             {Object.defineProperty(this,name,
-                 {
-                 	get:func,
-                 	enumerable: true,
-                 	configurable: true
-                 });
-      }});
-      Object.defineProperty(Object.prototype, "__defineSetter__",
-         {
-         	enumerable: false, 
-         	configurable: true,
-          	value: function(name,func)
-             {
-             	Object.defineProperty(this,name,
-                 {
-                 	set:func,
-                 	enumerable: true,
-                 	configurable: true
-                 });
-      }});
-   }
-} catch(defPropException) {/*Do nothing if an exception occurs*/};
+// Add ECMA262-5 method binding if not supported natively
+//
+if (!('bind' in Function.prototype)) {
+    Function.prototype.bind= function(owner) {
+        var that= this;
+        if (arguments.length<=1) {
+            return function() {
+                return that.apply(owner, arguments);
+            };
+        } else {
+            var args= Array.prototype.slice.call(arguments, 1);
+            return function() {
+                return that.apply(owner, arguments.length===0? args : args.concat(Array.prototype.slice.call(arguments)));
+            };
+        }
+    };
+}
+
+// Add ECMA262-5 string trim if not supported natively
+//
+if (!('trim' in String.prototype)) {
+    String.prototype.trim= function() {
+        return this.replace(/^\s+/, '').replace(/\s+$/, '');
+    };
+}
+
+
+// Add ECMA262-5 Array methods if not supported natively
+//
+if (!('indexOf' in Array.prototype)) {
+    Array.prototype.indexOf= function(find, i /*opt*/) {
+        if (i===undefined) i= 0;
+        if (i<0) i+= this.length;
+        if (i<0) i= 0;
+        for (var n= this.length; i<n; i++)
+            if (i in this && this[i]===find)
+                return i;
+        return -1;
+    };
+}
+if (!('lastIndexOf' in Array.prototype)) {
+    Array.prototype.lastIndexOf= function(find, i /*opt*/) {
+        if (i===undefined) i= this.length-1;
+        if (i<0) i+= this.length;
+        if (i>this.length-1) i= this.length-1;
+        for (i++; i-->0;) /* i++ because from-argument is sadly inclusive */
+            if (i in this && this[i]===find)
+                return i;
+        return -1;
+    };
+}
+if (!('forEach' in Array.prototype)) {
+    Array.prototype.forEach= function(action, that /*opt*/) {
+        for (var i= 0, n= this.length; i<n; i++)
+            if (i in this)
+                action.call(that, this[i], i, this);
+    };
+}
+if (!('map' in Array.prototype)) {
+    Array.prototype.map= function(mapper, that /*opt*/) {
+        var other= new Array(this.length);
+        for (var i= 0, n= this.length; i<n; i++)
+            if (i in this)
+                other[i]= mapper.call(that, this[i], i, this);
+        return other;
+    };
+}
+if (!('filter' in Array.prototype)) {
+    Array.prototype.filter= function(filter, that /*opt*/) {
+        var other= [], v;
+        for (var i=0, n= this.length; i<n; i++)
+            if (i in this && filter.call(that, v= this[i], i, this))
+                other.push(v);
+        return other;
+    };
+}
+if (!('every' in Array.prototype)) {
+    Array.prototype.every= function(tester, that /*opt*/) {
+        for (var i= 0, n= this.length; i<n; i++)
+            if (i in this && !tester.call(that, this[i], i, this))
+                return false;
+        return true;
+    };
+}
+if (!('some' in Array.prototype)) {
+    Array.prototype.some= function(tester, that /*opt*/) {
+        for (var i= 0, n= this.length; i<n; i++)
+            if (i in this && tester.call(that, this[i], i, this))
+                return true;
+        return false;
+    };
+}
+// Override only if native toISOString is not defined
+if (!Date.prototype.toISOString) {
+    // Here we rely on JSON serialization for dates because it matches 
+    // the ISO standard. However, we check if JSON serializer is present 
+    // on a page and define our own .toJSON method only if necessary
+    if (!Date.prototype.toJSON) {
+        Date.prototype.toJSON = function (key) {
+            function f(n) {
+                // Format integers to have at least two digits.
+                return n < 10 ? '0' + n : n;
+        }
+
+        return this.getUTCFullYear()   + '-' +
+            f(this.getUTCMonth() + 1) + '-' +
+            f(this.getUTCDate())      + 'T' +
+            f(this.getUTCHours())     + ':' +
+            f(this.getUTCMinutes())   + ':' +
+            f(this.getUTCSeconds())   + 'Z';
+        };
+    }
+
+    Date.prototype.toISOString = Date.prototype.toJSON;
+}
+
+String.addSlashes = function (str) {
+    if (!str) return str;
+    str = str.replace(/\\/g, '\\\\');
+    str = str.replace(/\'/g, '\\\'');
+    str = str.replace(/\"/g, '\\"');
+    str = str.replace(/\0/g, '\\0');
+    return str;
+};
+
+String.stripSlashes = function (str) {
+    if (!str) return str;
+    str = str.replace(/\\'/g, '\'');
+    str = str.replace(/\\"/g, '"');
+    str = str.replace(/\\0/g, '\0');
+    str = str.replace(/\\\\/g, '\\');
+    return str;
+};
 // monolithic file
 
 var global = {};
@@ -51,8 +161,7 @@ var global = {};
 		if (!global.Appacitive) {
 			global.Appacitive = {
 				runtime: {
-					isNode: typeof process != typeof t,
-					isBrowser: typeof window != typeof t
+					isBrowser: true
 				}
 			};
 		}
@@ -142,6 +251,30 @@ var global = {};
 			_queue.push(request);
 		};
 
+
+		this.changeRequestForCors = function(request) {
+			var body = {
+				m : request.method.toUpperCase()
+			};
+			request.headers.forEach(function(h) {
+				body[h.key] = h.value;
+			});
+			request.headers = [];
+			request.headers.push({ key:'Content-Type', value: 'text/plain' });
+			request.method = 'POST';
+
+			if (request.data) body.b = request.data
+			delete request.data;
+			
+			if (global.Appacitive.config.debug) {
+				if (request.url.indexOf('?') == -1) request.url = request.url + '?debug=true';
+				else request.url = request.url + '&debug=true';
+			}
+
+			try { request.data = JSON.stringify(body); } catch(e) {}
+			return request;
+		};
+
 		// notifies the queue that there are requests pending
 		// this will start firing the requests via the method 
 		// passed while initalizing
@@ -169,6 +302,8 @@ var global = {};
 					}
 				}
 
+				this.changeRequestForCors(toFire);
+
 				// send the requests
 				// and the callbacks and the 
 				// results returned from the preprocessors
@@ -187,7 +322,7 @@ var global = {};
 	/**
 	 * @constructor
 	 */
-	 var _HttpTransport = function () {
+	var _HttpTransport = function () {
 		var _notImplemented = function () {
 			throw new Error('Not Implemented Exception');
 		}
@@ -206,66 +341,78 @@ var global = {};
 		this.onError = function (request) {
 			_notImplemented()
 		};
-	}
+	};
 
 	// base xmlhttprequest class
 	/**
 	  * @constructor
 	  */
 
-	var _XMLHttpRequest = null;
-
-	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : Titanium.Network.createHTTPClient;
-
-	var _XMLHttp = function(request, doNotStringify) {
-
-	    if (typeof(XDomainRequest) !== "undefined") {
-	      throw new Error("Appacitive doesn't support versions of IE6, IE7, IE8, IE9 due to crossdomain calls");
-	    }
+	var _XMLHttp = function(request) {
 
 		if (!request.url) throw new Error("Please specify request url");
 		if (!request.method) request.method = 'GET' ;
 		if (!request.headers) request.headers = [];
 		var data = {};
+		
+		var doNotStringify = true;
+		request.headers.forEach(function(r){
+			if (r.key.toLowerCase() == 'content-type') {
+				doNotStringify = true;
+				if (r.value.toLowerCase() == 'application/json' || r.value.toLowerCase() == "application/javascript" || r.value.toLowerCase() == 'application/json; charset=utf-8' || r.value.toLowerCase() == 'application/json; charset=utf-8;') {
+					doNotStringify = false;
+				}
+			}
+		});
+
+
 		if (doNotStringify) data = request.data;
 		else {
-			try { if (request.data) data = request.data;
-				  data = JSON.stringify(data); 
-			} catch(e) {}
+			if (request.data) { 
+				data = request.data;
+				if (typeof request.data == 'object') {
+					try { data = JSON.stringify(data); } catch(e) {}
+				}
+			}
 		}
+
 		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
 	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
 	    
-	    var xhr = new _XMLHttpRequest();
-	    xhr.onreadystatechange = function() {
-	    	if (this.readyState == 4) {
-		    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
-					var response = this.responseText;
-					try {
-						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
-						if (contentType.toLowerCase() == 'application/json' ||  contentType .toLowerCase() == 'application/javascript') { 
-							var jData = response;
-							if (!global.Appacitive.runtime.isBrowser) {
+	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
+	    	request.data = data;
+			var xdr = new _XDomainRequest(request);
+			return xdr;
+	    } else {
+		    var xhr = Titanium.Network.createHTTPClient();
+		    xhr.onreadystatechange = function() {
+		    	if (this.readyState == 4) {
+			    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
+						var response = this.responseText;
+						try {
+							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
+							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
+								var jData = response;
 								if (jData[0] != "{") {
 									jData = jData.substr(1, jData.length - 1);
 								}
+								response = JSON.parse(jData);
 							}
-							response = JSON.parse(jData);
-						}
-					} catch(e) {}
-		            request.onSuccess(response, this);
-		        } else {
-		        	request.onError({code: this.status , message: this.statusText }, this);
-		        }
-	    	}
-	    };
-	    xhr.open(request.method, request.url, true);
-	    for (var x = 0; x < request.headers.length; x += 1)
-			xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
-		if (!global.Appacitive.runtime.isBrowser)
-			xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
-	    xhr.send(data);
-	    return xhr;
+						} catch(e) {}
+			            request.onSuccess(response, this);
+			        } else {
+			        	request.onError({code: this.status , message: this.statusText }, this);
+			        }
+		    	}
+		    };
+		    xhr.open(request.method, request.url, true);
+		    for (var x = 0; x < request.headers.length; x += 1)
+				xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
+			if (!global.Appacitive.runtime.isBrowser)
+				xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
+		    xhr.send(data);
+		    return xhr;
+		}
 	};
 
 
@@ -309,8 +456,7 @@ var global = {};
 
 		var that = _super;
 
-		var _trigger = function(request, callbacks, states, doNotStringify) {
-			if (!doNotStringify) request.headers.push({ key:'content-type', value: 'application/json' });
+		var _trigger = function(request, callbacks, states) {
 			var xhr = new  _XMLHttp({
 				method: request.method,
 				url: request.url,
@@ -321,8 +467,7 @@ var global = {};
 					 	that.onError(request, { code:'400', messgae: 'Invalid request' });
 						return;
 					}
-					// Hack to make things work in FF
-					try { data = JSON.parse(data); } catch (e) {}
+					try{ data = JSON.parse(data);} catch(e){}
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
 					that.onResponse(data, request);
@@ -451,13 +596,15 @@ var global = {};
 			post: function (response, request) {
 				try {
 					var _valid = global.Appacitive.Session.isSessionValid(response);
-					if (!_valid) {
-						if (global.Appacitive.Session.get() != null) {
-							global.Appacitive.Session.resetSession();
+					if (!_valid.status) {
+						if (_valid.isSession) {
+							if (global.Appacitive.Session.get() != null) {
+								global.Appacitive.Session.resetSession();
+							}
+							global.Appacitive.http.send(request);
 						}
-						global.Appacitive.http.send(request);
 					} else {
-						if (response && ((response.status && response.status.code && response.status.code == '8036') || (response.code &&response.code == '8036'))) {
+						if (response && ((response.status && response.status.code && response.status.code == '19036') || (response.code &&response.code == '19036'))) {
 							global.Appacitive.Users.logout(function(){}, true);
 						} else {
 							global.Appacitive.Session.incrementExpiry();
@@ -550,6 +697,16 @@ var global = {};
        return newArr;
     };
 
+    Object.isEmpty = function (object) {
+        if(!object) return true;
+        var isEmpty = true;
+        for (keys in object) {
+            isEmpty = false; 
+            break; // exiting since we found that the object is not empty
+        }
+        return isEmpty;
+    }
+
     global.dateFromWcf = function (input, throwOnInvalidInput) {
         var pattern = /Date\(([^)]+)\)/;
         var results = pattern.exec(input);
@@ -598,13 +755,17 @@ var global = {};
                 return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getUserByTokenUrl: function(userToken) {
-                return string.format("{0}/me?useridtype=token&token=", this.userServiceUrl, userToken);
+                return String.format("{0}/me?useridtype=token&token={1}", this.userServiceUrl, userToken);
             },
             getUserByUsernameUrl: function(username) {
-                return string.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
+                return String.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
             },
-            getUpdateUrl: function (userId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
+            getUpdateUrl: function (userId, fields, revision) {
+                if (!revision) {
+                    return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
+                } else {
+                    return String.format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
+                }
             },
             getDeleteUrl: function (userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
@@ -633,6 +794,12 @@ var global = {};
             },
             getCheckinUrl: function(userId, lat, lng) {
                 return String.format("{0}/{1}/chekin?lat={2}&lng={3}", this.userServiceUrl, userId, lat, lng);
+            },
+            getResetPasswordUrl: function(token) {
+                return String.format("{0}/resetpassword?token={1}", this.userServiceUrl, token);
+            },
+            getValidateResetPasswordUrl: function(token) {
+                return String.format("{0}/validateresetpasswordtoken?token={1}", this.userServiceUrl, token);
             }
         };
         this.device = {
@@ -644,8 +811,12 @@ var global = {};
             getGetUrl: function (deviceId, fields) {
                 return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
-            getUpdateUrl: function (deviceId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
+            getUpdateUrl: function (deviceId, fields, revision) {
+                if (!revision) {
+                    return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
+                } else {
+                    return String.format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
+                }
             },
             getDeleteUrl: function (deviceId) {
                 return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
@@ -686,8 +857,12 @@ var global = {};
             getGetUrl: function (schemaName, articleId, fields) {
                 return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
             },
-            getUpdateUrl: function (schemaName, articleId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
+            getUpdateUrl: function (schemaName, articleId, fields, revision) {
+                if (!revision) {
+                    return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
+                } else {
+                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.articleServiceUrl, schemaName, articleId, _getFields(fields), revision);
+                }
             },
             getDeleteUrl: function (schemaName, articleId) {
                 return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
@@ -709,8 +884,12 @@ var global = {};
             getCreateUrl: function (relationName, fields) {
                 return String.format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, _getFields(fields));
             },
-            getUpdateUrl: function (relationName, connectionId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
+            getUpdateUrl: function (relationName, connectionId, fields, revision) {
+                if (!revision) {
+                    return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
+                } else {
+                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields), revision);
+                }
             },
             getDeleteUrl: function (relationName, connectionId) {
                 return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
@@ -779,8 +958,12 @@ var global = {};
 
             fileServiceUrl: 'file',
 
-            getUploadUrl: function (contentType) {
-                return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
+            getUploadUrl: function (contentType, fileName) {
+                if (fileName && fileName.length > 0) {
+                    return String.format('{0}/uploadurl?contenttype={1}&expires=20&filename={2}', this.fileServiceUrl, escape(contentType), escape(fileName));
+                } else {
+                    return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
+                }
             },
 
             getUpdateUrl: function (fileId, contentType) {
@@ -954,6 +1137,10 @@ Depends on  NOTHING
 		apiBaseUrl: 'https://apis.appacitive.com/'
 	};
 
+	if (typeof XDomainRequest != 'undefined') {
+		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/'
+	}
+
 }(global));(function(global) {
 
 	"use strict";
@@ -1017,23 +1204,23 @@ Depends on  NOTHING
 		global.Appacitive.http.addProcessor({
 			pre: function(request) {
 				if (global.Appacitive.Session.useApiKey) {
-					request.headers.push({ key: 'appacitive-apikey', value: _apikey });
+					request.headers.push({ key: 'ak', value: _apikey });
 				} else {
-					request.headers.push({ key: 'appacitive-session', value: _sessionKey });
+					request.headers.push({ key: 'as', value: _sessionKey });
 				}
 
 				if (authEnabled === true) {
 					var userAuthHeader = request.headers.filter(function (uah) {
-						return uah.key == 'appacitive-user-auth';
+						return uah.key == 'ut';
 					});
 					if (userAuthHeader.length == 1) {
 						request.headers.forEach(function (uah) {
-							if (uah.key == 'appacitive-user-auth') {
+							if (uah.key == 'ut') {
 								uah.value = _authToken;
 							}
 						});
 					} else {
-						request.headers.push({ key: 'appacitive-user-auth', value: _authToken });
+						request.headers.push({ key: 'ut', value: _authToken });
 					}
 				}
 			}
@@ -1088,7 +1275,7 @@ Depends on  NOTHING
 			if (_authToken  && !avoidApiCall) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
+					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 					_authToken = null;
 					_request.method = 'POST';
 					_request.data = {};
@@ -1109,16 +1296,16 @@ Depends on  NOTHING
 			if (!response) return true;
 			if (response.status) {
 				if (response.status.code) {
-					if (response.status.code == '8027' || response.status.code == '8002') {
-						return false;
+					if (response.status.code == '19027' || response.status.code == '19002') {
+						return { status: false, isSession: (response.status.code == '19027') ? true : false };
 					}
 				}
 			} else if (response.code) {
-				if (response.code == '8027' || response.code == '8002') {
-					return false;
+				if (response.code == '19027' || response.code == '19002') {
+					return { status: false, isSession: (response.code == '19027') ? true : false };
 				}
 			}
-			return true;
+			return { status: true };
 		};
 
 		this.resetSession = function() {
@@ -1146,30 +1333,44 @@ Depends on  NOTHING
 
 		// the name of the environment, simple public property
 		var _env = 'sandbox';
-		this.__defineGetter__('environment', function() {
+		this.environment = function() {
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (value != 'sandbox' && value != 'live')	value = 'sandbox';
+				_env = value;
+			}
 			return _env;
-		});
-		this.__defineSetter__('environment', function(value) {
-			if (value != 'sandbox' && value != 'live')
-				value = 'sandbox';
-			_env = value;
-		});
+		};
 	};
 
 	global.Appacitive.Session = new SessionManager();
 
+	global.Appacitive.getAppPrefix = function(str) {
+		return global.Appacitive.Session.environment() + '/' + global.Appacitive.appId + '/' + str;
+	};
+
 	global.Appacitive.initialize = function(options) {
+		
+		options = options || {};
+
 		if (global.Appacitive.Session.initialized) return;
 		
 		if (!options.apikey || options.apikey.length == 0) throw new Error("apikey is mandatory");
 		
+		if (!options.appId || options.appId.length == 0) throw new Error("appId is mandatory");
+
+
 		global.Appacitive.Session.setApiKey( options.apikey) ;
-		global.Appacitive.Session.environment = ( options.env || 'sandbox' );
+		global.Appacitive.Session.environment(options.env || 'sandbox' );
 		global.Appacitive.useApiKey = true;
+		global.Appacitive.appId = options.appId;
   		
   		global.Appacitive.Session.initialized = true;
+  		global.Appacitive.Session.persistUserToken = options.persistUserToken;
+  		
+		if (options.debug) global.Appacitive.config.debug = true;
 
-		if (options.userToken) {
+  		if (options.userToken) {
 
 			if (options.expiry == -1)  options.expiry = null 
 			else if (!options.expiry)  options.expiry = 3600;
@@ -1213,9 +1414,550 @@ Depends on  NOTHING
 
 	global.Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'appacitive-environment', value: global.Appacitive.Session.environment });
+			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
 		}
 	});
+
+})(global);(function (global) {
+
+    var Appacitive = global.Appacitive;
+
+    Appacitive.GeoCoord = function(lat, lng) {
+        
+        _validateGeoCoord = function(lat, lng) {
+          if (isNaN(lat) || isNaN(lng)) throw new Error("Invalid Latitiude or longitiude provided");
+          if (lat < -90.0 || lat > 90.0) throw new Error("Latitude " + lat + " should be in range of  -90.0 to 90.");
+          if (lng < -180.0 || lng > 180.0) throw new Error("Latitude " + lng + " should be in range of  -180.0 to 180.");
+        };
+
+        if (!lat || !lng) {
+          this.lat = 0, this.lng = 0;
+        } else {
+          _validateGeoCoord(lat, lng);
+          this.lat = lat, this.lng = lng;
+        }
+
+        this.toJSON = function() {
+            return {
+                latitude : this.lat,
+                longitude: this.lng
+            };
+        };
+
+        this.getValue = function() {
+            return String.format("{0},{1}", lat, lng);
+        };
+
+        this.toString = function() { return this.getValue(); };
+    };
+
+    var _filter = function() { this.toString = function() { }; };
+
+    var _fieldFilter = function(options) {
+
+        _filter.call(this);
+
+        options = options || {};
+        this.fieldType = options.fieldType;
+        this.field = options.field || '';
+        this.value = options.value;
+        this.operator = options.operator;
+
+        this.getFieldType = function() {
+            switch (this.fieldType) {
+                case 'property' : return '*';
+                case 'attribute' : return '@';
+                case 'aggregate' : return '$';
+                default : return '*';
+            };
+        };
+
+        this.toString = function() {
+             return String.format("{0}{1} {2} {3}",
+                    this.getFieldType(),
+                    this.field.toLowerCase(),
+                    this.operator,
+                    this.value.getValue());
+        };
+
+    };
+
+    _fieldFilter.prototype = new _filter();
+    _fieldFilter.prototype.constructor = _fieldFilter;
+
+
+    var _containsFilter = function(options) {
+        
+        options = options || '';
+
+        if (!(typeof options.value == 'object') || !options.value.length) throw new Error("Specify field value as array");
+        
+        _fieldFilter.call(this, options);
+
+        var _getValue = function(value) {
+            if (typeof value == 'string') return "'" + value + "'";
+            else if (typeof value == 'number') return value;  
+            else return value.toString();
+        };
+
+        this.toString = function() {
+            var values = [];
+            for (var i = 0; i < this.value.length; i = i + 1) {
+                values.push(String.format("{0}{1} {2} {3}",
+                            this.getFieldType(),
+                            this.field.toLowerCase(),
+                            this.operator,
+                            _getValue(this.value[i])));
+            };
+            return "("  + values.join(' or ') + ")"; 
+        }
+
+    };
+
+    _containsFilter.prototype = new _fieldFilter();
+    _containsFilter.prototype.constructor = _containsFilter;
+
+    var _betweenFilter = function(options) {
+        options = options || '';
+
+        if (!options.val1) throw new Error("Specify field value1 ");
+        if (!options.val2) throw new Error("Specify field value2 ");
+
+        this.val1 = options.val1;
+        this.val2 = options.val2;
+
+        _fieldFilter.call(this, options);
+
+        delete this.value;
+
+        this.toString = function() {
+             return String.format("{0}{1} {2} ({3},{4})",
+                    this.getFieldType(),
+                    this.field.toLowerCase(),
+                    this.operator,
+                    this.val1.getValue(),
+                    this.val2.getValue());
+        };
+
+    };
+
+    _betweenFilter.prototype = new _fieldFilter();
+    _betweenFilter.prototype.constructor = _betweenFilter;
+
+
+    var _radialFilter = function(options) {
+
+        options = options || '';
+
+        if (!options.geoCoord || !(options.geoCoord instanceof Appacitive.GeoCoord)) throw new Error("withinCircle filter needs Appacitive.GeoCoord object as argument");
+
+        _fieldFilter.call(this, options);
+
+        this.value = options.geoCoord;
+
+        this.unit = options.unit || 'mi';
+
+        this.distance = options.distance || 5;
+
+        this.toString = function() {
+             return String.format("{0}{1} {2} {3},{4} {5}",
+                    this.getFieldType(),
+                    this.field.toLowerCase(),
+                    this.operator,
+                    this.value.getValue(),
+                    this.distance,
+                    this.unit);
+        };
+    };
+
+    _radialFilter.prototype = new _fieldFilter();
+    _radialFilter.prototype.constructor = _betweenFilter;
+
+
+    var _polygonFilter = function(options) {
+
+        options = options || '';
+
+        if (!options.geoCoords || options.geoCoords.length == 0) throw new Error("polygon filter needs array of Appacitive.GeoCoord objects as argument");
+
+        if (options.geoCoords.length < 3) throw new Error("polygon filter needs atleast 3 Appacitive.GeoCoord objects as arguments");
+
+        _fieldFilter.call(this, options);
+
+        this.value = options.geoCoords;
+
+        var _getPipeSeparatedList = function(coords) {
+            var value = '';
+            coords.forEach(function(c) {
+                if (value.length == 0) value = c.toString();
+                else value += " | " + c.toString();
+            });
+            return value;
+        }
+
+        this.toString = function() {
+             return String.format("{0}{1} {2} {3}",
+                    this.getFieldType(),
+                    this.field.toLowerCase(),
+                    this.operator,
+                    _getPipeSeparatedList(this.value));
+        };
+    };
+
+    _polygonFilter.prototype = new _fieldFilter();
+    _polygonFilter.prototype.constructor = _betweenFilter;
+
+    _tagFilter = function(options) {
+
+        _filter.call(this);
+
+        options = options || {};
+        if (!options.tags || typeof options.tags != 'object' || options.tags.length == 0) throw new Error("Specify valid tags");
+
+        this.tags = options.tags;
+        this.operator = options.operator;
+        
+        this.toString = function() {
+             return String.format("{0}('{1}')", this.operator, this.tags.join(','));
+        };
+    };
+
+    _tagFilter.prototype = new _filter();
+    _tagFilter.prototype.constructor = _tagFilter;
+
+    _compoundFilter = function(operator, filters) {
+        
+        if (!filters || !filters.length || filters.length < 2) throw new Error("Provide valid or atleast 2 filters");
+
+        this.operator = operator;
+
+        this.innerFilters = [];
+
+        for (var i = 0; i < filters.length ; i = i + 1) {
+            if (!(filters[i] instanceof _filter)) throw new Error("Invalid filter provided");
+            this.innerFilters.push(filters[i]);
+        };
+
+        this.toString = function() {
+            var op = this.operator;
+            var value = "(";
+            this.innerFilters.forEach(function(f) {
+                if (value.length == 1) value += ' ' + f.toString();
+                else value += String.format(' {0} {1} ', op, f.toString());
+            });
+            value += ")";
+            return value;
+        };
+    };
+
+    _compoundFilter.prototype = new _filter();
+    _compoundFilter.prototype.constructor = _compoundFilter;
+
+
+    var _operators = {
+        isEqualTo: "==",
+        isGreaterThan: ">",
+        isGreaterThanEqualTo: ">=",
+        isLessThan: "<",
+        isLessThanEqualTo: "<=",
+        like: "like",
+        between: "between",
+        withinCircle: "within_circle",
+        withinPolygon: "within_polygon",
+        or: "or",
+        and: "and",
+        taggedWithAll: "tagged_with_all",
+        taggedWithOneOrMore: "tagged_with_one_or_more"
+    };
+
+    var _primitiveFieldValue = function(value, type) {
+
+        if (value == null || value == undefined || value.length == 0) throw new Error("Specify value");
+
+        this.value = value;
+
+        if (type) this.type = type;
+        else this.type = typeof this.value; 
+
+        this.getValue = function() {
+            if (this.type == 'string') return "'" + String.addSlashes(this.value) + "'";
+            else if (this.type == 'number' || typeof this.value == 'boolean') return this.value;  
+            else if (this.type == 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            else return this.value.toString();
+        };
+    };
+
+    var _dateFieldValue = function(value) {
+        this.value = value;
+        
+        this.getValue = function() {
+            if (typeof this.value == 'object' && this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
+            else return "date('" + this.value + "')";
+        };
+    };
+
+    var _timeFieldValue = function(value) {
+        this.value = value;
+        
+        this.getValue = function() {
+            if (typeof this.value == 'object' && this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
+            else return "time('" + this.value + "')";
+        };
+    };
+
+    var _dateTimeFieldValue = function(value) {
+        this.value = value;
+        
+        this.getValue = function() {
+            if (typeof this.value == 'object' && this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            else return "datetime('" + this.value + "')";
+        };
+    };
+
+    var _fieldFilterUtils = function(type, name, context) { 
+
+        if (!context) context = this;
+
+        context.type = type;
+
+        context.name = name;
+
+        /* Helper functions for EqualTo */
+        context.equalTo = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isEqualTo });
+        };
+
+        context.equalToNumber = function(value){
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isEqualTo });
+        };
+
+        context.equalToDate = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isEqualTo });
+        };
+
+        context.equalToTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isEqualTo });
+        };
+
+        context.equalToDateTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isEqualTo });
+        };
+
+
+        /* Helper functions for GreaterThan */
+        context.greaterThan = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThan });
+        };
+
+        context.greaterThanDate = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isGreaterThan });
+        };
+
+        context.greaterThanTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isGreaterThan });
+        };
+
+        context.greaterThanDateTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isGreaterThan });
+        };
+
+
+        /* Helper functions for GreaterThanEqualTo */
+        context.greaterThanEqualTo = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThanEqualTo });
+        };
+
+        context.greaterThanEqualToDate = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isGreaterThanEqualTo });
+        };
+
+        context.greaterThanEqualToTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isGreaterThanEqualTo });
+        };
+
+        context.greaterThanEqualToDateTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isGreaterThanEqualTo });
+        };
+
+        /* Helper functions for LessThan */
+        context.lessThan = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThan });
+        };
+
+        context.lessThanDate = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isLessThan });
+        };
+
+        context.lessThanTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isLessThan });
+        };
+
+        context.lessThanDateTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isLessThan });
+        };
+
+
+        /* Helper functions for LessThanEqualTo */
+        context.lessThanEqualTo = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThanEqualTo });
+        };
+
+        context.lessThanEqualToDate = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isLessThanEqualTo });
+        };
+
+        context.lessThanEqualToTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isLessThanEqualTo });
+        };
+
+        context.lessThanEqualToDateTime = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isLessThanEqualTo });
+        };
+
+        /* Helper functions for string operations */
+        context.like = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.like });
+        };
+
+        context.startsWith = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value + "*"), operator: _operators.like });
+        };
+
+        context.endsWith = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value), operator: _operators.like });
+        };
+
+        context.contains = function(values) {
+            return new _containsFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.isEqualTo });
+        };
+
+        /* Helper functions for between */
+        context.between = function(val1, val2) {
+            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1), val2: new _primitiveFieldValue(val2), operator: _operators.between });
+        };
+
+        context.betweenDate = function(val1, val2) {
+            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _dateFieldValue(val1), val2: new _dateFieldValue(val2), operator: _operators.between });
+        };
+
+        context.betweenTime = function(val1, val2) {
+            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _timeFieldValue(val1), val2: new _timeFieldValue(val2), operator: _operators.between });
+        };
+
+        context.betweenDateTime = function(val1, val2) {
+            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _dateTimeFieldValue(val1), val2: new _dateTimeFieldValue(val2), operator: _operators.between });
+        };
+
+        /*Helper functionf for geolocation search */
+        context.withinCircle = function(geoCoord, distance, unit) {
+            return new _radialFilter({ field: this.name, fieldType: this.type, geoCoord: geoCoord, distance: distance, unit: unit, operator: _operators.withinCircle });
+        };
+
+        context.withinPolygon = function(geoCoords) {
+            return new _polygonFilter({ field: this.name, fieldType: this.type, geoCoords: geoCoords, operator: _operators.withinPolygon });
+        };
+    };
+
+    _propertyExpression = function(name) {
+        
+        if (!name || name.length == 0) throw new Error("Specify field name");
+        
+        this.field = name;
+
+        _fieldFilterUtils("property", name, this);
+
+        return this;
+    };
+
+    _aggregateExpression = function(name) {
+        
+        if (!name || name.length == 0) throw new Error("Specify field name");
+        
+        this.field = name;
+
+        var _fieldFilters = new _fieldFilterUtils("aggregate", name);
+
+        this.equalTo = function(value) {
+            return _fieldFilters.equalTo(value);
+        };
+
+        this.greaterThan = function(value) {
+            return _fieldFilters.greaterThan(value);
+        };
+
+        this.greaterThanEqualTo = function(value) {
+            return _fieldFilters.greaterThanEqualTo(value);
+        };
+
+        this.lessThan = function(value) {
+            return _fieldFilters.lessThan(value);
+        };
+
+        this.lessThanEqualTo = function(value) {
+            return _fieldFilters.lessThanEqualTo(value);
+        };
+
+        this.between = function(val1, val2) {
+            return _fieldFilters.between(val1, val2);
+        };
+
+        return this;
+    };
+
+    _attributeExpression = function(name) {
+        if (!name || name.length == 0) throw new Error("Specify field name");
+        
+        this.field = name;
+
+        var _fieldFilters = new _fieldFilterUtils("attribute", name);
+
+        /* Helper functions for string operations */
+        this.like = function(value) {
+            return _fieldFilters.like(value);
+        };
+
+        this.startWith = function(value) {
+            return _fieldFilters.startsWith(value);
+        };
+
+        this.endsWith = function(value) {
+            return _fieldFilters.endsWith(value);
+        };
+
+        this.equalTo = function(value) {
+            return _fieldFilters.equalTo(value);
+        };        
+
+        this.contains = function(values) {
+            return _fieldFilters.contains(values);
+        };
+
+        return this;
+    };
+
+    Appacitive.Filter = {
+        Property: function(name) {
+            return new _propertyExpression(name)
+        },
+        Aggregate: function(name) {
+            return new _aggregateExpression(name)
+        },
+        Attribute: function(name) {
+            return new _attributeExpression(name)
+        },
+        Or: function() {
+            return new _compoundFilter(_operators.or, arguments); 
+        },
+        And: function() {
+            return new _compoundFilter(_operators.and, arguments); 
+        },
+        taggedWithOneOrMore: function(tags) {
+            return new _tagFilter({ tags: tags, operator: _operators.taggedWithOneOrMore });
+        },
+        taggedWithAll: function(tags) {
+            return new _tagFilter({ tags: tags, operator: _operators.taggedWithAll });
+        }
+    };
 
 })(global);(function(global) {
 
@@ -1230,25 +1972,31 @@ Depends on  NOTHING
 	var PageQuery = function(o) {
 		var options = o || {};
 		var _pageNumber = 1;
-		var _pageSize = 200;
+		var _pageSize = 20;
 
-		//define getter for pageNumber
-		this.__defineGetter__('pageNumber', function() { return _pageNumber; });
+		//define getter and setter for pageNumber
+		this.pageNumber =  function() { 
+			if (arguments.length == 1) {
+				_pageNumber = arguments[0] || 1;
+				return this;
+			}
+			return _pageNumber; 
+		};
 
-		//define setter for pageNumber
-		this.__defineSetter__('pageNumber', function(value) {  _pageNumber = value || 1; });
+		//define getter and setter for pageSize
+		this.pageSize =  function() { 
+			if (arguments.length == 1) {
+				_pageSize = arguments[0] || 20;
+				return this;
+			}
+			return _pageSize; 
+		};
 
-		//define getter for pageSize
-		this.__defineGetter__('pageSize', function() { return _pageSize; });
-
-		//define setter for pagenumber
-		this.__defineSetter__('pageSize', function(value) { _pageSize = value || 200; });
-
-		this.pageNumber = options.pageNumber;
-		this.pageSize = options.pageSize;
+		this.pageNumber(options.pageNumber);
+		this.pageSize(options.pageSize);
 	};
 	PageQuery.prototype.toString = function() {
-		return 'psize=' + this.pageSize + '&pnum=' + this.pageNumber;
+		return 'psize=' + this.pageSize() + '&pnum=' + this.pageNumber();
 	};
 
 	// sort query
@@ -1260,30 +2008,36 @@ Depends on  NOTHING
 		var _orderBy = '__UtcLastUpdatedDate';
 		var _isAscending = false;
 
-		//define getter for pagenumber
-		this.__defineGetter__('orderBy', function() { return _orderBy; });
+		//define getter/setter for orderby
+		this.orderBy =  function() { 
+			if (arguments.length == 1) {
+				_orderBy = arguments[0] || '__UtcLastUpdatedDate';
+				return this;
+			}
+			return _orderBy; 
+		};
 
-		//define setter for pagenumber
-		this.__defineSetter__('orderBy', function(value) { _orderBy = value || '__UtcLastUpdatedDate'; });
+		//define getter for isAscending
+		this.isAscending =  function() { 
+			if (arguments.length == 1) {
+				_isAscending = typeof arguments[0] == 'undefined' ? false : arguments[0];
+				return this;
+			}
+			return _isAscending; 
+		};
 
-		//define getter for pagenumber
-		this.__defineGetter__('isAscending', function() { return _isAscending; });
-
-		//define setter for pagenumber
-		this.__defineSetter__('isAscending', function(value) {  _isAscending = typeof value == 'undefined' ? false : value; });
-
-		this.orderBy = options.orderBy;
-		this.isAscending = options.isAscending;
+		this.orderBy(options.orderBy);
+		this.isAscending(options.isAscending);
 	};
 	SortQuery.prototype.toString = function() {
-		return 'orderBy=' + this.orderBy + '&isAsc=' + this.isAscending;
+		return 'orderBy=' + this.orderBy() + '&isAsc=' + this.isAscending();
 	};
 
 	// base query
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.BasicQuery = function(o) {
+	var BasicQuery = function(o) {
 
 		var options = o || {};
 
@@ -1299,61 +2053,97 @@ Depends on  NOTHING
 
 
 		//define getter for type (article/connection)
-		this.__defineGetter__('type', function() { return _type; });
+		this.type = function() { return _type; };
 
 		//define getter for basetype (schema/relation)
-		this.__defineGetter__('entityType', function() { return _entityType; });
+		this.entityType = function() { return _entityType; };
 
 		//define getter for querytype (basic,connectedarticles etc)
-		this.__defineGetter__('queryType', function() { return _queryType; });
-
-
+		this.queryType = function() { return _queryType; };
 
 		//define getter for pagequery 
-		this.__defineGetter__('pageQuery', function() { return _pageQuery; });
+		this.pageQuery = function() { return _pageQuery; };
+
+		
+		//define getter and setter for pageNumber
+		this.pageNumber =  function() { 
+			if (arguments.length == 1) {
+				_pageQuery.pageNumber(arguments[0]);
+				return this;
+			}
+			return _pageQuery.pageNumber(); 
+		};
+
+		//define getter and setter for pageSize
+		this.pageSize =  function() { 
+			if (arguments.length == 1) {
+				_pageQuery.pageSize(arguments[0]);
+				return this;
+			}
+			return _pageQuery.pageSize(); 
+		};
 
 		//define getter for sortquery
-		this.__defineGetter__('sortQuery', function() { return _sortQuery; });
+		this.sortQuery = function() { return _sortQuery; };
 
+		//define getter and setter for orderby
+		this.orderBy =  function() { 
+			if (arguments.length == 1) {
+				_sortQuery.orderBy(arguments[0]);
+				return this;
+			}
+			return _sortQuery.orderBy(); 
+		};
 
+		//define getter and setter for isAscending
+		this.isAscending =  function() { 
+			if (arguments.length == 1) {
+				_sortQuery.isAscending(arguments[0]);
+				return this;
+			}
+			return _sortQuery.isAscending(); 
+		};
 
-		//define getter for filter
-		this.__defineGetter__('filter', function() { return _filter; });
-
-		//define setter for filter
-		this.__defineSetter__('filter', function(value) { _filter = value; });
-
-
-
-		//define getter for freetext
-		this.__defineGetter__('freeText', function() { return _freeText; });
-
-		//define setter for freetext
-		this.__defineSetter__('freeText', function(value) {
-			if (typeof value == 'string') _freeText = value;
-			else if (typeof value == 'object' && value.length) _freeText = value.join(' ');
-		});
-
-
-
-		//define getter for fields
-		this.__defineGetter__('fields', function() { return _fields; });
-
-		//define setter for fields
-		this.__defineSetter__('fields', function(value) {
-			if (typeof value == 'string') _fields = value;
-			else if (typeof value == 'object' && value.length) _fields = value.join(',');
-		});
-
+		//define getter and setter for filter
+		this.filter =  function() { 
+			if (arguments.length == 1) {
+				_filter = arguments[0];
+				return this;
+			}
+			return _filter; 
+		};		
+		
+		//define getter and setter for freetext
+		this.freeText =  function() { 
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (typeof value == 'string') _freeText = arguments[0];
+				else if (typeof value == 'object' && value.length) _freeText = arguments[0].join(' ');
+				return this;
+			}
+			return _freeText; 
+		};		
+		
+		
+		this.fields = function() {
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (typeof value == 'string') _fields = value;
+				else if (typeof value == 'object' && value.length) _fields = value.join(',');
+				return this;
+			} else {
+				return _fields;
+			}
+		}
 
 		//set filters , freetext and fields
-		this.filter = options.filter || '';
-		this.freeText = options.freeText || '';
-		this.fields = options.fields || '';
+		this.filter(options.filter || '');
+		this.freeText(options.freeText || '');
+		this.fields(options.fields || '');
 
-		this.setFilter = function() { this.filter = arguments[0]; };
-		this.setFreeText = function() { this.freeText = arguments[0]; };
-        this.setFields = function() { this.fields = arguments[0]; };
+		this.setFilter = function() { this.filter(arguments[0]); };
+		this.setFreeText = function() { this.freeText(arguments[0]); };
+        this.setFields = function() { this.fields(arguments[0]); };
 
         this.extendOptions = function(changes) {
 			for (var key in changes) {
@@ -1361,22 +2151,24 @@ Depends on  NOTHING
 			}
 			_pageQuery = new PageQuery(options);
 			_sortQuery = new SortQuery(options);
+			return this;
 		};
 
 		this.getQueryString = function() {
 
-			var finalUrl = this.pageQuery.toString() + '&' + this.sortQuery.toString();
+			var finalUrl = _pageQuery.toString() + '&' + _sortQuery.toString();
 
-			if (this.filter && this.filter.trim().length > 0) {
-				finalUrl += '&query=' + this.filter;
+			if (this.filter()) {
+				var filter = this.filter().toString();
+			    if (filter.trim().length > 0) finalUrl += '&query=' + filter;
 			}
 
-			if (this.freeText && this.freeText.trim().length > 0) {
-                finalUrl += "&freetext=" + this.freeText + "&language=en";
+			if (this.freeText() && this.freeText().trim().length > 0) {
+                finalUrl += "&freetext=" + this.freeText() + "&language=en";
             }
 
-            if (this.fields && this.fields.trim().length > 0) {
-            	finalUrl += "&fields=" + this.fields;
+            if (this.fields() && this.fields().trim().length > 0) {
+            	finalUrl += "&fields=" + this.fields();
             }
 
 			return finalUrl;
@@ -1408,7 +2200,7 @@ Depends on  NOTHING
 			if (!entities) entities = [];
 			var eType = (_type == 'article') ? 'Article' : 'Connection';
 			entities.forEach(function(e) {
-				entityObjects.push(new global.Appacitive[eType](e));
+				entityObjects.push(new global.Appacitive[eType](e, true));
 			});
 			return entityObjects;
 		};
@@ -1430,6 +2222,55 @@ Depends on  NOTHING
 			global.Appacitive.http.send(request);
 			return this;
 		};
+
+		this.count = function(onSuccess, onError) {
+			onSuccess = onSuccess || function() {};
+			onError = onError || function() {};
+
+			var _pSize = _pageQuery.pageSize;
+			var _pNum = _pageQuery.pageNumber;
+
+			_pageQuery.pageSize = 1;
+			_pageQuery.pageNumber = 999999999;
+
+			var that = this;
+
+			var _restoreOldPaging = function() {
+				_pageQuery.pageSize = _pSize;
+				_pageQuery.pageNumber = _pNum;
+			};
+
+			var _queryRequest = this.toRequest();
+			_queryRequest.onSuccess = function(data) {
+
+				_restoreOldPaging();
+
+				data = data || {};
+				var pagingInfo = data.paginginfo;
+
+				var count = 0;
+				if (!pagingInfo) {
+					if (data.status && data.status.code && data.status.code == '200') {
+						count = 0;
+					} else {
+						var d = data.status || { message : 'Server error', code: 400 };
+				        if (typeof onError == 'function') onError(d, that);
+						return;
+					}
+				} else {
+					count = pagingInfo.totalrecords;
+				}
+				if (typeof onSuccess == 'function') onSuccess(count);
+			};
+			_queryRequest.onError = function(d) {
+				_restoreOldPaging();
+				d = d || { message : 'Server error', code: 400 };
+			    if (typeof onError == 'function') onError(d, that);
+			};
+			global.Appacitive.http.send(_queryRequest);
+
+			return this;
+		};
 	};
 
 	/** 
@@ -1444,12 +2285,12 @@ Depends on  NOTHING
 
 		options.queryType = 'BasicFilterQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		return this;
 	};
 
-	global.Appacitive.Queries.FindAllQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.FindAllQuery.prototype.constructor = global.Appacitive.Queries.FindAllQuery;
 
@@ -1462,15 +2303,27 @@ Depends on  NOTHING
 
 		if (!options.relation) throw new Error('Specify relation for connected articles query');
 		if (!options.articleId) throw new Error('Specify articleId for connected articles query');
-		if (options.schema) delete options.schema;
+		if (!options.schema) throw new Error('Specify schema of article id for connected articles query');
+		
+
+		var schema = options.schema;
+		delete options.schema;
 
 		options.queryType = 'ConnectedArticlesQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		this.articleId = options.articleId;
 		this.relation = options.relation;
+		this.schema = schema;
+		this.prev = options.prev;
+		
+		this.returnEdge = true;
+		if (options.returnEdge != undefined || options.returnEdge != null && !options.returnEdge && !this.prev) this.returnEdge = false;
+		
 		this.label = '';
+		var that = this;
+
 		if (options.label && typeof options.label == 'string' && options.label.length > 0) this.label = '&label=' + options.label;
 
 		this.toRequest = function() {
@@ -1481,14 +2334,86 @@ Depends on  NOTHING
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.articleId + '/find?' +
-				this.getQueryString() + this.label;
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.schema + '/' + this.articleId + '/find?' +
+				this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge;
+		};
+
+
+		var parseNodes = function(nodes, endpointA) {
+			var articles = [];
+			nodes.forEach(function(o) {
+				var tmpArticle = null;
+				if (o.__edge) {
+					var edge = o.__edge;
+					delete o.__edge;
+
+					edge.__endpointa = endpointA;
+					edge.__endpointb = {
+						articleid: o.__id,
+						label: edge.__label,
+						type: o.__schematype
+					};
+					delete edge.label;
+
+					var connection = new global.Appacitive.Connection(edge, true);
+					tmpArticle = new global.Appacitive.Article(o, true);
+					tmpArticle.connection = connection;
+				} else {
+					tmpArticle = new global.Appacitive.Article(o, true);
+				}
+				articles.push(tmpArticle);
+			});
+			return articles;
+		};
+
+
+		var	prevParseNodes = function(nodes, endpointA) {
+			var connections = [];
+			nodes.forEach(function(o) {
+				var edge = o.__edge;
+				delete o.__edge;
+
+				edge.__endpointa = endpointA;
+				edge.__endpointb = {
+					article: o,
+					label: edge.__label,
+					type: o.__schematype
+				};
+				delete edge.label;
+
+				var connection = new global.Appacitive.Connection(edge, true);
+
+				connections.push(connection);
+			});
+			return connections;
+		};
+
+		this.fetch = function(onSuccess, onError) {
+			var request = this.toRequest();
+			request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+				   if (typeof onSuccess == 'function') {
+					   var cb = parseNodes;
+					   if (that.prev) cb = prevParseNodes;
+				   	   onSuccess(cb( d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent }), d.paginginfo);   
+				   	}
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			};
+			global.Appacitive.http.send(request);
+			return this;
 		};
 
 		return this;
 	};
 
-	global.Appacitive.Queries.ConnectedArticlesQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.ConnectedArticlesQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.ConnectedArticlesQuery.prototype.constructor = global.Appacitive.Queries.ConnectedArticlesQuery;
 
@@ -1506,7 +2431,7 @@ Depends on  NOTHING
 
 		options.queryType = 'GetConnectionsQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		this.articleId = options.articleId;
 		this.relation = options.relation;
@@ -1521,15 +2446,15 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
-				'articleid=' + this.articleId +
-				'&label=' +this.label +
-				this.getQueryString();
+				this.getQueryString() + 
+				'&articleid=' + this.articleId +
+				'&label=' + this.label;
 		};
 
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.GetConnectionsQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.GetConnectionsQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsQuery;
 
@@ -1546,11 +2471,11 @@ Depends on  NOTHING
 
 		options.queryType = queryType || 'GetConnectionsBetweenArticlesQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		this.articleAId = options.articleAId;
 		this.articleBId = options.articleBId;
-		this.label = (this.queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label == 'string' && options.label.length > 0) ? '&label=' + options.label : '';;
+		this.label = (this.queryType() == 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label == 'string' && options.label.length > 0) ? '&label=' + options.label : '';;
 		this.relation = (options.relation && typeof options.relation == 'string' && options.relation.length > 0) ? options.relation + '/' : '';
 		
 		this.toRequest = function() {
@@ -1568,7 +2493,7 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery;
 
@@ -1584,11 +2509,10 @@ Depends on  NOTHING
 		var inner = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options, 'GetConnectionsBetweenArticlesForRelationQuery');
 
 		inner.fetch = function(onSuccess, onError) {
-			this.toUrl();
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') onSuccess(new global.Appacitive.Connection(d.connection));
+				   if (typeof onSuccess == 'function') onSuccess(d.connection ? new global.Appacitive.Connection(d.connection) :  null);
 				} else {
 					d = d || {};
 					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
@@ -1618,7 +2542,7 @@ Depends on  NOTHING
 
 		options.queryType = 'InterconnectsQuery';
 
-		global.Appacitive.Queries.BasicQuery.call(this, options);
+		BasicQuery.call(this, options);
 
 		this.articleAId = options.articleAId;
 		this.articleBIds = options.articleBIds;
@@ -1641,27 +2565,147 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.InterconnectsQuery.prototype = new global.Appacitive.Queries.BasicQuery();
+	global.Appacitive.Queries.InterconnectsQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.InterconnectsQuery.prototype.constructor = global.Appacitive.Queries.InterconnectsQuery;
+
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphQuery = function(options) {
+	global.Appacitive.Queries.GraphFilterQuery = function(name, placeholders) {
 
-		options = options || {};
+		if (!name || name.length == 0) throw new Error("Specify name of filter query");
 		
-		if (!options.graphQuery)
-			throw new Error('graphQuery object is mandatory');
+		this.name = name;
+		this.data = { };
+		this.queryType = 'GraphFilterQuery';
+
+		if (placeholders) this.data.placeholders = placeholders;
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = global.Appacitive.config.apiBaseUrl;
-			r.url += global.Appacitive.storage.urlFactory.article.getProjectionQueryUrl();
+			r.url = this.toUrl();
 			r.method = 'post';
-			r.data = options.graphQuery;
+			r.data = this.data;
 			return r;
+		};
+
+		this.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter';
+		};
+
+		this.fetch = function(onSuccess, onError) {
+			
+			var request = this.toRequest();
+			request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+				   if (typeof onSuccess == 'function') {
+				   		onSuccess(d.ids ? d.ids : []);
+					}
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			};
+			global.Appacitive.http.send(request);
+			return this;
+		};
+
+	};
+
+	/** 
+	* @constructor
+	**/
+	global.Appacitive.Queries.GraphProjectQuery = function(name, ids, placeholders) {
+
+		if (!name || name.length == 0) throw new Error("Specify name of project query");
+		if (!ids || !ids.length) throw new Error("Specify ids to project");
+		
+		this.name = name;
+		this.data = { ids: ids };
+		this.queryType = 'GraphProjectQuery';
+
+		if (placeholders) this.data.placeholders = placeholders;
+
+		this.toRequest = function() {
+			var r = new global.Appacitive.HttpRequest();
+			r.url = this.toUrl();
+			r.method = 'post';
+			r.data = this.data;
+			return r;
+		};
+
+		this.toUrl = function() {
+			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project';
+		};
+
+		var _parseResult = function(result) {
+			var root;
+			for (var key in result) {
+				if (key !== 'status') {
+					root = result[key];
+					break;
+				}
+			}
+			var parseChildren = function(obj, parentLabel, parentId) {
+				var props = [];
+				obj.forEach(function(o) {
+					var children = o.__children;
+					delete o.__children;
+					
+					var edge = o.__edge;
+					delete o.__edge;
+
+					var tmpArticle = new global.Appacitive.Article(o, true);
+					tmpArticle.children = {};
+					for (var key in children) {
+						tmpArticle.children[key] = [];
+						tmpArticle.children[key] = parseChildren(children[key].values, children[key].parent, tmpArticle.id);
+					}
+
+					if (edge) {
+						edge.__endpointa = {
+							articleid : parentId,
+							label: parentLabel
+						};
+						edge.__endpointb = {
+							articleid: tmpArticle.id(),
+							label: edge.__label
+						};
+						delete edge.__label;
+						tmpArticle.connection = new global.Appacitive.Connection(edge);
+					}
+					props.push(tmpArticle);
+				});
+				return props;
+			};
+			return parseChildren(root.values);
+		};
+
+		this.fetch = function(onSuccess, onError) {
+			
+			var request = this.toRequest();
+			request.onSuccess = function(d) {
+			if (d && d.status && d.status.code == '200') {
+				   if (typeof onSuccess == 'function') {
+				   		onSuccess(_parseResult(d));
+					}
+				} else {
+					d = d || {};
+					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				}
+			};
+			request.onError = function(d) {
+				d = d || {};
+				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+			};
+			global.Appacitive.http.send(request);
+			return this;
 		};
 	};
 
@@ -1694,6 +2738,8 @@ Depends on  NOTHING
 			}
 		};
 
+		var that = this;
+
 		var raw = {};
 		_copy(objectOptions, raw);
 		var article = raw;
@@ -1722,10 +2768,10 @@ Depends on  NOTHING
 
 		var __cid = parseInt(Math.random() * 1000000, 10);
 
-		this.__defineGetter__('cid', function() { return __cid; });
+		this.cid = __cid;
 
 		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
+		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__schemaid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
 		
 		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
 
@@ -1738,19 +2784,28 @@ Depends on  NOTHING
 			return data;
 		};
 
-		this.getObject = function() { return JSON.parse(JSON.stringify(article)); };
+		this.attributes = this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(article)); };
 
-		this.toJSON = function() { return article; };
+		this.properties = function() {
+			var properties = this.attributes();
+			delete properties.__attributes;
+			delete properties.__tags;
+			return properties;
+		};
 
-		this.__defineGetter__('id', function() { return this.get('__id'); });
-
-		this.__defineSetter__('id', function(value) { this.set('__id', value); });
+		this.id = function() {
+			if (arguments.length === 1) {
+				this.set('__id', arguments[0]);
+				return this;
+			}
+			return this.get('__id');	
+		};
 
 		if (!article.__attributes) article.__attributes = {};
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
 
 		// accessor function for the article's attributes
-		this.attributes = function() {
+		this.attr = function() {
 			if (arguments.length === 0) {
 				if (!article.__attributes) article.__attributes = {};
 				return article.__attributes;
@@ -1762,13 +2817,15 @@ Depends on  NOTHING
 					throw new Error('only string values can be stored in attributes.');
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
-			} else throw new Error('.attributes() called with an incorrect number of arguments. 0, 1, 2 are supported.');
+			} else throw new Error('.attr() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 
 			return article.__attributes;
 		};
 
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
+			if (!_snapshot.__attributes) return null;
+
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
 			for (var property in article.__attributes) {
@@ -1789,12 +2846,12 @@ Depends on  NOTHING
 		this.getChangedAttributes = _getChangedAttributes;
 
 		// accessor function for the article's aggregates
-		this.aggregates = function() {
+		this.aggregate = function() {
 			var aggregates = {};
 			for (var key in article) {
 				if (!article.hasOwnProperty(key)) return;
 				if (key[0] == '$') {
-					aggregates[key] = article[key];
+					aggregates[key.substring(1)] = article[key];
 				}
 			}
 			if (arguments.length === 0) return aggregates;
@@ -1806,14 +2863,16 @@ Depends on  NOTHING
 		if (!article.__tags) article.__tags = [];
 		if (!_snapshot.__tags) _snapshot.__tags = [];
 
-		this.__defineGetter__('tags', function() {
+		this.tags = function()  {
 			if (!article.__tags) return [];
 			return article.__tags;
-		});
+		};
 
 		this.addTag = function(tag) {
 			if (!tag || typeof tag != 'string' || !tag.length) return this;
-		    //tag = tag.toLowerCase();
+		    
+		    if (!article.__tags) article.__tags = [];
+
 		    article.__tags.push(tag);
 		    article.__tags = Array.distinct(article.__tags);
 
@@ -1836,6 +2895,9 @@ Depends on  NOTHING
 		};
 
 		var _getChangedTags = function() {
+			if (!article.__tags) return [];
+			if (!_snapshot.__tags) return article.__tags;
+
 			var _tags = [];
 			article.__tags.every(function(a) {
 				if (_snapshot.__tags.indexOf(a) == -1)
@@ -1896,18 +2958,22 @@ Depends on  NOTHING
 			}
 			else delete changeSet["__attributes"];
 
-			if (isDirty) return changeSet;
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
+			if (isDirty && !Object.isEmpty(changeSet)) return changeSet;
 			return false;
 		};
 
-		this.__defineGetter__('changed', function() {
+		this.changed = function() {
 			return _getChanged();
-		});
+		};
 
 		this.hasChanged = function() {
 			var changeSet = _getChanged(true);
 			if (arguments.length === 0) {
-				return changeSet ? true : false;
+				return Object.isEmpty(changeSet) ? false : true;
 			} else if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length > 0) {
 				if (changeSet && changeSet[arguments[0]]) {
 					return true;
@@ -1942,27 +3008,88 @@ Depends on  NOTHING
 
 		var _fields = '';
 
-		//define getter for fields
-		this.__defineGetter__('fields', function() { return _fields; });
+		this.fields = function() {
+			if (arguments.length == 1) {
+				var value = arguments[0];
+				if (typeof value == 'string') _fields = value;
+				else if (typeof value == 'object' && value.length) _fields = value.join(',');
+				return this;
+			} else {
+				return _fields;
+			}
+		};
 
-		//define setter for fields
-		this.__defineSetter__('fields', function(value) {
-			if (typeof value == 'string') _fields = value;
-			else if (typeof value == 'object' && value.length) _fields = value.join(',');
-		});
+		var _types = {
+			"integer": function(value) { 
+				if (value) {
+					var res = parseInt(value);
+					if (!isNaN(res)) return res;
+				}
+				return value;
+			}, "decimal": function(value) { 
+				if (value) {
+					var res = parseFloat(value);
+					if (!isNaN(res)) return res;
+				}
+				return value;
+			}, "boolean": function(value) { 
+				if (value != undefined && value != null && (value.toString().toLowerCase() == 'true' || value == true || value > 0)) return true;
+				return false;
+			}, "date": function(value) { 
+				if (value) {
+					var res = global.Appacitive.Date.parseISODate(value);
+					if (res) return res;
+				}
+				return value;
+			}, "datetime": function(value) { 
+				if (value) {
+					var res = global.Appacitive.Date.parseISODate(value);
+					if (res) return res;
+				}
+				return value;
+			}, "time": function(value) { 
+				if (value) {
+					var res = global.Appacitive.Date.parseISOTime(value);
+					if (res) return res;
+				}
+				return value;
+			}, "string": function(value) { 
+				if (value) return value.toSting();
+				return value;
+			}
+		};
 
-		this.get = function(key) { if (key) return article[key]; };
+		this.get = function(key, type) { 
+			var val = "";
+			if (key) { 
+				if (type && _types[type.toLowerCase()]) {
+					var res = _types[type.toLowerCase()](article[key]);
+					return res;
+				} 
+				return article[key]; 
+			}
+		};
+
+		this.tryGet = function(key, value, type) {
+			var res = this.get(key, type);
+			if (res != undefined) return res;
+			return value;
+		};
 
 		this.set = function(key, value) {
 
-			if(!key || typeof key != 'string' ||  key.length == 0) return this; 
+			if(!key || typeof key != 'string' ||  key.length == 0 || key.trim().indexOf('$') == 0) return this; 
 		 	
 		 	if (value == null || value == 'undefined') { article[key] = null;}
 		 	else if (typeof value == 'string') { article[key] = value; }
-		 	else if (typeof value == 'number') { article[key] = value + ''; }
+		 	else if (typeof value == 'number' || typeof value == 'boolean') { article[key] = value + ''; }
 		 	else if (typeof value == 'object') {
-		 		if (value.length >= 0) article[key] = value; 
-		 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
+		 		if (value instanceof Date) {
+		 			article[key] = global.Appacitive.Date.toISOString(value);
+		 		} else {
+			 		if (value.length >= 0) article[key] = value; 
+			 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
+			 	}
 			}
 		 	
 		 	return this;
@@ -1986,13 +3113,38 @@ Depends on  NOTHING
 		};
 
 		this.clone = function() {
-			if (this.type == 'article') return new Appacitive.Article(article);
-			return new Appacitive.connection(article);
-		}
+			if (this.type == 'article') return new global.Appacitive.Article(this.toJSON());
+			return new global.Appacitive.connection(article);
+		};
 
-		this.copy = function(properties) { 
-			if (properties) _copy(properties, article); 
+		this.copy = function(properties, setSnapShot) { 
+			if (properties) { 
+				_copy(properties, article);
+				if (setSnapShot) {
+					_copy(properties,_snapshot);
+				}
+			}
 			return this;
+		};
+
+		var _atomicProps = [];
+
+		var _atomic = function(key, amount, multiplier) {
+			if (!key || typeof key != 'string' ||  key.length == 0 || key.indexOf('__') == 0) return this;
+
+			if (!amount || isNaN(parseInt(amount))) amount = multiplier;
+			else amount = parseInt(amount) * multiplier;
+
+			_atomicProps.push({ key: key.toLowerCase(), amount: amount });
+			return that;
+		};
+
+		this.increment = function(key, amount) {
+			return _atomic(key, amount, 1);
+		};
+
+		this.decrement = function(key, amount) {
+			return _atomic(key, amount, -1);
 		};
 
 		/* crud operations  */
@@ -2000,24 +3152,32 @@ Depends on  NOTHING
 		/* save
 		   if the object has an id, then it has been created -> update
 		   else create */
-		this.save = function(onSuccess, onError) {
+		this.save = function() {
 			if (article.__id) _update.apply(this, arguments);
 			else _create.apply(this, arguments);
 			return this;
 		};
 
 		// to create the article
-		var _create = function(onSuccess, onError) {
+		var _create = function(onSuccess, onError, fields) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function() {};
 
+			if (typeof fields == 'string') _fields = value;
+			else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
+			else fields = _fields;
+
 			// save this article
 			var that = this;
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, _fields);
+			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, fields);
 
 			// for User and Device articles
 			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
 				url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getCreateUrl();
+
+			for (var p in article) {
+				if (p[0] == '$') delete article[p];
+			}
 
 			var _saveRequest = new global.Appacitive.HttpRequest();
 			_saveRequest.url = url;
@@ -2062,71 +3222,125 @@ Depends on  NOTHING
 		};
 
 		// to update the article
-		var _update = function(onSuccess, onError) {
+		var _update = function(onSuccess, onError, fields) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			var changeSet = _getChanged(true);
-			var that = this;
-			if (changeSet) {
-				var _updateRequest = new global.Appacitive.HttpRequest();
-				var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, _fields);
-				
-				// for User and Device articles
-				if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
-					url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getUpdateUrl(_snapshot.__id);
-				
-				_updateRequest.url = url;
-				_updateRequest.method = 'post';
-				_updateRequest.data = changeSet;
-				_updateRequest.onSuccess = function(data) {
-					if (data && (data.article || data.connection || data.user || data.device)) {
-						_snapshot = data.article || data.connection || data.user || data.device;
-						_copy(_snapshot, article);
-						_removeTags = [];
-						global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + that.type + "." + article.__id +  '.updated', that, { object : that });
-						if (typeof onSuccess == 'function') onSuccess(that);
-					} else {
-						data = data || {};
-						data.status =  data.status || {};
-						data.status = _getOutpuStatus(data.status);
-						global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + that.type + "." + article.__id +  '.updateFailed', that, { object : data.status });
-						if (typeof onError == 'function') onError(data.status, that);
-					}
-				};
-				_updateRequest.onError = function(err) {
-					err = err || {};
-					err.message = err.message || 'Server error';
-					err.code = err.code || '500';
-					if (typeof onError == 'function') onError(err, that);
+			var cb = function(revision) {
+				var changeSet = _getChanged(true);
+				for (var p in changeSet) {
+					if (p[0] == '$') delete changeSet[p];
 				}
-				global.Appacitive.http.send(_updateRequest);
-			} else {
-				if (typeof onSuccess == 'function') onSuccess(that);
+
+				if (!Object.isEmpty(changeSet)) {
+
+					if (typeof fields == 'string') _fields = value;
+					else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
+					else fields = _fields;
+
+					var _updateRequest = new global.Appacitive.HttpRequest();
+					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, fields, revision);
+					
+					var type = that.type;
+
+					// for User and Device articles
+					if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) { 
+						type = article.__schematype.toLowerCase();
+						url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getUpdateUrl(_snapshot.__id, fields, revision);
+					}
+					_updateRequest.url = url;
+					_updateRequest.method = 'post';
+					_updateRequest.data = changeSet;
+					_updateRequest.onSuccess = function(data) {
+						if (data && data[type]) {
+							_atomicProps.length = 0;
+							_snapshot = data[that.type];
+							_copy(_snapshot, article);
+							_removeTags = [];
+							global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updated', that, { object : that });
+							if (typeof onSuccess == 'function') onSuccess(that);
+						} else {
+							data = data || {};
+							data.status =  data.status || {};
+							data.status = _getOutpuStatus(data.status);
+							if (data.status.code == '14008' && _atomicProps.length > 0) {
+								_update(onSuccess, onError, fields);
+							}  else {
+								global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updateFailed', that, { object : data.status });
+								if (typeof onError == 'function') onError(data.status, that);
+							}
+						}
+					};
+					_updateRequest.onError = function(err) {
+						err = err || {};
+						err.message = err.message || 'Server error';
+						err.code = err.code || '500';
+						if (err.code == '14008' && _atomicProps.length > 0) {
+							_update(onSuccess, onError, fields);
+						} else {
+							if (typeof onError == 'function') onError(err, that);
+						}
+					}
+					global.Appacitive.http.send(_updateRequest);
+				} else {
+					if (typeof onSuccess == 'function') onSuccess(that);
+				}
 			}
+
+			if (_atomicProps.length > 0) {
+				var props = ['__revision'];
+				_atomicProps.forEach(function(p) { 
+					props.push(p.key); 
+				});
+
+				_fetch(function(obj) {
+					var tmp = {};
+
+					_atomicProps.forEach(function(p) {
+						var value = _types['integer'](obj[p.key]);
+						if (!value) value = 0
+						that.set(p.key, value + p.amount);
+					});
+
+					cb(obj.__revision);
+				}, onError, props, true);
+			} else cb();
+
 			return this;
 		};
 
-		// fetch ( by id )
-		this.fetch = function(onSuccess, onError) {
+		var _fetch = function (onSuccess, onError, fields, isVersion) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function() {};
 			if (!article.__id) {
-				if (typeof onError == 'function') onError( {code:'400', message: 'Please specify id for get operation'} ,this);
+				if (typeof onError == 'function') onError( {code:'400', message: 'Please specify id for get operation'}, that);
 				return;
 			}
+
+			if (typeof fields == 'string') _fields = value;
+			else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
+			else fields = _fields;
+
 			// get this article by id
-			var that = this;
-			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[this.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, _fields);
+			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[that.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, fields);
 			var _getRequest = new global.Appacitive.HttpRequest();
 			_getRequest.url = url;
 			_getRequest.method = 'get';
 			_getRequest.onSuccess = function(data) {
-				if (data && (data.article || data.connection || data.user || data.device)) {
-					_snapshot = data.article || data.connection || data.user || data.device;
-					_copy(_snapshot, article);
-					if (that.___collection && ( that.___collection.collectionType == 'article')) that.___collection.addToCollection(that);
-					if (typeof onSuccess == 'function') onSuccess(that);
+				if (data && data[that.type]) {
+					if (!isVersion) {
+						_snapshot = data[that.type];
+						_copy(_snapshot, article);
+						if (data.connection) {
+							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
+								that.setupConnection(article.__endpointa, article.__endpointb);
+							}
+						}
+						if (that.___collection && ( that.___collection.collectionType == 'article')) that.___collection.addToCollection(that);
+						if (typeof onSuccess == 'function') onSuccess(that);
+					} else {
+						if (typeof onSuccess == 'function') onSuccess(data[that.type]);
+					}
 				} else {
 					data = data || {};
 					data.status =  data.status || {};
@@ -2139,7 +3353,12 @@ Depends on  NOTHING
 				if (typeof onError == 'function') onError(err, that);
 			}
 			global.Appacitive.http.send(_getRequest);
-			return this;
+			return that;
+		};
+
+		// fetch ( by id )
+		this.fetch = function(onSuccess, onError, fields) {
+			_fetch(onSuccess, onError, fields);
 		};
 
 		// delete the article
@@ -2149,8 +3368,8 @@ Depends on  NOTHING
 			// just remove it from the collection
 			// else delete the article and remove from collection
 
-			if (!article['__id'] && this.___collection) {
-				this.___collection.removeByCId(__cid);
+			if (!article['__id']) {
+				if (this.___collection) this.___collection.removeByCId(__cid);
 				if (typeof onSuccess == 'function') onSuccess(this);
 				return;
 			}
@@ -2292,6 +3511,8 @@ Depends on  NOTHING
 
 		this.collectionType = 'article';
 
+		this.type = function() { return _schema; };
+
 		if (!_options || !_options.schema) throw new Error('Must provide schema while initializing ArticleCollection.');
 		
 		_schema = _options.schema;
@@ -2308,10 +3529,10 @@ Depends on  NOTHING
 			that.extendOptions = _query.extendOptions;
 		};
 
-		this.setFilter = function(filterString) {
-			_options.filter = filterString;
+		this.setFilter = function(filter) {
+			_options.filter = filter;
 			_options.type = 'article';
-			if (_query) _query.filter = filterString;
+			if (_query) _query.filter(filter);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -2324,7 +3545,7 @@ Depends on  NOTHING
                 _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'article';
-            if (_query) _query.freeText = tokens;
+            if (_query) _query.freeText(tokens);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -2333,11 +3554,10 @@ Depends on  NOTHING
         };
 
         this.setFields = function(fields) {
-        	if (!fields)
-                _options.fields = "";
+        	if (!fields) fields = "";
             _options.fields = fields;
             _options.type = 'article';
-            if (_query) _query.fields = fields;
+            if (_query) _query.fields(fields);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -2352,26 +3572,18 @@ Depends on  NOTHING
 			_query = null;
 		};
 
-		this.__defineGetter__("query", function() {
-			return _query;
-		});
-
-		this.getQuery = function() {
-			return _query;
-		};
-
 		var _supportedQueryType = ["BasicFilterQuery"];
 
-		this.__defineSetter__("query", function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
-			_articles.length = 0;
-			_query = query;
-		});
-
-		this.setQuery = function(query) {
-			this.query = query;
-			return this;
+		this.query = function() {
+			if (arguments.length == 1) {
+				var query = arguments[0];
+				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
+				if (_supportedQueryType.indexOf(query.queryType()) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
+				_articles.length = 0;
+				_query = query;
+				return this;
+			}
+			return _query;
 		};
 
 		this.setOptions = _parseOptions;
@@ -2446,46 +3658,32 @@ Depends on  NOTHING
 			return this;
 		};
 
-		var parseArticles = function (data, onSuccess, onError) {
-
-			data = data || {};
-			var articles = data.articles;
-
-			if (!articles) {
-				if (data.status && data.status.code && data.status.code == '200') {
-					articles = [];
-				} else {
-					var d = data.status || { message : 'Server error', code: 400 };
-			        if (typeof onError == 'function') onError(d, that);
-					return;
-				}
-			}
-
-			
+		var parseArticles = function (articles, pagingInfo, onSuccess) {
 			if (!articles.length || articles.length === 0) articles = [];
+			
 			articles.forEach(function (article) {
-				var _a = new global.Appacitive.Article(article, true);
-				_a.___collection = that;
-				_articles.push(_a);
+				article.___collection = that;
+				_articles.push(article);
 			});
-			var pagingInfo = data.paginginfo || {};
-			onSuccess(pagingInfo, that);
+
+			if (typeof onSuccess == 'function') onSuccess(pagingInfo, that);
 		};
 
 		this.fetch = function(onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
-			_articles.length = 0;
-			var _queryRequest = _query.toRequest();
-			_queryRequest.onSuccess = function(data) {
-				parseArticles(data, onSuccess, onError);
-			};
-			_queryRequest.onError = function(d) {
-				d = d || { message : 'Server error', code: 400 };
-			    if (typeof onError == 'function') onError(d, that);
-			};
-			global.Appacitive.http.send(_queryRequest);
 
+			_articles.length = 0;
+			
+			_query.fetch(function(articles, pagingInfo) {
+				parseArticles(articles, pagingInfo, onSuccess);
+			}, function(err) {
+				if (typeof onError == 'function') onError(err, that);
+			});
+
+			return this;
+		};
+
+		this.count = function(onSuccess, onError) {
+			this.query.count(onSuccess, onError);
 			return this;
 		};
 
@@ -2520,9 +3718,9 @@ Depends on  NOTHING
 			return _a;
 		};
 
-		this.map = function() { return _articles.map.apply(this, arguments); };
-		this.forEach = function() { return _articles.forEach.apply(this, arguments); };
-		this.filter = function() { return _articles.filter.apply(this, arguments); };
+		this.map = function(delegate, context) { return _articles.map.apply(delegate, context || this); };
+		this.forEach = function(delegate, context) { return _articles.forEach(delegate, context); };
+		this.filter = function(delegate, context) { return _articles.filter.apply(delegate, context || this); };
 
 	};
 
@@ -2536,13 +3734,13 @@ Depends on  NOTHING
 		return this.getAllArticles();
 	};
 
-	global.Appacitive.ArticleCollection.prototype.__defineGetter__('articles', function() {
+	global.Appacitive.ArticleCollection.prototype.articles = function() {
 		return this.getAll();
-	});
+	};
 
-	global.Appacitive.ArticleCollection.prototype.__defineGetter__('length', function() {
-		return this.articles.length;
-	});
+	global.Appacitive.ArticleCollection.prototype.length = function() {
+		return this.articles().length;
+	};
 
 })(global);(function(global) {
 
@@ -2570,6 +3768,8 @@ Depends on  NOTHING
 
 		this.collectionType = 'connection';
 
+		this.type = function() { return _relation; };
+
 		var that = this;
 
 		if (!options || !options.relation) throw new Error('Must provide relation while initializing ConnectionCollection.');
@@ -2588,10 +3788,10 @@ Depends on  NOTHING
 			return that;
 		};
 
-		this.setFilter = function(filterString) {
-			_options.filter = filterString;
+		this.setFilter = function(filter) {
+			_options.filter = filter;
 			_options.type = 'connection';
-			if (_query) _query.filter = filterString;
+			if (_query) _query.filter(filter);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -2600,11 +3800,10 @@ Depends on  NOTHING
 		};
 
 		this.setFreeText = function(tokens) {
-            if(!tokens && tokens.trim().length==0)
-                _options.freeText = "";
+            if (!tokens && tokens.trim().length == 0) _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'connection';
-            if (_query) _query.freeText = tokens;
+            if (_query) _query.freeText(tokens);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -2618,7 +3817,7 @@ Depends on  NOTHING
                 _options.fields = "";
             _options.fields = fields;
             _options.type = 'connection';
-            if (_query) _query.fields = fields;
+            if (_query) _query.fields(fields);
 			else {
 				_query = new global.Appacitive.Queries.FindAllQuery(_options);
 				that.extendOptions = _query.extendOptions;
@@ -2626,29 +3825,21 @@ Depends on  NOTHING
 			return this;
         };
 
-		this.__defineGetter__("query", function() {
-			return _query;
-		});
+        this.query = function() {
+        	if (arguments.length == 1) {
+        		var query = arguments[0];
+				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
+				if (_supportedQueryType.indexOf(query.queryType()) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
+				_articles.length = 0;
+				_connections.length = 0;
+				_query = query;
+				return this;
+        	}
+        	return _query;
+        };
 
-		this.getQuery = function() {
-			return _query;
-		};
-
-		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery", "GetConnectionsBetweenArticlesForRelationQuery"];
+		var _supportedQueryType = ["BasicFilterQuery", "ConnectedArticlesQuery","GetConnectionsQuery"];
 		
-		this.__defineSetter__("query", function(query) {
-			if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to connectionCollection');
-			if (_supportedQueryType.indexOf(query.queryType) == -1) throw new Error('ConnectionCollection only accepts ' + _supportedQueryType.join(', '));
-			_articles.length = 0;
-			_connections.length = 0;
-			_query = query;
-		});
-
-		this.setQuery = function(query) {
-			this.query = query;
-			return this;
-		};
-
 		this.reset = function() {
 			_options = null;
 			_relation = null;
@@ -2726,46 +3917,28 @@ Depends on  NOTHING
 			return this;
 		};
 
-		var parseConnections = function (data, onSuccess, onError, queryType) {
-			data = data || {};
-			
-			var connections = data.connections;
-			
-			if (queryType == 'GetConnectionsBetweenArticlesForRelationQuery' && data.connection)
-				connections = [data.connection];
-
-			if (!connections) {
-				if (data.status && data.status.code && data.status.code == '200') {
-					connections = [];
-				} else {
-					var d = data.status || { message : 'Server error', code: 400 };
-			        if (typeof onError == 'function') onError(d, that);
-					return;
-				}
-			}
-
+		var parseConnections = function (connections, pagingInfo, onSuccess) {
+			if (_query.queryType == "GetConnectionsBetweenArticlesForRelationQuery") connections = [connections];
 
 			if (!connections.length || connections.length === 0) connections = [];
 			connections.forEach(function (connection) {
-				var _c = new global.Appacitive.Connection(connection, true);
-				_c.___collection = that;
+				connection.___collection = that;
 				
 				// if this is a connected articles call...
-				if (_c.endpointA.article || _c.endpointB.article) {
-					var _a = _c.endpointA.article || _c.endpointB.article;
+				if (connection.endpointA.article || connection.endpointB.article) {
+					var _a = connection.endpointA.article || connection.endpointB.article;
 					_a.___collection = that;
 					_articles.push(_a);
 				}
 				try {
-					if (!_c.___collection.connectedArticle)
-						delete _c.connectedArticle;
+					if (!connection.___collection.connectedArticle)
+						delete connection.connectedArticle;
 				} catch(e) {}
 
-				_connections.push(_c);
+				_connections.push(connection);
 			});
 
-			var pagingInfo = data.paginginfo || {};
-			onSuccess(pagingInfo, that);
+			if (typeof onSuccess == 'function') onSuccess(pagingInfo, that);
 		};
 
 		this.getConnectedArticle = function(articleId) {
@@ -2776,18 +3949,19 @@ Depends on  NOTHING
 		};
 
 		this.fetch = function(onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
 			_connections.length = 0;
-			var _queryRequest = _query.toRequest();
-			_queryRequest.onSuccess = function(data) {
-				parseConnections(data, onSuccess, onError, _query.queryType);
-			};
-			_queryRequest.onError = function(d) {
-				d = d || { message : 'Server error', code: 400 };
-				if (typeof onError == 'function') onError(d);
-			};
-			global.Appacitive.http.send(_queryRequest);
+			_query.prev = true;
+			_query.fetch(function(connections, pagingInfo) {
+				parseConnections(connections, pagingInfo, onSuccess);
+			}, function(err) {
+				if (typeof onError == 'function') onError(err, that);
+			});
+
+			return this;
+		};
+
+		this.count = function(onSuccess, onError) {
+			_query.count(onSuccess, onError);
 			return this;
 		};
 
@@ -2822,18 +3996,28 @@ Depends on  NOTHING
 			return _a;
 		};
 
-		this.map = function() { return _connections.map.apply(this, arguments); };
-
-		this.forEach = function(delegate, context) {
-			context = context || this;
-			return _connections.forEach(delegate, context);
-		};
-
-		this.filter = function() { return _connections.filter.apply(this, arguments); };
-
+		this.map = function(delegate, context) { return _connections.map.apply(delegate, context || this); };
+		this.forEach = function(delegate, context) { return _connections.forEach(delegate, context); };
+		this.filter = function(delegate, context) { return _connections.filter.apply(delegate, context || this); };
 	};
 
 	global.Appacitive.ConnectionCollection = _ConnectionCollection;
+
+	global.Appacitive.ConnectionCollection.prototype.toString = function() {
+		return JSON.stringify(this.getAllConnections());
+	};
+
+	global.Appacitive.ConnectionCollection.prototype.toJSON = function() {
+		return this.getAllConnections();
+	};
+
+	global.Appacitive.ConnectionCollection.prototype.connections = function() {
+		return this.getAll();
+	};
+
+	global.Appacitive.ConnectionCollection.prototype.length = function() {
+		return this.connections().length;
+	};
 
 })(global);(function (global) {
 
@@ -2885,9 +4069,32 @@ Depends on  NOTHING
 		this.type = 'article';
 		this.connectionCollections = [];
 		this.getArticle = this.getObject;
+		this.children = {};
 
 		if (this.get('__schematype').toLowerCase() == 'user') this.getFacebookProfile = _getFacebookProfile;
 
+		this.toJSON = function(recursive) {
+			if (recursive) {
+				var parseChildren = function(root) {
+					var articles = [];
+					root.forEach(function(obj) {
+						var tmp = obj.getObject();
+						if (obj.children && !Object.isEmpty(obj.children)) {
+							tmp.children = {};
+							for (var c in obj.children) {
+								tmp.children[c] = parseChildren(obj.children[c]);
+							}
+						}
+						if (obj.connection) tmp.__connection = obj.connection.toJSON();
+						articles.push(tmp);
+					});
+					return articles;
+				};
+				return parseChildren([this])[0];
+			} else {
+				return this.getObject();
+			}
+		};
 		return this;
 	};
 
@@ -2904,7 +4111,7 @@ Depends on  NOTHING
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
 		this.connectionCollections.push(collection);
 		
-		collection.query = new global.Appacitive.Queries.GetConnectionsQuery(options);
+		collection.query(new global.Appacitive.Queries.GetConnectionsQuery(options));
 		
 		return collection;
 	};
@@ -2913,17 +4120,40 @@ Depends on  NOTHING
 
 		options = options || {};
 		if (typeof options == 'string') {
-			rName = options;
-			options = { relation: rName };
-		}	
+			options = { relation: options };
+		}
 
+		options.schema = this.entityType;
 		options.articleId = this.get('__id');
+		options.prev = true;
+
 		var collection = new global.Appacitive.ConnectionCollection({ relation: options.relation });
+		collection.query(new global.Appacitive.Queries.ConnectedArticlesQuery(options));
 		collection.connectedArticle = this;
 		this.connectionCollections.push(collection);
-		collection.query  = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
-		
+
 		return collection;
+	};
+
+	global.Appacitive.Article.prototype.fetchConnectedArticles = function(options, onSuccess, onError) {
+		options = options || {};
+		if (typeof options == 'string') {
+			options = { relation: options };
+		}
+
+		options.schema = this.entityType;
+		options.articleId = this.get('__id');
+
+		var that = this;
+
+		var query = new global.Appacitive.Queries.ConnectedArticlesQuery(options);
+
+		query.fetch(function(articles, pagingInfo) {
+			that.children[options.relation] = articles;
+			if (onSuccess && typeof onSuccess == 'function') onSuccess(that, pagingInfo);
+		}, onError);		
+
+		return query; 
 	};
 
 	global.Appacitive.Article.multiDelete = function(options, onSuccess, onError) {
@@ -2939,7 +4169,7 @@ Depends on  NOTHING
 			onError = onError || function(){};
 
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiDeleteUrl(options.schema);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiDeleteUrl(options.schema);
 			request.method = 'post';
 			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
@@ -2972,7 +4202,7 @@ Depends on  NOTHING
 		if (!options.schema || typeof options.schema!= 'string' || options.schema.length == 0) throw new Error("Specify valid schema");
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
 			request.method = 'get';
 			request.onSuccess = function(d) {
 				if (d && d.articles) {
@@ -3001,8 +4231,7 @@ Depends on  NOTHING
 		if (options.schema.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: options.id });
 		else obj = new global.Appacitive.Article({ __schematype: options.schema, __id: options.id });
 		
-		obj.fields = options.fields;
-		obj.fetch(onSuccess, onError);
+		obj.fetch(onSuccess, onError, options.fields);
 
 		return obj;
 	};
@@ -3042,14 +4271,14 @@ Depends on  NOTHING
 		if ( endpoint.article && typeof endpoint.article == 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
-				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article);
+				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article.getArticle)
-					base["endpoint" + type].article.copy(endpoint.article);
+				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article instanceof global.Appacitive.Article)
+					base["endpoint" + type].article.copy(endpoint.article, true);
 				else 
-					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article);
+					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
 			}
-			base["endpoint" + type].articleid = endpoint.articleid;
+			base["endpoint" + type].articleid = endpoint.article.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
 
@@ -3067,7 +4296,7 @@ Depends on  NOTHING
 			options = { __relationtype : rName };
 		}
 
-		if (!options.__relationtype && !options.relation ) throw new error("Cannot set connection without relation");
+		if (!options.__relationtype && !options.relation ) throw new Error("Cannot set connection without relation");
 
 		if (options.relation) {
 			options.__relationtype = options.relation;
@@ -3080,15 +4309,15 @@ Depends on  NOTHING
 			delete options.endpoints;
 		}
 
-		global.Appacitive.BaseObject.call(this, options);
+		global.Appacitive.BaseObject.call(this, options, doNotSetup);
 		this.type = 'connection';
 		this.getConnection = this.getObject;
 
 		this.parseConnection = function() {
 			
 			var typeA = 'A', typeB ='B';
-			if ( options.__endpointa.label == this.get('__endpointb').label ) {
-				if ((options.__endpointa.label != options.__endpointb.label) && (options.__endpointa.articleid == this.get('__endpointb').articleid || !options.__endpointa.articleid)) {
+			if ( options.__endpointa.label.toLowerCase() == this.get('__endpointb').label.toLowerCase() ) {
+				if ((options.__endpointa.label.toLowerCase() != options.__endpointb.label.toLowerCase()) && (options.__endpointa.articleid == this.get('__endpointb').articleid || !options.__endpointa.articleid)) {
 				 	typeA = 'B', typeB = 'A';
 				}
 			}
@@ -3096,29 +4325,28 @@ Depends on  NOTHING
 			_convertEndpoint(this.get('__endpointa'), typeA, this);
 			_convertEndpoint(this.get('__endpointb'), typeB, this);
 
-			this.__defineGetter__('endpoints', function() {
+			this.endpoints = function() {
 				var endpoints = [];
 				endpoints.push(this.endpointA);
 				endpoints.push(this.endpointB);
 				return endpoints;
-			});
+			};
 
 			return this;
 		};
 
 		if (doNotSetup) {
-			this.__defineGetter__('connectedArticle', function() {
+			this.connectedArticle = function() {
 				if (!this.___collection.connectedArticle) {
 					throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
 				}
 				var articleId = this.___collection.connectedArticle.get('__id');
 				if (!articleId) return null;
-				var otherArticleId = this.getConnection().__endpointa.articleid;
-				if (this.getConnection().__endpointa.articleid == articleId)
-					otherArticleId = this.getConnection().__endpointb.articleid;
+				var otherArticleId = this.endpointA.articleid;
+				if (otherArticleId == articleId)
+					otherArticleId = this.endpointB.articleid;
 				return this.___collection.getConnectedArticle(otherArticleId);
-
-			});
+			};
 			this.parseConnection(options);
 		} else {
 			if (options.__endpointa && options.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));
@@ -3149,9 +4377,18 @@ Depends on  NOTHING
 
 		// 2
 		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
+
+		// 3
+		this.endpoints = function() {
+			var endpoints = [];
+			endpoints.push(this.endpointA);
+			endpoints.push(this.endpointB);
+			return endpoints;
+		};
+
 	};
 
-	global.Appacitive.Connection.get = function(relationName, id, onSuccess, onError, fields) {
+	global.Appacitive.Connection.get = function(options, onSuccess, onError) {
 		options = options || {};
 		if (!options.relation) throw new Error("Specify relation");
 		if (!options.id) throw new Error("Specify id to fetch");
@@ -3188,12 +4425,12 @@ Depends on  NOTHING
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive article objects
-	global.Appacitive.Connection.multiGet = function(relationName, ids, onSuccess, onError, fields) {
+	global.Appacitive.Connection.multiGet = function(options, onSuccess, onError) {
 		options = options || {};
 		if (!options.relation || typeof options.relation!= 'string' || options.relation.length == 0) throw new Error("Specify valid relation");
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
 			request.method = 'get';
 			return _fetch(request, onSuccess, onError); 
 		} else { 
@@ -3209,7 +4446,7 @@ Depends on  NOTHING
 
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
 			request.method = 'post';
 			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
@@ -3230,36 +4467,19 @@ Depends on  NOTHING
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options, onSuccess, onError) {
-		var q = new Appacitive.Queries.InterconnectsQuery(options);
+		var q = new global.Appacitive.Queries.InterconnectsQuery(options);
 		_fetch(q.toRequest(), request, onSuccess, onError);
 	};
 
 	//takes 2 articleids and returns connections between them
 	global.Appacitive.Connection.getBetweenArticles = function(options, onSuccess, onError) {
-		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
+		var q = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
 		_fetch(q.toRequest(), onSuccess, onError);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype
 	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options, onSuccess, onError) {
-		var q = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options);
-		var request = q.toRequest();
-		request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-			   if (typeof onSuccess == 'function') {
-			     var conn = d.connection ? new global.Appacitive.Connection(d.connection) : null;
-			     if (typeof onSuccess == 'function') onSuccess(conn);
-			   }
-			} else {
-				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
-			}
-		};
-		request.onError = function(d) {
-			d = d || {};
-			if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
-		};
-		global.Appacitive.http.send(request);
+		new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options).fetch(onSuccess, onError);
 	};
 
 })(global);(function (global) {
@@ -3270,7 +4490,9 @@ Depends on  NOTHING
 
 		var _authenticatedUser = null;
 
-		this.__defineGetter__('currentUser', function() { return _authenticatedUser; });
+		this.currentUser = function() {
+			return _authenticatedUser;
+		}
 
 		var _updatePassword = function(base, oldPassword, newPassword, onSuccess, onError) {
 			var userId = base.get('__id');
@@ -3291,7 +4513,9 @@ Depends on  NOTHING
 			request.method = 'post';
 			request.data = updatedPasswordOptions;
 			request.onSuccess = function(a) {
-				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess(base);
+				if (a && a.code == '200') {
+					if (typeof onSuccess == 'function') onSuccess(base);
+				}
 				else { onError(a, base); }
 			};
 			request.onError = onError;
@@ -3301,7 +4525,7 @@ Depends on  NOTHING
 		var _getAllLinkedAccounts = function(base, onSuccess, onError) {
 			var userId = base.get('__id');
 			if (!userId || typeof userId !== 'string' || userId.length == 0) {
-				if (typeof onSuccess == 'function') onSuccess(base.linkedAccounts, base);
+				if (typeof onSuccess == 'function') onSuccess(base.linkedAccounts(), base);
 			}
 
 			onSuccess = onSuccess || function(){};
@@ -3406,10 +4630,12 @@ Depends on  NOTHING
 		};
 
 		this.setCurrentUser = function(user, token, expiry) {
-			if (!user || typeof user != 'object' || user.length >= 0) throw new Error('Cannot set null object as user');
+			if (!user) throw new Error('Cannot set null object as user');
 			var userObject = user;
-			if (!user.getArticle) userObject = new global.Appacitive.User(user, true); 
-			if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
+			
+			if (!(userObject instanceof global.Appacitive.User)) userObject = new global.Appacitive.User(user, true); 
+			else if (!userObject.get('__id') || userObject.get('__id').length == 0) throw new Error('Specify user __id');
+			else user = userObject.toJSON(); 
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
 			if (!expiry) expiry = 60;
@@ -3426,7 +4652,7 @@ Depends on  NOTHING
 
 			_authenticatedUser.linkFacebookAccount = function(onSuccess, onError) {
 				var _callback = function() {
-					_link(Appacitive.Facebook.accessToken, _authenticatedUser, function(base) {
+					_link(Appacitive.Facebook.accessToken(), _authenticatedUser, function(base) {
 						global.Appacitive.eventManager.fire('user..article.' + base.get('__id') + '.updated', base, { object: base });
 						if (typeof onSuccess == 'function') onSuccess(base);
 					}, onError);
@@ -3453,7 +4679,7 @@ Depends on  NOTHING
 				return this;
 			};
 
-			_authenticatedUser.logout = function(callback) { Appacitive.Users.logout(callback); };
+			_authenticatedUser.logout = function(callback) { global.Appacitive.Users.logout(callback); };
 
 			_authenticatedUser.checkin = function(coords, onSuccess, onError) {
 				_checkin(coords, this, onSuccess, onError);
@@ -3478,7 +4704,7 @@ Depends on  NOTHING
 		global.Appacitive.User.prototype.constructor = global.Appacitive.User;
 
 		//getter to get linkedaccounts
-		global.Appacitive.User.prototype.__defineGetter__("linkedAccounts", function() {
+		global.Appacitive.User.prototype.linkedAccounts = function() {
 			
 			var accounts = this.get('__link');
 			
@@ -3487,7 +4713,7 @@ Depends on  NOTHING
 			else if(!(accounts.length >= 0)) accounts = accounts[0];
 
 			return accounts;
-		});
+		};
 
 		//method for getting all linked accounts
 		global.Appacitive.User.prototype.getAllLinkedAccounts = function(onSuccess, onError) {
@@ -3527,7 +4753,7 @@ Depends on  NOTHING
 		};
 
 		global.Appacitive.User.prototype.clone = function() {
-			return new Appacitive.User(this.getObject());
+			return new global.Appacitive.User(this.getObject());
 		};
 
 		this.deleteUser = function(userId, onSuccess, onError) {
@@ -3541,14 +4767,18 @@ Depends on  NOTHING
 		};
 
 		this.deleteCurrentUser = function(onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-
-			if (_authenticatedUser === null) throw new Error('Current user is not yet set for delete operation');
-
-			var currentUserId = _authenticatedUser.get('__id');
-			this.deleteUser(currentUserId, function(data) { 
+			
+			var _callback = function() {
 				global.Appacitive.Session.removeUserAuthHeader();
-				if (typeof onSuccess == 'function') onSuccess(data);
+				if (typeof onSuccess == 'function') onSuccess();
+			}
+			if (_authenticatedUser === null) { 
+				_callback();
+				return;
+			}
+			var currentUserId = _authenticatedUser.get('__id');
+			this.deleteUser(currentUserId, function() { 
+				_callback();
 			}, onError);
 		};
 
@@ -3566,7 +4796,7 @@ Depends on  NOTHING
 		//method to allow user to signup and then login 
 		this.signup = function(user, onSuccess, onError) {
 			var that = this;
-			this.createUser(user, function(data) {
+			this.createUser(user, function() {
 				that.login(user.username, user.password, onSuccess, onError);
 			}, function(status) {
 				onError(status);
@@ -3590,7 +4820,7 @@ Depends on  NOTHING
 						data.user.__authType = provider;
 					}
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					onSuccess({ user : that.currentUser, token: data.token });
+					onSuccess({ user : _authenticatedUser, token: data.token });
 				} else {
 					data = data || {};
 					onError(data.status);
@@ -3629,16 +4859,16 @@ Depends on  NOTHING
 			var _callback = function() {
 
 				var authRequest = {
-					"accesstoken": global.Appacitive.Facebook.accessToken,
+					"accesstoken": global.Appacitive.Facebook.accessToken(),
 					"type": "facebook",
 					"expiry": 86400000,
-					"createnew": isNew
+					"createnew": true
 				};
 
 				that.authenticateUser(authRequest, function(a) {
 					if (a.user) {
 						a.user.__authType = 'FB';
-						if (typeof onSuccess == 'function') onSuccess({ user : that.currentUser, token: a.token });
+						if (typeof onSuccess == 'function') onSuccess({ user : _authenticatedUser, token: a.token });
 					} else {
 						a = a || {};
 						if (typeof onError == 'function') onError(a.status);
@@ -3648,11 +4878,9 @@ Depends on  NOTHING
 			if (ignoreFBLogin) {
 				_callback();
 			} else { 
-				if (FB) {
-					Appacitive.Facebook.requestLogin(function(authResponse) {
-						_callback();
-					}, onError);
-				} else if (typeof onError == 'function') onError();
+				Appacitive.Facebook.requestLogin(function(authResponse) {
+					_callback();
+				}, onError);
 			}
 		};
 
@@ -3674,19 +4902,16 @@ Depends on  NOTHING
 
 			if (!avoidApiCall) {
 				try {
-					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateTokenUrl(token);
-					_request.method = 'POST';
-					_request.data = {};
-					_request.onSuccess = function(data) {
-						if (typeof(callback) == 'function')
-							callback(data.result);
-					};
-					global.Appacitive.http.send(_request);
+					var that = this;
+					this.getUserByToken(token, function(user) {
+						that.setCurrentUser(user, token);
+						if (typeof(callback) == 'function') callback(true);
+					}, function() {
+						if (typeof(callback) == 'function') callback(false);
+					});
 				} catch (e) { callback(false);}
 			} else {
-				if (typeof(callback) == 'function')
-					callback(true);
+				if (typeof(callback) == 'function') callback(true);
 				return true;
 			}
 		};
@@ -3704,14 +4929,15 @@ Depends on  NOTHING
 			request.method = 'post';
 			request.data = passwordResetOptions;
 			request.onSuccess = function(a) {
-				if (a && a.code == '200') if (typeof onSuccess == 'function') onSuccess();
-				else { onError(a); }
+				if (a && a.code == '200') {
+				 	if (typeof onSuccess == 'function') onSuccess();
+				} else { onError(a); }
 			};
 			request.onError = onError;
 			global.Appacitive.http.send(request); 
 		};
 
-		var _getUserByIdType = function(url, onSuccess, onError){
+		var _getUserByIdType = function(url, onSuccess, onError) {
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
@@ -3719,8 +4945,9 @@ Depends on  NOTHING
 			request.url = url;
 			request.method = 'get';
 			request.onSuccess = function(data) {
-				if (data && data.user) if (typeof onSuccess == 'function') onSuccess(new Appacitive.User(data.user));
-				else if (typeof onError == 'function') onError(data.status);
+				if (data && data.user) { 
+					if (typeof onSuccess == 'function') onSuccess(new global.Appacitive.User(data.user));
+				} else if (typeof onError == 'function') onError(data.status);
 			};
 			request.onError = onError;
 			global.Appacitive.http.send(request);
@@ -3729,6 +4956,7 @@ Depends on  NOTHING
 		this.getUserByToken = function(token, onSuccess, onError) {
 			if (!token || typeof token != 'string' || token.length == 0) throw new Error("Please specify valid token");
 			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByTokenUrl(token);
+			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
 			_getUserByIdType(url, onSuccess, onError);
 		};
 
@@ -3742,6 +4970,45 @@ Depends on  NOTHING
 			callback = callback || function() {};
 			_authenticatedUser = null;
 			global.Appacitive.Session.removeUserAuthHeader(callback, avoidApiCall);
+		};
+
+		this.resetPassword = function(token, newPassword, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!token) throw new Error("Please specify token");
+			if (!newPassword || newPassword.length == 0) throw new Error("Please specify password");
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getResetPasswordUrl(token);
+			request.method = 'post';
+			request.data = { newpassword: newPassword };
+			request.onSuccess = function(a) {
+				if (a && a.code == '200') {
+				 	if (typeof onSuccess == 'function') onSuccess();
+				} else { onError(a); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request); 
+		};
+
+		this.validateResetPasswordToken = function(token, onSuccess, onError) {
+			onSuccess = onSuccess || function(){};
+			onError = onError || function(){};
+
+			if (!token) throw new Error("Please specify token");
+
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateResetPasswordUrl(token);
+			request.method = 'post';
+			request.data = {};
+			request.onSuccess = function(a) {
+				if (a.status && a.status.code == '200') {
+				 	if (typeof onSuccess == 'function') onSuccess(a.user);
+				} else { onError(a.status); }
+			};
+			request.onError = onError;
+			global.Appacitive.http.send(request); 
 		};
 	};
 
@@ -3780,8 +5047,8 @@ Depends on  NOTHING
 					onSuccess(d.email);
 				} else {
 					d = d || {};
-					d.status = d.status || {};
-					onError(d.status.message || 'Server error');
+					d.status = d.status || { message: 'Server Error', code: '400'};
+					onError(d.status);
 				}
 			};
 			global.Appacitive.http.send(request);
@@ -3823,6 +5090,7 @@ Depends on  NOTHING
 				cc: options.cc || [],
 				bcc: options.bcc || [],
 				subject: options.subject,
+				from: options.from,
 				body: {
 					templatename: options.templateName || '',
 					data : options.data || {},
@@ -3853,6 +5121,10 @@ Depends on  NOTHING
 				throw new Error('Subject is mandatory to send an email');
 			}
 
+			if(!options.from && config.from) {
+				throw new Error('from is mandatory to send an email. Set it in config or send it in options on the portal');
+			} 
+
 			if (!options.body) {
 				throw new Error('body is mandatory to send an email');
 			} 
@@ -3862,6 +5134,7 @@ Depends on  NOTHING
 				cc: options.cc || [],
 				bcc: options.bcc || [],
 				subject: options.subject,
+				from: options.from,
 				body: {
 					content: options.body || '',
 					ishtml: (options.isHtml == false) ? false : true
@@ -3886,82 +5159,7 @@ Depends on  NOTHING
 
 })(global);(function (global) {
 
- 	"use strict";
-
-    var _browserFacebook = function() {
-
-		var _accessToken = null;
-
-		var _initialized = true;
-
-		var _app_id = null;
-
-		this.initialize = function(options) {
-		  if (!FB) throw "Facebook SDK needs be loaded before calling initialize.";
-		  if (!options.appId) throw new Error("Please provide appid");
-		  _app_id = options.appId;
-		  FB.init(options);
-		  _initialized = true;
-		};
-
-		this.requestLogin = function(onSuccess, onError) {
-			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
-		    onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-			FB.login(function(response) {
-				if (response && response.status === 'connected' && response.authResponse) {
-					_accessToken = response.authResponse.accessToken;
-					if (typeof onSuccess == 'function') onSuccess(response.authResponse);
-				} else {
-					if (typeof onError == 'function') onError();
-				}
-			}, { scope:'email,user_birthday' });
-		};
-
-		this.getCurrentUserInfo = function(onSuccess, onError) {
-			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-			FB.api('/me', function(response) {
-				if (response && !response.error) {
-					_accessToken = FB.getAuthResponse().accessToken;
-					if (typeof onSuccess == 'function') onSuccess(response);
-				} else {
-					if (typeof onError == 'function') onError();
-				}
-			});
-		};
-
-		this.__defineGetter__('accessToken', function() {
-			return _accessToken;
-		});
-
-		this.__defineSetter__('accessToken', function(val) {
-			_accessToken = val;
-		});
-
-		this.getProfilePictureUrl = function(username) {
-			return 'https://graph.facebook.com/' + username + '/picture';
-		};
-
-		this.logout = function(onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function(){};
-			Appacitive.facebook.accessToken = "";
-			try {
-				FB.logout(function(response) {
-					Appacitive.Users.logout();
-					if (typeof onSuccess == 'function') onSuccess();
-				});
-			} catch(e) {
-				if (typeof onError == 'function') onError(e.message);
-			}
-		};
-	};
-
-	var _nodeFacebook = function() {
-
-		var Facebook = require('facebook-node-sdk');
+	var _facebook = function() {
 
 		var _accessToken = null;
 
@@ -3983,7 +5181,7 @@ Depends on  NOTHING
 		}
 
 		this.requestLogin = function(onSuccess, onError) {
-			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+			if (!_initialized) throw new Error("Titanium Facebook module has not yet been initialized, or not yet loaded.");
 		    onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 			Ti.Facebook.addEventListener('login', function(e) {
@@ -4004,7 +5202,7 @@ Depends on  NOTHING
 		};
 
 		this.getCurrentUserInfo = function(onSuccess, onError) {
-			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+			if (!_initialized) throw new Error("Titanium Facebook module  has not yet been initialized, or not yet loaded.");
 
 			if (Ti.Facebook && _accessToken){
 				onSuccess = onSuccess || function(){};
@@ -4018,35 +5216,34 @@ Depends on  NOTHING
 				    }
 				});
 			} else {
-				onError("Either intialize facebook with your appid and appsecret or set accesstoken");
+				onError("Either intialize Titanium Facebook module with your appid and appsecret or set accesstoken");
 			}
 		};
 
-		this.__defineGetter__('accessToken', function() {
+		this.accessToken = function() {
+			if (arguments.length == 1) {
+				_accessToken = arguments[0];
+				if (Ti.Facebook) Ti.Facebook.setAccessToken(_accessToken);
+				return this;
+			}
 			return _accessToken;
-		});
-
-		this.__defineSetter__('accessToken', function(val) {
-			_accessToken = val;
-			if (Ti.Facebook) Ti.Facebook.setAccessToken(val);
-		});
+		};
 
 		this.getProfilePictureUrl = function(username) {
 			return 'https://graph.facebook.com/' + username + '/picture';
 		};
 
-		this.logout = function(onSuccess, onError) {
+		this.logout = function(onSuccess) {
 			onSuccess = onSuccess || function() {};
-			onError = onError || function(){};
-			Appacitive.facebook.accessToken = "";
+			global.Appacitive.facebook.accessToken = "";
 			_accessToken = "";
 			Ti.Facebook.logout();
 			if (typeof onSuccess == 'function') onSuccess();
-		}
-	}
+		};
+	};
 
-	global.Appacitive.Facebook = global.Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
-	
+	global.Appacitive.Facebook = _facebook;
+
 })(global);(function(global) {
 
 	"use strict";
@@ -4179,7 +5376,7 @@ Depends on  NOTHING
           request.headers.push({ key:'content-type', value: type });
           request.onSuccess = onSuccess;
           request.onError = onError;
-          request.send(true);
+          request.send();
       };
 
       this.save = function(onSuccess, onError, contentType) {
@@ -4193,10 +5390,10 @@ Depends on  NOTHING
           if (!that.fileData) throw new Error('Please specify filedata');
           if (contentType || typeof contentType == 'string') that.contentType = contentType;
           else {
-              if (!that.contentType || typeof contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
+              if (!that.contentType || typeof that.contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
               try { that.contentType = file.type; } catch(e) {}
           }
-          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType);
+          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
           onSuccess = onSuccess || function(){};
           onError = onError || function(){};
 
@@ -4288,6 +5485,29 @@ Depends on  NOTHING
           return this;
       };
 
+      this.getUploadUrl = function(onSuccess, onError, contentType) {
+          var that = this;
+
+          if (contentType || typeof contentType == 'string') this.contentType = contentType;
+          else {
+              if (!this.contentType || typeof this.contentType !== 'string' || this.contentType.length == 0) this.contentType = 'text/plain';
+          }
+
+          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');
+          onSuccess = onSuccess || function() {};
+          onError = onError || function() {};
+
+          _getUrls(url, function(response) {
+              if (response && response.status && response.status.code == '200') {
+                  that.url = response.url;
+                  onSuccess(response.url, that);
+              } else if (typeof onError == 'function') {
+                  onError(response.status, that);
+              }
+          }, onError);
+      };
+
+      return this;
   };
 
   global.Appacitive.File = _file;
@@ -4296,43 +5516,36 @@ Depends on  NOTHING
   
   global.Appacitive.Date = {};
 
+  var pad = function (n) {
+      if (n < 10) return '0' + n;
+      return n
+  };
+
   global.Appacitive.Date.parseISODate = function (str) {
     try {
-      var date = new Date(str);
-      if (isNaN(date)) {
-        var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z$");
-        var isOnlyDate = false;
-        if (!regexp.exec(str)) {
-           regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})");
-           if (!regexp.exec(str)) {
-              return null  
-           } else {
-              isOnlyDate = true;
-           }
-        }  
+        var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
 
+        var isOnlyDate = false;
+        if (!regexp.exec(str)) return new Date(str);
+          
         var parts = str.split('T'),
-        dateParts = parts[0].split('-'),
-        timeParts = parts[1].split('Z'),
-        timeSubParts = timeParts[0].split(':'),
-        timeSecParts = timeSubParts[2].split('.'),
-        timeHours = Number(timeSubParts[0]),
-        date = new Date();
+          dateParts = parts[0].split('-'),
+          timeParts = parts[1].split('Z'),
+          timeSubParts = timeParts[0].split(':'),
+          timeSecParts = timeSubParts[2].split('.'),
+          timeHours = Number(timeSubParts[0]),
+          date = new Date();
 
         date.setUTCFullYear(Number(dateParts[0]));
         date.setUTCMonth(Number(dateParts[1])-1);
         date.setUTCDate(Number(dateParts[2]));
         
-        if (!isOnlyDate) {
-          date.setUTCHours(Number(timeHours));
-          date.setUTCMinutes(Number(timeSubParts[1]));
-          date.setUTCSeconds(Number(timeSecParts[0]));
-          if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
-        }
+        date.setUTCHours(Number(timeHours));
+        date.setUTCMinutes(Number(timeSubParts[1]));
+        date.setUTCSeconds(Number(timeSecParts[0]));
+        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1].substring(0, 3)));
+
         return date;
-      } else {
-        return date;
-      }
     } catch(e) {return null;}
   };
 
@@ -4345,41 +5558,53 @@ Depends on  NOTHING
   };
 
   global.Appacitive.Date.toISODate = function(date) {
-    try {
-      date = date.toISOString()[0];
-      return date;
-    } catch(e) { return null; }
+    if (date instanceof Date) return String.format("{0}-{1}-{2}", date.getFullYear(), pad((date.getMonth() + 1)), pad(date.getDate()));
+    throw new Error("Invalid date provided Appacitive.Date.toISODate method");
   };
 
   global.Appacitive.Date.toISOTime = function(date) {
-    try {
-      date = date.toISOString().split('T')[1];
-      date = date.replace('Z','0000Z');
-      return date;
-    } catch(e) { return null; }
+    var padMilliseconds = function (n) {
+                if (n < 10) return n + '000000';
+           else if (n < 100) return n + '00000';
+           else if (n < 1000) return n + '0000';
+           else if (n < 10000) return n + '000';
+           else if (n < 100000) return n + '00';
+           else if (n < 1000000) return n + '0';
+           return n;
+    };
+    if (date instanceof Date) return String.format("{0}:{1}:{2}.{3}", pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds()), padMilliseconds(date.getMilliseconds()));
+    throw new Error("Invalid date provided Appacitive.Date.toISOTime method");
   };
 
   global.Appacitive.Date.parseISOTime = function(str) {
     try {
       var date = new Date();
+    
+      var parts = str.split('T');
+      if (parts.length == 1) parts.push(parts[0]);
       
-      var regexp = new RegExp("^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z$");
-      if (!regexp.exec(str)) {
+      var regexp = new RegExp("^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
+      if (!regexp.exec(parts[1])) {
          return null;
       }
 
-      var parts = str.split('T');
-      if (parts.length == 1) parts.push(parts[0]);
       var timeParts = parts[1].split('Z'),
       timeSubParts = timeParts[0].split(':'),
       timeSecParts = timeSubParts[2].split('.'),
       timeHours = Number(timeSubParts[0]);
       
-      date.setUTCHours(Number(timeHours));
-      date.setUTCMinutes(Number(timeSubParts[1]));
-      date.setUTCSeconds(Number(timeSecParts[0]));
-      if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1]));
-    
+      if (parts.length > 1) {
+        date.setUTCHours(Number(timeHours));
+        date.setUTCMinutes(Number(timeSubParts[1]));
+        date.setUTCSeconds(Number(timeSecParts[0]));
+        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1].substring(0, 3)));
+      } else {
+        date.setHours(Number(timeHours));
+        date.setMinutes(Number(timeSubParts[1]));
+        date.setSeconds(Number(timeSecParts[0]));
+        if (timeSecParts[1]) date.setMilliseconds(Number(timeSecParts[1].substring(0, 3)));
+      }
+
       return date;
     } catch(e) {return null;}
   };
@@ -4390,7 +5615,7 @@ Depends on  NOTHING
 
 	var A_LocalStorage = function() {
 
-		var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : {};
+		var _localStorage = Ti.App.Properties;
 
 		this.set = function(key, value) {
 			value = value || '';
@@ -4401,15 +5626,18 @@ Depends on  NOTHING
 			      value = JSON.stringify(value);
 			    } catch(e){}
 		    }
+		    key = global.Appacitive.getAppPrefix(key);
 
-			_localStorage[key] = value;
+			_localStorage.setString(key, value);
 			return true;
 		};
 
 		this.get = function(key) {
 			if (!key) return null;
 
-			var value = _localStorage.getItem(key);
+			key = global.Appacitive.getAppPrefix(key);
+
+			var value = _localStorage.getString(key);
 		   	if (!value) { return null; }
 
 		    // assume it is an object that has been stringified
@@ -4424,7 +5652,8 @@ Depends on  NOTHING
 		
 		this.remove = function(key) {
 			if (!key) return;
-			try { delete _localStorage[key]; } catch(e){}
+			key = global.Appacitive.getAppPrefix(key);
+			try { _localStorage.removeProperty[key]; } catch(e){}
 		}
 	};
 
@@ -4434,40 +5663,21 @@ Depends on  NOTHING
 
 var cookieManager = function () {
 
-	this.setCookie = function (name, value, minutes, erase) {
-		if (minutes) {
-			var date = new Date();
-			date.setTime(date.getTime() + (minutes*60*1000));
-			var expires = "; expires="+date.toGMTString();
-		}
-		//else var expires = "";
-		
-		//for now lets make this a session cookie if it is not an erase
-		if (!erase) var expires = '';
-
-		var domain = 'domain=' + window.location.hostname;
-		document.cookie = name + "=" + value + expires + "; path=/;" + domain;
+	this.setCookie = function (name, value) {
+		global.Appacitive.localStorage.set(name, value);
 	};
 
 	this.readCookie = function (name) {
-		var nameEQ = name + "=";
-		var ca = document.cookie.split(';');
-		for (var i=0; i < ca.length; i++) {
-			var c = ca[i];
-			while (c.charAt(0)==' ') c = c.substring(1,c.length);
-			if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-		}
-		return null;
+		return global.Appacitive.localStorage.get(name);
 	};
 
 	this.eraseCookie = function (name) {
-		this.setCookie(name, "" ,-1, true);
+		global.Appacitive.localStorage.remove(name);
 	};
 
 };
 
-if (global.Appacitive.runtime.isBrowser)
-	global.Appacitive.Cookie = new cookieManager();
+global.Appacitive.Cookie = new cookieManager();
 
 })(global);
-if (typeof module != 'undefined' && !global.Appacitive.runtime.isBrowser) module.exports =  global.Appacitive;
+module.exports =  global.Appacitive;

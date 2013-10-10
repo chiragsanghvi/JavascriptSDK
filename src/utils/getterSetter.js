@@ -114,3 +114,21 @@ if (!Date.prototype.toISOString) {
 
     Date.prototype.toISOString = Date.prototype.toJSON;
 }
+
+String.addSlashes = function (str) {
+    if (!str) return str;
+    str = str.replace(/\\/g, '\\\\');
+    str = str.replace(/\'/g, '\\\'');
+    str = str.replace(/\"/g, '\\"');
+    str = str.replace(/\0/g, '\\0');
+    return str;
+};
+
+String.stripSlashes = function (str) {
+    if (!str) return str;
+    str = str.replace(/\\'/g, '\'');
+    str = str.replace(/\\"/g, '"');
+    str = str.replace(/\\0/g, '\0');
+    str = str.replace(/\\\\/g, '\\');
+    return str;
+};

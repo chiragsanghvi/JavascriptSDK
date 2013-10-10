@@ -19,8 +19,7 @@ var global = {};
 		if (!global.Appacitive) {
 			global.Appacitive = {
 				runtime: {
-					isNode: typeof process != typeof t,
-					isBrowser: typeof window != typeof t
+					isBrowser: true
 				}
 			};
 		}
@@ -207,43 +206,6 @@ var global = {};
 	  * @constructor
 	  */
 
-	var _XMLHttpRequest = null;
-
-	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest').XMLHttpRequest;
-
-	var _XDomainRequest = function(request) {
-	    var xdr = new XDomainRequest();
-	    xdr.onload = function() {
-  			var response = xdr.responseText;
-			try {
-				var contentType = xdr.contentType;
-				if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
-					var jData = response;
-					if (!global.Appacitive.runtime.isBrowser) {
-						if (jData[0] != "{") {
-							jData = jData.substr(1, jData.length - 1);
-						}
-					}
-					response = JSON.parse(jData);
-				}
-			} catch(e) {}
-            request.onSuccess(response, this);       
-	    };
-	    xdr.onerror = xdr.ontimeout = function() {
-	       request.onError({code: "400" , message: "Server Error" }, xdr);
-	    };
-	    xdr.onprogress = function() {};
-	    if (request.url.indexOf('?') == -1)
-            request.url = request.url + '?ua=ie';
-        else
-            request.url = request.url + '&ua=ie';
-
-	    xdr.open(request.method, request.url, true);
-	    xdr.send(request.data);
-		return xdr;
-	};
-
-
 	var _XMLHttp = function(request) {
 
 		if (!request.url) throw new Error("Please specify request url");
@@ -280,7 +242,7 @@ var global = {};
 			var xdr = new _XDomainRequest(request);
 			return xdr;
 	    } else {
-		    var xhr = new _XMLHttpRequest();
+		    var xhr = Titanium.Network.createHTTPClient();
 		    xhr.onreadystatechange = function() {
 		    	if (this.readyState == 4) {
 			    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
@@ -289,10 +251,8 @@ var global = {};
 							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
 							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 								var jData = response;
-								if (!global.Appacitive.runtime.isBrowser) {
-									if (jData[0] != "{") {
-										jData = jData.substr(1, jData.length - 1);
-									}
+								if (jData[0] != "{") {
+									jData = jData.substr(1, jData.length - 1);
 								}
 								response = JSON.parse(jData);
 							}
