@@ -598,9 +598,11 @@ if (cUser) {
 ```
 You can clear this value, calling `Appacitive.Users.logout()` method.
 ```javascript
-Appacitive.Users.logout();
-// this will now be null
-var cUser = Appacitive.Users.currentUser();  
+Appacitive.Users.logout(function() {
+	// user is looged out	
+	// this will now be null
+	var cUser = Appacitive.Users.currentUser();  
+});
 ```
 
 ### User Session Management
