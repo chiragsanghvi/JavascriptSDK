@@ -542,11 +542,18 @@ var userDetails = {
 };
 
 // now to create the user
-Appacitive.Users.singup(userDetails , function(obj) {
-	alert('Saved successfully, id: ' + obj.get('__id'));
-}, function(err, obj) {
+Appacitive.Users.signup(userDetails , function(authResult) {
+	conole.log(authResult.token);
+	alert('Saved successfully, id: ' + authResult.user.get('__id'));
+}, function(err) {
 	alert('An error occured while saving the user.');
 });
+
+//The `authResult` is.
+{
+    "token": "UjRFNVFKSWdGWmtwT0JhNU9jRG5sV0tOTDlPU0drUE1TQXJ0WXBHSlBreWVYdEtFaWRNV2k3TXlUK1BxSlMwcFp1L09wcHFzQUpSdTB3V3NBOFNVa2srNThYUUczYzM5cGpnWExUOHVMcmNZVmpLTHB4K1RLM3BRS2JtNXJCbHdoMWsxandjV3FFbFFacEpYajlNQmNCdm1HbWdsTHFDdzhlZjJiM0ljRUUyVUY2eUl2cllDdUE9PQ==",
+    "user": Appacitive.User object
+}
 ```
 
 #### Login via username + password
@@ -573,7 +580,7 @@ You can ask your users to log in via facebook. The process is very similar to si
 ```javascript
 Appacitive.Users.loginWithFacebook(function (authResult) {
 	// authentication successful
-}, function() {
+}, function(er) {
 	// authentication unsuccessful
 	// maybe incorrect credentials or maybe the user denied permissions
 });
@@ -1464,4 +1471,3 @@ file.getDownloadUrl(function(url) {
 	alert("Downloading file");
 });
 ```
-
