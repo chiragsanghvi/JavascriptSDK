@@ -75,8 +75,6 @@
 
 	var _nodeFacebook = function() {
 
-		var Facebook = require('facebook-node-sdk');
-
 		var _accessToken = null;
 
 		this.FB = null;
@@ -85,7 +83,7 @@
 
 		var _app_secret = null;
 
-		var _initialized = true;
+		var _initialized = false;
 
 		this.initialize = function (options) { 
 			if (!Facebook) throw new Error("node-facebook SDK needs be loaded before calling initialize.");
@@ -94,17 +92,12 @@
 
 			_app_id = options.appId;
 			_app_secret = options.appSecret;
-		    this.FB = new Facebook({ appId: _appId, secret: _app_secret });
+		    this.FB = new (require('facebook-node-sdk'))({ appId: _appId, secret: _app_secret });
 		    _initialized = true;
-		}
+		};
 
 		this.requestLogin = function(onSuccess, onError, accessToken) {
-			if (!_initialized) {
-			  if (typeof onError == 'function') onError("Intialize facebook with your appid and appsecret");
-			  return;
-			}
 			_accessToken = accesstoken;
-			FB.setAccessToken(accessToken);
 			Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
 		};
 
