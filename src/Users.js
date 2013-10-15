@@ -394,7 +394,7 @@
 			if (ignoreFBLogin) {
 				_callback();
 			} else { 
-				Appacitive.Facebook.requestLogin(function(authResponse) {
+				global.Appacitive.Facebook.requestLogin(function(authResponse) {
 					_callback();
 				}, onError);
 			}

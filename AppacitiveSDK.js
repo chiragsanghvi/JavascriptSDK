@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Oct 15 11:50:11 IST 2013
+ * Build time 	: Tue Oct 15 13:17:47 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -4918,7 +4918,7 @@ Depends on  NOTHING
 			if (ignoreFBLogin) {
 				_callback();
 			} else { 
-				Appacitive.Facebook.requestLogin(function(authResponse) {
+				global.Appacitive.Facebook.requestLogin(function(authResponse) {
 					_callback();
 				}, onError);
 			}
@@ -5260,10 +5260,10 @@ Depends on  NOTHING
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.Facebook.accessToken = "";
+			global.Appacitive.Facebook.accessToken = "";
 			try {
 				FB.logout(function(response) {
-					Appacitive.Users.logout();
+					global.Appacitive.Users.logout();
 					if (typeof onSuccess == 'function') onSuccess();
 				});
 			} catch(e) {
@@ -5296,14 +5296,14 @@ Depends on  NOTHING
 		};
 
 		this.requestLogin = function(onSuccess, onError, accessToken) {
-			_accessToken = accesstoken;
-			Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
+			if (accessToken) _accessToken = accessToken;
+			global.Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
 		};
 
 		this.getCurrentUserInfo = function(onSuccess, onError) {
 			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
 
-			if(this.FB && _accessToken){
+			if (this.FB && _accessToken){
 				onSuccess = onSuccess || function(){};
 				onError = onError || function(){};
 				this.FB.api('/me', function(err, response) {
@@ -5333,7 +5333,7 @@ Depends on  NOTHING
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.Facebook.accessToken = "";
+			global.Appacitive.Facebook.accessToken = "";
 			if (typeof onSuccess == 'function') onSuccess();
 		}
 	}

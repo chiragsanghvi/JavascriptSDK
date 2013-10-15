@@ -61,10 +61,10 @@
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.Facebook.accessToken = "";
+			global.Appacitive.Facebook.accessToken = "";
 			try {
 				FB.logout(function(response) {
-					Appacitive.Users.logout();
+					global.Appacitive.Users.logout();
 					if (typeof onSuccess == 'function') onSuccess();
 				});
 			} catch(e) {
@@ -97,14 +97,14 @@
 		};
 
 		this.requestLogin = function(onSuccess, onError, accessToken) {
-			_accessToken = accesstoken;
-			Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
+			if (accessToken) _accessToken = accessToken;
+			global.Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
 		};
 
 		this.getCurrentUserInfo = function(onSuccess, onError) {
 			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
 
-			if(this.FB && _accessToken){
+			if (this.FB && _accessToken){
 				onSuccess = onSuccess || function(){};
 				onError = onError || function(){};
 				this.FB.api('/me', function(err, response) {
@@ -134,7 +134,7 @@
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.Facebook.accessToken = "";
+			global.Appacitive.Facebook.accessToken = "";
 			if (typeof onSuccess == 'function') onSuccess();
 		}
 	}
