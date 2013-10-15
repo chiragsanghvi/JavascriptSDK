@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Oct 15 12:03:57 IST 2013
+ * Build time 	: Tue Oct 15 12:06:52 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -4918,7 +4918,7 @@ Depends on  NOTHING
 			if (ignoreFBLogin) {
 				_callback();
 			} else { 
-				Appacitive.Facebook.requestLogin(function(authResponse) {
+				global.Appacitive.Facebook.requestLogin(function(authResponse) {
 					_callback();
 				}, onError);
 			}
