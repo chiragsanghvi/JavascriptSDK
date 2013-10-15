@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Oct 15 11:29:23 IST 2013
+ * Build time 	: Tue Oct 15 12:03:57 IST 2013
  */
 
 // Add ECMA262-5 method binding if not supported natively
@@ -5260,10 +5260,10 @@ Depends on  NOTHING
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.Facebook.accessToken = "";
+			global.Appacitive.Facebook.accessToken = "";
 			try {
 				FB.logout(function(response) {
-					Appacitive.Users.logout();
+					global.Appacitive.Users.logout();
 					if (typeof onSuccess == 'function') onSuccess();
 				});
 			} catch(e) {
@@ -5297,7 +5297,7 @@ Depends on  NOTHING
 
 		this.requestLogin = function(onSuccess, onError, accessToken) {
 			_accessToken = accesstoken;
-			Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
+			global.Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
 		};
 
 		this.getCurrentUserInfo = function(onSuccess, onError) {
@@ -5333,7 +5333,7 @@ Depends on  NOTHING
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.Facebook.accessToken = "";
+			global.Appacitive.Facebook.accessToken = "";
 			if (typeof onSuccess == 'function') onSuccess();
 		}
 	}

@@ -61,10 +61,10 @@
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.Facebook.accessToken = "";
+			global.Appacitive.Facebook.accessToken = "";
 			try {
 				FB.logout(function(response) {
-					Appacitive.Users.logout();
+					global.Appacitive.Users.logout();
 					if (typeof onSuccess == 'function') onSuccess();
 				});
 			} catch(e) {
@@ -98,7 +98,7 @@
 
 		this.requestLogin = function(onSuccess, onError, accessToken) {
 			_accessToken = accesstoken;
-			Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
+			global.Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
 		};
 
 		this.getCurrentUserInfo = function(onSuccess, onError) {
@@ -134,7 +134,7 @@
 		this.logout = function(onSuccess, onError) {
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
-			Appacitive.Facebook.accessToken = "";
+			global.Appacitive.Facebook.accessToken = "";
 			if (typeof onSuccess == 'function') onSuccess();
 		}
 	}
