@@ -88,6 +88,11 @@
 			_convertEndpoint(this.get('__endpointb'), typeB, this);
 
 			this.endpoints = function() {
+				if (arguments.length === 1 && typeof arguments[0] == 'string') {
+					if (this.endpointA.label.toLowerCase() == arguments[0].toLowerCase()) return this.endpointA;
+					else if (this.endpointB.label.toLowerCase() == arguments[0].toLowerCase()) return this.endpointB;
+					else throw new Error("Invalid label provided");
+				}
 				var endpoints = [];
 				endpoints.push(this.endpointA);
 				endpoints.push(this.endpointB);
@@ -142,6 +147,13 @@
 
 		// 3
 		this.endpoints = function() {
+
+			if (arguments.length === 1 && typeof arguments[0] == 'string') {
+				if (this.endpointA.label.toLowerCase() == arguments[0].toLowerCase()) return this.endpointA;
+				else if (this.endpointB.label.toLowerCase() == arguments[0].toLowerCase()) return this.endpointB;
+				else throw new Error("Invalid label provided");
+			}
+
 			var endpoints = [];
 			endpoints.push(this.endpointA);
 			endpoints.push(this.endpointB);
