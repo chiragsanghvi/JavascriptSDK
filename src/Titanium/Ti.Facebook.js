@@ -1,5 +1,7 @@
 (function (global) {
 
+	"use strict";
+
 	var _facebook = function() {
 
 		var _accessToken = null;
@@ -19,7 +21,7 @@
 			Ti.Facebook.setPermissions("email", "user_birthday");
 			this.FB = Ti.Facebook;
 		    _initialized = true;
-		}
+		};
 
 		this.requestLogin = function(onSuccess, onError) {
 			if (!_initialized) throw new Error("Titanium Facebook module has not yet been initialized, or not yet loaded.");
@@ -28,15 +30,15 @@
 			Ti.Facebook.addEventListener('login', function(e) {
 			    if (e.success) {
 			        _accessToken = Ti.Facebook.accessToken;
-			        if (typeof onSuccess == 'function') onSuccess({
+			        if (typeof onSuccess === 'function') onSuccess({
 			        	id: e.data.id,
 		                access_token: Ti.Facebook.accessToken,
 		                expiration_date: Ti.Facebook.expirationDate
 			        });
 			    } else if (e.error) {
-			        if (typeof onError == 'function') onError();
+			        if (typeof onError === 'function') onError();
 			    } else if (e.cancelled) {
-			        if (typeof onError == 'function') onError();
+			        if (typeof onError === 'function') onError();
 			    }
 			});
 			Ti.Facebook.authorize();
@@ -51,9 +53,9 @@
 				
 				Ti.Facebook.requestWithGraphPath('me', {}, 'GET', function(e) {
 				    if (e.success) {
-				        if (typeof onSuccess == 'function') onSuccess(e);
+				        if (typeof onSuccess === 'function') onSuccess(e);
 				    } else {
-				        if (typeof onError == 'function') onError("Access token is invalid");
+				        if (typeof onError === 'function') onError("Access token is invalid");
 				    }
 				});
 			} else {
@@ -62,7 +64,7 @@
 		};
 
 		this.accessToken = function() {
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				_accessToken = arguments[0];
 				if (Ti.Facebook) Ti.Facebook.setAccessToken(_accessToken);
 				return this;
@@ -79,7 +81,7 @@
 			global.Appacitive.facebook.accessToken = "";
 			_accessToken = "";
 			Ti.Facebook.logout();
-			if (typeof onSuccess == 'function') onSuccess();
+			if (typeof onSuccess === 'function') onSuccess();
 		};
 	};
 

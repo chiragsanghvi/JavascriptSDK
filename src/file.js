@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
   "use strict";
 
@@ -42,7 +42,7 @@
           if (!that.fileData) throw new Error('Please specify filedata');
           if (contentType || typeof contentType == 'string') that.contentType = contentType;
           else {
-              if (!that.contentType || typeof that.contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
+              if (!that.contentType || typeof that.contentType !== 'string' || that.contentType.length === 0) that.contentType = 'text/plain';
               try { that.contentType = file.type; } catch(e) {}
           }
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
@@ -68,7 +68,7 @@
           if (!that.fileData) throw new Error('Please specify filedata');
           if (contentType || typeof contentType == 'string') that.contentType = contentType;
           else {
-              if (!that.contentType || typeof contentType !== 'string' || that.contentType.length == 0) that.contentType = 'text/plain';
+              if (!that.contentType || typeof contentType !== 'string' || that.contentType.length === 0) that.contentType = 'text/plain';
               try { that.contentType = file.type; } catch(e) {}
           }
 
@@ -97,7 +97,7 @@
           onError = onError || function() {};
 
           var request = new global.Appacitive.HttpRequest();
-          request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);;
+          request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);
           request.method = 'DELETE';
 
           request.onSuccess = function(response) {
@@ -142,7 +142,7 @@
 
           if (contentType || typeof contentType == 'string') this.contentType = contentType;
           else {
-              if (!this.contentType || typeof this.contentType !== 'string' || this.contentType.length == 0) this.contentType = 'text/plain';
+              if (!this.contentType || typeof this.contentType !== 'string' || this.contentType.length === 0) this.contentType = 'text/plain';
           }
 
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');

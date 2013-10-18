@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
 	"use strict";
 
@@ -37,7 +37,7 @@
 			// create the session
 			var _sRequest = new _sessionRequest();
 
-			_sRequest.apikey = _apikey
+			_sRequest.apikey = _apikey;
 			
 			var _request = new global.Appacitive.HttpRequest();
 			_request.url = global.Appacitive.config.apiBaseUrl + 'application.svc/session';
@@ -186,7 +186,7 @@
 				_apikey = apikey;
 				this.useApiKey = true;
 			}
-		}
+		};
 
 		// the name of the environment, simple public property
 		var _env = 'sandbox';
@@ -212,9 +212,9 @@
 
 		if (global.Appacitive.Session.initialized) return;
 		
-		if (!options.apikey || options.apikey.length == 0) throw new Error("apikey is mandatory");
+		if (!options.apikey || options.apikey.length === 0) throw new Error("apikey is mandatory");
 		
-		if (!options.appId || options.appId.length == 0) throw new Error("appId is mandatory");
+		if (!options.appId || options.appId.length === 0) throw new Error("appId is mandatory");
 
 
 		global.Appacitive.Session.setApiKey( options.apikey) ;
@@ -265,6 +265,8 @@
 // compulsory http plugin
 // attaches the appacitive environment headers
 (function (global){
+
+	"use strict";
 
 	if (!global.Appacitive) return;
 	if (!global.Appacitive.http) return;

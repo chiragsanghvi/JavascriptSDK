@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
 	"use strict";
 
@@ -49,7 +49,7 @@
 
 		//define getter/setter for orderby
 		this.orderBy =  function() { 
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				_orderBy = arguments[0] || '__UtcLastUpdatedDate';
 				return this;
 			}
@@ -58,8 +58,8 @@
 
 		//define getter for isAscending
 		this.isAscending =  function() { 
-			if (arguments.length == 1) {
-				_isAscending = typeof arguments[0] == 'undefined' ? false : arguments[0];
+			if (arguments.length === 1) {
+				_isAscending = typeof arguments[0] === 'undefined' ? false : arguments[0];
 				return this;
 			}
 			return _isAscending; 
@@ -106,7 +106,7 @@
 		
 		//define getter and setter for pageNumber
 		this.pageNumber =  function() { 
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				_pageQuery.pageNumber(arguments[0]);
 				return this;
 			}
@@ -115,7 +115,7 @@
 
 		//define getter and setter for pageSize
 		this.pageSize =  function() { 
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				_pageQuery.pageSize(arguments[0]);
 				return this;
 			}
@@ -127,7 +127,7 @@
 
 		//define getter and setter for orderby
 		this.orderBy =  function() { 
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				_sortQuery.orderBy(arguments[0]);
 				return this;
 			}
@@ -136,7 +136,7 @@
 
 		//define getter and setter for isAscending
 		this.isAscending =  function() { 
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				_sortQuery.isAscending(arguments[0]);
 				return this;
 			}
@@ -145,7 +145,7 @@
 
 		//define getter and setter for filter
 		this.filter =  function() { 
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				_filter = arguments[0];
 				return this;
 			}
@@ -154,10 +154,10 @@
 		
 		//define getter and setter for freetext
 		this.freeText =  function() { 
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				var value = arguments[0];
-				if (typeof value == 'string') _freeText = arguments[0];
-				else if (typeof value == 'object' && value.length) _freeText = arguments[0].join(' ');
+				if (typeof value === 'string') _freeText = arguments[0];
+				else if (typeof value === 'object' && value.length) _freeText = arguments[0].join(' ');
 				return this;
 			}
 			return _freeText; 
@@ -165,15 +165,15 @@
 		
 		
 		this.fields = function() {
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				var value = arguments[0];
-				if (typeof value == 'string') _fields = value;
-				else if (typeof value == 'object' && value.length) _fields = value.join(',');
+				if (typeof value === 'string') _fields = value;
+				else if (typeof value === 'object' && value.length) _fields = value.join(',');
 				return this;
 			} else {
 				return _fields;
 			}
-		}
+		};
 
 		//set filters , freetext and fields
 		this.filter(options.filter || '');
@@ -237,7 +237,7 @@
 		var _parse = function(entities) {
 			var entityObjects = [];
 			if (!entities) entities = [];
-			var eType = (_type == 'article') ? 'Article' : 'Connection';
+			var eType = (_type === 'article') ? 'Article' : 'Connection';
 			entities.forEach(function(e) {
 				entityObjects.push(new global.Appacitive[eType](e, true));
 			});
@@ -248,15 +248,15 @@
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') onSuccess(_parse(d[_type + 's']), d.paginginfo);
+				   if (typeof onSuccess === 'function') onSuccess(_parse(d[_type + 's']), d.paginginfo);
 				} else {
 					d = d || {};
-					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
 			return this;
@@ -293,18 +293,18 @@
 						count = 0;
 					} else {
 						var d = data.status || { message : 'Server error', code: 400 };
-				        if (typeof onError == 'function') onError(d, that);
+				        if (typeof onError === 'function') onError(d, that);
 						return;
 					}
 				} else {
 					count = pagingInfo.totalrecords;
 				}
-				if (typeof onSuccess == 'function') onSuccess(count);
+				if (typeof onSuccess === 'function') onSuccess(count);
 			};
 			_queryRequest.onError = function(d) {
 				_restoreOldPaging();
 				d = d || { message : 'Server error', code: 400 };
-			    if (typeof onError == 'function') onError(d, that);
+			    if (typeof onError === 'function') onError(d, that);
 			};
 			global.Appacitive.http.send(_queryRequest);
 
@@ -358,12 +358,12 @@
 		this.prev = options.prev;
 		
 		this.returnEdge = true;
-		if ((options.returnEdge != undefined || options.returnEdge != null) && !options.returnEdge && !this.prev) this.returnEdge = false;
+		if ((options.returnEdge !== undefined || options.returnEdge !== null) && !options.returnEdge && !this.prev) this.returnEdge = false;
 		
 		this.label = '';
 		var that = this;
 
-		if (options.label && typeof options.label == 'string' && options.label.length > 0) this.label = '&label=' + options.label;
+		if (options.label && typeof options.label === 'string' && options.label.length > 0) this.label = '&label=' + options.label;
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
@@ -431,19 +431,19 @@
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') {
+				   if (typeof onSuccess === 'function') {
 					   var cb = parseNodes;
 					   if (that.prev) cb = prevParseNodes;
 				   	   onSuccess(cb( d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent }), d.paginginfo);   
 				   	}
 				} else {
 					d = d || {};
-					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
 			return this;
@@ -465,7 +465,7 @@
 
 		if (!options.relation) throw new Error('Specify relation for GetConnectionsQuery query');
 		if (!options.articleId) throw new Error('Specify articleId for GetConnectionsQuery query');
-		if (!options.label || options.label.trim().length == 0) throw new Error('Specify label for GetConnectionsQuery query');
+		if (!options.label || options.label.trim().length === 0) throw new Error('Specify label for GetConnectionsQuery query');
 		if (options.schema) delete options.schema;
 
 		options.queryType = 'GetConnectionsQuery';
@@ -504,8 +504,8 @@
 
 		options = options || {};
 
-		if (!options.articleAId || typeof options.articleAId != 'string' || options.articleAId.length == 0) throw new Error('Specify valid articleAId for GetConnectionsBetweenArticlesQuery query');
-		if (!options.articleBId || typeof options.articleBId != 'string' || options.articleBId.length == 0) throw new Error('Specify articleBId for GetConnectionsBetweenArticlesQuery query');
+		if (!options.articleAId || typeof options.articleAId !== 'string' || options.articleAId.length === 0) throw new Error('Specify valid articleAId for GetConnectionsBetweenArticlesQuery query');
+		if (!options.articleBId || typeof options.articleBId !== 'string' || options.articleBId.length === 0) throw new Error('Specify articleBId for GetConnectionsBetweenArticlesQuery query');
 		if (options.schema) delete options.schema;
 
 		options.queryType = queryType || 'GetConnectionsBetweenArticlesQuery';
@@ -514,8 +514,8 @@
 
 		this.articleAId = options.articleAId;
 		this.articleBId = options.articleBId;
-		this.label = (this.queryType() == 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label == 'string' && options.label.length > 0) ? '&label=' + options.label : '';;
-		this.relation = (options.relation && typeof options.relation == 'string' && options.relation.length > 0) ? options.relation + '/' : '';
+		this.label = (this.queryType() === 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label === 'string' && options.label.length > 0) ? '&label=' + options.label : '';
+		this.relation = (options.relation && typeof options.relation === 'string' && options.relation.length > 0) ? options.relation + '/' : '';
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
@@ -551,15 +551,15 @@
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') onSuccess(d.connection ? new global.Appacitive.Connection(d.connection) :  null);
+				   if (typeof onSuccess === 'function') onSuccess(d.connection ? new global.Appacitive.Connection(d.connection) :  null);
 				} else {
 					d = d || {};
-					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
 			return this;
@@ -575,8 +575,8 @@
 
 		options = options || {};
 
-		if (!options.articleAId || typeof options.articleAId != 'string' || options.articleAId.length == 0) throw new Error('Specify valid articleAId for InterconnectsQuery query');
-		if (!options.articleBIds || typeof options.articleBIds != 'object' || !(options.articleBIds.length > 0)) throw new Error('Specify list of articleBIds for InterconnectsQuery query');
+		if (!options.articleAId || typeof options.articleAId !== 'string' || options.articleAId.length === 0) throw new Error('Specify valid articleAId for InterconnectsQuery query');
+		if (!options.articleBIds || typeof options.articleBIds !== 'object' || !(options.articleBIds.length > 0)) throw new Error('Specify list of articleBIds for InterconnectsQuery query');
 		if (options.schema) delete options.schema;
 
 		options.queryType = 'InterconnectsQuery';
@@ -614,7 +614,7 @@
 	**/
 	global.Appacitive.Queries.GraphFilterQuery = function(name, placeholders) {
 
-		if (!name || name.length == 0) throw new Error("Specify name of filter query");
+		if (!name || name.length === 0) throw new Error("Specify name of filter query");
 		
 		this.name = name;
 		this.data = { };
@@ -639,17 +639,17 @@
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') {
+				   if (typeof onSuccess === 'function') {
 				   		onSuccess(d.ids ? d.ids : []);
 					}
 				} else {
 					d = d || {};
-					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
 			return this;
@@ -662,7 +662,7 @@
 	**/
 	global.Appacitive.Queries.GraphProjectQuery = function(name, ids, placeholders) {
 
-		if (!name || name.length == 0) throw new Error("Specify name of project query");
+		if (!name || name.length === 0) throw new Error("Specify name of project query");
 		if (!ids || !ids.length) throw new Error("Specify ids to project");
 		
 		this.name = name;
@@ -731,17 +731,17 @@
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess == 'function') {
+				   if (typeof onSuccess === 'function') {
 				   		onSuccess(_parseResult(d));
 					}
 				} else {
 					d = d || {};
-					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
 			return this;

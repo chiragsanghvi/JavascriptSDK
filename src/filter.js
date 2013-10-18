@@ -1,5 +1,7 @@
 (function (global) {
 
+    "use strict";
+
     var Appacitive = global.Appacitive;
 
     Appacitive.GeoCoord = function(lat, lng) {
@@ -49,7 +51,7 @@
                 case 'attribute' : return '@';
                 case 'aggregate' : return '$';
                 default : return '*';
-            };
+            }
         };
 
         this.toString = function() {
@@ -70,13 +72,13 @@
         
         options = options || '';
 
-        if (!(typeof options.value == 'object') || !options.value.length) throw new Error("Specify field value as array");
+        if (!(typeof options.value === 'object') || !options.value.length) throw new Error("Specify field value as array");
         
         _fieldFilter.call(this, options);
 
         var _getValue = function(value) {
-            if (typeof value == 'string') return "'" + value + "'";
-            else if (typeof value == 'number') return value;  
+            if (typeof value === 'string') return "'" + value + "'";
+            else if (typeof value === 'number') return value;  
             else return value.toString();
         };
 
@@ -88,9 +90,9 @@
                             this.field.toLowerCase(),
                             this.operator,
                             _getValue(this.value[i])));
-            };
+            }
             return "("  + values.join(' or ') + ")"; 
-        }
+        };
 
     };
 
@@ -158,7 +160,7 @@
 
         options = options || '';
 
-        if (!options.geoCoords || options.geoCoords.length == 0) throw new Error("polygon filter needs array of Appacitive.GeoCoord objects as argument");
+        if (!options.geoCoords || options.geoCoords.length === 0) throw new Error("polygon filter needs array of Appacitive.GeoCoord objects as argument");
 
         if (options.geoCoords.length < 3) throw new Error("polygon filter needs atleast 3 Appacitive.GeoCoord objects as arguments");
 
@@ -169,11 +171,11 @@
         var _getPipeSeparatedList = function(coords) {
             var value = '';
             coords.forEach(function(c) {
-                if (value.length == 0) value = c.toString();
+                if (value.length === 0) value = c.toString();
                 else value += " | " + c.toString();
             });
             return value;
-        }
+        };
 
         this.toString = function() {
              return String.format("{0}{1} {2} {3}",
@@ -187,12 +189,12 @@
     _polygonFilter.prototype = new _fieldFilter();
     _polygonFilter.prototype.constructor = _betweenFilter;
 
-    _tagFilter = function(options) {
+    var _tagFilter = function(options) {
 
         _filter.call(this);
 
         options = options || {};
-        if (!options.tags || typeof options.tags != 'object' || options.tags.length == 0) throw new Error("Specify valid tags");
+        if (!options.tags || typeof options.tags != 'object' || options.tags.length === 0) throw new Error("Specify valid tags");
 
         this.tags = options.tags;
         this.operator = options.operator;
@@ -205,7 +207,7 @@
     _tagFilter.prototype = new _filter();
     _tagFilter.prototype.constructor = _tagFilter;
 
-    _compoundFilter = function(operator, filters) {
+    var _compoundFilter = function(operator, filters) {
         
         if (!filters || !filters.length || filters.length < 2) throw new Error("Provide valid or atleast 2 filters");
 
@@ -216,13 +218,13 @@
         for (var i = 0; i < filters.length ; i = i + 1) {
             if (!(filters[i] instanceof _filter)) throw new Error("Invalid filter provided");
             this.innerFilters.push(filters[i]);
-        };
+        }
 
         this.toString = function() {
             var op = this.operator;
             var value = "(";
             this.innerFilters.forEach(function(f) {
-                if (value.length == 1) value += ' ' + f.toString();
+                if (value.length === 1) value += ' ' + f.toString();
                 else value += String.format(' {0} {1} ', op, f.toString());
             });
             value += ")";
@@ -252,7 +254,7 @@
 
     var _primitiveFieldValue = function(value, type) {
 
-        if (value == null || value == undefined || value.length == 0) throw new Error("Specify value");
+        if (value === null || value === undefined || value.length === 0) throw new Error("Specify value");
 
         this.value = value;
 
@@ -260,9 +262,9 @@
         else this.type = typeof this.value; 
 
         this.getValue = function() {
-            if (this.type == 'string') return "'" + String.addSlashes(this.value) + "'";
-            else if (this.type == 'number' || typeof this.value == 'boolean') return this.value;  
-            else if (this.type == 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            if (this.type === 'string') return "'" + String.addSlashes(this.value) + "'";
+            else if (this.type === 'number' || typeof this.value === 'boolean') return this.value;  
+            else if (this.type === 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
         };
     };
@@ -271,7 +273,7 @@
         this.value = value;
         
         this.getValue = function() {
-            if (typeof this.value == 'object' && this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
+            if (typeof this.value === 'object' && this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
             else return "date('" + this.value + "')";
         };
     };
@@ -280,7 +282,7 @@
         this.value = value;
         
         this.getValue = function() {
-            if (typeof this.value == 'object' && this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
+            if (typeof this.value === 'object' && this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
             else return "time('" + this.value + "')";
         };
     };
@@ -289,7 +291,7 @@
         this.value = value;
         
         this.getValue = function() {
-            if (typeof this.value == 'object' && this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            if (typeof this.value === 'object' && this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return "datetime('" + this.value + "')";
         };
     };
@@ -438,9 +440,9 @@
         };
     };
 
-    _propertyExpression = function(name) {
+    var _propertyExpression = function(name) {
         
-        if (!name || name.length == 0) throw new Error("Specify field name");
+        if (!name || name.length === 0) throw new Error("Specify field name");
         
         this.field = name;
 
@@ -449,9 +451,9 @@
         return this;
     };
 
-    _aggregateExpression = function(name) {
+    var _aggregateExpression = function(name) {
         
-        if (!name || name.length == 0) throw new Error("Specify field name");
+        if (!name || name.length === 0) throw new Error("Specify field name");
         
         this.field = name;
 
@@ -484,8 +486,8 @@
         return this;
     };
 
-    _attributeExpression = function(name) {
-        if (!name || name.length == 0) throw new Error("Specify field name");
+    var _attributeExpression = function(name) {
+        if (!name || name.length === 0) throw new Error("Specify field name");
         
         this.field = name;
 

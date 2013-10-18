@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
 	"use strict";
 
@@ -8,8 +8,7 @@
 	var _ConnectionCollection = function(options) {
 
 		var _relation = null;
-		var _schema = null;
-
+		
 		var _query = null;
 
 		var _connections = [];
@@ -19,8 +18,6 @@
 
 		if (typeof options == 'string') _options.relation = options;
 		else _options = options;
-
-		var connectionMap = {};
 
 		this.collectionType = 'connection';
 
@@ -56,7 +53,7 @@
 		};
 
 		this.setFreeText = function(tokens) {
-            if (!tokens && tokens.trim().length == 0) _options.freeText = "";
+            if (!tokens && tokens.trim().length === 0) _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'connection';
             if (_query) _query.freeText(tokens);

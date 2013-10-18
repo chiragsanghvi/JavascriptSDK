@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
 	"use strict";
 
@@ -7,7 +7,7 @@
 	};
 
 	if (typeof XDomainRequest != 'undefined') {
-		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/'
+		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/';
 	}
 
 }(global));

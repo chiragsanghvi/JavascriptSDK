@@ -1,4 +1,6 @@
-(function(global) {
+(function (global) {
+
+	"use strict";
 
 	var _cloud = function() {
 
@@ -24,11 +26,13 @@
 				return (a.name == name);
 			});
 
-			var ctx = arguments[1]
+			var request = arguments[1].request;
+			var response = arguments[1].response;
 
 			if (api.length > 0) {
+				var method = api[0].method;
 				setTimeout(function() {
-					api[0].method.call({} , ctx.request, ctx.response);	
+					method.apply(null , [request, response]);	
 				}, 0);
 			} else {
 				throw { code: '404', message: "Api with name " + arguments[0] + " doesn't exits" };

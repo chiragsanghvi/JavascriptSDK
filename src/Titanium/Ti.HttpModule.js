@@ -8,7 +8,7 @@ var global = {};
 
 	// create the global object
 
-	if (typeof window == 'undefined') {
+	if (typeof window === 'undefined') {
 		global = process;
 	} else {
 		global = window;
@@ -38,7 +38,7 @@ var global = {};
 
 		// validate the httpTransport passed
 		// and assign the callback
-		if (!httpTransport || !httpTransport.send || typeof httpTransport.send != 'function') {
+		if (!httpTransport || !httpTransport.send || typeof httpTransport.send !== 'function') {
 			throw new Error('No applicable httpTransport class found');
 		} else {
 			httpTransport.onResponse = this.onResponse;
@@ -121,11 +121,11 @@ var global = {};
 			request.headers.push({ key:'Content-Type', value: 'text/plain' });
 			request.method = 'POST';
 
-			if (request.data) body.b = request.data
+			if (request.data) body.b = request.data;
 			delete request.data;
 			
 			if (global.Appacitive.config.debug) {
-				if (request.url.indexOf('?') == -1) request.url = request.url + '?debug=true';
+				if (request.url.indexOf('?') === -1) request.url = request.url + '?debug=true';
 				else request.url = request.url + '&debug=true';
 			}
 
@@ -183,10 +183,10 @@ var global = {};
 	var _HttpTransport = function () {
 		var _notImplemented = function () {
 			throw new Error('Not Implemented Exception');
-		}
+		};
 		var _notProvided = function () {
 			throw new Error('Delegate not provided');
-		}
+		};
 
 		// implements this
 		this.send = _notImplemented;
@@ -194,10 +194,10 @@ var global = {};
 
 		// needs these callbacks to be set
 		this.onResponse = function (response, request) {
-			_notImplemented()
+			_notImplemented();
 		};
 		this.onError = function (request) {
-			_notImplemented()
+			_notImplemented();
 		};
 	};
 
@@ -228,16 +228,16 @@ var global = {};
 		else {
 			if (request.data) { 
 				data = request.data;
-				if (typeof request.data == 'object') {
+				if (typeof request.data === 'object') {
 					try { data = JSON.stringify(data); } catch(e) {}
 				}
 			}
 		}
 
-		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
-	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
+		if (!request.onSuccess || typeof request.onSuccess !== 'function') request.onSuccess = function() {};
+	    if (!request.onError || typeof request.onError !== 'function') request.onError = function() {};
 	    
-	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
+	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') !== -1 || global.navigator.userAgent.indexOf('MSIE 9') !== -1)) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;
@@ -334,18 +334,18 @@ var global = {};
 					that.onError(request, e);
 				}
 			});
-		}
+		};
 
 		_super.send = function (request, callbacks, states) {
 			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
-			if (typeof request.beforeSend == 'function') {
+			if (typeof request.beforeSend === 'function') {
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states);
 		};
 
 		_super.upload = function (request, callbacks, states) {
-			if (typeof request.beforeSend == 'function') {
+			if (typeof request.beforeSend === 'function') {
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states, true);
@@ -373,10 +373,10 @@ var global = {};
 		// allow pausing/unpausing
 		this.pause = function () {
 			_paused = true;
-		}
+		};
 		this.unpause = function () {
 			_paused = false;
-		}
+		};
 
 		// allow adding processors to the buffer
 		this.addProcessor = function (processor) {
@@ -385,7 +385,7 @@ var global = {};
 			if (!processor.pre && !processor.post) throw _processorError;
 
 			_buffer.addProcessor(processor);
-		}
+		};
 
 		// the method used to send the requests
 		this.send = function (request) {
@@ -396,7 +396,7 @@ var global = {};
 			if (_inner.isOnline() && _paused == false) {
 				_buffer.notify();
 			}
-		}
+		};
 
 		// method used to clear the queue
 		this.flush = function (force) {
@@ -407,7 +407,7 @@ var global = {};
 			} else {
 				_buffer.notify();
 			}
-		}
+		};
 
 		// the error handler
 		this.onError = function (request, err) {
@@ -418,7 +418,7 @@ var global = {};
 					request.onError(err);
 				}
 			}
-		}
+		};
 		_inner.onError = this.onError;
 
 		// the success handler
@@ -430,7 +430,7 @@ var global = {};
 					request.onSuccess(response);
 				}
 			}
-		}
+		};
 		_inner.onResponse = this.onResponse;
 	};
 
@@ -474,7 +474,7 @@ var global = {};
 
 		global.Appacitive.http.addProcessor({
 			pre: function (req) {
-				return new Date().getTime()
+				return new Date().getTime();
 			},
 			post: function (response, state) {
 				var timeSpent = new Date().getTime() - state;

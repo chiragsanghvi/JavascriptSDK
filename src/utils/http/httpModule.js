@@ -8,7 +8,7 @@ var global = {};
 
 	// create the global object
 
-	if (typeof window == 'undefined') {
+	if (typeof window === 'undefined') {
 		global = process;
 	} else {
 		global = window;
@@ -122,11 +122,11 @@ var global = {};
 			request.headers.push({ key:'Content-Type', value: 'text/plain' });
 			request.method = 'POST';
 
-			if (request.data) body.b = request.data
+			if (request.data) body.b = request.data;
 			delete request.data;
 			
 			if (global.Appacitive.config.debug) {
-				if (request.url.indexOf('?') == -1) request.url = request.url + '?debug=true';
+				if (request.url.indexOf('?') === -1) request.url = request.url + '?debug=true';
 				else request.url = request.url + '&debug=true';
 			}
 
@@ -184,10 +184,10 @@ var global = {};
 	var _HttpTransport = function () {
 		var _notImplemented = function () {
 			throw new Error('Not Implemented Exception');
-		}
+		};
 		var _notProvided = function () {
 			throw new Error('Delegate not provided');
-		}
+		};
 
 		// implements this
 		this.send = _notImplemented;
@@ -195,10 +195,10 @@ var global = {};
 
 		// needs these callbacks to be set
 		this.onResponse = function (response, request) {
-			_notImplemented()
+			_notImplemented();
 		};
 		this.onError = function (request) {
-			_notImplemented()
+			_notImplemented();
 		};
 	};
 
@@ -233,7 +233,7 @@ var global = {};
 	       request.onError({code: "400" , message: "Server Error" }, xdr);
 	    };
 	    xdr.onprogress = function() {};
-	    if (request.url.indexOf('?') == -1)
+	    if (request.url.indexOf('?') === -1)
             request.url = request.url + '?ua=ie';
         else
             request.url = request.url + '&ua=ie';
@@ -325,8 +325,8 @@ var global = {};
 		this.data = o.data || {};
 		this.headers = o.headers || [];
 		this.method = o.method || 'GET';
-		this.onSuccess = o.onSuccess || function(){}
-		this.onError = o.onError || function(){}
+		this.onSuccess = o.onSuccess || function(){};
+		this.onError = o.onError || function(){};
 
 		this.send = function(doNotStringify) {
 			return new _XMLHttp(this, doNotStringify);
@@ -385,7 +385,7 @@ var global = {};
 		};
 
 		_super.upload = function (request, callbacks, states) {
-			if (typeof request.beforeSend == 'function') {
+			if (typeof request.beforeSend === 'function') {
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states, true);
@@ -413,10 +413,11 @@ var global = {};
 		// allow pausing/unpausing
 		this.pause = function () {
 			_paused = true;
-		}
+		};
+
 		this.unpause = function () {
 			_paused = false;
-		}
+		};
 
 		// allow adding processors to the buffer
 		this.addProcessor = function (processor) {
@@ -425,7 +426,7 @@ var global = {};
 			if (!processor.pre && !processor.post) throw _processorError;
 
 			_buffer.addProcessor(processor);
-		}
+		};
 
 		// the method used to send the requests
 		this.send = function (request) {
@@ -433,10 +434,10 @@ var global = {};
 
 			// notify the queue if the actual transport 
 			// is ready to send the requests
-			if (_inner.isOnline() && _paused == false) {
+			if (_inner.isOnline() && _paused === false) {
 				_buffer.notify();
 			}
-		}
+		};
 
 		// method used to clear the queue
 		this.flush = function (force) {
@@ -447,7 +448,7 @@ var global = {};
 			} else {
 				_buffer.notify();
 			}
-		}
+		};
 
 		// the error handler
 		this.onError = function (request, err) {
@@ -458,7 +459,7 @@ var global = {};
 					request.onError(err);
 				}
 			}
-		}
+		};
 		_inner.onError = this.onError;
 
 		// the success handler
@@ -470,7 +471,7 @@ var global = {};
 					request.onSuccess(response);
 				}
 			}
-		}
+		};
 		_inner.onResponse = this.onResponse;
 	};
 
@@ -496,7 +497,7 @@ var global = {};
 					var _valid = global.Appacitive.Session.isSessionValid(response);
 					if (!_valid.status) {
 						if (_valid.isSession) {
-							if (global.Appacitive.Session.get() != null) {
+							if (global.Appacitive.Session.get() !== null) {
 								global.Appacitive.Session.resetSession();
 							}
 							global.Appacitive.http.send(request);
@@ -514,7 +515,7 @@ var global = {};
 
 		global.Appacitive.http.addProcessor({
 			pre: function (req) {
-				return new Date().getTime()
+				return new Date().getTime();
 			},
 			post: function (response, state) {
 				var timeSpent = new Date().getTime() - state;

@@ -137,10 +137,10 @@
 
 	global.Appacitive.Article.multiDelete = function(options, onSuccess, onError) {
 		options = options || {};
+ 
+		if (!options.schema || typeof options.schema !== 'string' || options.schema.length === 0) throw new Error("Specify valid schema");
 
-		if (!options.schema || typeof options.schema!= 'string' || options.schema.length == 0) throw new Error("Specify valid schema");
-
-		if (options.schema.toLowerCase() == 'user' || options.schema.toLowerCase() == 'device') throw new Error("Cannot delete user and devices using multidelete");
+		if (options.schema.toLowerCase() === 'user' || options.schema.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
 
 		if (options.ids && options.ids.length > 0) {
 
@@ -153,16 +153,16 @@
 			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
 				if (d && d.code == '200') {
-					if (typeof onSuccess == 'function') onSuccess();
+					if (typeof onSuccess === 'function') onSuccess();
 				} else {
 					d = d || {};
-					if (typeof onError == 'function') onError (d.status || { message : 'Server error', code: 400 });
+					if (typeof onError === 'function') onError (d.status || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				if (typeof onError == 'function') onError (d.status || { message : 'Server error', code: 400 });
-			}
+				if (typeof onError === 'function') onError (d.status || { message : 'Server error', code: 400 });
+			};
 			global.Appacitive.http.send(request);
 		} else onSuccess();
 	};
@@ -178,26 +178,26 @@
 	//takes relationaname and array of articleids and returns an array of Appacitive article objects
 	global.Appacitive.Article.multiGet = function(options, onSuccess, onError) {
 		options = options || {};
-		if (!options.schema || typeof options.schema!= 'string' || options.schema.length == 0) throw new Error("Specify valid schema");
+		if (!options.schema || typeof options.schema !== 'string' || options.schema.length === 0) throw new Error("Specify valid schema");
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
 			request.method = 'get';
 			request.onSuccess = function(d) {
 				if (d && d.articles) {
-				   if (typeof onSuccess == 'function') onSuccess(_parseArticles(d.articles), d.paginginfo);
+				   if (typeof onSuccess === 'function') onSuccess(_parseArticles(d.articles), d.paginginfo);
 				} else {
 					d = d || {};
-					if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || { message : 'Server error', code: 400 };
-				if (typeof onError == 'function') onError(d);
-			}
+				if (typeof onError === 'function') onError(d);
+			};
 			global.Appacitive.http.send(request);
 		} else {
-			if (typeof onSuccess == 'function') onSuccess([]);
+			if (typeof onSuccess === 'function') onSuccess([]);
 		}
 	};
 
@@ -207,7 +207,7 @@
 		if (!options.id) throw new Error("Specify id to fetch");
 
 		var obj = {};
-		if (options.schema.toLowerCase() == 'user') obj = new global.Appacitive.User({ __id: options.id });
+		if (options.schema.toLowerCase() === 'user') obj = new global.Appacitive.User({ __id: options.id });
 		else obj = new global.Appacitive.Article({ __schematype: options.schema, __id: options.id });
 		
 		obj.fetch(onSuccess, onError, options.fields);
