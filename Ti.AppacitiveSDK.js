@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Oct 18 19:09:36 IST 2013
+ * Build time 	: Fri Oct 18 19:16:11 IST 2013
  */
 "use strict";
 
