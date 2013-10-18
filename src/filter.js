@@ -175,7 +175,7 @@
                 else value += " | " + c.toString();
             });
             return value;
-        }
+        };
 
         this.toString = function() {
              return String.format("{0}{1} {2} {3}",
@@ -218,7 +218,7 @@
         for (var i = 0; i < filters.length ; i = i + 1) {
             if (!(filters[i] instanceof _filter)) throw new Error("Invalid filter provided");
             this.innerFilters.push(filters[i]);
-        };
+        }
 
         this.toString = function() {
             var op = this.operator;

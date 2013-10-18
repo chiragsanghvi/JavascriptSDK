@@ -162,7 +162,7 @@
 			request.onError = function(d) {
 				d = d || {};
 				if (typeof onError === 'function') onError (d.status || { message : 'Server error', code: 400 });
-			}
+			};
 			global.Appacitive.http.send(request);
 		} else onSuccess();
 	};
@@ -194,7 +194,7 @@
 			request.onError = function(d) {
 				d = d || { message : 'Server error', code: 400 };
 				if (typeof onError === 'function') onError(d);
-			}
+			};
 			global.Appacitive.http.send(request);
 		} else {
 			if (typeof onSuccess === 'function') onSuccess([]);

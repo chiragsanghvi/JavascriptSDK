@@ -73,12 +73,12 @@
     Object.isEmpty = function (object) {
         if(!object) return true;
         var isEmpty = true;
-        for (keys in object) {
+        for (var keys in object) {
             isEmpty = false; 
             break; // exiting since we found that the object is not empty
         }
         return isEmpty;
-    }
+    };
 
     global.dateFromWcf = function (input, throwOnInvalidInput) {
         var pattern = /Date\(([^)]+)\)/;
@@ -111,7 +111,7 @@
             emailServiceUrl: 'email',
             
             getSendEmailUrl: function() {
-                return String.format("{0}/send", this.emailServiceUrl)
+                return String.format("{0}/send", this.emailServiceUrl);
             }
         };
         this.user = {
@@ -209,7 +209,7 @@
                     url = url + '?psize=10';
                 if (typeof (queryParams) !== 'undefined' && queryParams.length > 0) {
                     for (var i = 0; i < queryParams.length; i = i + 1) {
-                        if (queryParams[i].trim().length == 0) continue;
+                        if (queryParams[i].trim().length === 0) continue;
                         url = url + "&" + queryParams[i];
                     }
                 }
@@ -375,7 +375,7 @@
             }
         };
 
-    }
+    };
 
     global.Appacitive.storage = global.Appacitive.storage || {};
     global.Appacitive.storage.urlFactory = new UrlFactory();

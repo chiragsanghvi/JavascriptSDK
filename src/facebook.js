@@ -63,7 +63,7 @@
 			onError = onError || function(){};
 			global.Appacitive.Facebook.accessToken = "";
 			try {
-				FB.logout(function(response) {
+				FB.logout(function() {
 					global.Appacitive.Users.logout();
 					if (typeof onSuccess === 'function') onSuccess();
 				});
@@ -136,8 +136,8 @@
 			onError = onError || function(){};
 			global.Appacitive.Facebook.accessToken = "";
 			if (typeof onSuccess === 'function') onSuccess();
-		}
-	}
+		};
+	};
 
 	global.Appacitive.Facebook = global.Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
 

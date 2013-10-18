@@ -186,7 +186,7 @@
 				_apikey = apikey;
 				this.useApiKey = true;
 			}
-		}
+		};
 
 		// the name of the environment, simple public property
 		var _env = 'sandbox';

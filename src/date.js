@@ -13,7 +13,6 @@
     try {
         var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
 
-        var isOnlyDate = false;
         if (!regexp.exec(str)) return new Date(str);
           
         var parts = str.split('T'),

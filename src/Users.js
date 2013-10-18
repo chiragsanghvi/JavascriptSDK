@@ -12,7 +12,7 @@
 
 		var _updatePassword = function(base, oldPassword, newPassword, onSuccess, onError) {
 			var userId = base.get('__id');
-			if (!userId || typeof userId !== 'string' || userId.length == 0) throw new Error("Please specify valid userid");
+			if (!userId || typeof userId !== 'string' || userId.length === 0) throw new Error("Please specify valid userid");
 			if (!oldPassword || typeof oldPassword !== 'string' || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
 			if (!newPassword || typeof newPassword !== 'string' || newPassword.length === 0) throw new Error("Please specify valid newPassword");
 
@@ -287,7 +287,7 @@
 			var _callback = function() {
 				global.Appacitive.Session.removeUserAuthHeader();
 				if (typeof onSuccess === 'function') onSuccess();
-			}
+			};
 			if (_authenticatedUser === null) { 
 				_callback();
 				return;
@@ -395,7 +395,7 @@
 				_callback();
 			} else { 
 				global.Appacitive.Facebook.requestLogin(function(authResponse) {
-					_callback();
+					_callback(authResponse);
 				}, onError);
 			}
 		};

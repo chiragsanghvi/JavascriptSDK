@@ -349,7 +349,6 @@
 		};
 
 		this.get = function(key, type) { 
-			var val = "";
 			if (key) { 
 				if (type && _types[type.toLowerCase()]) {
 					var res = _types[type.toLowerCase()](article[key]);
@@ -361,7 +360,7 @@
 
 		this.tryGet = function(key, value, type) {
 			var res = this.get(key, type);
-			if (res != undefined) return res;
+			if (res !== undefined) return res;
 			return value;
 		};
 
@@ -419,7 +418,7 @@
 		var _atomicProps = [];
 
 		var _atomic = function(key, amount, multiplier) {
-			if (!key || typeof key != 'string' ||  key.length == 0 || key.indexOf('__') == 0) return this;
+			if (!key || typeof key !== 'string' ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
 			if (!amount || isNaN(parseInt(amount))) amount = multiplier;
 			else amount = parseInt(amount) * multiplier;
@@ -505,7 +504,7 @@
 			_saveRequest.onError = function(err) {
 				err = _getOutpuStatus(err);
 				if (typeof onError == 'function') onError(err, that);
-			}
+			};
 			global.Appacitive.http.send(_saveRequest);
 			return this;
 		};
@@ -569,12 +568,12 @@
 						} else {
 							if (typeof onError == 'function') onError(err, that);
 						}
-					}
+					};
 					global.Appacitive.http.send(_updateRequest);
 				} else {
 					if (typeof onSuccess == 'function') onSuccess(that);
 				}
-			}
+			};
 
 			if (_atomicProps.length > 0) {
 				var props = ['__revision'];
@@ -583,8 +582,7 @@
 				});
 
 				_fetch(function(obj) {
-					var tmp = {};
-
+					
 					_atomicProps.forEach(function(p) {
 						var value = _types['integer'](obj[p.key]);
 						if (!value) value = 0
@@ -699,7 +697,7 @@
 			_deleteRequest.onError = function(err) {
 				err = _getOutpuStatus(err);
 				if (typeof onError == 'function') onError(err, that);
-			}
+			};
 			global.Appacitive.http.send(_deleteRequest);
 		};
 	};

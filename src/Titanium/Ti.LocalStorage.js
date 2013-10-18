@@ -42,7 +42,7 @@
 		this.remove = function(key) {
 			if (!key) return;
 			key = global.Appacitive.getAppPrefix(key);
-			try { _localStorage.removeProperty[key]; } catch(e){}
+			try { _localStorage.removeProperty(key); } catch(e){}
 		}
 	};
 

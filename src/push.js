@@ -58,7 +58,7 @@
 
 			request.onError = function(d){
 				onError(d || "Server error");
-			}
+			};
 
 			global.Appacitive.http.send(request);
 		};
@@ -91,7 +91,7 @@
 
 			request.onError = function(d){
 				onError(d || "Server error");
-			}
+			};
 
 			global.Appacitive.http.send(request);
 		};

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Oct 18 12:59:06 IST 2013
+ * Build time 	: Fri Oct 18 13:26:53 IST 2013
  */
 "use strict";
 
@@ -327,10 +327,10 @@ var global = {};
 	var _HttpTransport = function () {
 		var _notImplemented = function () {
 			throw new Error('Not Implemented Exception');
-		}
+		};
 		var _notProvided = function () {
 			throw new Error('Delegate not provided');
-		}
+		};
 
 		// implements this
 		this.send = _notImplemented;
@@ -338,10 +338,10 @@ var global = {};
 
 		// needs these callbacks to be set
 		this.onResponse = function (response, request) {
-			_notImplemented()
+			_notImplemented();
 		};
 		this.onError = function (request) {
-			_notImplemented()
+			_notImplemented();
 		};
 	};
 
@@ -468,8 +468,8 @@ var global = {};
 		this.data = o.data || {};
 		this.headers = o.headers || [];
 		this.method = o.method || 'GET';
-		this.onSuccess = o.onSuccess || function(){}
-		this.onError = o.onError || function(){}
+		this.onSuccess = o.onSuccess || function(){};
+		this.onError = o.onError || function(){};
 
 		this.send = function(doNotStringify) {
 			return new _XMLHttp(this, doNotStringify);
@@ -556,10 +556,11 @@ var global = {};
 		// allow pausing/unpausing
 		this.pause = function () {
 			_paused = true;
-		}
+		};
+
 		this.unpause = function () {
 			_paused = false;
-		}
+		};
 
 		// allow adding processors to the buffer
 		this.addProcessor = function (processor) {
@@ -568,7 +569,7 @@ var global = {};
 			if (!processor.pre && !processor.post) throw _processorError;
 
 			_buffer.addProcessor(processor);
-		}
+		};
 
 		// the method used to send the requests
 		this.send = function (request) {
@@ -579,7 +580,7 @@ var global = {};
 			if (_inner.isOnline() && _paused === false) {
 				_buffer.notify();
 			}
-		}
+		};
 
 		// method used to clear the queue
 		this.flush = function (force) {
@@ -590,7 +591,7 @@ var global = {};
 			} else {
 				_buffer.notify();
 			}
-		}
+		};
 
 		// the error handler
 		this.onError = function (request, err) {
@@ -601,7 +602,7 @@ var global = {};
 					request.onError(err);
 				}
 			}
-		}
+		};
 		_inner.onError = this.onError;
 
 		// the success handler
@@ -613,7 +614,7 @@ var global = {};
 					request.onSuccess(response);
 				}
 			}
-		}
+		};
 		_inner.onResponse = this.onResponse;
 	};
 
@@ -626,8 +627,6 @@ var global = {};
 	// compulsory plugin
 	// handles session and shits
 	(function (global) {
-
-		"use strict";
 
 		if (!global.Appacitive) return;
 		if (!global.Appacitive.http) return;
@@ -659,7 +658,7 @@ var global = {};
 
 		global.Appacitive.http.addProcessor({
 			pre: function (req) {
-				return new Date().getTime()
+				return new Date().getTime();
 			},
 			post: function (response, state) {
 				var timeSpent = new Date().getTime() - state;
@@ -747,12 +746,12 @@ var global = {};
     Object.isEmpty = function (object) {
         if(!object) return true;
         var isEmpty = true;
-        for (keys in object) {
+        for (var keys in object) {
             isEmpty = false; 
             break; // exiting since we found that the object is not empty
         }
         return isEmpty;
-    }
+    };
 
     global.dateFromWcf = function (input, throwOnInvalidInput) {
         var pattern = /Date\(([^)]+)\)/;
@@ -785,7 +784,7 @@ var global = {};
             emailServiceUrl: 'email',
             
             getSendEmailUrl: function() {
-                return String.format("{0}/send", this.emailServiceUrl)
+                return String.format("{0}/send", this.emailServiceUrl);
             }
         };
         this.user = {
@@ -883,7 +882,7 @@ var global = {};
                     url = url + '?psize=10';
                 if (typeof (queryParams) !== 'undefined' && queryParams.length > 0) {
                     for (var i = 0; i < queryParams.length; i = i + 1) {
-                        if (queryParams[i].trim().length == 0) continue;
+                        if (queryParams[i].trim().length === 0) continue;
                         url = url + "&" + queryParams[i];
                     }
                 }
@@ -1049,7 +1048,7 @@ var global = {};
             }
         };
 
-    }
+    };
 
     global.Appacitive.storage = global.Appacitive.storage || {};
     global.Appacitive.storage.urlFactory = new UrlFactory();
@@ -1186,7 +1185,7 @@ Depends on  NOTHING
 	};
 
 	if (typeof XDomainRequest != 'undefined') {
-		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/'
+		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/';
 	}
 
 }(global));
@@ -1378,7 +1377,7 @@ Depends on  NOTHING
 				_apikey = apikey;
 				this.useApiKey = true;
 			}
-		}
+		};
 
 		// the name of the environment, simple public property
 		var _env = 'sandbox';
@@ -1647,7 +1646,7 @@ Depends on  NOTHING
                 else value += " | " + c.toString();
             });
             return value;
-        }
+        };
 
         this.toString = function() {
              return String.format("{0}{1} {2} {3}",
@@ -1690,7 +1689,7 @@ Depends on  NOTHING
         for (var i = 0; i < filters.length ; i = i + 1) {
             if (!(filters[i] instanceof _filter)) throw new Error("Invalid filter provided");
             this.innerFilters.push(filters[i]);
-        };
+        }
 
         this.toString = function() {
             var op = this.operator;
@@ -2374,7 +2373,7 @@ Depends on  NOTHING
 		this.prev = options.prev;
 		
 		this.returnEdge = true;
-		if ((options.returnEdge != undefined || options.returnEdge != null) && !options.returnEdge && !this.prev) this.returnEdge = false;
+		if ((options.returnEdge !== undefined || options.returnEdge !== null) && !options.returnEdge && !this.prev) this.returnEdge = false;
 		
 		this.label = '';
 		var that = this;
@@ -3116,7 +3115,6 @@ Depends on  NOTHING
 		};
 
 		this.get = function(key, type) { 
-			var val = "";
 			if (key) { 
 				if (type && _types[type.toLowerCase()]) {
 					var res = _types[type.toLowerCase()](article[key]);
@@ -3128,7 +3126,7 @@ Depends on  NOTHING
 
 		this.tryGet = function(key, value, type) {
 			var res = this.get(key, type);
-			if (res != undefined) return res;
+			if (res !== undefined) return res;
 			return value;
 		};
 
@@ -3186,7 +3184,7 @@ Depends on  NOTHING
 		var _atomicProps = [];
 
 		var _atomic = function(key, amount, multiplier) {
-			if (!key || typeof key != 'string' ||  key.length == 0 || key.indexOf('__') == 0) return this;
+			if (!key || typeof key !== 'string' ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
 			if (!amount || isNaN(parseInt(amount))) amount = multiplier;
 			else amount = parseInt(amount) * multiplier;
@@ -3272,7 +3270,7 @@ Depends on  NOTHING
 			_saveRequest.onError = function(err) {
 				err = _getOutpuStatus(err);
 				if (typeof onError == 'function') onError(err, that);
-			}
+			};
 			global.Appacitive.http.send(_saveRequest);
 			return this;
 		};
@@ -3336,12 +3334,12 @@ Depends on  NOTHING
 						} else {
 							if (typeof onError == 'function') onError(err, that);
 						}
-					}
+					};
 					global.Appacitive.http.send(_updateRequest);
 				} else {
 					if (typeof onSuccess == 'function') onSuccess(that);
 				}
-			}
+			};
 
 			if (_atomicProps.length > 0) {
 				var props = ['__revision'];
@@ -3350,8 +3348,7 @@ Depends on  NOTHING
 				});
 
 				_fetch(function(obj) {
-					var tmp = {};
-
+					
 					_atomicProps.forEach(function(p) {
 						var value = _types['integer'](obj[p.key]);
 						if (!value) value = 0
@@ -3466,7 +3463,7 @@ Depends on  NOTHING
 			_deleteRequest.onError = function(err) {
 				err = _getOutpuStatus(err);
 				if (typeof onError == 'function') onError(err, that);
-			}
+			};
 			global.Appacitive.http.send(_deleteRequest);
 		};
 	};
@@ -3811,8 +3808,7 @@ Depends on  NOTHING
 	var _ConnectionCollection = function(options) {
 
 		var _relation = null;
-		var _schema = null;
-
+		
 		var _query = null;
 
 		var _connections = [];
@@ -3822,8 +3818,6 @@ Depends on  NOTHING
 
 		if (typeof options == 'string') _options.relation = options;
 		else _options = options;
-
-		var connectionMap = {};
 
 		this.collectionType = 'connection';
 
@@ -4243,7 +4237,7 @@ Depends on  NOTHING
 			request.onError = function(d) {
 				d = d || {};
 				if (typeof onError === 'function') onError (d.status || { message : 'Server error', code: 400 });
-			}
+			};
 			global.Appacitive.http.send(request);
 		} else onSuccess();
 	};
@@ -4275,7 +4269,7 @@ Depends on  NOTHING
 			request.onError = function(d) {
 				d = d || { message : 'Server error', code: 400 };
 				if (typeof onError === 'function') onError(d);
-			}
+			};
 			global.Appacitive.http.send(request);
 		} else {
 			if (typeof onSuccess === 'function') onSuccess([]);
@@ -4573,7 +4567,7 @@ Depends on  NOTHING
 
 		var _updatePassword = function(base, oldPassword, newPassword, onSuccess, onError) {
 			var userId = base.get('__id');
-			if (!userId || typeof userId !== 'string' || userId.length == 0) throw new Error("Please specify valid userid");
+			if (!userId || typeof userId !== 'string' || userId.length === 0) throw new Error("Please specify valid userid");
 			if (!oldPassword || typeof oldPassword !== 'string' || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
 			if (!newPassword || typeof newPassword !== 'string' || newPassword.length === 0) throw new Error("Please specify valid newPassword");
 
@@ -4848,7 +4842,7 @@ Depends on  NOTHING
 			var _callback = function() {
 				global.Appacitive.Session.removeUserAuthHeader();
 				if (typeof onSuccess === 'function') onSuccess();
-			}
+			};
 			if (_authenticatedUser === null) { 
 				_callback();
 				return;
@@ -4956,7 +4950,7 @@ Depends on  NOTHING
 				_callback();
 			} else { 
 				global.Appacitive.Facebook.requestLogin(function(authResponse) {
-					_callback();
+					_callback(authResponse);
 				}, onError);
 			}
 		};
@@ -5091,7 +5085,8 @@ Depends on  NOTHING
 
 	global.Appacitive.Users = new UserManager();
 
-})(global);(function (global) {
+})(global);
+(function (global) {
 
 	"use strict";
 
@@ -5300,7 +5295,7 @@ Depends on  NOTHING
 			onError = onError || function(){};
 			global.Appacitive.Facebook.accessToken = "";
 			try {
-				FB.logout(function(response) {
+				FB.logout(function() {
 					global.Appacitive.Users.logout();
 					if (typeof onSuccess === 'function') onSuccess();
 				});
@@ -5373,8 +5368,8 @@ Depends on  NOTHING
 			onError = onError || function(){};
 			global.Appacitive.Facebook.accessToken = "";
 			if (typeof onSuccess === 'function') onSuccess();
-		}
-	}
+		};
+	};
 
 	global.Appacitive.Facebook = global.Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
 
@@ -5439,7 +5434,7 @@ Depends on  NOTHING
 
 			request.onError = function(d){
 				onError(d || "Server error");
-			}
+			};
 
 			global.Appacitive.http.send(request);
 		};
@@ -5472,7 +5467,7 @@ Depends on  NOTHING
 
 			request.onError = function(d){
 				onError(d || "Server error");
-			}
+			};
 
 			global.Appacitive.http.send(request);
 		};
@@ -5664,7 +5659,6 @@ Depends on  NOTHING
     try {
         var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
 
-        var isOnlyDate = false;
         if (!regexp.exec(str)) return new Date(str);
           
         var parts = str.split('T'),
@@ -5794,7 +5788,7 @@ Depends on  NOTHING
 			if (!key) return;
 			key = global.Appacitive.getAppPrefix(key);
 			try { delete _localStorage[key]; } catch(e){}
-		}
+		};
 	};
 
 	global.Appacitive.localStorage = new A_LocalStorage();

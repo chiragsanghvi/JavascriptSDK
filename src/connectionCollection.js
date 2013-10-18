@@ -8,8 +8,7 @@
 	var _ConnectionCollection = function(options) {
 
 		var _relation = null;
-		var _schema = null;
-
+		
 		var _query = null;
 
 		var _connections = [];
@@ -19,8 +18,6 @@
 
 		if (typeof options == 'string') _options.relation = options;
 		else _options = options;
-
-		var connectionMap = {};
 
 		this.collectionType = 'connection';
 
