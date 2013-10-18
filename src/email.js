@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
 	"use strict";
 
@@ -14,7 +14,7 @@
 			},
 			from: null,
 			replyto: null
-		}
+		};
 
 		this.getConfig = function() {
 			var _copy = config;
@@ -54,10 +54,10 @@
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			if (!options || !options.to || !options.to.length || options.to.length == 0) {
+			if (!options || !options.to || !options.to.length || options.to.length === 0) {
 				throw new Error('Atleast one receipient is mandatory to send an email');
 			}
-			if (!options.subject || options.subject.trim().length == 0) {
+			if (!options.subject || options.subject.trim().length === 0) {
 				throw new Error('Subject is mandatory to send an email');
 			}
 
@@ -78,7 +78,7 @@
 				body: {
 					templatename: options.templateName || '',
 					data : options.data || {},
-					ishtml: (options.isHtml == false) ? false : true
+					ishtml: (options.isHtml === false) ? false : true
 				}
 			};
 
@@ -98,10 +98,10 @@
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			if (!options || !options.to || !options.to.length || options.to.length == 0) {
+			if (!options || !options.to || !options.to.length || options.to.length === 0) {
 				throw new Error('Atleast one receipient is mandatory to send an email');
 			}
-			if (!options.subject || options.subject.trim().length == 0) {
+			if (!options.subject || options.subject.trim().length === 0) {
 				throw new Error('Subject is mandatory to send an email');
 			}
 
@@ -121,7 +121,7 @@
 				from: options.from,
 				body: {
 					content: options.body || '',
-					ishtml: (options.isHtml == false) ? false : true
+					ishtml: (options.isHtml === false) ? false : true
 				}
 			};
 

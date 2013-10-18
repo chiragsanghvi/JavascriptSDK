@@ -1,4 +1,7 @@
 (function (global) {
+
+    "use strict";
+
     /**
      * @param {...string} var_args
      */
@@ -26,12 +29,12 @@
         return returnStr;
     };
     String.toSearchString = function (text) {
-        if (typeof (text) == 'undefined')
+        if (typeof (text) === 'undefined')
             text = '';
 
         var result = '';
         for (var x = 0; x < text.length; x = x + 1) {
-            if (' .,;#'.indexOf(text[x]) == -1)
+            if (' .,;#'.indexOf(text[x]) === -1)
                 result += text[x];
         }
 
@@ -41,11 +44,11 @@
     };
 
     String.contains = function (s1, s2) {
-        return (s1.indexOf(s2) != -1);
-    }
+        return (s1.indexOf(s2) !== -1);
+    };
 
     String.startsWith = function (s1, s2) {
-        return (s1.indexOf(s2) == 0);
+        return (s1.indexOf(s2) === 0);
     };
 
     Array.distinct = function(orgArr) {
@@ -99,7 +102,7 @@
         var baseUrl = (global.Appacitive.config || { apiBaseUrl: '' }).apiBaseUrl;
         
         var _getFields = function(fields) {
-            if (typeof fields == 'object' && fields.length > 0 && (typeof fields[0] == 'string' || typeof fields[0] == 'number')) fields = fields.join(',');
+            if (typeof fields === 'object' && fields.length > 0 && (typeof fields[0] === 'string' || typeof fields[0] === 'number')) fields = fields.join(',');
             if (!fields) fields = '';
             return fields;
         };
@@ -284,7 +287,7 @@
                 url = String.format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationName, articleId);
                 if (queryParams && queryParams.length && queryParams.length > 0) {
                     for (var x = 0; x < queryParams.length; x += 1) {
-                        if (x == 0) {
+                        if (x === 0) {
                             url += '?' + queryParams[x];
                         } else {
                             url += '&' + queryParams[x];
@@ -351,7 +354,7 @@
         this.query = {
             params: function (key) {
                 var match = [];
-                if (location.search == "" || location.search.indexOf("?") == -1) return match;
+                if (location.search === "" || location.search.indexOf("?") === -1) return match;
                 if (!key) return location.search.split("?")[1].split("=");
                 else {
                     key = key.toLowerCase();
@@ -361,11 +364,11 @@
                         var value = splitKey[1];
                         if (splitKey.length > 2) {
                             splitKey.forEach(function (ii, kk) {
-                                if (ii == 0 || ii == 1) return;
+                                if (ii === 0 || ii === 1) return;
                                 value = value + "=" + splitKey[ii];
                             });
                         }
-                        if (splitKey[0].toLowerCase() == key) match = [splitKey[0], value];
+                        if (splitKey[0].toLowerCase() === key) match = [splitKey[0], value];
                     });
                     return match;
                 }

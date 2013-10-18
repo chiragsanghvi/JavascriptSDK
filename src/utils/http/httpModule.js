@@ -8,7 +8,7 @@ var global = {};
 
 	// create the global object
 
-	if (typeof window == 'undefined') {
+	if (typeof window === 'undefined') {
 		global = process;
 	} else {
 		global = window;
@@ -122,11 +122,11 @@ var global = {};
 			request.headers.push({ key:'Content-Type', value: 'text/plain' });
 			request.method = 'POST';
 
-			if (request.data) body.b = request.data
+			if (request.data) body.b = request.data;
 			delete request.data;
 			
 			if (global.Appacitive.config.debug) {
-				if (request.url.indexOf('?') == -1) request.url = request.url + '?debug=true';
+				if (request.url.indexOf('?') === -1) request.url = request.url + '?debug=true';
 				else request.url = request.url + '&debug=true';
 			}
 
@@ -233,7 +233,7 @@ var global = {};
 	       request.onError({code: "400" , message: "Server Error" }, xdr);
 	    };
 	    xdr.onprogress = function() {};
-	    if (request.url.indexOf('?') == -1)
+	    if (request.url.indexOf('?') === -1)
             request.url = request.url + '?ua=ie';
         else
             request.url = request.url + '&ua=ie';
@@ -385,7 +385,7 @@ var global = {};
 		};
 
 		_super.upload = function (request, callbacks, states) {
-			if (typeof request.beforeSend == 'function') {
+			if (typeof request.beforeSend === 'function') {
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states, true);
@@ -433,7 +433,7 @@ var global = {};
 
 			// notify the queue if the actual transport 
 			// is ready to send the requests
-			if (_inner.isOnline() && _paused == false) {
+			if (_inner.isOnline() && _paused === false) {
 				_buffer.notify();
 			}
 		}
@@ -484,6 +484,8 @@ var global = {};
 	// handles session and shits
 	(function (global) {
 
+		"use strict";
+
 		if (!global.Appacitive) return;
 		if (!global.Appacitive.http) return;
 
@@ -496,7 +498,7 @@ var global = {};
 					var _valid = global.Appacitive.Session.isSessionValid(response);
 					if (!_valid.status) {
 						if (_valid.isSession) {
-							if (global.Appacitive.Session.get() != null) {
+							if (global.Appacitive.Session.get() !== null) {
 								global.Appacitive.Session.resetSession();
 							}
 							global.Appacitive.http.send(request);

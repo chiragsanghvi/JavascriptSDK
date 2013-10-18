@@ -1,10 +1,12 @@
-(function(global) {
+(function (global) {
   
+  "use strict";
+
   global.Appacitive.Date = {};
 
   var pad = function (n) {
       if (n < 10) return '0' + n;
-      return n
+      return n;
   };
 
   global.Appacitive.Date.parseISODate = function (str) {
@@ -67,7 +69,7 @@
       var date = new Date();
     
       var parts = str.split('T');
-      if (parts.length == 1) parts.push(parts[0]);
+      if (parts.length === 1) parts.push(parts[0]);
       
       var regexp = new RegExp("^([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
       if (!regexp.exec(parts[1])) {

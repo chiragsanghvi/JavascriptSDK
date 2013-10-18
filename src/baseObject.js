@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
 	"use strict";
 
@@ -98,11 +98,11 @@
 			if (arguments.length === 0) {
 				if (!article.__attributes) article.__attributes = {};
 				return article.__attributes;
-			} else if (arguments.length == 1) {
+			} else if (arguments.length === 1) {
 				if (!article.__attributes) article.__attributes = {};
 				return article.__attributes[arguments[0]];
-			} else if (arguments.length == 2) {
-				if (typeof(arguments[1]) !== 'string' && arguments[1] != null)
+			} else if (arguments.length === 2) {
+				if (typeof(arguments[1]) !== 'string' && arguments[1] !== null)
 					throw new Error('only string values can be stored in attributes.');
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
@@ -165,7 +165,7 @@
 		    article.__tags.push(tag);
 		    article.__tags = Array.distinct(article.__tags);
 
-		    if (!_removeTags || !_removeTags.length) return this;;
+		    if (!_removeTags || !_removeTags.length) return this;
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
 			return this;
@@ -290,7 +290,7 @@
 			if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length) {
 				return _snapshot[arguments[0]];	
 			}
-			return null
+			return null;
 		};
 
 		this.previousAttributes = function() { return _snapshot; };
@@ -322,7 +322,7 @@
 				}
 				return value;
 			}, "boolean": function(value) { 
-				if (value != undefined && value != null && (value.toString().toLowerCase() == 'true' || value == true || value > 0)) return true;
+				if (value !== undefined && value !== null && (value.toString().toLowerCase() === 'true' || value === true || value > 0)) return true;
 				return false;
 			}, "date": function(value) { 
 				if (value) {
@@ -354,8 +354,8 @@
 				if (type && _types[type.toLowerCase()]) {
 					var res = _types[type.toLowerCase()](article[key]);
 					return res;
-				} 
-				return article[key]; 
+				}
+				throw new Error('Invalid cast-type "' + type + '"" provided for get "' + key + '"');
 			}
 		};
 
@@ -367,12 +367,12 @@
 
 		this.set = function(key, value) {
 
-			if(!key || typeof key != 'string' ||  key.length == 0 || key.trim().indexOf('$') == 0) return this; 
+			if(!key || typeof key !== 'string' ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
 		 	
-		 	if (value == null || value == 'undefined') { article[key] = null;}
-		 	else if (typeof value == 'string') { article[key] = value; }
-		 	else if (typeof value == 'number' || typeof value == 'boolean') { article[key] = value + ''; }
-		 	else if (typeof value == 'object') {
+		 	if (value === null || value === 'undefined') { article[key] = null;}
+		 	else if (typeof value === 'string') { article[key] = value; }
+		 	else if (typeof value === 'number' || typeof value === 'boolean') { article[key] = value + ''; }
+		 	else if (typeof value === 'object') {
 		 		if (value instanceof Date) {
 		 			article[key] = global.Appacitive.Date.toISOString(value);
 		 		} else {
@@ -385,14 +385,14 @@
 		};
 
 		this.unset = function(key) {
-			if (!key || typeof key != 'string' ||  key.length == 0 || key.indexOf('__') == 0) return this; 
+			if (!key || typeof key !== 'string' ||  key.length === 0 || key.indexOf('__') === 0) return this; 
 		 	try { delete article[key]; } catch(e) {}
 			return this;
 		};
 
 		this.has = function(key) {
-			if (!key || typeof key != 'string' ||  key.length == 0) return false; 
-			if (article[key] && typeof article[key] != 'undefined') return true;
+			if (!key || typeof key !== 'string' ||  key.length === 0) return false; 
+			if (article[key] && typeof article[key] !== 'undefined') return true;
 			return false;
 		};
 

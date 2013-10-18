@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
 	"use strict";
 
@@ -29,7 +29,7 @@
 
 			request.onError = function(d){
 				onError(d || "Server error");
-			}
+			};
 
 			global.Appacitive.http.send(request);
 		};

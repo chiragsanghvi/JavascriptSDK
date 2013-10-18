@@ -12,7 +12,7 @@
 		var _articles = [];
 		var _options = {};
 
-		if (typeof options == 'string') _options.schema = options;
+		if (typeof options === 'string') _options.schema = options;
 		else _options = options;
 
 		this.collectionType = 'article';
@@ -47,7 +47,7 @@
 		};
 
         this.setFreeText = function(tokens) {
-            if(!tokens && tokens.trim().length==0)
+            if (!tokens && tokens.trim().length === 0)
                 _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'article';
@@ -81,10 +81,10 @@
 		var _supportedQueryType = ["BasicFilterQuery"];
 
 		this.query = function() {
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				var query = arguments[0];
 				if (!query || !query.toRequest) throw new Error('Invalid  appacitive query passed to articleCollection');
-				if (_supportedQueryType.indexOf(query.queryType()) == -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
+				if (_supportedQueryType.indexOf(query.queryType()) === -1) throw new Error('ArticleCollection only accepts ' + _supportedQueryType.join(', '));
 				_articles.length = 0;
 				_query = query;
 				return this;
@@ -110,7 +110,7 @@
 				throw new Error('Null article passed or schema type mismatch');
 			var index =  null;
 			_articles.forEach(function(a, i) {
-				if (a.get('__id') == article.get('__id')) {
+				if (a.get('__id') === article.get('__id')) {
 					index = i;
 				}
 			});
@@ -124,9 +124,9 @@
 
 		this.getArticleById = function(id) {
 			var existingArticle = _articles.filter(function (article) {
-				return article.get('__id') == id;
+				return article.get('__id') === id;
 			});
-			if (existingArticle.length == 1) return existingArticle[0];
+			if (existingArticle.length === 1) return existingArticle[0];
 			return null;
 		};
 
@@ -142,7 +142,7 @@
 			if (!id) return false;
 			var index = null;
 			_articles.forEach(function(article, i) {
-				if (article.getArticle().__id && article.getArticle().__id == id) {
+				if (article.getArticle().__id && article.getArticle().__id === id) {
 					index = i;
 				}
 			});
@@ -156,7 +156,7 @@
 			if (!id) return false;
 			var index = null;
 			_articles.forEach(function(article, i) {
-				if (article.cid && article.cid == id) {
+				if (article.cid && article.cid === id) {
 					index = i;
 				}
 			});
@@ -172,7 +172,7 @@
 				_articles.push(article);
 			});
 
-			if (typeof onSuccess == 'function') onSuccess(pagingInfo, that);
+			if (typeof onSuccess === 'function') onSuccess(pagingInfo, that);
 		};
 
 		this.fetch = function(onSuccess, onError) {
@@ -182,7 +182,7 @@
 			_query.fetch(function(articles, pagingInfo) {
 				parseArticles(articles, pagingInfo, onSuccess);
 			}, function(err) {
-				if (typeof onError == 'function') onError(err, that);
+				if (typeof onError === 'function') onError(err, that);
 			});
 
 			return this;

@@ -6,13 +6,13 @@
 		var result = { label: endpoint.label };
 		if (endpoint.articleid)  result.articleid = endpoint.articleid;
 		if (endpoint.article) {
-			if (typeof endpoint.article.getArticle == 'function') {
+			if (typeof endpoint.article.getArticle === 'function') {
 				// provided an instance of Appacitive.ArticleCollection
 				// stick the whole article if there is no __id
 				// else just stick the __id
 				if (endpoint.article.get('__id')) result.articleid = endpoint.article.get('__id');
 				else result.article = endpoint.article.getArticle();
-			} else if (typeof endpoint.article == 'object' && endpoint.article.__schematype) {
+			} else if (typeof endpoint.article === 'object' && endpoint.article.__schematype) {
 				// provided a raw article
 				// if there is an __id, just add that
 				// else add the entire article
@@ -30,7 +30,7 @@
 	};
 
 	var _convertEndpoint = function(endpoint, type, base) {
-		if ( endpoint.article && typeof endpoint.article == 'object') {
+		if ( endpoint.article && typeof endpoint.article === 'object') {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
 				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
@@ -53,7 +53,7 @@
 	global.Appacitive.Connection = function(options, doNotSetup) {
 		options = options || {};
 		
-		if (typeof options == 'string') {
+		if (typeof options === 'string') {
 			var rName = options;
 			options = { __relationtype : rName };
 		}
@@ -65,7 +65,7 @@
 			delete options.relation;
 		}
 
-		if (options.endpoints && options.endpoints.length == 2) {
+		if (options.endpoints && options.endpoints.length === 2) {
 			options.__endpointa = options.endpoints[0];
 			options.__endpointb = options.endpoints[1];
 			delete options.endpoints;
@@ -78,9 +78,10 @@
 		this.parseConnection = function() {
 			
 			var typeA = 'A', typeB ='B';
-			if ( options.__endpointa.label.toLowerCase() == this.get('__endpointb').label.toLowerCase() ) {
+			if ( options.__endpointa.label.toLowerCase() === this.get('__endpointb').label.toLowerCase() ) {
 				if ((options.__endpointa.label.toLowerCase() != options.__endpointb.label.toLowerCase()) && (options.__endpointa.articleid == this.get('__endpointb').articleid || !options.__endpointa.articleid)) {
-				 	typeA = 'B', typeB = 'A';
+				 	typeA = 'B';
+				 	typeB = 'A';
 				}
 			}
 
@@ -88,9 +89,9 @@
 			_convertEndpoint(this.get('__endpointb'), typeB, this);
 
 			this.endpoints = function() {
-				if (arguments.length === 1 && typeof arguments[0] == 'string') {
-					if (this.endpointA.label.toLowerCase() == arguments[0].toLowerCase()) return this.endpointA;
-					else if (this.endpointB.label.toLowerCase() == arguments[0].toLowerCase()) return this.endpointB;
+				if (arguments.length === 1 && typeof arguments[0] === 'string') {
+					if (this.endpointA.label.toLowerCase() === arguments[0].toLowerCase()) return this.endpointA;
+					else if (this.endpointB.label.toLowerCase() === arguments[0].toLowerCase()) return this.endpointB;
 					else throw new Error("Invalid label provided");
 				}
 				var endpoints = [];
@@ -148,9 +149,9 @@
 		// 3
 		this.endpoints = function() {
 
-			if (arguments.length === 1 && typeof arguments[0] == 'string') {
-				if (this.endpointA.label.toLowerCase() == arguments[0].toLowerCase()) return this.endpointA;
-				else if (this.endpointB.label.toLowerCase() == arguments[0].toLowerCase()) return this.endpointB;
+			if (arguments.length === 1 && typeof arguments[0] === 'string') {
+				if (this.endpointA.label.toLowerCase() === arguments[0].toLowerCase()) return this.endpointA;
+				else if (this.endpointB.label.toLowerCase() === arguments[0].toLowerCase()) return this.endpointB;
 				else throw new Error("Invalid label provided");
 			}
 
@@ -185,15 +186,15 @@
 	var _fetch = function(request, onSuccess, onError) {
 		request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-			   if (typeof onSuccess == 'function') onSuccess(_parseConnections(d.connections), d.paginginfo);
+			   if (typeof onSuccess === 'function') onSuccess(_parseConnections(d.connections), d.paginginfo);
 			} else {
 				d = d || {};
-				if (typeof onError == 'function') onError(d.status || { message : 'Server error', code: 400 });
+				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 			}
 		};
 		request.onError = function(d) {
 			d = d || { message : 'Server error', code: 400 };
-			if (typeof onError == 'function') onError(d);
+			if (typeof onError === 'function') onError(d);
 		};
 		global.Appacitive.http.send(request);
 	};
@@ -201,14 +202,14 @@
 	//takes relationname and array of connectionids and returns an array of Appacitive article objects
 	global.Appacitive.Connection.multiGet = function(options, onSuccess, onError) {
 		options = options || {};
-		if (!options.relation || typeof options.relation!= 'string' || options.relation.length == 0) throw new Error("Specify valid relation");
+		if (!options.relation || typeof options.relation !== 'string' || options.relation.length === 0) throw new Error("Specify valid relation");
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
 			request.method = 'get';
 			return _fetch(request, onSuccess, onError); 
 		} else { 
-			if (typeof onSuccess == 'function') onSuccess([]);
+			if (typeof onSuccess === 'function') onSuccess([]);
 		}
 	};
 
@@ -216,7 +217,7 @@
 	global.Appacitive.Connection.multiDelete = function(options, onSuccess, onError) {
 		options = options || {};
 		
-		if (!options.relation || typeof options.relation!= 'string' || options.relation.length == 0) throw new Error("Specify valid relation");
+		if (!options.relation || typeof options.relation !== 'string' || options.relation.length === 0) throw new Error("Specify valid relation");
 
 		if (options.ids && options.ids.length > 0) {
 			var request = new global.Appacitive.HttpRequest();
@@ -225,18 +226,20 @@
 			request.data = { idlist : options.ids };
 			request.onSuccess = function(d) {
 				if (d && d.code == '200') {
-					if (typeof onSuccess == 'function') onSuccess();
+					if (typeof onSuccess === 'function') onSuccess();
 				} else {
 					d = d || {};
-					if (typeof onError == 'function') onError(d || { message : 'Server error', code: 400 });
+					if (typeof onError === 'function') onError(d || { message : 'Server error', code: 400 });
 				}
 			};
 			request.onError = function(d) {
 				d = d || {};
-				if (typeof onError == 'function') onError(d || { message : 'Server error', code: 400 });
-			}
+				if (typeof onError === 'function') onError(d || { message : 'Server error', code: 400 });
+			};
 			global.Appacitive.http.send(request);
-		} else onSuccess();
+		} else { 
+			if (typeof onSuccess === 'function') onSuccess();
+		}
 	};
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 

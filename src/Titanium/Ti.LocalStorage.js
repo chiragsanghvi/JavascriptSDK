@@ -10,7 +10,7 @@
 			value = value || '';
 			if (!key) return false;
 
-		    if (typeof value == "object") {
+		    if (typeof value === "object") {
 		    	try {
 			      value = JSON.stringify(value);
 			    } catch(e){}
@@ -30,7 +30,7 @@
 		   	if (!value) { return null; }
 
 		    // assume it is an object that has been stringified
-		    if (value[0] == "{") {
+		    if (value[0] === "{") {
 		    	try {
 			      value = JSON.parse(value);
 			    } catch(e){}

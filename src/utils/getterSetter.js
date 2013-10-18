@@ -1,3 +1,4 @@
+"use strict";
 
 // Add ECMA262-5 method binding if not supported natively
 //

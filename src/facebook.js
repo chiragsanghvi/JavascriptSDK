@@ -25,9 +25,9 @@
 			FB.login(function(response) {
 				if (response && response.status === 'connected' && response.authResponse) {
 					_accessToken = response.authResponse.accessToken;
-					if (typeof onSuccess == 'function') onSuccess(response.authResponse);
+					if (typeof onSuccess === 'function') onSuccess(response.authResponse);
 				} else {
-					if (typeof onError == 'function') onError();
+					if (typeof onError === 'function') onError();
 				}
 			}, { scope:'email,user_birthday' });
 		};
@@ -39,15 +39,15 @@
 			FB.api('/me', function(response) {
 				if (response && !response.error) {
 					_accessToken = FB.getAuthResponse().accessToken;
-					if (typeof onSuccess == 'function') onSuccess(response);
+					if (typeof onSuccess === 'function') onSuccess(response);
 				} else {
-					if (typeof onError == 'function') onError();
+					if (typeof onError === 'function') onError();
 				}
 			});
 		};
 
 		this.accessToken = function() {
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				_accessToken = arguments[0];
 				return this;
 			}
@@ -65,10 +65,10 @@
 			try {
 				FB.logout(function(response) {
 					global.Appacitive.Users.logout();
-					if (typeof onSuccess == 'function') onSuccess();
+					if (typeof onSuccess === 'function') onSuccess();
 				});
 			} catch(e) {
-				if (typeof onError == 'function') onError(e.message);
+				if (typeof onError === 'function') onError(e.message);
 			}
 		};
 	};
@@ -109,9 +109,9 @@
 				onError = onError || function(){};
 				this.FB.api('/me', function(err, response) {
 					if (response) {
-						if (typeof onSuccess == 'function') onSuccess(response);
+						if (typeof onSuccess === 'function') onSuccess(response);
 					} else {
-						if (typeof onError == 'function') onError("Access token is invalid");
+						if (typeof onError === 'function') onError("Access token is invalid");
 					}
 				});
 			} else {
@@ -120,7 +120,7 @@
 		};
 
 		this.accessToken = function() {
-			if (arguments.length == 1) {
+			if (arguments.length === 1) {
 				_accessToken = arguments[0];
 				return this;
 			}
@@ -135,7 +135,7 @@
 			onSuccess = onSuccess || function() {};
 			onError = onError || function(){};
 			global.Appacitive.Facebook.accessToken = "";
-			if (typeof onSuccess == 'function') onSuccess();
+			if (typeof onSuccess === 'function') onSuccess();
 		}
 	}
 

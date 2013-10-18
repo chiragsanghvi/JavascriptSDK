@@ -8,7 +8,7 @@ var global = {};
 
 	// create the global object
 
-	if (typeof window == 'undefined') {
+	if (typeof window === 'undefined') {
 		global = process;
 	} else {
 		global = window;
@@ -38,7 +38,7 @@ var global = {};
 
 		// validate the httpTransport passed
 		// and assign the callback
-		if (!httpTransport || !httpTransport.send || typeof httpTransport.send != 'function') {
+		if (!httpTransport || !httpTransport.send || typeof httpTransport.send !== 'function') {
 			throw new Error('No applicable httpTransport class found');
 		} else {
 			httpTransport.onResponse = this.onResponse;
@@ -121,11 +121,11 @@ var global = {};
 			request.headers.push({ key:'Content-Type', value: 'text/plain' });
 			request.method = 'POST';
 
-			if (request.data) body.b = request.data
+			if (request.data) body.b = request.data;
 			delete request.data;
 			
 			if (global.Appacitive.config.debug) {
-				if (request.url.indexOf('?') == -1) request.url = request.url + '?debug=true';
+				if (request.url.indexOf('?') === -1) request.url = request.url + '?debug=true';
 				else request.url = request.url + '&debug=true';
 			}
 
@@ -228,16 +228,16 @@ var global = {};
 		else {
 			if (request.data) { 
 				data = request.data;
-				if (typeof request.data == 'object') {
+				if (typeof request.data === 'object') {
 					try { data = JSON.stringify(data); } catch(e) {}
 				}
 			}
 		}
 
-		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
-	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
+		if (!request.onSuccess || typeof request.onSuccess !== 'function') request.onSuccess = function() {};
+	    if (!request.onError || typeof request.onError !== 'function') request.onError = function() {};
 	    
-	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
+	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') !== -1 || global.navigator.userAgent.indexOf('MSIE 9') !== -1)) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;
@@ -338,14 +338,14 @@ var global = {};
 
 		_super.send = function (request, callbacks, states) {
 			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
-			if (typeof request.beforeSend == 'function') {
+			if (typeof request.beforeSend === 'function') {
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states);
 		};
 
 		_super.upload = function (request, callbacks, states) {
-			if (typeof request.beforeSend == 'function') {
+			if (typeof request.beforeSend === 'function') {
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states, true);
@@ -444,6 +444,8 @@ var global = {};
 	// handles session and shits
 	(function (global) {
 
+		"use strict";
+		
 		if (!global.Appacitive) return;
 		if (!global.Appacitive.http) return;
 

@@ -1,5 +1,7 @@
 (function (global) {
 
+"use strict";
+
 var cookieManager = function () {
 
 	this.setCookie = function (name, value) {

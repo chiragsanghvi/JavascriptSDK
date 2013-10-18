@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
 	"use strict";
 
@@ -56,7 +56,7 @@
 		};
 
 		this.setFreeText = function(tokens) {
-            if (!tokens && tokens.trim().length == 0) _options.freeText = "";
+            if (!tokens && tokens.trim().length === 0) _options.freeText = "";
             _options.freeText = tokens;
             _options.type = 'connection';
             if (_query) _query.freeText(tokens);
