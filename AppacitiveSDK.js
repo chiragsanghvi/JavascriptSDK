@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Oct 18 13:38:32 IST 2013
+ * Build time 	: Fri Oct 18 19:09:36 IST 2013
  */
 "use strict";
 
@@ -1282,11 +1282,8 @@ Depends on  NOTHING
 					if (!doNotSetCookie) {
 						if(!expiry) expiry = 60;
 						if (expiry == -1) expiry = null;
-						
-						if (global.Appacitive.runtime.isBrowser) {
-							global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
-							global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
-						}
+						global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
+						global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
 					}
 				}
 			} catch(e) {}
@@ -1316,10 +1313,8 @@ Depends on  NOTHING
 			authEnabled = false;
 			callback = callback || function() {};
 			global.Appacitive.localStorage.remove('Appacitive-User');
-			if (global.Appacitive.runtime.isBrowser) {
-			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
-			}
+		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
 			if (_authToken  && !avoidApiCall) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
@@ -4578,10 +4573,6 @@ Depends on  NOTHING
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			if (oldPassword == newPassword) {
-			 	if (typeof onSuccess === 'function') onSuccess(base); return;
-			}
-
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUpdatePasswordUrl(userId);
@@ -5751,101 +5742,157 @@ Depends on  NOTHING
 
 	"use strict";
 
-	var A_LocalStorage = function() {
+	if (global.Appacitive.runtime.isBrowser) {
 
-		var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
+		var A_LocalStorage = function() {
 
-		this.set = function(key, value) {
-			value = value || '';
-			if (!key) return false;
+			var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
 
-		    if (typeof value === "object") {
-		    	try {
-			      value = JSON.stringify(value);
-			    } catch(e){}
-		    }
-		    key = global.Appacitive.getAppPrefix(key);
+			this.set = function(key, value) {
+				value = value || '';
+				if (!key) return false;
 
-			_localStorage[key] = value;
-			return true;
+			    if (typeof value === "object") {
+			    	try {
+				      value = JSON.stringify(value);
+				    } catch(e){}
+			    }
+			    key = global.Appacitive.getAppPrefix(key);
+
+				_localStorage[key] = value;
+				return true;
+			};
+
+			this.get = function(key) {
+				if (!key) return null;
+
+				key = global.Appacitive.getAppPrefix(key);
+
+				var value = _localStorage.getItem(key);
+			   	if (!value) { return null; }
+
+			    // assume it is an object that has been stringified
+			    if (value[0] === "{") {
+			    	try {
+				      value = JSON.parse(value);
+				    } catch(e){}
+			    }
+
+			    return value;
+			};
+			
+			this.remove = function(key) {
+				if (!key) return;
+				key = global.Appacitive.getAppPrefix(key);
+				try { delete _localStorage[key]; } catch(e){}
+			};
 		};
+		global.Appacitive.localStorage = new A_LocalStorage();
 
-		this.get = function(key) {
-			if (!key) return null;
+	} else {
+		var A_LocalStorage = function() {
+			
+            var _localStorage = [];
 
-			key = global.Appacitive.getAppPrefix(key);
+            this.set = function(key, value) {
+                value = value || '';
+                if (!key || typeof key !== 'string') return false;
 
-			var value = _localStorage.getItem(key);
-		   	if (!value) { return null; }
+                key = global.Appacitive.getAppPrefix(key);
 
-		    // assume it is an object that has been stringified
-		    if (value[0] === "{") {
-		    	try {
-			      value = JSON.parse(value);
-			    } catch(e){}
-		    }
+                _localStorage[key] = value;
+                return true;
+            };
 
-		    return value;
-		};
-		
-		this.remove = function(key) {
-			if (!key) return;
-			key = global.Appacitive.getAppPrefix(key);
-			try { delete _localStorage[key]; } catch(e){}
-		};
-	};
+            this.get = function(key) {
+                if (!key || typeof key !== 'string') return null;
 
-	global.Appacitive.localStorage = new A_LocalStorage();
+                key = global.Appacitive.getAppPrefix(key);
 
+                var value = _localStorage[key];
+	            if (!value) { return null; }
+
+                return value;
+            };
+            
+            this.remove = function(key) {
+                if (!key || typeof key !== 'string') return;
+                key = global.Appacitive.getAppPrefix(key);
+                try { delete _localStorage[key]; } catch(e){}
+            }
+        };
+
+        global.Appacitive.localStorage = new A_LocalStorage();
+	}
 })(global);
 (function (global) {
 
 "use strict";
 
-var cookieManager = function () {
+if (global.Appacitive.runtime.isBrowser) {
 
-	this.setCookie = function (name, value, minutes, erase) {
-		name = global.Appacitive.getAppPrefix(name);
-		var expires = '';
-		if (minutes) {
-			var date = new Date();
-			date.setTime(date.getTime() + (minutes*60*1000));
-			expires = "; expires=" + date.toGMTString();
-		}
+	var _cookieManager = function () {
 
-		if (!erase) {
-			//for now lets make this a session cookie if it is not an erase
-			if (!global.Appacitive.Session.persistUserToken) expires = '';
-			else expires = "; expires=" +  new Date("2020-12-31").toGMTString();
-		} else {
-			expires = '; expires=Thu, 01-Jan-1970 00:00:01 GMT';
-		}
-		var domain = 'domain=' + window.location.hostname;
-		if (window.location.hostname == 'localhost') domain = '';
-		
-		document.cookie = name + "=" + value + expires + "; path=/;" + domain;
+		this.setCookie = function (name, value, minutes, erase) {
+			name = global.Appacitive.getAppPrefix(name);
+			var expires = '';
+			if (minutes) {
+				var date = new Date();
+				date.setTime(date.getTime() + (minutes*60*1000));
+				expires = "; expires=" + date.toGMTString();
+			}
+
+			if (!erase) {
+				//for now lets make this a session cookie if it is not an erase
+				if (!global.Appacitive.Session.persistUserToken) expires = '';
+				else expires = "; expires=" +  new Date("2020-12-31").toGMTString();
+			} else {
+				expires = '; expires=Thu, 01-Jan-1970 00:00:01 GMT';
+			}
+			var domain = 'domain=' + window.location.hostname;
+			if (window.location.hostname == 'localhost') domain = '';
+			
+			document.cookie = name + "=" + value + expires + "; path=/;" + domain;
+		};
+
+		this.readCookie = function (name) {
+			name = global.Appacitive.getAppPrefix(name);
+			var nameEQ = name + "=";
+			var ca = document.cookie.split(';');
+			for (var i=0; i < ca.length; i++) {
+				var c = ca[i];
+				while (c.charAt(0) == ' ') c = c.substring(1,c.length);
+				if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length,c.length);
+			}
+			return null;
+		};
+
+		this.eraseCookie = function (name) {
+			this.setCookie(name, "" ,-1, true);
+		};
+
 	};
 
-	this.readCookie = function (name) {
-		name = global.Appacitive.getAppPrefix(name);
-		var nameEQ = name + "=";
-		var ca = document.cookie.split(';');
-		for (var i=0; i < ca.length; i++) {
-			var c = ca[i];
-			while (c.charAt(0) == ' ') c = c.substring(1,c.length);
-			if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length,c.length);
-		}
-		return null;
-	};
-
-	this.eraseCookie = function (name) {
-		this.setCookie(name, "" ,-1, true);
-	};
-
-};
-
-if (global.Appacitive.runtime.isBrowser)
 	global.Appacitive.Cookie = new cookieManager();
+
+} else {
+	var cookieManager = function () {
+
+	        this.setCookie = function (name, value) {
+	                global.Appacitive.localStorage.set( 'cookie/' + name, value);
+	        };
+
+	        this.readCookie = function (name) {
+	                return global.Appacitive.localStorage.get( 'cookie/' + name);
+	        };
+
+	        this.eraseCookie = function (name) {
+	                global.Appacitive.localStorage.remove( 'cookie/' + name);
+	        };
+
+	};
+	global.Appacitive.Cookie = new cookieManager();
+}
 
 })(global);
 (function (global) {

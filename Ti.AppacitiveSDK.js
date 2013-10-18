@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Oct 18 13:38:32 IST 2013
+ * Build time 	: Fri Oct 18 19:09:36 IST 2013
  */
 "use strict";
 
@@ -1241,11 +1241,8 @@ Depends on  NOTHING
 					if (!doNotSetCookie) {
 						if(!expiry) expiry = 60;
 						if (expiry == -1) expiry = null;
-						
-						if (global.Appacitive.runtime.isBrowser) {
-							global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
-							global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
-						}
+						global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
+						global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
 					}
 				}
 			} catch(e) {}
@@ -1275,10 +1272,8 @@ Depends on  NOTHING
 			authEnabled = false;
 			callback = callback || function() {};
 			global.Appacitive.localStorage.remove('Appacitive-User');
-			if (global.Appacitive.runtime.isBrowser) {
-			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
-			}
+		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
 			if (_authToken  && !avoidApiCall) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
@@ -4536,10 +4531,6 @@ Depends on  NOTHING
 
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
-
-			if (oldPassword == newPassword) {
-			 	if (typeof onSuccess === 'function') onSuccess(base); return;
-			}
 
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
 			var request = new global.Appacitive.HttpRequest();

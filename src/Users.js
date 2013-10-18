@@ -19,10 +19,6 @@
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			if (oldPassword == newPassword) {
-			 	if (typeof onSuccess === 'function') onSuccess(base); return;
-			}
-
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUpdatePasswordUrl(userId);

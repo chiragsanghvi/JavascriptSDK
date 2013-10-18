@@ -2,50 +2,86 @@
 
 	"use strict";
 
-	var A_LocalStorage = function() {
+	if (global.Appacitive.runtime.isBrowser) {
 
-		var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
+		var A_LocalStorage = function() {
 
-		this.set = function(key, value) {
-			value = value || '';
-			if (!key) return false;
+			var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
 
-		    if (typeof value === "object") {
-		    	try {
-			      value = JSON.stringify(value);
-			    } catch(e){}
-		    }
-		    key = global.Appacitive.getAppPrefix(key);
+			this.set = function(key, value) {
+				value = value || '';
+				if (!key) return false;
 
-			_localStorage[key] = value;
-			return true;
+			    if (typeof value === "object") {
+			    	try {
+				      value = JSON.stringify(value);
+				    } catch(e){}
+			    }
+			    key = global.Appacitive.getAppPrefix(key);
+
+				_localStorage[key] = value;
+				return true;
+			};
+
+			this.get = function(key) {
+				if (!key) return null;
+
+				key = global.Appacitive.getAppPrefix(key);
+
+				var value = _localStorage.getItem(key);
+			   	if (!value) { return null; }
+
+			    // assume it is an object that has been stringified
+			    if (value[0] === "{") {
+			    	try {
+				      value = JSON.parse(value);
+				    } catch(e){}
+			    }
+
+			    return value;
+			};
+			
+			this.remove = function(key) {
+				if (!key) return;
+				key = global.Appacitive.getAppPrefix(key);
+				try { delete _localStorage[key]; } catch(e){}
+			};
 		};
+		global.Appacitive.localStorage = new A_LocalStorage();
 
-		this.get = function(key) {
-			if (!key) return null;
+	} else {
+		var A_LocalStorage = function() {
+			
+            var _localStorage = [];
 
-			key = global.Appacitive.getAppPrefix(key);
+            this.set = function(key, value) {
+                value = value || '';
+                if (!key || typeof key !== 'string') return false;
 
-			var value = _localStorage.getItem(key);
-		   	if (!value) { return null; }
+                key = global.Appacitive.getAppPrefix(key);
 
-		    // assume it is an object that has been stringified
-		    if (value[0] === "{") {
-		    	try {
-			      value = JSON.parse(value);
-			    } catch(e){}
-		    }
+                _localStorage[key] = value;
+                return true;
+            };
 
-		    return value;
-		};
-		
-		this.remove = function(key) {
-			if (!key) return;
-			key = global.Appacitive.getAppPrefix(key);
-			try { delete _localStorage[key]; } catch(e){}
-		};
-	};
+            this.get = function(key) {
+                if (!key || typeof key !== 'string') return null;
 
-	global.Appacitive.localStorage = new A_LocalStorage();
+                key = global.Appacitive.getAppPrefix(key);
 
+                var value = _localStorage[key];
+	            if (!value) { return null; }
+
+                return value;
+            };
+            
+            this.remove = function(key) {
+                if (!key || typeof key !== 'string') return;
+                key = global.Appacitive.getAppPrefix(key);
+                try { delete _localStorage[key]; } catch(e){}
+            }
+        };
+
+        global.Appacitive.localStorage = new A_LocalStorage();
+	}
 })(global);

@@ -91,11 +91,8 @@
 					if (!doNotSetCookie) {
 						if(!expiry) expiry = 60;
 						if (expiry == -1) expiry = null;
-						
-						if (global.Appacitive.runtime.isBrowser) {
-							global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
-							global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
-						}
+						global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
+						global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
 					}
 				}
 			} catch(e) {}
@@ -125,10 +122,8 @@
 			authEnabled = false;
 			callback = callback || function() {};
 			global.Appacitive.localStorage.remove('Appacitive-User');
-			if (global.Appacitive.runtime.isBrowser) {
-			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-			 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
-			}
+		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
 			if (_authToken  && !avoidApiCall) {
 				try {
 					var _request = new global.Appacitive.HttpRequest();
