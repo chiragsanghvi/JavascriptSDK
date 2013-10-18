@@ -351,10 +351,14 @@
 		this.get = function(key, type) { 
 			if (key) { 
 				if (type && _types[type.toLowerCase()]) {
-					var res = _types[type.toLowerCase()](article[key]);
-					return res;
+					if (_types[type.toLowerCase()]) {
+						var res = _types[type.toLowerCase()](article[key]);
+						return res;
+					} else {
+						throw new Error('Invalid cast-type "' + type + '"" provided for get "' + key + '"');
+					}
 				}
-				throw new Error('Invalid cast-type "' + type + '"" provided for get "' + key + '"');
+				return article[key];
 			}
 		};
 

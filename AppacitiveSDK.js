@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Oct 18 13:31:59 IST 2013
+ * Build time 	: Fri Oct 18 13:38:32 IST 2013
  */
 "use strict";
 
@@ -3117,10 +3117,14 @@ Depends on  NOTHING
 		this.get = function(key, type) { 
 			if (key) { 
 				if (type && _types[type.toLowerCase()]) {
-					var res = _types[type.toLowerCase()](article[key]);
-					return res;
+					if (_types[type.toLowerCase()]) {
+						var res = _types[type.toLowerCase()](article[key]);
+						return res;
+					} else {
+						throw new Error('Invalid cast-type "' + type + '"" provided for get "' + key + '"');
+					}
 				}
-				throw new Error('Invalid cast-type "' + type + '"" provided for get "' + key + '"');
+				return article[key];
 			}
 		};
 
