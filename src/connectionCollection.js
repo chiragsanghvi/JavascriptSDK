@@ -219,23 +219,22 @@
 		};
 
 		this.fetchByPageNumber = function(onSuccess, onError, pageNumber) {
-			var pInfo = _query.getOptions().pageQuery;
-			pInfo.pageNumber = pageNumber;
+			_query.pageNumber(pageNumber);
 			this.fetch(onSuccess, onError);
 			return this;
 		};
 
 		this.fetchNextPage = function(onSuccess, onError) {
-			var pInfo = _query.getOptions().pageQuery;
-			pInfo.pageNumber += 1;
+			_query.pageNumber(++_query.pageNumber);
 			this.fetch(onSuccess, onError);
 			return this;
 		};
 
 		this.fetchPreviousPage = function(onSuccess, onError) {
-			var pInfo = _query.getOptions().pageQuery;
-			pInfo.pageNumber -= 1;
-			if (pInfo.pageNumber === 0) pInfo.pageNumber = 1;
+			var pNum = _query.pageNumber();
+			pNum -= 1;
+			if (pNum <= 0) pNum = 1;
+			_query.pageNumber(pNum);
 			this.fetch(onSuccess, onError);
 			return this;
 		};

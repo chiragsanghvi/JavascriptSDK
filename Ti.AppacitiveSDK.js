@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Oct 21 15:03:51 IST 2013
+ * Build time 	: Mon Oct 21 15:40:50 IST 2013
  */
 "use strict";
 
@@ -3701,23 +3701,22 @@ Depends on  NOTHING
 		};
 
 		this.fetchByPageNumber = function(onSuccess, onError, pageNumber) {
-			var pInfo = _query.getOptions().pageQuery;
-			pInfo.pageNumber = pageNumber;
+			_query.pageNumber(pageNumber);
 			this.fetch(onSuccess, onError);
 			return this;
 		};
 
 		this.fetchNextPage = function(onSuccess, onError) {
-			var pInfo = _query.getOptions().pageQuery;
-			pInfo.pageNumber += 1;
+			_query.pageNumber(++_query.pageNumber);
 			this.fetch(onSuccess, onError);
 			return this;
 		};
 
 		this.fetchPreviousPage = function(onSuccess, onError) {
-			var pInfo = _query.getOptions().pageQuery;
-			pInfo.pageNumber -= 1;
-			if (pInfo.pageNumber === 0) pInfo.pageNumber = 1;
+			var pNum = _query.pageNumber();
+			pNum -= 1;
+			if (pNum <= 0) pNum = 1;
+			_query.pageNumber(pNum);
 			this.fetch(onSuccess, onError);
 			return this;
 		};
@@ -3977,23 +3976,22 @@ Depends on  NOTHING
 		};
 
 		this.fetchByPageNumber = function(onSuccess, onError, pageNumber) {
-			var pInfo = _query.getOptions().pageQuery;
-			pInfo.pageNumber = pageNumber;
+			_query.pageNumber(pageNumber);
 			this.fetch(onSuccess, onError);
 			return this;
 		};
 
 		this.fetchNextPage = function(onSuccess, onError) {
-			var pInfo = _query.getOptions().pageQuery;
-			pInfo.pageNumber += 1;
+			_query.pageNumber(++_query.pageNumber);
 			this.fetch(onSuccess, onError);
 			return this;
 		};
 
 		this.fetchPreviousPage = function(onSuccess, onError) {
-			var pInfo = _query.getOptions().pageQuery;
-			pInfo.pageNumber -= 1;
-			if (pInfo.pageNumber === 0) pInfo.pageNumber = 1;
+			var pNum = _query.pageNumber();
+			pNum -= 1;
+			if (pNum <= 0) pNum = 1;
+			_query.pageNumber(pNum);
 			this.fetch(onSuccess, onError);
 			return this;
 		};
