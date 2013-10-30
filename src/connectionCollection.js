@@ -225,7 +225,8 @@
 		};
 
 		this.fetchNextPage = function(onSuccess, onError) {
-			_query.pageNumber(++_query.pageNumber);
+			var pNum = _query.pageNumber();
+			_query.pageNumber(++pNum);
 			this.fetch(onSuccess, onError);
 			return this;
 		};

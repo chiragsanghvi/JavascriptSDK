@@ -177,7 +177,7 @@
 		var connectionObjects = [];
 		if (!connections) connections = [];
 		connections.forEach(function(c){
-			connectionObjects.push(new global.Appacitive.Connection(c));
+			connectionObjects.push(new global.Appacitive.Connection(c, true));
 		});
 		return connectionObjects;
 	};
@@ -242,16 +242,19 @@
 		}
 	};
 
+	//takes relation type and returns all connections for it
+	global.Appacitive.Connection.findAll = function(options, onSuccess, onError) {
+		return new global.Appacitive.Queries.FindAllQuery(options).fetch(onSuccess, onError);
+	};
+
 	//takes 1 articleid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options, onSuccess, onError) {
-		var q = new global.Appacitive.Queries.InterconnectsQuery(options);
-		_fetch(q.toRequest(), request, onSuccess, onError);
+		return new global.Appacitive.Queries.InterconnectsQuery(options).fetch(onSuccess, onError);
 	};
 
 	//takes 2 articleids and returns connections between them
 	global.Appacitive.Connection.getBetweenArticles = function(options, onSuccess, onError) {
-		var q = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
-		_fetch(q.toRequest(), onSuccess, onError);
+		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options).fetch(onSuccess, onError);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype

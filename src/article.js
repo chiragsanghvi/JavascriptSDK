@@ -81,6 +81,15 @@
 
 	global.Appacitive.Article.prototype.constructor = global.Appacitive.Article;
 
+	//private function for parsing articles
+	var _parseArticles = function(articles) {
+		var articleObjects = [];
+		articles.forEach(function(a){
+			articleObjects.push(new global.Appacitive.Article(a, true));
+		});
+		return articleObjects;
+	};
+
 	global.Appacitive.Article.prototype.getConnections = function(options) {
 
 		if (this.type != 'article') return null;
@@ -167,13 +176,6 @@
 		} else onSuccess();
 	};
 
-	var _parseArticles = function(articles) {
-		var articleObjects = [];
-		articles.forEach(function(a){
-			articleObjects.push(new global.Appacitive.Article(a));
-		});
-		return articleObjects;
-	};
 
 	//takes relationaname and array of articleids and returns an array of Appacitive article objects
 	global.Appacitive.Article.multiGet = function(options, onSuccess, onError) {
@@ -201,6 +203,7 @@
 		}
 	};
 
+	//takes article id , type and fields and returns that article
 	global.Appacitive.Article.get = function(options, onSuccess, onError) {
 		options = options || {};
 		if (!options.schema) throw new Error("Specify schema");
@@ -213,6 +216,11 @@
 		obj.fetch(onSuccess, onError, options.fields);
 
 		return obj;
+	};
+	
+	//takes relation type and returns all connections for it
+	global.Appacitive.Article.findAll = function(options, onSuccess, onError) {
+		return new global.Appacitive.Queries.FindAllQuery(options).fetch(onSuccess, onError);
 	};
 
 })(global);

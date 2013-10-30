@@ -90,6 +90,7 @@
 		var _entityType = options.schema || options.relation;
 		var _type = (options.relation) ? 'connection' : 'article';
 
+		var self = this;
 
 		//define getter for type (article/connection)
 		this.type = function() { return _type; };
@@ -234,13 +235,35 @@
 			return o;
 		};
 
+		this._setPaging = function(pi) {
+			if (pi) {
+				_pageQuery.pageNumber(pi.pagenumber);
+				_pageQuery.pageSize(pi.pagesize)
+				
+				this.results = this.results || [];
+
+				this.results.isLastPage = true;
+				this.results.count = pi.totalrecords;
+				this.results.pageNumber = pi.pagenumber;
+				this.results.pageSize = pi.pagesize;
+				
+				if ((pi.pagenumber * pi.pagesize) <= pi.totalrecords) {
+					this.results.isLastPage = true;
+				}
+			}
+		};
+
 		var _parse = function(entities) {
 			var entityObjects = [];
 			if (!entities) entities = [];
 			var eType = (_type === 'article') ? 'Article' : 'Connection';
+			
+			if (_entityType && _entityType.toLowerCase() == 'user') eType = 'User';
+			
 			entities.forEach(function(e) {
 				entityObjects.push(new global.Appacitive[eType](e, true));
 			});
+
 			return entityObjects;
 		};
 
@@ -248,7 +271,10 @@
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess === 'function') onSuccess(_parse(d[_type + 's']), d.paginginfo);
+				   self.results = _parse(d[_type + 's']);
+				   self._setPaging(d.paginginfo);
+
+				   if (typeof onSuccess === 'function') onSuccess(self.results, d.paginginfo);
 				} else {
 					d = d || {};
 					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
@@ -259,6 +285,22 @@
 				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
 			};
 			global.Appacitive.http.send(request);
+			return this;
+		};
+
+		this.fetchNext = function(onSuccess, onError) {
+			var pNum = this.pageNumber();
+			this.pageNumber(++pNum);
+			this.fetch(onSuccess, onError);
+			return this;
+		};
+
+		this.fetchPrev = function(onSuccess, onError) {
+			var pNum = this.pageNumber();
+			pNum -= 1;
+			if (pNum <= 0) pNum = 1;
+			this.pageNumber(pNum);
+			this.fetch(onSuccess, onError);
 			return this;
 		};
 
@@ -361,7 +403,7 @@
 		if ((options.returnEdge !== undefined || options.returnEdge !== null) && !options.returnEdge && !this.prev) this.returnEdge = false;
 		
 		this.label = '';
-		var that = this;
+		var self = this;
 
 		if (options.label && typeof options.label === 'string' && options.label.length > 0) this.label = '&label=' + options.label;
 
@@ -430,12 +472,14 @@
 		this.fetch = function(onSuccess, onError) {
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess === 'function') {
-					   var cb = parseNodes;
-					   if (that.prev) cb = prevParseNodes;
-				   	   onSuccess(cb( d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent }), d.paginginfo);   
-				   	}
+				if (d && d.status && d.status.code == '200') {
+				    var _parse = parseNodes;
+				    if (self.prev) _parse = prevParseNodes;
+
+				    self.results = _parse(d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent });
+			   	    self._setPaging(d.paginginfo);
+
+			   	    if (typeof onSuccess === 'function') onSuccess(self.results, d.paginginfo);   
 				} else {
 					d = d || {};
 					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
