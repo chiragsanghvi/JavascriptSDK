@@ -635,7 +635,7 @@
 				} else {
 					data = data || {};
 					data.status =  data.status || {};
-					data.status = _getOutpuStatus(data);
+					data.status = _getOutpuStatus(data.status);
 					if (typeof onError == 'function') onError(data.status, that);
 				}
 			};
