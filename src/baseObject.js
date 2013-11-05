@@ -188,7 +188,7 @@
 			if (!_snapshot.__tags) return article.__tags;
 
 			var _tags = [];
-			article.__tags.every(function(a) {
+			article.__tags.forEach(function(a) {
 				if (_snapshot.__tags.indexOf(a) == -1)
 					_tags.push(a);
 			});
