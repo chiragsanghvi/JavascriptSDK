@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Nov  5 20:35:51 IST 2013
+ * Build time 	: Wed Nov  6 11:54:24 IST 2013
  */
 "use strict";
 
@@ -1728,7 +1728,7 @@ Depends on  NOTHING
         else this.type = typeof this.value; 
 
         this.getValue = function() {
-            if (this.type === 'string') return "'" + String.addSlashes(this.value) + "'";
+            if (this.type === 'string') return "'" + encodeURIComponent(String.addSlashes(this.value)) + "'";
             else if (this.type === 'number' || typeof this.value === 'boolean') return this.value;  
             else if (this.type === 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
@@ -2253,7 +2253,7 @@ Depends on  NOTHING
 				this.results = this.results || [];
 
 				this.results.isLastPage = true;
-				this.results.count = pi.totalrecords;
+				this.results.total = pi.totalrecords;
 				this.results.pageNumber = pi.pagenumber;
 				this.results.pageSize = pi.pagesize;
 				
@@ -2674,8 +2674,13 @@ Depends on  NOTHING
 		this.data = { };
 		this.queryType = 'GraphFilterQuery';
 
-		if (placeholders) this.data.placeholders = placeholders;
-
+		if (placeholders) { 
+			this.data.placeholders = placeholders;
+			for (var ph in this.data.placeholders) {
+				this.data.placeholders[ph] = encodeURIComponent(String.addSlashes(this.data.placeholders[ph]));
+			}
+		}
+		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = this.toUrl();
@@ -2723,7 +2728,12 @@ Depends on  NOTHING
 		this.data = { ids: ids };
 		this.queryType = 'GraphProjectQuery';
 
-		if (placeholders) this.data.placeholders = placeholders;
+		if (placeholders) { 
+			this.data.placeholders = placeholders;
+			for (var ph in this.data.placeholders) {
+				this.data.placeholders[ph] = encodeURIComponent(String.addSlashes(this.data.placeholders[ph]));
+			}
+		}
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();

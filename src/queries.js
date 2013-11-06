@@ -243,7 +243,7 @@
 				this.results = this.results || [];
 
 				this.results.isLastPage = true;
-				this.results.count = pi.totalrecords;
+				this.results.total = pi.totalrecords;
 				this.results.pageNumber = pi.pagenumber;
 				this.results.pageSize = pi.pagesize;
 				
@@ -664,8 +664,13 @@
 		this.data = { };
 		this.queryType = 'GraphFilterQuery';
 
-		if (placeholders) this.data.placeholders = placeholders;
-
+		if (placeholders) { 
+			this.data.placeholders = placeholders;
+			for (var ph in this.data.placeholders) {
+				this.data.placeholders[ph] = encodeURIComponent(String.addSlashes(this.data.placeholders[ph]));
+			}
+		}
+		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = this.toUrl();
@@ -713,7 +718,12 @@
 		this.data = { ids: ids };
 		this.queryType = 'GraphProjectQuery';
 
-		if (placeholders) this.data.placeholders = placeholders;
+		if (placeholders) { 
+			this.data.placeholders = placeholders;
+			for (var ph in this.data.placeholders) {
+				this.data.placeholders[ph] = encodeURIComponent(String.addSlashes(this.data.placeholders[ph]));
+			}
+		}
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
