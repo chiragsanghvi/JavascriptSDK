@@ -133,3 +133,60 @@ String.stripSlashes = function (str) {
     str = str.replace(/\\\\/g, '\\');
     return str;
 };
+
+var _type = function (o) {
+
+    // handle null in old IE
+    if (o === null) {
+        return 'null';
+    }
+
+    // handle DOM elements
+    if (o && (o.nodeType === 1 || o.nodeType === 9)) {
+        return 'element';
+    }
+
+    var s = Object.prototype.toString.call(o);
+    var type = s.match(/\[object (.*?)\]/)[1].toLowerCase();
+
+    // handle NaN and Infinity
+    if (type === 'number') {
+        if (isNaN(o)) {
+            return 'nan';
+        }
+        if (!isFinite(o)) {
+            return 'infinity';
+        }
+    }
+
+    return type;
+};
+
+var types = [
+    'Null',
+    'Undefined',
+    'Object',
+    'Array',
+    'String',
+    'Number',
+    'Boolean',
+    'Function',
+    'RegExp',
+    'Element',
+    'NaN',
+    'Infinite'
+];
+
+var generateMethod = function (t) {
+    _type['is' + t] = function (o) {
+        return _type(o) === t.toLowerCase();
+    };
+};
+
+for (var i = 0; i < types.length; i++) {
+    generateMethod(types[i]);
+}
+
+_type['isNullOrUndefined'] = function(o) {
+    return _type(o) == 'null' || _type(o) == 'undefined';
+};

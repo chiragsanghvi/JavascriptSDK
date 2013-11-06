@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Nov  6 11:54:24 IST 2013
+ * Build time 	: Wed Nov  6 17:40:23 IST 2013
  */
 "use strict";
 
@@ -140,6 +140,63 @@ String.stripSlashes = function (str) {
     str = str.replace(/\\0/g, '\0');
     str = str.replace(/\\\\/g, '\\');
     return str;
+};
+
+var _type = function (o) {
+
+    // handle null in old IE
+    if (o === null) {
+        return 'null';
+    }
+
+    // handle DOM elements
+    if (o && (o.nodeType === 1 || o.nodeType === 9)) {
+        return 'element';
+    }
+
+    var s = Object.prototype.toString.call(o);
+    var type = s.match(/\[object (.*?)\]/)[1].toLowerCase();
+
+    // handle NaN and Infinity
+    if (type === 'number') {
+        if (isNaN(o)) {
+            return 'nan';
+        }
+        if (!isFinite(o)) {
+            return 'infinity';
+        }
+    }
+
+    return type;
+};
+
+var types = [
+    'Null',
+    'Undefined',
+    'Object',
+    'Array',
+    'String',
+    'Number',
+    'Boolean',
+    'Function',
+    'RegExp',
+    'Element',
+    'NaN',
+    'Infinite'
+];
+
+var generateMethod = function (t) {
+    _type['is' + t] = function (o) {
+        return _type(o) === t.toLowerCase();
+    };
+};
+
+for (var i = 0; i < types.length; i++) {
+    generateMethod(types[i]);
+}
+
+_type['isNullOrUndefined'] = function(o) {
+    return _type(o) == 'null' || _type(o) == 'undefined';
 };
 // monolithic file
 
@@ -2277,24 +2334,8 @@ Depends on  NOTHING
 			onSuccess = onSuccess || function() {};
 			onError = onError || function() {};
 
-			var _pSize = _pageQuery.pageSize;
-			var _pNum = _pageQuery.pageNumber;
-
-			_pageQuery.pageSize = 1;
-			_pageQuery.pageNumber = 999999999;
-
-			var that = this;
-
-			var _restoreOldPaging = function() {
-				_pageQuery.pageSize = _pSize;
-				_pageQuery.pageNumber = _pNum;
-			};
-
 			var _queryRequest = this.toRequest();
 			_queryRequest.onSuccess = function(data) {
-
-				_restoreOldPaging();
-
 				data = data || {};
 				var pagingInfo = data.paginginfo;
 
@@ -2313,7 +2354,6 @@ Depends on  NOTHING
 				if (typeof onSuccess === 'function') onSuccess(count);
 			};
 			_queryRequest.onError = function(d) {
-				_restoreOldPaging();
 				d = d || { message : 'Server error', code: 400 };
 			    if (typeof onError === 'function') onError(d, that);
 			};

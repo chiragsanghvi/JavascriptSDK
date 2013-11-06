@@ -308,24 +308,8 @@
 			onSuccess = onSuccess || function() {};
 			onError = onError || function() {};
 
-			var _pSize = _pageQuery.pageSize;
-			var _pNum = _pageQuery.pageNumber;
-
-			_pageQuery.pageSize = 1;
-			_pageQuery.pageNumber = 999999999;
-
-			var that = this;
-
-			var _restoreOldPaging = function() {
-				_pageQuery.pageSize = _pSize;
-				_pageQuery.pageNumber = _pNum;
-			};
-
 			var _queryRequest = this.toRequest();
 			_queryRequest.onSuccess = function(data) {
-
-				_restoreOldPaging();
-
 				data = data || {};
 				var pagingInfo = data.paginginfo;
 
@@ -344,7 +328,6 @@
 				if (typeof onSuccess === 'function') onSuccess(count);
 			};
 			_queryRequest.onError = function(d) {
-				_restoreOldPaging();
 				d = d || { message : 'Server error', code: 400 };
 			    if (typeof onError === 'function') onError(d, that);
 			};
