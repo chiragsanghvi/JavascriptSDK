@@ -21,21 +21,29 @@
 			return _copy;
 		};
 
-		var _sendEmail = function (email, onSuccess, onError) {
+		var _sendEmail = function (email, callbacks) {
+			
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+
 			var request = new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.email.getSendEmailUrl();
 			request.method = 'post';
 			request.data = email;
 			request.onSuccess = function(d) {
 				if (d && d.status && d.status.code == '200') {
-					onSuccess(d.email);
+					promise.fulfill(d.email);
 				} else {
 					d = d || {};
 					d.status = d.status || { message: 'Server Error', code: '400'};
-					onError(d.status);
+					promise.reject(d.status);
 				}
 			};
+			request.onError = function(d) {
+				promise.reject(d);
+			};
 			global.Appacitive.http.send(request);
+
+			return promise;
 		};
 
 		this.setupEmail = function(options) {
@@ -50,10 +58,8 @@
 		};
 
 
-		this.sendTemplatedEmail = function(options, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
+		this.sendTemplatedEmail = function(options, callbacks) {
+			
 			if (!options || !options.to || !options.to.length || options.to.length === 0) {
 				throw new Error('Atleast one receipient is mandatory to send an email');
 			}
@@ -91,12 +97,10 @@
 				email.replyto = options.replyTo || config.replyto;
 			}
 
-			_sendEmail(email, onSuccess, onError);
+			return _sendEmail(email, callbacks);
 		};
 
-		this.sendRawEmail = function(options, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		this.sendRawEmail = function(options, callbacks) {
 
 			if (!options || !options.to || !options.to.length || options.to.length === 0) {
 				throw new Error('Atleast one receipient is mandatory to send an email');
@@ -134,7 +138,7 @@
 				email.replyto = options.replyTo || config.replyto;
 			}
 
-			_sendEmail(email, onSuccess, onError);
+			return _sendEmail(email, callbacks);
 		};
 
 	};

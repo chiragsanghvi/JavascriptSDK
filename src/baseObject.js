@@ -13,9 +13,9 @@
 		//Copy properties to current object
 		var _copy = function(src, des) {
 			for (var property in src) {
-				if (typeof src[property] == 'string') {
+				if (_type.isString(src[property])) {
 					des[property] = src[property];
-				} else if (typeof src[property] == 'object')  {
+				} else if (_type.isObject(src[property] == 'object'))  {
 					if (src[property].length >=0 ) des[property] = [];
 					else des[property] = {};
 					for (var p in src[property]) {
@@ -102,7 +102,7 @@
 				if (!article.__attributes) article.__attributes = {};
 				return article.__attributes[arguments[0]];
 			} else if (arguments.length === 2) {
-				if (typeof(arguments[1]) !== 'string' && arguments[1] !== null)
+				if (!_type.isString(arguments[1]) && arguments[1] !== null)
 					throw new Error('only string values can be stored in attributes.');
 				if (!article.__attributes) article.__attributes = {};
 				article.__attributes[arguments[0]] = arguments[1];
@@ -118,7 +118,7 @@
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
 			for (var property in article.__attributes) {
-				if (typeof article.__attributes[property] == 'undefined' || article.__attributes[property] === null) {
+				if (_type.isNullOrUndefined(article.__attributes[property])) {
 					changeSet[property] = null;
 					isDirty = true;
 				} else if (article.__attributes[property] != _snapshot.__attributes[property]) {
@@ -158,7 +158,7 @@
 		};
 
 		this.addTag = function(tag) {
-			if (!tag || typeof tag != 'string' || !tag.length) return this;
+			if (!tag || !_type.isString(tag) || !tag.length) return this;
 		    
 		    if (!article.__tags) article.__tags = [];
 
@@ -172,7 +172,7 @@
 		};
 
 		this.removeTag = function(tag) {
-			if (!tag || typeof tag != 'string' || !tag.length) return this;
+			if (!tag || !_type.isString(tag) || !tag.length) return this;
 			//tag = tag.toLowerCase();
 			_removeTags.push(tag);
 			_removeTags = Array.distinct(_removeTags);
@@ -203,7 +203,7 @@
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
 			for (var property in article) {
-				if (typeof article[property] == 'undefined' || article[property] === null) {
+				if (_type.isNullOrUndefined(article[property])) {
 					changeSet[property] = null;
 					isDirty = true;
 				} else if (article[property] != _snapshot[property]) {
@@ -263,7 +263,7 @@
 			var changeSet = _getChanged(true);
 			if (arguments.length === 0) {
 				return Object.isEmpty(changeSet) ? false : true;
-			} else if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length > 0) {
+			} else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0) {
 				if (changeSet && changeSet[arguments[0]]) {
 					return true;
 				} return false;
@@ -276,7 +276,7 @@
 			
 			if (arguments.length === 0) {
 				return changeSet;
-			} else if (arguments.length == 1 && typeof arguments[0] == 'object' && arguments[0].length) {
+			} else if (arguments.length == 1 && _type.isArray(arguments[0]) && arguments[0].length) {
 				var attrs = {};
 				arguments[0].forEach(function(c) {
 					if (changeSet[c]) attrs.push(changeSet[c]);
@@ -287,7 +287,7 @@
 		};
 
 		this.previous = function() {
-			if (arguments.length == 1 && typeof arguments[0] == 'string' && arguments[0].length) {
+			if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length) {
 				return _snapshot[arguments[0]];	
 			}
 			return null;
@@ -300,8 +300,8 @@
 		this.fields = function() {
 			if (arguments.length == 1) {
 				var value = arguments[0];
-				if (typeof value == 'string') _fields = value;
-				else if (typeof value == 'object' && value.length) _fields = value.join(',');
+				if (_type.isString(value)) _fields = value;
+				else if (_type.isArray(value)) _fields = value.join(',');
 				return this;
 			} else {
 				return _fields;
@@ -370,12 +370,12 @@
 
 		this.set = function(key, value) {
 
-			if(!key || typeof key !== 'string' ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
+			if(!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
 		 	
-		 	if (value === null || value === 'undefined') { article[key] = null;}
-		 	else if (typeof value === 'string') { article[key] = value; }
-		 	else if (typeof value === 'number' || typeof value === 'boolean') { article[key] = value + ''; }
-		 	else if (typeof value === 'object') {
+		 	if (_type.isNullOrUndefined(value)) { article[key] = null;}
+		 	else if (_type.isString(value)) { article[key] = value; }
+		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { article[key] = value + ''; }
+		 	else if (_type.isObject(value)) {
 		 		if (value instanceof Date) {
 		 			article[key] = global.Appacitive.Date.toISOString(value);
 		 		} else {
@@ -388,14 +388,14 @@
 		};
 
 		this.unset = function(key) {
-			if (!key || typeof key !== 'string' ||  key.length === 0 || key.indexOf('__') === 0) return this; 
+			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
 		 	try { delete article[key]; } catch(e) {}
 			return this;
 		};
 
 		this.has = function(key) {
-			if (!key || typeof key !== 'string' ||  key.length === 0) return false; 
-			if (article[key] && typeof article[key] !== 'undefined') return true;
+			if (!key || !_type.isString(key) ||  key.length === 0) return false; 
+			if (article[key] && !_type.isUndefined(article[key])) return true;
 			return false;
 		};
 
@@ -422,7 +422,7 @@
 		var _atomicProps = [];
 
 		var _atomic = function(key, amount, multiplier) {
-			if (!key || typeof key !== 'string' ||  key.length === 0 || key.indexOf('__') === 0) return this;
+			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
 			if (!amount || isNaN(parseInt(amount))) amount = multiplier;
 			else amount = parseInt(amount) * multiplier;
@@ -445,36 +445,35 @@
 		   if the object has an id, then it has been created -> update
 		   else create */
 		this.save = function() {
-			if (article.__id) _update.apply(this, arguments);
-			else _create.apply(this, arguments);
-			return this;
+			if (article.__id) return _update.apply(this, arguments);
+			else return _create.apply(this, arguments);
 		};
 
 		// to create the article
-		var _create = function(onSuccess, onError, fields) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
+		var _create = function(callbacks) {
 
-			if (typeof fields == 'string') _fields = value;
-			else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
-			else fields = _fields;
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+
+			fields = _fields;
 
 			// save this article
-			var that = this;
 			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, fields);
 
 			// for User and Device articles
 			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
 				url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getCreateUrl();
 
+			//remove __revision and aggregate poprerties
 			for (var p in article) {
 				if (p[0] == '$') delete article[p];
 			}
+			if (article["__revision"]) delete article["__revision"];
+			
 
 			var _saveRequest = new global.Appacitive.HttpRequest();
 			_saveRequest.url = url;
 			_saveRequest.method = 'put';
-			if (article["__revision"]) delete article["__revision"];
+
 			_saveRequest.data = article;
 			_saveRequest.onSuccess = function(data) {
 				var savedState = null;
@@ -486,37 +485,29 @@
 					article.__id = savedState.__id;
 					_copy(savedState, article);
 
-					// if this is an article and there are collections 
-					// of connected articles, set the article Id in them
-					if (that.connectionCollections && that.connectionCollections.length > 0) {
-						that.connectionCollections.forEach(function (collection) {
-							collection.getQuery().extendOptions({ articleId: article.__id });
-						});
-					}
-
 					if (that.type == 'connection') that.parseConnection();
 					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
-					if (typeof onSuccess == 'function') onSuccess(that);
+
+					promise.fulfill(that);
 				} else {
 					data = data || {};
 					data.status =  data.status || {};
 					data.status = _getOutpuStatus(data.status);
 					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
-					if (typeof onError == 'function') onError(data.status, that);
+					promise.reject(data.status, that);
 				}
 			};
 			_saveRequest.onError = function(err) {
-				err = _getOutpuStatus(err);
-				if (typeof onError == 'function') onError(err, that);
+				promise.reject(_getOutpuStatus(err), that);
 			};
 			global.Appacitive.http.send(_saveRequest);
 			return this;
 		};
 
 		// to update the article
-		var _update = function(onSuccess, onError, fields) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		var _update = function(callbacks, promise) {
+
+			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			var cb = function(revision) {
 				var changeSet = _getChanged(true);
@@ -526,9 +517,7 @@
 
 				if (!Object.isEmpty(changeSet)) {
 
-					if (typeof fields == 'string') _fields = value;
-					else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
-					else fields = _fields;
+					fields = _fields;
 
 					var _updateRequest = new global.Appacitive.HttpRequest();
 					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, fields, revision);
@@ -550,32 +539,30 @@
 							_copy(_snapshot, article);
 							_removeTags = [];
 							global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updated', that, { object : that });
-							if (typeof onSuccess == 'function') onSuccess(that);
+							promise.fulfill(that);
 						} else {
 							data = data || {};
 							data.status =  data.status || {};
 							data.status = _getOutpuStatus(data.status);
 							if (data.status.code == '14008' && _atomicProps.length > 0) {
-								_update(onSuccess, onError, fields);
+								_update(callbacks, promise);
 							}  else {
 								global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updateFailed', that, { object : data.status });
-								if (typeof onError == 'function') onError(data.status, that);
+								promise.reject(data.status, that);
 							}
 						}
 					};
 					_updateRequest.onError = function(err) {
-						err = err || {};
-						err.message = err.message || 'Server error';
-						err.code = err.code || '500';
+						err = _getOutpuStatus(err);
 						if (err.code == '14008' && _atomicProps.length > 0) {
-							_update(onSuccess, onError, fields);
+							_update(callbacks, promise);
 						} else {
-							if (typeof onError == 'function') onError(err, that);
+							promise.reject(err, that);
 						}
 					};
 					global.Appacitive.http.send(_updateRequest);
 				} else {
-					if (typeof onSuccess == 'function') onSuccess(that);
+					promise.fulfill(that);
 				}
 			};
 
@@ -585,32 +572,34 @@
 					props.push(p.key); 
 				});
 
-				_fetch(function(obj) {
-					
-					_atomicProps.forEach(function(p) {
-						var value = _types['integer'](obj[p.key]);
-						if (!value) value = 0
-						that.set(p.key, value + p.amount);
-					});
+				global.Appacitive.Article.get({ schema: this.get('__schematype'), id: this.id(), fields: props })
+					.then({ function(obj) {
 
-					cb(obj.__revision);
-				}, onError, props, true);
+						obj = obj.toJSON();
+						_atomicProps.forEach(function(p) {
+							var value = _types['integer'](obj[p.key]);
+							if (!value) value = 0
+							that.set(p.key, value + p.amount);
+						});
+
+						cb(obj.__revision);
+					}, function(err) {
+						promise.reject(err);
+					} 
+				});
+
 			} else cb();
 
-			return this;
+			return promise;
 		};
 
-		var _fetch = function (onSuccess, onError, fields, isVersion) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
-			if (!article.__id) {
-				if (typeof onError == 'function') onError( {code:'400', message: 'Please specify id for get operation'}, that);
-				return;
-			}
+		var _fetch = function (callbacks) {
 
-			if (typeof fields == 'string') _fields = value;
-			else if (typeof fields == 'object' && fields.length) fields = fields.join(',');
-			else fields = _fields;
+			if (!article.__id) throw new Error('Please specify id for get operation');
+			
+			var promise = new global.Appacitive.Promise.buildPromise(callbacks);
+
+			fields = _fields;
 
 			// get this article by id
 			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[that.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, fields);
@@ -619,57 +608,47 @@
 			_getRequest.method = 'get';
 			_getRequest.onSuccess = function(data) {
 				if (data && data[that.type]) {
-					if (!isVersion) {
-						_snapshot = data[that.type];
-						_copy(_snapshot, article);
-						if (data.connection) {
-							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
-								that.setupConnection(article.__endpointa, article.__endpointb);
-							}
+					_snapshot = data[that.type];
+					_copy(_snapshot, article);
+					if (data.connection) {
+						if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
+							that.setupConnection(article.__endpointa, article.__endpointb);
 						}
-						if (that.___collection && ( that.___collection.collectionType == 'article')) that.___collection.addToCollection(that);
-						if (typeof onSuccess == 'function') onSuccess(that);
-					} else {
-						if (typeof onSuccess == 'function') onSuccess(data[that.type]);
 					}
+					promise.fulfill(that);
 				} else {
 					data = data || {};
 					data.status =  data.status || {};
 					data.status = _getOutpuStatus(data.status);
-					if (typeof onError == 'function') onError(data.status, that);
+					promise.reject(data.status, that);
 				}
 			};
 			_getRequest.onError = function(err) {
 				err = _getOutpuStatus(err);
-				if (typeof onError == 'function') onError(err, that);
+				promise.reject(err, that);
 			}
 			global.Appacitive.http.send(_getRequest);
-			return that;
+			
+			return promise;
 		};
 
 		// fetch ( by id )
-		this.fetch = function(onSuccess, onError, fields) {
-			_fetch(onSuccess, onError, fields);
+		this.fetch = function(callbacks) {
+			return _fetch(callbacks);
 		};
 
 		// delete the article
-		this.del = function(onSuccess, onError, deleteConnections) {
+		this.destroy = function(callbacks, deleteConnections) {
 
-			// if the article does not have __id set, 
-			// just remove it from the collection
-			// else delete the article and remove from collection
-
-			if (!article['__id']) {
-				if (this.___collection) this.___collection.removeByCId(__cid);
-				if (typeof onSuccess == 'function') onSuccess(this);
-				return;
+			if (_type.isBoolean(callbacks)) {
+				deleteConnections = callbacks;
+				callbacks = null;
+			} else if(!_type.isBoolean(deleteConnections)) {
+				deleteConnections = false;
 			}
 
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+			var promise = new global.Appacitive.Promise.buildPromise(callbacks);
 
-			// delete this article
-			var that = this;
 			var url = global.Appacitive.config.apiBaseUrl;
 			url += global.Appacitive.storage.urlFactory[this.type].getDeleteUrl(article.__schematype || article.__relationtype, article.__id);
 
@@ -690,20 +669,21 @@
 			_deleteRequest.method = 'delete';
 			_deleteRequest.onSuccess = function(data) {
 				if (data.code == '200') {
-					if (that.___collection)
-						that.___collection.removeById(article.__id);
-					if (typeof onSuccess == 'function') onSuccess(data);
+					promise.fulfill(data);
 				} else {
 					data = _getOutpuStatus(data);
-					if (typeof onError == 'function') onError(data, that);
+					promise.reject(data, that);
 				}
 			};
 			_deleteRequest.onError = function(err) {
 				err = _getOutpuStatus(err);
-				if (typeof onError == 'function') onError(err, that);
+				promise.reject(err, that);
 			};
 			global.Appacitive.http.send(_deleteRequest);
+
+			return promise;
 		};
+		this.del = this.destroy;
 	};
 
 	global.Appacitive.BaseObject = _BaseObject;

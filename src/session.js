@@ -26,13 +26,15 @@
 
 		this.onSessionCreated = function() {};
 
-		this.recreate = function() {
-			global.Appacitive.Session.create(_options);
+		this.recreate = function(callbacks) {
+			return global.Appacitive.Session.create(callbacks);
 		};
 
-		this.create = function(onSuccess, onError) {
+		this.create = function(callbacks) {
 
 			if (!this.initialized) throw new Error("Intialize Appacitvie SDK");
+
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			// create the session
 			var _sRequest = new _sessionRequest();
@@ -47,15 +49,19 @@
 				if (data && data.status && data.status.code == '200') {
 					_sessionKey = data.session.sessionkey;
 					global.Appacitive.Session.useApiKey = false;
-					if (onSuccess && typeof onSuccess == 'function') onSuccess(data);
+					promise.fulfill(data);
 					global.Appacitive.Session.onSessionCreated();
 				}
 				else {
-					if (onError && typeof onError == 'function') onError(data);
+					promise.reject(data);
 				}
 			};
-			_request.onError = onError;
+			_request.onError = function(d) {
+				promise.reject(d);
+			};
 			global.Appacitive.http.send(_request);
+
+			return promise;
 		};
 
 		global.Appacitive.http.addProcessor({
@@ -114,10 +120,12 @@
 		};
 
 		this.removeUserAuthHeader = function(callback, avoidApiCall) {
-			if (callback && typeof callback != 'function' && typeof callback == 'boolean') {
+			if (callback && _type.isBoolean(callback)) {
 				avoidApiCall = callback;
 				callback = function() {}; 
 			}
+
+			var promise = global.Appacitive.Promise.buildPromise({ success: callback, error: callback });
 
 			authEnabled = false;
 			callback = callback || function() {};
@@ -132,16 +140,16 @@
 					_request.method = 'POST';
 					_request.data = {};
 					_request.onSuccess = function() {
-						if (typeof(callback) == 'function')
-							callback();
+						promise.fulfill();	
 					};
 					global.Appacitive.http.send(_request);
 				} catch (e){}
 			} else {
 				_authToken = null;
-				if (typeof(callback) == 'function')
-					callback();
+				promise.fulfill();
 			}
+
+			return promise;
 		};
 
 		this.isSessionValid = function(response) {

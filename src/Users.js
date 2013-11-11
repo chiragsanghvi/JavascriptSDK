@@ -12,9 +12,9 @@
 
 		var _updatePassword = function(base, oldPassword, newPassword, onSuccess, onError) {
 			var userId = base.get('__id');
-			if (!userId || typeof userId !== 'string' || userId.length === 0) throw new Error("Please specify valid userid");
-			if (!oldPassword || typeof oldPassword !== 'string' || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
-			if (!newPassword || typeof newPassword !== 'string' || newPassword.length === 0) throw new Error("Please specify valid newPassword");
+			if (!userId || !_type.isString(userId) || userId.length === 0) throw new Error("Please specify valid userid");
+			if (!oldPassword || !_type.isString(oldPassword) || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
+			if (!newPassword || !_type.isString(newPassword) || newPassword.length === 0) throw new Error("Please specify valid newPassword");
 
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
@@ -26,7 +26,7 @@
 			request.data = updatedPasswordOptions;
 			request.onSuccess = function(a) {
 				if (a && a.code == '200') {
-					if (typeof onSuccess == 'function') onSuccess(base);
+					if (_type.isFunction(onSuccess)) onSuccess(base);
 				}
 				else { onError(a, base); }
 			};
@@ -36,8 +36,8 @@
 
 		var _getAllLinkedAccounts = function(base, onSuccess, onError) {
 			var userId = base.get('__id');
-			if (!userId || typeof userId !== 'string' || userId.length === 0) {
-				if (typeof onSuccess === 'function') onSuccess(base.linkedAccounts(), base);
+			if (!userId || !_type.isString(userId) || userId.length === 0) {
+				if (_type.isFunction(onSuccess)) onSuccess(base.linkedAccounts(), base);
 			}
 
 			onSuccess = onSuccess || function(){};
@@ -51,7 +51,7 @@
 					var accounts = a.identities || []; 
 					if (accounts.length > 0) base.set('__link', accounts);
 					else base.set('__link', null);
-					if (typeof onSuccess === 'function') onSuccess(accounts, base);
+					if (_type.isFunction(onSuccess)) onSuccess(accounts, base);
 				}
 				else { onError(a.status, base); }
 			};
@@ -61,8 +61,8 @@
 
 		var _checkin = function(coords, base, onSuccess, onError) {
 			var userId = base.get('__id');
-			if (!userId || typeof userId !== 'string' || userId.length === 0) {
-				if (onSuccess && typeof onSuccess == 'function') onSuccess();
+			if (!userId || !_type.isString(userId) || userId.length === 0) {
+				if (onSuccess && _type.isFunction(onSuccess)) onSuccess();
 			}
 			if (!coords || !coords.lat || !coords.lng) throw new Error("Invalid coordinates provides");
 
@@ -74,9 +74,9 @@
 			request.method = 'post';
 			request.onSuccess = function(a) {
 				if (a && a.code == '200') { 
-					if (typeof onSuccess === 'function') onSuccess(accounts, base);
+					if (_type.isFunction(onSuccess)) onSuccess(accounts, base);
 				}
-				else { if (typeof onError === 'function') onError(a, base); }
+				else { if (_type.isFunction(onError)) onError(a, base); }
 			};
 			request.onError = onError;
 			global.Appacitive.http.send(request);
@@ -97,7 +97,7 @@
 
 			if (!base.get('__id')) {
 				base.set('__link', payload);
-				if (typeof onSuccess == 'function') onSuccess(base);
+				if (_type.isFunction(onSuccess)) onSuccess(base);
 				return;
 			}
 
@@ -108,7 +108,7 @@
 			request.onSuccess = function(a) {
 				if (a && a.code == '200') {
 					base.set('__link', payload);
-					if (typeof onSuccess === 'function') onSuccess(base);
+					if (_type.isFunction(onSuccess)) onSuccess(base);
 				}
 				else { onError(a, base); }
 			};
@@ -123,7 +123,7 @@
 			var userId = base.get('__id');
 
 			if (!base.get('__id')) {
-				if (typeof onSuccess === 'function') onSuccess(base);
+				if (_type.isFunction(onSuccess)) onSuccess(base);
 				return;
 			}
 
@@ -133,7 +133,7 @@
 			request.onSuccess = function(a) {
 				if (a && a.code == '200') {
 					base.set('__link', null);
-					if (typeof onSuccess === 'function') onSuccess(base);
+					if (_type.isFunction(onSuccess)) onSuccess(base);
 				}
 				else { onError(a, base); }
 			};
@@ -166,7 +166,7 @@
 				var _callback = function() {
 					_link(Appacitive.Facebook.accessToken(), _authenticatedUser, function(base) {
 						global.Appacitive.eventManager.fire('user..article.' + base.get('__id') + '.updated', base, { object: base });
-						if (typeof onSuccess === 'function') onSuccess(base);
+						if (_type.isFunction(onSuccess)) onSuccess(base);
 					}, onError);
 				};
 
@@ -185,7 +185,7 @@
 
 				_unlink('facebook', this, function(base) {
 					global.Appacitive.eventManager.fire('user.article.' + base.get('__id') + '.updated', base, { object: base });
-					if (typeof onSuccess === 'function') onSuccess(base);
+					if (_type.isFunction(onSuccess)) onSuccess(base);
 				}, onError);
 				
 				return this;
@@ -221,7 +221,7 @@
 			var accounts = this.get('__link');
 			
 			if (!accounts) accounts = [];
-			else if (typeof accounts === 'object' && !(accounts.length >= 0)) accounts = [accounts];
+			else if (_type.isArray(accounts) && !(accounts.length >= 0)) accounts = [accounts];
 			else if (!(accounts.length >= 0)) accounts = accounts[0];
 
 			return accounts;
@@ -233,7 +233,7 @@
 			var that = this;
 
 			_getAllLinkedAccounts(this, function(accounts) {
-				if (typeof onSuccess === 'function') onSuccess(accounts, that);
+				if (_type.isFunction(onSuccess)) onSuccess(accounts, that);
 			}, onError);
 			return this;
 		};
@@ -259,7 +259,7 @@
 					}
 				}
 
-				if (typeof onSuccess === 'function') onSuccess(that);
+				if (_type.isFunction(onSuccess)) onSuccess(that);
 			}, onError);
 			return this;
 		};
@@ -282,7 +282,7 @@
 			
 			var _callback = function() {
 				global.Appacitive.Session.removeUserAuthHeader();
-				if (typeof onSuccess === 'function') onSuccess();
+				if (_type.isFunction(onSuccess)) onSuccess();
 			};
 			if (_authenticatedUser === null) { 
 				_callback();
@@ -380,10 +380,10 @@
 				that.authenticateUser(authRequest, function(a) {
 					if (a.user) {
 						a.user.__authType = 'FB';
-						if (typeof onSuccess === 'function') onSuccess({ user : _authenticatedUser, token: a.token });
+						if (_type.isFunction(onSuccess)) onSuccess({ user : _authenticatedUser, token: a.token });
 					} else {
 						a = a || {};
-						if (typeof onError === 'function') onError(a.status);
+						if (_type.isFunction(onError)) onError(a.status);
 					}
 				}, onError, 'FB');
 			};
@@ -400,7 +400,7 @@
 
 		this.validateCurrentUser = function(callback, avoidApiCall) {
 
-			if (callback && typeof callback !== 'function' && typeof callback === 'boolean') {
+			if (callback && _type.isBoolean(callback)) {
 				avoidApiCall = callback;
 				callback = function() {}; 
 			}
@@ -408,7 +408,7 @@
 			var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
 
 			if (!token) {
-				if (typeof(callback) === 'function') callback(false);
+				if (_type.isFunction(callback)) callback(false);
 				return false;
 			}
 
@@ -417,13 +417,13 @@
 					var that = this;
 					this.getUserByToken(token, function(user) {
 						that.setCurrentUser(user, token);
-						if (typeof(callback) === 'function') callback(true);
+						if (_type.isFunction(callback)) callback(true);
 					}, function() {
-						if (typeof(callback) === 'function') callback(false);
+						if (_type.isFunction(callback)) callback(false);
 					});
 				} catch (e) { callback(false);}
 			} else {
-				if (typeof(callback) === 'function') callback(true);
+				if (_type.isFunction(callback)) callback(true);
 				return true;
 			}
 		};
@@ -432,8 +432,8 @@
 			onSuccess = onSuccess || function(){};
 			onError = onError || function(){};
 
-			if (!username || typeof username !== 'string' || username.length === 0) throw new Error("Please specify valid username");
-			if (subject && typeof subject === 'string' && subject.length === 0) throw new Error('Plase specify subject for email');
+			if (!username || !_type.isString(username)  || username.length === 0) throw new Error("Please specify valid username");
+			if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
 
 			var passwordResetOptions = { username: username, subject: subject };
 			var request = new global.Appacitive.HttpRequest();
@@ -442,7 +442,7 @@
 			request.data = passwordResetOptions;
 			request.onSuccess = function(a) {
 				if (a && a.code == '200') {
-				 	if (typeof onSuccess === 'function') onSuccess();
+				 	if (_type.isFunction(onSuccess)) onSuccess();
 				} else { onError(a); }
 			};
 			request.onError = onError;
@@ -458,22 +458,22 @@
 			request.method = 'get';
 			request.onSuccess = function(data) {
 				if (data && data.user) { 
-					if (typeof onSuccess === 'function') onSuccess(new global.Appacitive.User(data.user));
-				} else if (typeof onError === 'function') onError(data.status);
+					if (_type.isFunction(onSuccess)) onSuccess(new global.Appacitive.User(data.user));
+				} else if (_type.isFunction(onError)) onError(data.status);
 			};
 			request.onError = onError;
 			global.Appacitive.http.send(request);
 		};
 
 		this.getUserByToken = function(token, onSuccess, onError) {
-			if (!token || typeof token !== 'string' || token.length === 0) throw new Error("Please specify valid token");
+			if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
 			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByTokenUrl(token);
 			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
 			_getUserByIdType(url, onSuccess, onError);
 		};
 
 		this.getUserByUsername = function(username, onSuccess, onError) {
-			if (!username || typeof username !== 'string' || username.length === 0) throw new Error("Please specify valid username");
+			if (!username || !_type.isString(username) || username.length === 0) throw new Error("Please specify valid username");
 			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByUsernameUrl(username);
 			_getUserByIdType(url, onSuccess, onError);
 		};
@@ -497,7 +497,7 @@
 			request.data = { newpassword: newPassword };
 			request.onSuccess = function(a) {
 				if (a && a.code == '200') {
-				 	if (typeof onSuccess === 'function') onSuccess();
+				 	if (_type.isFunction(onSuccess)) onSuccess();
 				} else { onError(a); }
 			};
 			request.onError = onError;
@@ -516,7 +516,7 @@
 			request.data = {};
 			request.onSuccess = function(a) {
 				if (a.status && a.status.code == '200') {
-				 	if (typeof onSuccess === 'function') onSuccess(a.user);
+				 	if (_type.isFunction(onSuccess)) onSuccess(a.user);
 				} else { onError(a.status); }
 			};
 			request.onError = onError;

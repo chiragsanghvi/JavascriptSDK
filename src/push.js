@@ -4,12 +4,12 @@
 
 	var _pushManager = function() {
 
-		this.send = function(options, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
+		this.send = function(options, callbacks) {
+			
 			if(!options)
 				throw new Error("Please specify push options");
+
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			var request =  new global.Appacitive.HttpRequest();
 			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getPushUrl();
@@ -19,24 +19,25 @@
 
 			request.onSuccess = function(d) {
 				if (d && d.status && d.status.code == '200') {
-					onSuccess(d.id);
+					promise.fulfill(d.id);
 				} else {
 					d = d || {};
 					d.status = d.status || {};
-					onError(d.status.message || 'Server error');
+					promise.reject(d.status.message || 'Server error');
 				}
 			};
 
 			request.onError = function(d){
-				onError(d || "Server error");
+				promise.reject(d || "Server error");
 			};
 
 			global.Appacitive.http.send(request);
+
+			return promise;
 		};
 
-		this.getNotification = function(notificationId, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		this.getNotification = function(notificationId, callbacks) {
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			if(!notificationId)
 				throw new Error("Please specify notification id");
@@ -48,25 +49,25 @@
 
 			request.onSuccess = function(d) {
 				if (d && d.status && d.status.code == '200') {
-					onSuccess(d.pushnotification);
+					promise.fulfill(d.pushnotification);
 				} else {
 					d = d || {};
 					d.status = d.status || {};
-					onError(d.status.message || 'Server error');
+					promise.reject(d.status.message || 'Server error');
 				}
 			};
 
 			request.onError = function(d){
-				onError(d || "Server error");
+				promise.reject(d || "Server error");
 			};
 
 			global.Appacitive.http.send(request);
+
+			return promise;
 		};
 
-		this.getAllNotifications = function(pagingInfo, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
+		this.getAllNotifications = function(pagingInfo, callbacks) {
+			
 			if(!pagingInfo)
 				pagingInfo = { pnum: 1, psize: 20 };
 			else {
@@ -81,19 +82,21 @@
 
 			request.onSuccess = function(d) {
 				if (d && d.status && d.status.code == '200') {
-					onSuccess(d.pushnotifications, d.paginginfo);
+					promise.fulfill(d.pushnotifications, d.paginginfo);
 				} else {
 					d = d || {};
 					d.status = d.status || {};
-					onError(d.status.message || 'Server error');
+					promise.reject(d.status.message || 'Server error');
 				}
 			};
 
 			request.onError = function(d){
-				onError(d || "Server error");
+				promise.reject(d || "Server error");
 			};
 
 			global.Appacitive.http.send(request);
+
+			return promise
 		};
 
 	};

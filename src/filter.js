@@ -72,13 +72,13 @@
         
         options = options || '';
 
-        if (!(typeof options.value === 'object') || !options.value.length) throw new Error("Specify field value as array");
+        if (!_type.isArray(options.value) || !options.value.length) throw new Error("Specify field value as array");
         
         _fieldFilter.call(this, options);
 
         var _getValue = function(value) {
-            if (typeof value === 'string') return "'" + value + "'";
-            else if (typeof value === 'number') return value;  
+            if (_type.isString(value)) return "'" + value + "'";
+            else if (_type.isNumber(value)) return value;  
             else return value.toString();
         };
 
@@ -194,7 +194,7 @@
         _filter.call(this);
 
         options = options || {};
-        if (!options.tags || typeof options.tags != 'object' || options.tags.length === 0) throw new Error("Specify valid tags");
+        if (!options.tags || _type.isArray(options.tags) || options.tags.length === 0) throw new Error("Specify valid tags");
 
         this.tags = options.tags;
         this.operator = options.operator;
@@ -263,7 +263,7 @@
 
         this.getValue = function() {
             if (this.type === 'string') return "'" + encodeURIComponent(String.addSlashes(this.value)) + "'";
-            else if (this.type === 'number' || typeof this.value === 'boolean') return this.value;  
+            else if (this.type === 'number' || _type.isBoolean(this.value)) return this.value;  
             else if (this.type === 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
         };
@@ -273,7 +273,7 @@
         this.value = value;
         
         this.getValue = function() {
-            if (typeof this.value === 'object' && this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
+            if (this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
             else return "date('" + this.value + "')";
         };
     };
@@ -282,7 +282,7 @@
         this.value = value;
         
         this.getValue = function() {
-            if (typeof this.value === 'object' && this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
+            if (this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
             else return "time('" + this.value + "')";
         };
     };
@@ -291,7 +291,7 @@
         this.value = value;
         
         this.getValue = function() {
-            if (typeof this.value === 'object' && this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            if (this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return "datetime('" + this.value + "')";
         };
     };

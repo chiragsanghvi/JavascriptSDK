@@ -39,7 +39,7 @@ var global = {};
 
 		// validate the httpTransport passed
 		// and assign the callback
-		if (!httpTransport || !httpTransport.send || typeof httpTransport.send != 'function') {
+		if (!httpTransport || !httpTransport.send || !_type.isFunction(httpTransport.send)) {
 			throw new Error('No applicable httpTransport class found');
 		} else {
 			httpTransport.onResponse = this.onResponse;
@@ -212,7 +212,8 @@ var global = {};
 	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
 
 	var _XDomainRequest = function(request) {
-	    var xdr = new XDomainRequest();
+		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
+		var xdr = new XDomainRequest();
 	    xdr.onload = function() {
   			var response = xdr.responseText;
 			try {
@@ -227,10 +228,10 @@ var global = {};
 					response = JSON.parse(jData);
 				}
 			} catch(e) {}
-            request.onSuccess(response, this);       
+            promise.fulfill(response, this);       
 	    };
 	    xdr.onerror = xdr.ontimeout = function() {
-	       request.onError({code: "400" , message: "Server Error" }, xdr);
+	       promise.reject(xdr);
 	    };
 	    xdr.onprogress = function() {};
 	    if (request.url.indexOf('?') === -1)
@@ -240,7 +241,7 @@ var global = {};
 
 	    xdr.open(request.method, request.url, true);
 	    xdr.send(request.data);
-		return xdr;
+		return promise
 	};
 
 
@@ -250,6 +251,8 @@ var global = {};
 		if (!request.method) request.method = 'GET' ;
 		if (!request.headers) request.headers = [];
 		var data = {};
+
+		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
 		
 		var doNotStringify = true;
 		request.headers.forEach(function(r){
@@ -266,14 +269,14 @@ var global = {};
 		else {
 			if (request.data) { 
 				data = request.data;
-				if (typeof request.data == 'object') {
+				if (_type.isObject(request.data)) {
 					try { data = JSON.stringify(data); } catch(e) {}
 				}
 			}
 		}
 
-		if (!request.onSuccess || typeof request.onSuccess != 'function') request.onSuccess = function() {};
-	    if (!request.onError || typeof request.onError != 'function') request.onError = function() {};
+		if (!request.onSuccess || !_type.isFunction(request.onSuccess)) request.onSuccess = function() {};
+	    if (!request.onError || !_type.isFunction(request.onError)) request.onError = function() {};
 	    
 	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 	    	request.data = data;
@@ -297,19 +300,23 @@ var global = {};
 								response = JSON.parse(jData);
 							}
 						} catch(e) {}
-			            request.onSuccess(response, this);
+			            promise.fulfill(response, this);
 			        } else {
-			        	request.onError({code: this.status , message: this.statusText }, this);
+			        	promise.reject(this);
 			        }
 		    	}
 		    };
 		    xhr.open(request.method, request.url, true);
+
 		    for (var x = 0; x < request.headers.length; x += 1)
 				xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
+			
 			if (!global.Appacitive.runtime.isBrowser)
 				xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
+		    
 		    xhr.send(data);
-		    return xhr;
+
+		    return promise
 		}
 	};
 
@@ -355,37 +362,37 @@ var global = {};
 		var that = _super;
 
 		var _trigger = function(request, callbacks, states) {
-			var xhr = new  _XMLHttp({
+			new  _XMLHttp({
 				method: request.method,
 				url: request.url,
 				headers: request.headers,
 				data: request.data,
 				onSuccess: function(data, xhr) {
 					if (!data) {
-					 	that.onError(request, { code:'400', messgae: 'Invalid request' });
+					 	that.onError(request, { responseText: JSON.stringify({ code:'400', message: 'Invalid request' }) });
 						return;
 					}
-					try{ data = JSON.parse(data);} catch(e){}
+					try { data = JSON.parse(data);} catch(e) {}
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
 					that.onResponse(data, request);
 				},
-				onError: function(e) {
-					that.onError(request, e);
+				onError: function(xhr) {
+					that.onError(request, xhr);
 				}
 			});
 		}
 
 		_super.send = function (request, callbacks, states) {
 			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
-			if (typeof request.beforeSend == 'function') {
+			if (_type.isFunction(request.beforeSend)) {
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states);
 		};
 
 		_super.upload = function (request, callbacks, states) {
-			if (typeof request.beforeSend === 'function') {
+			if (_type.isFunction(request.beforeSend)) {
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states, true);
@@ -451,12 +458,23 @@ var global = {};
 		};
 
 		// the error handler
-		this.onError = function (request, err) {
+		this.onError = function (request, response) {
+			var error;
+		    if (response && response.responseText) {
+		        try {
+		          var errorJSON = JSON.parse(response.responseText);
+		          if (errorJSON) {
+		            error = { code: errorJSON.code, error: errorJSON.message };
+		          }
+		        } catch (e) {}
+		    }
+		    error = error || { code: response.status, message: response.responseText };
+		    
 			if (request.onError) {
 				if (request.context) {
-					request.onError.apply(request.context, [err]);
+					request.onError.apply(request.context, [error]);
 				} else {
-					request.onError(err);
+					request.onError(error);
 				}
 			}
 		};
@@ -464,6 +482,7 @@ var global = {};
 
 		// the success handler
 		this.onResponse = function (response, request) {
+
 			if (request.onSuccess) {
 				if (request.context) {
 					request.onSuccess.apply(request.context, [response]);
