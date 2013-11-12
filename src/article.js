@@ -121,7 +121,7 @@
 	global.Appacitive.Article.prototype.getConnections = function(options) {
 		if (this.isNew()) throw new Error("Cannot fetch connections for new article");
 		options.articleId = this.get('__id');
-		return new global.Appacitive.Queries.GetConnectionsQuery(options));
+		return new global.Appacitive.Queries.GetConnectionsQuery(options);
 	};
 
 	//takes relation type and returns a query for it

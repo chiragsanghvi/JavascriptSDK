@@ -116,7 +116,7 @@
 
 		//method for getting all linked accounts
 		global.Appacitive.User.prototype.getAllLinkedAccounts = function(callbacks) {
-			var userId = this..get('__id');
+			var userId = this.get('__id');
 			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 			
 			if (!userId || !_type.isString(userId) || userId.length === 0) {

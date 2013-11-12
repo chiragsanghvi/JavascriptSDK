@@ -564,8 +564,9 @@
 					props.push(p.key); 
 				});
 
-				global.Appacitive.Article.get({ schema: this.get('__schematype'), id: this.id(), fields: props })
-					.then({ function(obj) {
+				global.Appacitive.Article
+					.get({ schema: this.get('__schematype'), id: this.id(), fields: props })
+					.then(function(obj) {
 
 						obj = obj.toJSON();
 						_atomicProps.forEach(function(p) {
@@ -577,9 +578,7 @@
 						cb(obj.__revision);
 					}, function(err) {
 						promise.reject(err);
-					} 
-				});
-
+					}); 
 			} else cb();
 
 			return promise;
