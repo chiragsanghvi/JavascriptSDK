@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Nov 12 14:51:14 IST 2013
+ * Build time 	: Tue Nov 12 15:33:47 IST 2013
  */
 "use strict";
 
@@ -1787,7 +1787,7 @@ Depends on  NOTHING
         else this.type = typeof this.value; 
 
         this.getValue = function() {
-            if (this.type === 'string') return "'" + encodeURIComponent(String.addSlashes(this.value)) + "'";
+            if (this.type === 'string') return "'" + String.addSlashes(this.value) + "'";
             else if (this.type === 'number' || typeof this.value === 'boolean') return this.value;  
             else if (this.type === 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
@@ -2719,7 +2719,7 @@ Depends on  NOTHING
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
 			for (var ph in this.data.placeholders) {
-				this.data.placeholders[ph] = encodeURIComponent(String.addSlashes(this.data.placeholders[ph]));
+				this.data.placeholders[ph] = String.addSlashes(this.data.placeholders[ph]);
 			}
 		}
 		
@@ -2773,7 +2773,7 @@ Depends on  NOTHING
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
 			for (var ph in this.data.placeholders) {
-				this.data.placeholders[ph] = encodeURIComponent(String.addSlashes(this.data.placeholders[ph]));
+				this.data.placeholders[ph] = String.addSlashes(this.data.placeholders[ph]);
 			}
 		}
 
