@@ -600,7 +600,7 @@
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
 			for (var ph in this.data.placeholders) {
-				this.data.placeholders[ph] = encodeURIComponent(String.addSlashes(this.data.placeholders[ph]));
+				this.data.placeholders[ph] = String.addSlashes(this.data.placeholders[ph]);
 			}
 		}
 		
@@ -645,7 +645,7 @@
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
 			for (var ph in this.data.placeholders) {
-				this.data.placeholders[ph] = encodeURIComponent(String.addSlashes(this.data.placeholders[ph]));
+				this.data.placeholders[ph] = String.addSlashes(this.data.placeholders[ph]);
 			}
 		}
 
