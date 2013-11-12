@@ -490,18 +490,13 @@
 
 					promise.fulfill(that);
 				} else {
-					data = data || {};
-					data.status =  data.status || {};
-					data.status = _getOutpuStatus(data.status);
 					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
 					promise.reject(data.status, that);
 				}
 			};
-			_saveRequest.onError = function(err) {
-				promise.reject(_getOutpuStatus(err), that);
-			};
-			global.Appacitive.http.send(_saveRequest);
-			return this;
+			_saveRequest.promise = promise;
+			_saveRequest.entity = this;
+			return global.Appacitive.http.send(_saveRequest);
 		};
 
 		// to update the article
@@ -541,9 +536,6 @@
 							global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updated', that, { object : that });
 							promise.fulfill(that);
 						} else {
-							data = data || {};
-							data.status =  data.status || {};
-							data.status = _getOutpuStatus(data.status);
 							if (data.status.code == '14008' && _atomicProps.length > 0) {
 								_update(callbacks, promise);
 							}  else {
@@ -623,13 +615,9 @@
 					promise.reject(data.status, that);
 				}
 			};
-			_getRequest.onError = function(err) {
-				err = _getOutpuStatus(err);
-				promise.reject(err, that);
-			}
-			global.Appacitive.http.send(_getRequest);
-			
-			return promise;
+			_getRequest.entity = this;
+			_getRequest.promise = promise;
+			return global.Appacitive.http.send(_getRequest);
 		};
 
 		// fetch ( by id )
@@ -668,20 +656,11 @@
 			_deleteRequest.url = url;
 			_deleteRequest.method = 'delete';
 			_deleteRequest.onSuccess = function(data) {
-				if (data.code == '200') {
-					promise.fulfill(data);
-				} else {
-					data = _getOutpuStatus(data);
-					promise.reject(data, that);
-				}
+				promise.fulfill(data);
 			};
-			_deleteRequest.onError = function(err) {
-				err = _getOutpuStatus(err);
-				promise.reject(err, that);
-			};
-			global.Appacitive.http.send(_deleteRequest);
-
-			return promise;
+			_deleteRequest.promise = promise;
+			_deleteRequest.entity = this;
+			return global.Appacitive.http.send(_deleteRequest);
 		};
 		this.del = this.destroy;
 	};

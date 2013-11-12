@@ -272,23 +272,14 @@
 
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-				   self.results = _parse(d[_etype + 's']);
-				   self._setPaging(d.paginginfo);
+			   self.results = _parse(d[_etype + 's']);
+			   self._setPaging(d.paginginfo);
 
-				   promise.fulfill(self.results, d.paginginfo);
-				} else {
-					d = d || {};
-					promise.fulfill(d.status || { message : 'Server error', code: 400 });
-				}
+			   promise.fulfill(self.results, d.paginginfo);
 			};
-			request.onError = function(d) {
-				d = d || {};
-				promise.fulfill(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-			
-			return promise;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 
 		this.fetchNext = function(callbacks) {
@@ -315,25 +306,15 @@
 
 				var count = 0;
 				if (!pagingInfo) {
-					if (data.status && data.status.code && data.status.code == '200') {
-						count = 0;
-					} else {
-						var d = data.status || { message : 'Server error', code: 400 };
-				        promise.reject(d, that);
-						return;
-					}
+					count = 0;
 				} else {
 					count = pagingInfo.totalrecords;
 				}
 				promise.fulfill(count);
 			};
-			_queryRequest.onError = function(d) {
-				d = d || { message : 'Server error', code: 400 };
-			    promise.reject(d, that);
-			};
-			global.Appacitive.http.send(_queryRequest);
-
-			return promise;
+			_queryRequest.promise = promise;
+			_queryRequest.entity = this;
+			return global.Appacitive.http.send(_queryRequest);
 		};
 	};
 
@@ -438,26 +419,17 @@
 			
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
-				    var _parse = parseNodes;
-				    if (self.prev) _parse = prevParseNodes;
+			    var _parse = parseNodes;
+			    if (self.prev) _parse = prevParseNodes;
 
-				    self.results = _parse(d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent });
-			   	    self._setPaging(d.paginginfo);
+			    self.results = _parse(d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent });
+		   	    self._setPaging(d.paginginfo);
 
-			   	    promise.fulfill(self.results, d.paginginfo);   
-				} else {
-					d = d || {};
-					promise.reject(d.status || { message : 'Server error', code: 400 });
-				}
+		   	    promise.fulfill(self.results, d.paginginfo);   
 			};
-			request.onError = function(d) {
-				d = d || {};
-				promise.reject(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-			
-			return promise;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 
 		return this;
@@ -563,20 +535,11 @@
 
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-				    promise.fulfill(d.connection ? new global.Appacitive.Connection(d.connection) :  null);
-				} else {
-					d = d || {};
-					promise.reject(d.status || { message : 'Server error', code: 400 });
-				}
+				promise.fulfill(d.connection ? new global.Appacitive.Connection(d.connection) :  null);
 			};
-			request.onError = function(d) {
-				d = d || {};
-				promise.reject(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-			
-			return promise;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 
 		return inner;
@@ -658,22 +621,11 @@
 
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-				   if (_type.isFunction(onSuccess)) {
-				   		promise.fulfill(d.ids ? d.ids : []);
-					}
-				} else {
-					d = d || {};
-					promise.reject(d.status || { message : 'Server error', code: 400 });
-				}
+		   		promise.fulfill(d.ids ? d.ids : []);
 			};
-			request.onError = function(d) {
-				d = d || {};
-				promise.reject(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-
-			return promise;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 
 	};
@@ -758,22 +710,11 @@
 
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-				   if (_type.isFunction(onSuccess)) {
-				   		promise.fulfill(_parseResult(d));
-					}
-				} else {
-					d = d || {};
-					promise.reject(d.status || { message : 'Server error', code: 400 });
-				}
+		   		promise.fulfill(_parseResult(d));
 			};
-			request.onError = function(d) {
-				d = d || {};
-				promise.reject(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-			
-			return promise;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 	};
 

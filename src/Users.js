@@ -10,14 +10,13 @@
 			return _authenticatedUser;
 		};
 
-		var _updatePassword = function(base, oldPassword, newPassword, onSuccess, onError) {
+		var _updatePassword = function(base, oldPassword, newPassword, callbacks) {
 			var userId = base.get('__id');
 			if (!userId || !_type.isString(userId) || userId.length === 0) throw new Error("Please specify valid userid");
 			if (!oldPassword || !_type.isString(oldPassword) || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
 			if (!newPassword || !_type.isString(newPassword) || newPassword.length === 0) throw new Error("Please specify valid newPassword");
 
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
 			var request = new global.Appacitive.HttpRequest();
@@ -31,31 +30,7 @@
 				else { onError(a, base); }
 			};
 			request.onError = onError;
-			global.Appacitive.http.send(request);
-		};
 
-		var _getAllLinkedAccounts = function(base, onSuccess, onError) {
-			var userId = base.get('__id');
-			if (!userId || !_type.isString(userId) || userId.length === 0) {
-				if (_type.isFunction(onSuccess)) onSuccess(base.linkedAccounts(), base);
-			}
-
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getGetAllLinkedAccountsUrl(userId);
-			request.method = 'get';
-			request.onSuccess = function(a) {
-				if (a && a.status && a.status.code == '200') { 
-					var accounts = a.identities || []; 
-					if (accounts.length > 0) base.set('__link', accounts);
-					else base.set('__link', null);
-					if (_type.isFunction(onSuccess)) onSuccess(accounts, base);
-				}
-				else { onError(a.status, base); }
-			};
-			request.onError = onError;
 			global.Appacitive.http.send(request);
 		};
 
@@ -228,15 +203,32 @@
 		};
 
 		//method for getting all linked accounts
-		global.Appacitive.User.prototype.getAllLinkedAccounts = function(onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			var that = this;
+		global.Appacitive.User.prototype.getAllLinkedAccounts = function(callbacks) {
+			var userId = this..get('__id');
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+			
+			if (!userId || !_type.isString(userId) || userId.length === 0) {
+				promise.fulfill(this.linkedAccounts(), this);
+				return promise;
+			}
 
-			_getAllLinkedAccounts(this, function(accounts) {
-				if (_type.isFunction(onSuccess)) onSuccess(accounts, that);
-			}, onError);
-			return this;
+			var that = this;
+			var request = new global.Appacitive.HttpRequest();
+			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getGetAllLinkedAccountsUrl(userId);
+			request.method = 'get';
+			request.onSuccess = function(a) {
+				var accounts = a.identities || []; 
+				if (accounts.length > 0) that.set('__link', accounts);
+				else that.set('__link', null);
+				
+				promise.fulfill(accounts, that);
+			};
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
+
+		global.App
 
 		//method for linking facebook account to a user
 		global.Appacitive.User.prototype.linkFacebookAccount = function(accessToken, onSuccess, onError) {

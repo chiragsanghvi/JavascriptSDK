@@ -375,7 +375,16 @@ var global = {};
 					try { data = JSON.parse(data);} catch(e) {}
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
-					that.onResponse(data, request);
+
+					if ((data.code >= '200' && data.code <= '300') || (data.status && data.status.code >= '200' && data.status.code <= '300')) {
+						that.onResponse(request, data);
+					} else {
+						data = data || {};
+						data = data.status || data;
+						data.message = data.message || 'Bad Request';
+						data.code = data.code || '400';
+						that.onError(request, { responseText: JSON.stringify(data) });
+					}
 				},
 				onError: function(xhr) {
 					that.onError(request, xhr);
@@ -389,13 +398,6 @@ var global = {};
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states);
-		};
-
-		_super.upload = function (request, callbacks, states) {
-			if (_type.isFunction(request.beforeSend)) {
-				request.beforeSend(request);
-			}
-			_trigger(request, callbacks, states, true);
 		};
 
 		return _super;
@@ -437,13 +439,20 @@ var global = {};
 
 		// the method used to send the requests
 		this.send = function (request) {
+			
+			request.promise = (global.Appacitive.Promise.is(request.promise)) ? request.promise : new global.Appacitive.Promise.buildPromise({ error: request.onError });
+
 			_buffer.enqueueRequest(request);
 
-			// notify the queue if the actual transport 
-			// is ready to send the requests
-			if (_inner.isOnline() && _paused === false) {
-				_buffer.notify();
-			}
+			setTimeut(function(){
+				// notify the queue if the actual transport 
+				// is ready to send the requests
+				if (_inner.isOnline() && _paused === false) {
+					_buffer.notify();
+				}
+			}, 0);
+
+			return promise;
 		};
 
 		// method used to clear the queue
@@ -469,20 +478,12 @@ var global = {};
 		        } catch (e) {}
 		    }
 		    error = error || { code: response.status, message: response.responseText };
-		    
-			if (request.onError) {
-				if (request.context) {
-					request.onError.apply(request.context, [error]);
-				} else {
-					request.onError(error);
-				}
-			}
+		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
 
 		// the success handler
-		this.onResponse = function (response, request) {
-
+		this.onResponse = function (request, response) {
 			if (request.onSuccess) {
 				if (request.context) {
 					request.onSuccess.apply(request.context, [response]);

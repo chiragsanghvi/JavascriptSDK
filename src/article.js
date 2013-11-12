@@ -77,20 +77,10 @@
 		request.method = 'post';
 		request.data = { idlist : options.ids };
 		request.onSuccess = function(d) {
-			if (d && d.code == '200') {
-				promise.fulfill();
-			} else {
-				d = d || {};
-				promise.reject(d.status || { message : 'Server error', code: 400 });
-			}
+			promise.fulfill();
 		};
-		request.onError = function(d) {
-			d = d || { message : 'Server error', code: 400 };
-			promise.reject(d);
-		};
-		global.Appacitive.http.send(request);
-
-		return promise;
+		request.promise = promise;
+		return global.Appacitive.http.send(request);
 	};
 
 
@@ -106,20 +96,10 @@
 		request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
 		request.method = 'get';
 		request.onSuccess = function(d) {
-			if (d && d.articles) {
-			   promise.fulfill(_parseArticles(d.articles));
-			} else {
-				d = d || {};
-				promise.reject(d.status || { message : 'Server error', code: 400 });
-			}
+			promise.fulfill(_parseArticles(d.articles));
 		};
-		request.onError = function(d) {
-			d = d || { message : 'Server error', code: 400 };
-			promise.reject(d);
-		};
-		global.Appacitive.http.send(request);
-		
-		return promise;
+		request.promise = promise;
+		return global.Appacitive.http.send(request);
 	};
 
 	//takes article id , type and fields and returns that article

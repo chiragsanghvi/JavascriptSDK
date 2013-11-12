@@ -36,7 +36,7 @@
         this.calls = [];
     };
 
-    Promise.prototype.resolve = function() {
+    Promise.prototype.done = function() {
         var then, promise, res, state = this.state, value = this.value;
 
         if (!state) return;
@@ -79,10 +79,12 @@
         this.state = FULFILLED;
         this.value = value;
 
-        this.resolve();
+        this.done();
 
         return this;
     };
+
+    Promise.prototype.resolve = Promise.prototype.fulfill;
 
     Promise.prototype.reject = function(reason) {
         if(this.state) return;
@@ -90,7 +92,7 @@
         this.state = REJECTED;
         this.reason = this.value = reason;
 
-        this.resolve();
+        this.done();
 
         return this;
     };
@@ -102,7 +104,7 @@
 
         if (this.state) {
             setImmediate(function(){
-                self.resolve();
+                self.done();
             });
         }    
 

@@ -46,22 +46,13 @@
 			_request.method = 'put';
 			_request.data = _sRequest;
 			_request.onSuccess = function(data) {
-				if (data && data.status && data.status.code == '200') {
-					_sessionKey = data.session.sessionkey;
-					global.Appacitive.Session.useApiKey = false;
-					promise.fulfill(data);
-					global.Appacitive.Session.onSessionCreated();
-				}
-				else {
-					promise.reject(data);
-				}
+				_sessionKey = data.session.sessionkey;
+				global.Appacitive.Session.useApiKey = false;
+				promise.fulfill(data);
+				global.Appacitive.Session.onSessionCreated();
 			};
-			_request.onError = function(d) {
-				promise.reject(d);
-			};
-			global.Appacitive.http.send(_request);
-
-			return promise;
+			_request.promise = promise;
+			return global.Appacitive.http.send(_request);
 		};
 
 		global.Appacitive.http.addProcessor({
@@ -142,7 +133,8 @@
 					_request.onSuccess = function() {
 						promise.fulfill();	
 					};
-					global.Appacitive.http.send(_request);
+					_request.promise = promise;
+					return global.Appacitive.http.send(_request);
 				} catch (e){}
 			} else {
 				_authToken = null;

@@ -15,9 +15,8 @@
           request.url = url;
           request.method = 'GET';
           request.onSuccess = onSuccess;
-          request.onError = function(d) {
-            promise.reject(d, that);
-          };
+          request.promise = promise;
+          request.entity = that;
           global.Appacitive.http.send(request); 
       };
 
@@ -30,10 +29,9 @@
           request.data = file;
           request.headers.push({ key:'content-type', value: type });
           request.onSuccess = onSuccess;
-          request.onError = function(d) {
+          request.send().then(onSuccess, function() {
             promise.reject(d, that);
-          };
-          request.send();
+          });
       };
 
       this.save = function(callbacks) {
@@ -53,22 +51,16 @@
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
          
           _getUrls(url, function(response) {
-              if (response && response.status && response.status.code == '200') {
-                
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.fileId = response.id;
                     
                     that.getDownloadUrl(function(res) {
-                      promise.fulfill(res, that);
+                      return promise.fulfill(res, that);
                     }, function(e) {
-                      promise.reject(e);
+                      return promise.reject(e);
                     });
 
                 }, promise);
-
-              } else {
-                promise.reject(response.status, that);
-              }
           }, promise);
 
           return promise;
@@ -84,19 +76,15 @@
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUpdateUrl(that.fileId, that.contentType);
           
           _getUrls(url, function(response) {
-              if (response && response.status && response.status.code == '200') {
-                _upload(response.url, that.fileData, that.contentType, function() {
-                    
-                    that.getDownloadUrl().then(function(res) {
-                      promise.fulfill(res, that);
-                    }, function(e) {
-                      promise.reject(e);
-                    });
+              _upload(response.url, that.fileData, that.contentType, function() {
+                  
+                  that.getDownloadUrl().then(function(res) {
+                    promise.fulfill(res, that);
+                  }, function(e) {
+                    promise.reject(e);
+                  });
 
-                }, promise);
-              } else {
-                promise.reject(response.status, that);
-              }
+              }, promise);
           }, promise);
 
           return promise;
@@ -112,17 +100,11 @@
           request.method = 'DELETE';
 
           request.onSuccess = function(response) {
-              if (response && response.code == '200') {
-                  promise.fulfill();
-              } else {
-                  promise.reject(response, that);
-              }
+              promise.fulfill();
           };
-          request.onError = function(e) {
-            promise.reject(e, that);
-          };
-          global.Appacitive.http.send(request);  
-          return promise;
+          request.promise = promise;
+          request.entity = that;
+          return global.Appacitive.http.send(request); 
       };
 
       this.getDownloadUrl = function(callbacks) {
@@ -134,12 +116,8 @@
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDownloadUrl(this.fileId, expiry);
  
           _getUrls(url, function(response) {
-              if (response && response.status && response.status.code == '200') {
-                  that.url = response.uri;
-                  promise.fulfill(response.uri);
-              } else {
-                  promise.reject(response.status, that);
-              }
+              that.url = response.uri;
+              promise.fulfill(response.uri);
           }, promise);
 
           return promise;
@@ -153,12 +131,8 @@
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');
 
           _getUrls(url, function(response) {
-              if (response && response.status && response.status.code == '200') {
-                  that.url = response.url;
-                  promise.fulfill(response.url, that);
-              } else {
-                  promise.reject(response.status, that);
-              }
+              that.url = response.url;
+              promise.fulfill(response.url, that);
           }, promise);
 
           return promise;

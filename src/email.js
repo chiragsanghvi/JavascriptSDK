@@ -30,20 +30,11 @@
 			request.method = 'post';
 			request.data = email;
 			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
-					promise.fulfill(d.email);
-				} else {
-					d = d || {};
-					d.status = d.status || { message: 'Server Error', code: '400'};
-					promise.reject(d.status);
-				}
+				promise.fulfill(d.email);
 			};
-			request.onError = function(d) {
-				promise.reject(d);
-			};
-			global.Appacitive.http.send(request);
-
-			return promise;
+			request.promise = promise;
+			request.entity = email;
+			return global.Appacitive.http.send(request);
 		};
 
 		this.setupEmail = function(options) {

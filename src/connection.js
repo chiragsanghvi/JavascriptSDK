@@ -184,20 +184,10 @@
 		request.method = 'get';
 
 		request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-			   promise.fulfill(_parseConnections(d.connections));
-			} else {
-				d = d || {};
-				promise.reject(d.status || { message : 'Server error', code: 400 });
-			}
+			promise.fulfill(_parseConnections(d.connections));
 		};
-		request.onError = function(d) {
-			d = d || { message : 'Server error', code: 400 };
-			promise.reject(d);
-		};
-		global.Appacitive.http.send(request);
-
-		return promise;
+		request.promise = promise;
+		return global.Appacitive.http.send(request);
 	};
 
 	//takes relationame, and array of connections ids
@@ -214,20 +204,10 @@
 		request.method = 'post';
 		request.data = { idlist : options.ids };
 		request.onSuccess = function(d) {
-			if (d && d.code == '200') {
-				promise.fulfill();
-			} else {
-				d = d || {};
-				promise.reject(d || { message : 'Server error', code: 400 });
-			}
+			promise.fulfill();
 		};
-		request.onError = function(d) {
-			d = d || {};
-			promise.reject(d || { message : 'Server error', code: 400 });
-		};
-		global.Appacitive.http.send(request);
-		
-		return promise;
+		request.promise = promise;
+		return global.Appacitive.http.send(request);
 	};
 
 	//takes relation type and returns all connections for it
