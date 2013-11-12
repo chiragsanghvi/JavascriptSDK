@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Nov  6 17:40:23 IST 2013
+ * Build time 	: Tue Nov 12 14:51:14 IST 2013
  */
 "use strict";
 
@@ -101,27 +101,29 @@ if (!('some' in Array.prototype)) {
     };
 }
 // Override only if native toISOString is not defined
-if (!Date.prototype.toISOString) {
-    // Here we rely on JSON serialization for dates because it matches 
-    // the ISO standard. However, we check if JSON serializer is present 
-    // on a page and define our own .toJSON method only if necessary
-    if (!Date.prototype.toJSON) {
-        Date.prototype.toJSON = function (key) {
-            function f(n) {
-                // Format integers to have at least two digits.
-                return n < 10 ? '0' + n : n;
+if ( !Date.prototype.toISOString ) {
+    ( function() {
+
+        function pad(number) {
+            var r = String(number);
+            if ( r.length === 1 ) {
+                r = '0' + r;
+            }
+            return r;
         }
 
-        return this.getUTCFullYear()   + '-' +
-            f(this.getUTCMonth() + 1) + '-' +
-            f(this.getUTCDate())      + 'T' +
-            f(this.getUTCHours())     + ':' +
-            f(this.getUTCMinutes())   + ':' +
-            f(this.getUTCSeconds())   + 'Z';
+        Date.prototype.toISOString = function() {
+            return this.getUTCFullYear()
+                + '-' + pad( this.getUTCMonth() + 1 )
+                + '-' + pad( this.getUTCDate() )
+                + 'T' + pad( this.getUTCHours() )
+                + ':' + pad( this.getUTCMinutes() )
+                + ':' + pad( this.getUTCSeconds() )
+                + '.' + String( (this.getUTCMilliseconds()/1000).toFixed(3) ).slice( 2, 5 )
+                + 'Z';
         };
-    }
 
-    Date.prototype.toISOString = Date.prototype.toJSON;
+    }() );
 }
 
 String.addSlashes = function (str) {
