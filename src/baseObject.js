@@ -454,7 +454,7 @@
 
 			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
-			fields = _fields;
+			var fields = _fields;
 
 			// save this article
 			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, fields);
@@ -512,7 +512,7 @@
 
 				if (!Object.isEmpty(changeSet)) {
 
-					fields = _fields;
+					var fields = _fields;
 
 					var _updateRequest = new global.Appacitive.HttpRequest();
 					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, fields, revision);
@@ -590,7 +590,7 @@
 			
 			var promise = new global.Appacitive.Promise.buildPromise(callbacks);
 
-			fields = _fields;
+			var fields = _fields;
 
 			// get this article by id
 			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[that.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, fields);

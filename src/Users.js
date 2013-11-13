@@ -10,6 +10,8 @@
 			return _authenticatedUser;
 		};
 
+		this.currentUser = this.current;
+
 		var _updatePassword = function(oldPassword, newPassword, callbacks) {
 			var userId = this.get('__id');
 			if (!userId || !_type.isString(userId) || userId.length === 0) throw new Error("Please specify valid userid");

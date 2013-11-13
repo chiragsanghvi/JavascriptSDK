@@ -47,10 +47,9 @@
             if (typeof then[state] === 'function') {
                 
                 try {
-                    value = then[state].call(promise, this.value);  
+                    value = then[state].apply(promise, this.value);  
                 } catch(error) {
-                    if (promise.catch) promise.catch(error, this.value);
-                    else promise.reject(error); 
+                    promise.reject(error); 
                 }
 
                 if (value instanceof Promise || Promise.is(value) )  {
@@ -60,7 +59,12 @@
                     }, function(r) {
                         promise.reject(r);
                     });
-                } else promise.fulfill(value);   
+                } else {
+                    if (state === FULFILLED)
+                        promise.fulfill(value);
+                    else 
+                        promise.reject(value);
+                }  
             } else {
                 if (state === FULFILLED)
                     promise.fulfill(value);
@@ -70,14 +74,11 @@
         }
     };
 
-    Promise.prototype.fulfill = function(value) {
+    Promise.prototype.fulfill = function() {
         if (this.state) return;
 
-        if(arguments.length > 1)
-            value = [].slice.call(arguments);
-
         this.state = FULFILLED;
-        this.value = value;
+        this.value = arguments;
 
         this.done();
 
@@ -86,11 +87,11 @@
 
     Promise.prototype.resolve = Promise.prototype.fulfill;
 
-    Promise.prototype.reject = function(reason) {
+    Promise.prototype.reject = function() {
         if(this.state) return;
 
         this.state = REJECTED;
-        this.reason = this.value = reason;
+        this.reason = this.value = arguments;
 
         this.done();
 

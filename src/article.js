@@ -134,6 +134,7 @@
 		options.article = this;
 		return new global.Appacitive.Queries.ConnectedArticlesQuery(options);
 	};
+	global.Appacitive.Article.prototype.fetchConnectedArticles = global.Appacitive.Article.prototype.getConnectedArticles;
 	
 	// takes schea type and return a query for it
 	global.Appacitive.Article.findAll = function(options) {

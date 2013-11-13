@@ -444,15 +444,13 @@ var global = {};
 
 			_buffer.enqueueRequest(request);
 
-			setTimeut(function(){
-				// notify the queue if the actual transport 
-				// is ready to send the requests
-				if (_inner.isOnline() && _paused === false) {
-					_buffer.notify();
-				}
-			}, 0);
-
-			return promise;
+			// notify the queue if the actual transport 
+			// is ready to send the requests
+			if (_inner.isOnline() && _paused === false) {
+				_buffer.notify();
+			}
+			
+			return request.promise;
 		};
 
 		// method used to clear the queue
