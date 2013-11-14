@@ -9,19 +9,17 @@ asyncTest('Creating session with valid Apikey', function() {
 });
 
 test('Update article and verify in model', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
+	var article = new Appacitive.Article('profile');
 	var name = 'Arathorn' + parseInt(Math.random() * 10000);
 	article.set('name', name);
 	equal(article.get('name'), name, 'Article property value changed in model successfully');
 });
 
-asyncTest('Updating article without verification', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
+asyncTest('Updating article and save it', function() {
+	var article = new Appacitive.Article('profile');
 	var name = 'Arathorn' + parseInt(Math.random() * 10000);
 	article.set('name', name);
-	article.save(function() {
+	article.save().then(function() {
 		ok(true, 'onSuccess called on article update');
 		start();
 	}, function() {
@@ -30,18 +28,13 @@ asyncTest('Updating article without verification', function() {
 	});
 });
 
-asyncTest('Update article and verify in collection', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
+asyncTest('Update article, save and verify value and verify value', function() {
+	var article = new Appacitive.Article('profile');
 	var name = 'Arathorn' + parseInt(Math.random() * 10000);
 	article.set('name', name);
-	article.save(function() {
+	article.save().then(function() {
 		var id = article.get('__id');
-		var articles = collection.getAll();
-		var valueInCollection = articles.filter(function (a) {
-			return a.get('__id') == id;
-		})[0].get('name');
-		equal(name, valueInCollection, 'Value of article in collection and model match after update');
+		equal(name, article.get('name'), 'Value of article in model matches after update');
 		start();
 	}, function() {
 		ok(false, 'Could not save article, onError called');
@@ -49,130 +42,112 @@ asyncTest('Update article and verify in collection', function() {
 	});
 });
 
-asyncTest('Update article and verify in collection after fetching collection again', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
-	article.save(function() {
-		var name = 'Arathorn' + parseInt(Math.random() * 10000);
+asyncTest('Update article and verify after fetching it again', function() {
+	var article = new Appacitive.Article('profile');
+	var prevName = 'Arathorn' + parseInt(Math.random() * 10000);
+	var name = 'Arathorn' + parseInt(Math.random() * 10000);
+	
+	article.set('name', prevName);
+	
+	//Create article
+	article.save().then(function() {
+		equal(prevName, article.get('name'), 'Value of article in model match after create');
+		
+		//update article
 		article.set('name', name);
-		article.save(function() {
-			var id = article.get('__id');
-			setTimeout(function() {
-				collection.fetch(function() {
-					var articles = collection.getAll();
-					var valueInCollection
-					var articleInCollection = articles.filter(function (a) {
-						return a.get('__id') == id;
-					});
-					if (articleInCollection.length == 0) {
-						ok(false, 'Saved article not returned in search call');
-						start();
-					} else {
-						var valueInCollection = articleInCollection[0].get('name');
-						equal(name, valueInCollection, 'Value of article in collection and model match after update');
-						start();
-					}
-				}, function() {
-					ok(false, 'Could not fetch collection again.');
-					start();
-				});
-			}, 1000);
-		}, function() {
-			ok(false, 'Could not save article, onError called');
-			start();
+		return article.save();
+	}).then(function(fetchedArticle) {
+		equal(name, fetchedArticle.get('name'), 'Value of article model match after update');
+		//fetch article
+		return Appacitive.Article.get({
+			schema: 'profile',
+			id: article.id()
 		});
+	}).then(function(fetchedArticle) {
+		ok(true, 'Article with id (' + fetchedArticle.id() + ') saved and retrieved successfully.');
+		equal(name, fetchedArticle.get('name'), 'Value of article in model match after fetch');
+		start();
 	}, function() {
-		ok(false, 'Could not save article, onError called');
+		if (article.isNew()) {
+			ok(false, 'Could not create article, onError called');
+		} else if (article.created) {
+			ok(false, 'Could not update article, onError called');
+		} else {
+			ok(false, 'Could not fetch article');
+		}
 		start();
 	});
 });
 
 asyncTest('Fetch article using search and then update it and verify its value', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
-	article.save(function() {
-		var id = article.get('__id');
-		setTimeout( function() {
-			collection.fetch(function() {
-				var articles = collection.getAll();
-				var valueInCollection
-				var articleInCollection = articles.filter(function (a) {
-					return a.get('__id') == id;
-				});
-				if (articleInCollection.length == 0) {
-					ok(false, 'Saved article not returned in search call');
-					start();
-				} else {
-					var valueInCollection = articleInCollection[0].get('name');
-					equal(name, valueInCollection, 'Value of article in collection and model match after update');
-					var name = 'Arathorn' + parseInt(Math.random() * 10000);
-					articleInCollection[0].set('name', name);
-					articleInCollection[0].save(function() {
-						var valueInCollection = articleInCollection[0].get('name');
-						equal(name, valueInCollection, 'Value of article in collection and model match after update');
-						start();
-					}, function() {
-						ok(false, 'Could not save article, onError called');
-						start();
-					});
-				}
-			}, function() {
-				ok(false, 'Could not fetch collection again.');
-				start();
-			});
-		},100);
-	}, function() {
-		ok(false, 'Could not save article, onError called');
-		start();
-	});
-});
-
-asyncTest('Create and Update article and verify by fetching article by id', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
-	article.save(function() {
-		var name = 'Arathorn' + parseInt(Math.random() * 10000);
-		article.set('name', name);
-		article.save(function() {
-			var id = article.get('__id');
-			var sameArticle = collection.createNewArticle();
-			sameArticle.set('__id', id);
-			sameArticle.fetch(function() {
-				var returnedName = sameArticle.get('name');
-				equal(returnedName, name, 'Article updated successfully');
-				start();
-			}, function() {
-				ok(false, 'Could not fetch article again');
-				start();
-			})
-		}, function() {
-			ok(false, 'Could not save article, onError called');
-			start();
+	var article = new Appacitive.Article('profile');
+	var prevName = 'Arathorn' + parseInt(Math.random() * 10000);
+	var name = 'Arathorn' + parseInt(Math.random() * 10000);
+	var fetched = false;
+	article.set('name', prevName);
+	
+	//Create article
+	article.save().then(function() {
+		equal(prevName, article.get('name'), 'Value of article in model match after create');
+		
+		//search article
+		return Appacitive.Article.findAll({
+			schema: 'profile'
+		}).fetch();
+	}).then(function(fetchedArticles) {
+		var fetchedArticles = fetchedArticles.filter(function (a) {
+			return a.get('__id') == article.id();
 		});
+		if (!fetchedArticles || fetchedArticles.length == 0) {
+			return new Appacitive.Promise().reject();
+		} 
+		var fetchedArticle = fetchedArticles[0];
+
+		fetched = true;
+		ok(true, 'Article with id (' + fetchedArticle.id() + ') saved and retrieved successfully.');
+		
+		//Update article
+		fetchedArticle.set('name', name);
+		return fetchedArticle.save();
+	}).then(function(updatedArticle) {
+		equal(name, updatedArticle.get('name'), 'Value of article in model match after update');
+		start();
 	}, function() {
-		ok(false, 'Could not save article, onError called');
+		if (article.isNew()) {
+			ok(false, 'Could not create article, onError called');
+		} else if (!fetched) {
+			ok(false, 'Could not fetch article, onError called');
+		} else {
+			ok(false, 'Could not update article, onError called');
+		}
 		start();
 	});
 });
 
-asyncTest('Update article using only appacitive article object not createnew object', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
-	article.save(function() {
-		var name = 'Arathorn' + parseInt(Math.random() * 10000);
 
-		var updatedArticle = new Appacitive.Article(article.getArticle());
+asyncTest('Update article using new appacitive article object', function() {
+	var article = new Appacitive.Article('profile');
+	var prevName = 'Arathorn' + parseInt(Math.random() * 10000);
+	var name = 'Arathorn' + parseInt(Math.random() * 10000);
+	article.set('name', prevName);
+	
+	//Create article
+	article.save().then(function() {
+		equal(prevName, article.get('name'), 'Value of article in model match after create');
+	
+		//update article
+		var updatedArticle = new Appacitive.Article(article.toJSON());
 		updatedArticle.set('name', name);
-		updatedArticle.save(function() {
-			var returnedName = updatedArticle.get('name');
-			equal(returnedName, name, 'Article updated successfully');
-			start();
-		}, function() {
-			ok(false, 'Could not save article, onError called');
-			start();
-		});
+		return updatedArticle.save();
+	}).then(function(updatedArticle) {
+		equal(name, updatedArticle.get('name'), 'Value of article in model match after update');
+		start();
 	}, function() {
-		ok(false, 'Could not save article, onError called');
+		if (article.isNew()) {
+			ok(false, 'Could not create article, onError called');
+		} else {
+			ok(false, 'Could not update article, onError called');
+		}
 		start();
 	});
 });

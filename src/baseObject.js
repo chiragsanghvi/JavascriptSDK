@@ -488,6 +488,8 @@
 					if (that.type == 'connection') that.parseConnection();
 					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
 
+					that.created = true;
+
 					promise.fulfill(that);
 				} else {
 					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
@@ -533,6 +535,8 @@
 							_snapshot = data[that.type];
 							_copy(_snapshot, article);
 							_removeTags = [];
+							delete that.created;
+							
 							global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updated', that, { object : that });
 							promise.fulfill(that);
 						} else {
@@ -626,7 +630,7 @@
 
 		// delete the article
 		this.destroy = function(callbacks, deleteConnections) {
-
+          
 			if (_type.isBoolean(callbacks)) {
 				deleteConnections = callbacks;
 				callbacks = null;
@@ -635,6 +639,16 @@
 			}
 
 			var promise = new global.Appacitive.Promise.buildPromise(callbacks);
+
+
+			// if the article does not have __id set, 
+	        // just call success
+	        // else delete the article
+
+	        if (!article['__id']) {
+	            promise.fulfill();
+	            return promise;
+	        }
 
 			var url = global.Appacitive.config.apiBaseUrl;
 			url += global.Appacitive.storage.urlFactory[this.type].getDeleteUrl(article.__schematype || article.__relationtype, article.__id);

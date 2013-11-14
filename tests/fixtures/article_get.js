@@ -9,9 +9,9 @@ asyncTest('Creating session with valid Apikey', function() {
 });
 
 asyncTest('Get non-existent article', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle({ __id: 12345 });
-	article.fetch(function() {
+	var article = new Appacitive.Article('profile');
+	article.id('12345')
+	article.fetch().then(function() {
 		ok(false, 'onSuccess called on fetching non-existent article');
 		start();
 	}, function() {
@@ -20,51 +20,31 @@ asyncTest('Get non-existent article', function() {
 	})
 });
 
-asyncTest('Save article and get by id, and then save one more article and multiget them', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
-	var id = null;
-	article.save(function() {
-		var id = article.get('__id');
-		var sameArticle = collection.createNewArticle();
-		sameArticle.set('__id', id);
-		sameArticle.fetch(function() {
-			var articles = collection.getAll().filter(function(a) {
-				return a.get('__id') == id;
-			});
-			switch (articles.length) {
-				case 0:
-					ok(false, 'Fetched article does not exist in the collection');
-					break;
-				case 1:
-					ok(true, 'Fetched article exists in the collection');
-					break;
-				default:
-					ok(false, 'Duplicate articles in the collection');
-					break;
-			}
-			var profile = new Appacitive.Article({ schema:'profile' });
-			profile.save(function() {
-				var ids = [];
-				ids.push(profile.get('__id'));
-				ids.push(article.get('__id'));
-				Appacitive.Article.multiGet({ schema: 'profile', ids: ids }, function(articles) {
-					equal(articles.length, 2, 'Articles fetched successfully  using multiget');
-					start();
-				}, function() {
-					ok(false, 'Could not multiget articles of type profile');
-					start();
-				});
-			}, function() {
-				ok(false, 'Article could not be saved!');
-				start();
-			});
-		}, function() {
-			ok(false, 'Could not fetch created article ( id: ' + id + ' )');
-			start();
-		});
-	}, function() {
-		ok(false, 'Article could not be saved!');
+asyncTest('Save 2 articles and multiget them', function() {
+	var article = new Appacitive.Article('profile');
+	var profile = new Appacitive.Article('profile');
+
+	var tasks = [];
+	tasks.push(article.save());
+	tasks.push(profile.save());
+
+	var promise = Appacitive.Promise.when(tasks);
+
+	promise.then(function() {
+		var ids = [];
+		ids.push(profile.get('__id'));
+		ids.push(article.get('__id'));
+		return Appacitive.Article.multiGet({ schema: 'profile', ids: ids });
+	}).then(function(articles) {
+		equal(articles.length, 2, 'Articles fetched successfully  using multiget');
 		start();
-	})
+	}, function() {
+		if (article.isNew()) {
+			ok(false, 'First Article could not be saved!');
+		} else if (profile.isNew()) {
+			ok(false, 'Second Article could not be saved!');
+		} else {
+			ok(false, 'Could not multiget articles of type profile');
+		}
+	});
 })

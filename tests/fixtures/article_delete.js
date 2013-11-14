@@ -9,21 +9,11 @@ asyncTest('Creating session with valid Apikey', function() {
 });
 
 asyncTest('Delete unsaved article', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
+	var article = new Appacitive.Article('profile');
 	var random = Math.random();
 	article.set('random', random);
-	article.del(function() {
-		var flag = false;
-		collection.getAll().forEach(function(article) {
-			if (article.get('random') && article.get('random') == random) {
-				flag = true;
-				ok(false, 'Delete succeeded but article still exists in the collection');
-			}
-		});
-		if (flag == false) {
-			ok(true, 'Article deleted and removed from collection successfully');
-		}
+	article.destroy().then(function() {
+		ok(true, 'Article deleted successfully');
 		start();
 	}, function() {
 		ok(false, 'Deleting unsaved article failed');
@@ -33,34 +23,28 @@ asyncTest('Delete unsaved article', function() {
 
 
 asyncTest('Delete saved article', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
-	article.save(function() {
-		var _id = article.get('__id');
-		article.del(function() {
-			var flag = false;
-			collection.getAll().forEach(function(article) {
-				if (article.get('__id') && article.get('__id') == _id) {
-					flag = true;
-					ok(false, 'onSuccess called, but article still exists');
-				}
-			});
-			if (flag == false) {
-				ok(true, 'Article deleted and removed from collection successfully');
-			}
+	var article = new Appacitive.Article('profile');
+	var created = false;
+	article.save().then(function() {
+		return article.destroy();
+	}).then(function() {
+		ok(true, 'Article deleted successfully');
+		start();
+	}, function() {
+		if (article.created) {
+			ok(false, 'Deleting saved article with id ' + article.id() + ' failed');
 			start();
-		}, function() {
-			ok(false, 'Deleting unsaved article failed');
+		} else {
+			ok(false, 'Article create failed');
 			start();
-		});
+		}
 	});
 });
 
 asyncTest('Delete non-existent article', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
+	var article = new Appacitive.Article('profile');
 	article.set('__id', 0070);
-	article.del(function() {
+	article.destroy().then(function() {
 		ok(false, 'onSuccess called after deleting unsaved article');
 		start();
 	}, function() {

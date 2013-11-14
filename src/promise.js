@@ -36,6 +36,21 @@
         this.calls = [];
     };
 
+    Promise.prototype.isResolved = function() {
+        if (this.state === 1) return true;
+        return false;
+    };
+
+    Promise.prototype.isRejected = function() {
+        if (this.state === 2) return true;
+        return false;
+    };
+
+    Promise.prototype.isFulfilled = function() {
+        if (this.state === 1 || this.state === 2) return true;
+        return false;
+    };
+
     Promise.prototype.done = function() {
         var then, promise, res, state = this.state, value = this.value;
 

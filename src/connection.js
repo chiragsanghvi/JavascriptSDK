@@ -12,7 +12,7 @@
 				// else just stick the __id
 				if (endpoint.article.get('__id')) result.articleid = endpoint.article.get('__id');
 				else result.article = endpoint.article.getArticle();
-			} else if (_type.isObject(endpoint.article) && endpoint.article instanceof global.Appacitive.Article) {
+			} else if (_type.isObject(endpoint.article)) {
 				// provided a raw article
 				// if there is an __id, just add that
 				// else add the entire article

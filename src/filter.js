@@ -6,7 +6,7 @@
 
     Appacitive.GeoCoord = function(lat, lng) {
         
-        _validateGeoCoord = function(lat, lng) {
+        var _validateGeoCoord = function(lat, lng) {
           if (isNaN(lat) || isNaN(lng)) throw new Error("Invalid Latitiude or longitiude provided");
           if (lat < -90.0 || lat > 90.0) throw new Error("Latitude " + lat + " should be in range of  -90.0 to 90.");
           if (lng < -180.0 || lng > 180.0) throw new Error("Latitude " + lng + " should be in range of  -180.0 to 180.");

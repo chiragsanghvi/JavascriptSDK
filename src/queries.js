@@ -535,7 +535,7 @@
 
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-				promise.fulfill(d.connection ? new global.Appacitive.Connection(d.connection) :  null);
+				promise.fulfill(d.connection ? new global.Appacitive.Connection(d.connection, true) :  null);
 			};
 			request.promise = promise;
 			request.entity = this;
@@ -695,7 +695,7 @@
 							label: edge.__label
 						};
 						delete edge.__label;
-						tmpArticle.connection = new global.Appacitive.Connection(edge);
+						tmpArticle.connection = new global.Appacitive.Connection(edge, true);
 					}
 					props.push(tmpArticle);
 				});

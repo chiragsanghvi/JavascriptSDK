@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Nov 13 14:11:22 IST 2013
+ * Build time 	: Thu Nov 14 21:07:53 IST 2013
  */
 "use strict";
 
@@ -211,7 +211,7 @@ var global = {};
 	// create the global object
 
 	if (typeof window === 'undefined') {
-		global = process;
+		global = this;
 	} else {
 		global = window;
 	}
@@ -1169,6 +1169,21 @@ var global = {};
         this.calls = [];
     };
 
+    Promise.prototype.isResolved = function() {
+        if (this.state === 1) return true;
+        return false;
+    };
+
+    Promise.prototype.isRejected = function() {
+        if (this.state === 2) return true;
+        return false;
+    };
+
+    Promise.prototype.isFulfilled = function() {
+        if (this.state === 1 || this.state === 2) return true;
+        return false;
+    };
+
     Promise.prototype.done = function() {
         var then, promise, res, state = this.state, value = this.value;
 
@@ -1746,7 +1761,7 @@ Depends on  NOTHING
 
     Appacitive.GeoCoord = function(lat, lng) {
         
-        _validateGeoCoord = function(lat, lng) {
+        var _validateGeoCoord = function(lat, lng) {
           if (isNaN(lat) || isNaN(lng)) throw new Error("Invalid Latitiude or longitiude provided");
           if (lat < -90.0 || lat > 90.0) throw new Error("Latitude " + lat + " should be in range of  -90.0 to 90.");
           if (lng < -180.0 || lng > 180.0) throw new Error("Latitude " + lng + " should be in range of  -180.0 to 180.");
@@ -2819,7 +2834,7 @@ Depends on  NOTHING
 
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-				promise.fulfill(d.connection ? new global.Appacitive.Connection(d.connection) :  null);
+				promise.fulfill(d.connection ? new global.Appacitive.Connection(d.connection, true) :  null);
 			};
 			request.promise = promise;
 			request.entity = this;
@@ -2979,7 +2994,7 @@ Depends on  NOTHING
 							label: edge.__label
 						};
 						delete edge.__label;
-						tmpArticle.connection = new global.Appacitive.Connection(edge);
+						tmpArticle.connection = new global.Appacitive.Connection(edge, true);
 					}
 					props.push(tmpArticle);
 				});
@@ -3493,6 +3508,8 @@ Depends on  NOTHING
 					if (that.type == 'connection') that.parseConnection();
 					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
 
+					that.created = true;
+
 					promise.fulfill(that);
 				} else {
 					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
@@ -3538,6 +3555,8 @@ Depends on  NOTHING
 							_snapshot = data[that.type];
 							_copy(_snapshot, article);
 							_removeTags = [];
+							delete that.created;
+							
 							global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updated', that, { object : that });
 							promise.fulfill(that);
 						} else {
@@ -3631,7 +3650,7 @@ Depends on  NOTHING
 
 		// delete the article
 		this.destroy = function(callbacks, deleteConnections) {
-
+          
 			if (_type.isBoolean(callbacks)) {
 				deleteConnections = callbacks;
 				callbacks = null;
@@ -3640,6 +3659,16 @@ Depends on  NOTHING
 			}
 
 			var promise = new global.Appacitive.Promise.buildPromise(callbacks);
+
+
+			// if the article does not have __id set, 
+	        // just call success
+	        // else delete the article
+
+	        if (!article['__id']) {
+	            promise.fulfill();
+	            return promise;
+	        }
 
 			var url = global.Appacitive.config.apiBaseUrl;
 			url += global.Appacitive.storage.urlFactory[this.type].getDeleteUrl(article.__schematype || article.__relationtype, article.__id);
@@ -3906,7 +3935,7 @@ Depends on  NOTHING
 				// else just stick the __id
 				if (endpoint.article.get('__id')) result.articleid = endpoint.article.get('__id');
 				else result.article = endpoint.article.getArticle();
-			} else if (_type.isObject(endpoint.article) && endpoint.article instanceof global.Appacitive.Article) {
+			} else if (_type.isObject(endpoint.article)) {
 				// provided a raw article
 				// if there is an __id, just add that
 				// else add the entire article
@@ -4422,9 +4451,9 @@ Depends on  NOTHING
 
 			this.createUser(user).then(function() {
 				that.login(user.username, user.password).then(function() {
-					promise.fulfill(arguments);
+					promise.fulfill.apply(promise, arguments);
 				}, function(staus) {
-					promise.reject(arguments);
+					promise.reject.apply(promise, arguments);
 				});
 			}, function() {
 				promise.reject(arguments);
@@ -4628,6 +4657,158 @@ Depends on  NOTHING
 	};
 
 	global.Appacitive.Users = new UserManager();
+
+})(global);
+(function (global) {
+
+ 	"use strict";
+
+    var _browserFacebook = function() {
+
+		var _accessToken = null;
+
+		var _initialized = true;
+
+		var _app_id = null;
+
+		this.initialize = function(options) {
+		  if (!FB) throw "Facebook SDK needs be loaded before calling initialize.";
+		  if (!options.appId) throw new Error("Please provide appid");
+		  _app_id = options.appId;
+		  FB.init(options);
+		  _initialized = true;
+		};
+
+		this.requestLogin = function(scope) {
+
+			scope = scope || {};
+
+			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+		    var promise = new Appacitive.Promise();
+			FB.login(function(response) {
+				if (response && response.status === 'connected' && response.authResponse) {
+					_accessToken = response.authResponse.accessToken;
+					promise.fulfill(response.authResponse);
+				} else {
+					promise.reject();
+				}
+			}, scope);
+
+			return promise;
+		};
+
+		this.getCurrentUserInfo = function() {
+			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+			var promise = new Appacitive.Promise();
+			
+			FB.api('/me', function(response) {
+				if (response && !response.error) {
+					_accessToken = FB.getAuthResponse().accessToken;
+					promise.fulfill(response);
+				} else {
+					promise.reject();
+				}
+			});
+
+			return promise;
+		};
+
+		this.accessToken = function() {
+			if (arguments.length === 1) {
+				_accessToken = arguments[0];
+				return this;
+			}
+			return _accessToken;
+		};
+
+		this.getProfilePictureUrl = function(username) {
+			return 'https://graph.facebook.com/' + username + '/picture';
+		};
+
+		this.logout = function() {
+			_accessToken = null;
+			var promise = new Appacitive.Promise();
+			
+			try {
+				FB.logout(function() {
+					global.Appacitive.Users.logout();
+					promise.fulfill();
+				});
+			} catch(e) {
+				promise.reject(e.message);
+			}
+
+			return promise;
+		};
+	};
+
+	var _nodeFacebook = function() {
+
+		var _accessToken = null;
+
+		this.FB = null;
+
+		var _app_id = null;
+
+		var _app_secret = null;
+
+		var _initialized = false;
+
+		this.initialize = function (options) { 
+			if (!Facebook) throw new Error("node-facebook SDK needs be loaded before calling initialize.");
+			if (!options.appId) throw new Error("Please provide appid");
+			if (!options.appSecret) throw new Error("Please provide app secret");
+
+			_app_id = options.appId;
+			_app_secret = options.appSecret;
+		    this.FB = new (require('facebook-node-sdk'))({ appId: _appId, secret: _app_secret });
+		    _initialized = true;
+		};
+
+		this.requestLogin = function(accessToken) {
+			if (accessToken) _accessToken = accessToken;
+			return new Appacitive.Promise().fulfill();
+		};
+
+		this.getCurrentUserInfo = function() {
+			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+
+			var promise = new Appacitive.Promise();
+
+			if (this.FB && _accessToken) {
+				this.FB.api('/me', function(err, response) {
+					if (response) {
+						promise.fulfill(response);
+					} else {
+						promise.reject("Access token is invalid");
+					}
+				});
+			} else {
+				promise.reject("Either intialize facebook with your appid and appsecret or set accesstoken");
+			}
+
+			return promise;
+		};
+
+		this.accessToken = function() {
+			if (arguments.length === 1) {
+				_accessToken = arguments[0];
+				return this;
+			}
+			return _accessToken;
+		};
+
+		this.getProfilePictureUrl = function(username) {
+			return 'https://graph.facebook.com/' + username + '/picture';
+		};
+
+		this.logout = function() {
+			global.Appacitive.Facebook.accessToken = "";
+			return new Appacitive.Promise().fulfill();
+		};
+	};
+
+	global.Appacitive.Facebook = global.Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
 
 })(global);
 (function (global) {

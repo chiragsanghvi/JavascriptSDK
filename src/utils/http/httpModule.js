@@ -9,7 +9,7 @@ var global = {};
 	// create the global object
 
 	if (typeof window === 'undefined') {
-		global = process;
+		global = this;
 	} else {
 		global = window;
 	}

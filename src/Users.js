@@ -295,9 +295,9 @@
 
 			this.createUser(user).then(function() {
 				that.login(user.username, user.password).then(function() {
-					promise.fulfill(arguments);
+					promise.fulfill.apply(promise, arguments);
 				}, function(staus) {
-					promise.reject(arguments);
+					promise.reject.apply(promise, arguments);
 				});
 			}, function() {
 				promise.reject(arguments);

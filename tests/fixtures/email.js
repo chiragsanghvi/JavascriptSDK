@@ -39,56 +39,49 @@ test('Verify subject is mandatory in email', function() {
 	}
 });
 
-asyncTest('Verify emails can be sent with proper config details', function() {
-	var createDefaultUser = function(step) {
-		var user = testConstants.user;
-		Appacitive.Users.createUser(user, step, step);
-	};
-
-	var authenticateDefaultUser = function(step) {
-		var creds = {
-	    	'username': testConstants.user.username,
-	    	'password': testConstants.user.password,
-	    	'expiry': -1,
-	    	'attempts': -1
-	    };
-	    Appacitive.Users.authenticateUser(creds, function(data) {
-	    	ok(true, 'User authenticated successfully: ' + JSON.stringify(data));
-    		Appacitive.Session.setUserAuthHeader(data.token);
-	    	step();
-	    }, function(data) {
-	    	ok(false, 'User authentication failed: ' + JSON.stringify(data));
-	    	start();
-	    });
-	};
-
-	var sendRawEmail = function() {
-    	try {
-    		var emailOptions = {
-    			to: [Appacitive.Users.currentUser().get('email')],
-    			subject: 'Hello World!',
-    			body: '<b>hello world!</b>',
-    			ishtml : true
-    		};
-    		Appacitive.Email.sendRawEmail(emailOptions, function(email) { 
-    			ok(true, 'Send email successfully: ' + JSON.stringify(email));
-    			start();
-    		}, function(a) {
-    			ok(false, 'Email sending failed: ' + a);
-    			start();
-    		});
-    	} catch (err) {
-    		ok(true, 'Error : ' + err.message);
-    		start();
-    	}
+asyncTest('Verify raw emails can be sent', function() {
+	try {
+		var emailOptions = {
+			to: ['csanghvi@appacitive.com'],
+			subject: 'Hello World!',
+			body: '<b>hello world!</b>',
+			ishtml : true
+		};
+		Appacitive.Email.sendRawEmail(emailOptions).then(function(email) { 
+			ok(true, 'Send email successfully: ' + JSON.stringify(email));
+			start();
+		}, function(a) {
+			ok(false, 'Email sending failed: ' + a);
+			start();
+		});
+	} catch (err) {
+		ok(true, 'Error : ' + err.message);
+		start();
 	}
-	createDefaultUser(function() {
-		authenticateDefaultUser(function() {
-			sendRawEmail()
+});
+
+asyncTest('Verify templated emails can be sent', function() {
+	try {
+		var emailOptions = {
+			to: ['csanghvi@appacitive.com'],
+			subject: 'Welcome To SDK!',
+			ishtml : true,
+			templateName: 'test',
+			data: {
+				username: 'Chirag',
+				applicationName: 'SDK'
+			}
+		};
+
+		Appacitive.Email.sendTemplatedEmail(emailOptions).then(function(email) { 
+			ok(true, 'Send email successfully: ' + JSON.stringify(email));
+			start();
+		}, function(a) {
+			ok(false, 'Email sending failed: ' + a);
+			start();
 		});
-	}, function() {
-		authenticateDefaultUser(function() {
-			sendRawEmail()
-		});
-	});
+	} catch (err) {
+		ok(true, 'Error : ' + err.message);
+		start();
+	}
 });

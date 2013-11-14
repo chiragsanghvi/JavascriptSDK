@@ -8,100 +8,66 @@ asyncTest('Creating session with valid Apikey', function() {
 	start();
 });
 
-asyncTest('Happy path for create two articles and connect them', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
+var createUserProfileArticles = function() {
+	var promise = new Appacitive.Promise();
+
+	//Create user article
+	var user = new Appacitive.User();
 	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
 	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	user.save(function() {
-		profile.save(function() {
-			var connectOptions = {
-				__endpointa: {
-					articleid: profile.get('__id'),
-					label: 'profile'
-				},
-				__endpointb: {
-					articleid: user.get('__id'),
-					label: 'user'
-				}
-			};
-			var cC = user.getConnectedArticles({ relation: 'userprofile' });
-			var connection = cC.createNewConnection(connectOptions);
-			connection.save(function() {
-				ok(true, 'Save worked');
-				start();
-			}, function() {
-				ok(false, 'Could not save connection.');
-				start();
-			});
-		}, function() {
-			ok(false, 'Could not save article of type profile.');
-			start();
-		})
+	
+	//create profile article
+	profile = new Appacitive.Article({ schema: 'profile', name:'chirag sanghvi'});
+	
+	var tasks = [user.save()];
+	tasks.push(profile.save());
+
+	var created = false;
+	//Parallel create
+	Appacitive.Promise.when(tasks).then(function(con) {
+		return promise.fulfill(user, profile);
 	}, function() {
-		ok(false, 'Could not save user article.');
+		if (user.isNew()) {
+			ok(false, 'Could not save article of type profile.');
+		}
+		if (profile.isNew()) {
+			ok(false, 'Could not save user article.');
+		}
 		start();
 	});
+
+	return promise;
+};
+
+asyncTest('Happy path for create two articles and connect them', function() {
+	//Create user and profile articles
+	createUserProfileArticles().then(function(user, profile) {
+		//create connection between newly created user and profile
+		var connectOptions = {
+			__endpointa: {
+				articleid: profile.id(),
+				label: 'profile'
+			},
+			__endpointb: {
+				article: user,
+				label: 'user'
+			},
+			relation: 'userprofile'
+		};
+		return new Appacitive.Connection(connectOptions).save();
+	}).then( function(con) {
+		ok(true, 'Connection saved with id ' + con.id());
+		start();
+	}, function() {
+		ok(false, 'Could not create connection.');
+		start();
+	});
+
 });
 
 asyncTest('Happy path for create connection with two article objects passed in proper api endpoints', function() {
-	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var school = schools.createNewArticle();
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	var connectOptions = {
-		__endpointa: {
-			article: school,
-			label: 'school'
-		},
-		__endpointb: {
-			article: profile,
-			label: 'profile'
-		}
-	};
-
-	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
-	var connection = cC.createNewConnection(connectOptions);
-	connection.save(function(conn) {
-		ok(true, 'Save worked ');
-		console.dir(conn);
-		start();
-	}, function() {
-		ok(false, 'Could not save connection.');
-		start();
-	});
-});
-
-asyncTest('Happy path for create connection with two article objects passed in sdk endpoint objects', function() {
-	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var school = schools.createNewArticle();
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	var connectOptions = {
-		endpoints: [{
-			article: school,
-			label: 'school'
-		}, {
-			article: profile,
-			label: 'profile'
-		}],
-		relation: 'myschool'
-	};
-
-	var connection = new Appacitive.Connection(connectOptions);
-	connection.save(function(conn) {
-		ok(true, 'Save worked ');
-		console.dir(conn);
-		start();
-	}, function() {
-		ok(false, 'Could not save connection.');
-		start();
-	});
-});
-
-asyncTest('Happy path to fetch connection using its id', function() {
-	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var school = schools.createNewArticle();
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		__endpointa: {
@@ -115,58 +81,101 @@ asyncTest('Happy path to fetch connection using its id', function() {
 		relation: 'myschool'
 	};
 
-	var connection = new Appacitive.Connection(connectOptions);
-	connection.save(function(conn) {
-		console.dir(conn);
-		var relSchool = new Appacitive.Connection({__id: conn.get('__id'), relation : 'myschool'});
-		relSchool.fetch(function() {
-			ok(true, 'Connection fetched successfully.');
-			console.dir(relSchool);
-			start();
-		}, function() {
-			ok(false, 'Could not fetch connection.');
-			start();
-		});		
+	//create myschool connection
+	new Appacitive.Connection(connectOptions).save().then(function(conn) {
+		//verify endpoints are populated
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+		
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+
+		ok(true, 'Saved connection ');
+		start();
 	}, function() {
 		ok(false, 'Could not save connection.');
 		start();
 	});
 });
 
-asyncTest('Verify connection create using article as one endpoint and articleid as another endpoint in endpoints objects', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
-	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	user.save( function() {
-		var connectOptions = {
-			endpoints: [{
-				article: profile,
-				label: 'profile'
-			}, {
-				articleid: user.get('__id'),
-				label: 'user'
-			}],
-			relation : 'userprofile'
-		};
-		var connection = new Appacitive.Connection(connectOptions);
-		connection.save(function(conn) {
-			var relSchool = new Appacitive.Connection(conn.getConnection());
-			relSchool.fetch(function() {
-				ok(true, 'Connection fetched successfully.');
-				console.dir(relSchool);
-				start();
-			}, function() {
-				ok(false, 'Could not fetch connection.');
-				start();
-			});		
-		}, function() {
-			ok(false, 'Could not save connection.');
-			start();
-		});
+asyncTest('Happy path for create connection with two article objects passed in sdk endpoint objects', function() {
+	
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
+	
+	var connectOptions = {
+		endpoints: [{
+			article: school,
+			label: 'school'
+		}, {
+			article: profile,
+			label: 'profile'
+		}],
+		relation: 'myschool'
+	};
+
+	new Appacitive.Connection(connectOptions).save().then(function(conn) {
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+		
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+
+		ok(true, 'Saved connection ');
+		start();
 	}, function() {
-		ok(false, 'Could not save user article.');
+		ok(false, 'Could not save connection.');
+		start();
+	});
+});
+
+asyncTest('Happy path to fetch connection using its id', function() {
+	
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
+	
+	var connectOptions = {
+		endpoints: [{
+			article: school,
+			label: 'school'
+		}, {
+			article: profile,
+			label: 'profile'
+		}],
+		relation: 'myschool'
+	};
+   
+   	//create myschool connection
+	var conn = new Appacitive.Connection(connectOptions)
+	conn.save().then(function(conn) {
+		ok(true, 'Saved connection ');
+		
+		//verify endpoints are populated
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+
+		var relSchool = new Appacitive.Connection({__id: conn.get('__id'), relation : 'myschool'});
+		
+		//fetch connection by its id
+		return relSchool.fetch();
+	}).then( function(conn) {
+		ok(true, 'Connection fetched successfully.');
+		start();
+	}, function() {
+		if (conn.isNew()) {
+			ok(false, 'Could not save connection.');
+		} else {
+			ok(false, 'Could not fetch connection.');
+		}
 		start();
 	});
 });
@@ -186,295 +195,89 @@ asyncTest('Verify connection update after it is created', function() {
 			},
 			label: 'profile'
 		},
-		year: '2003'
+		year: '2003',
+		relation: 'myschool'
 	};
+	var year = '2005';
 
-	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
-	var connection = cC.createNewConnection(connectOptions);
-	connection.save(function(conn) {
+	//create myschool connection
+	var connection = new Appacitive.Connection(connectOptions);
+	connection.save().then(function(conn) {
 		equal(conn.get('year'), '2003', 'Connection properly created');
-		if (conn.endpointA.article && conn.endpointA.article.getArticle && conn.endpointB.article && conn.endpointB.article.getArticle) 
+		
+		//verify endpoints are populated
+		if (conn.endpointA.article && conn.endpointA.article instanceof Appacitive.Article && conn.endpointB.article && conn.endpointB.article instanceof Appacitive.Article) 
 			ok(true, 'Article set properly in connection');
 		else
 			ok(false, 'Article not set in connection');
-
-		var year = '2005';
+		
+		//update connection
 		conn.set('year', year);
-		conn.save(function(conn) {
-			equal(conn.get('year'), year, 'Connection property value changed successfully');
-			start();
-		}, function(status) {
-			console.log(status);
-			ok(false, 'Could not update connection.');
-			start();
-		});		
+		return conn.save();	
+	}).then(function(conn) {
+		equal(conn.get('year'), year, 'Connection property value changed successfully');
+		start();
 	}, function() {
-		ok(false, 'Could not save connection.');
+		if (connection.created) {
+			ok(false, 'Could not update connection.');
+		} else {
+			ok(false, 'Could not create connection.');
+		}
 		start();
 	});
 });
 
 asyncTest('Verify connection update directly', function() {
-	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var school = schools.createNewArticle();
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
+	
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
-		__endpointa: {
+		endpoints: [{
 			article: school,
 			label: 'school'
-		},
-		__endpointb: {
+		}, {
 			article: profile,
 			label: 'profile'
-		}
+		}],
+		relation: 'myschool'
 	};
+	var year = '2005';
 
-	var cC = new Appacitive.ConnectionCollection({relation: 'myschool'});
-	var connection = cC.createNewConnection(connectOptions);
-	connection.save(function(conn) {
-		console.dir(conn);
-		var relSchool =  new Appacitive.Connection(conn.getConnection());
-		var year = '2005';
+	var connection = new Appacitive.Connection(connectOptions)
+
+	connection.save().then(function(conn) {
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+		
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+
+		ok(true, 'Saved connection ');
+
+		var relSchool =  new Appacitive.Connection(conn.toJSON());
 		relSchool.set('year', year);
 		
-		relSchool.save(function(conn) {
-			equal(conn.get('year'), year, 'Connection property value changed successfully');
-			start();
-		}, function() {
-			ok(false, 'Could not update connection.');
-			start();
-		});		
+		return relSchool.save();
+	}).then(function(conn) {
+		equal(conn.get('year'), year, 'Connection property value changed successfully');
+		start();
 	}, function() {
-		ok(false, 'Could not save connection.');
+		if (connection.isNew()) {
+			ok(false, 'Could not create connection.');
+		} else {
+			ok(false, 'Could not update connection.');
+		}
 		start();
 	});
 });
 
 asyncTest('Verify happy path for connection delete', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
-	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	user.save(function() {
-		profile.save(function() {
-			var connectOptions = {
-				__endpointa: {
-					articleid: profile.get('__id'),
-					label: 'profile'
-				},
-				__endpointb: {
-					articleid: user.get('__id'),
-					label: 'user'
-				}
-			};
-			var cC = user.getConnectedArticles({ relation: 'userprofile' });
-			var connection = cC.createNewConnection(connectOptions);
-			connection.save(function() {
-				connection.del(function() {
-					ok(true, 'Connection delete successfully completed.');
-					start();
-				}, function() {
-					ok(false, 'onError called on connection delete.');
-					start();
-				});
-			}, function() {
-				ok(false, 'Could not save connection.');
-				start();
-			})
-		}, function() {
-			ok(false, 'Could not save article of type profile.');
-			start();
-		})
-	}, function() {
-		ok(false, 'Could not save user article.');
-		start();
-	});
-});
-
-asyncTest('Verify unsaved connection delete removes connection from the collection', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
-	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	user.save(function() {
-		profile.save(function() {
-			var connectOptions = {
-				__endpointa: {
-					articleid: profile.get('__id'),
-					label: 'profile'
-				},
-				__endpointb: {
-					articleid: user.get('__id'),
-					label: 'user'
-				}
-			};
-			var cC = user.getConnectedArticles({ relation: 'userprofile' });
-			var connection = cC.createNewConnection(connectOptions);
-			connection.del(function() {
-				equal(cC.getAll().length, 0, 'Connection removed from the collection.');
-				start();
-			}, function() {
-				ok(false, 'onError called on connection delete.');
-				start();
-			});
-		}, function() {
-			ok(false, 'Could not save article of type profile.');
-			start();
-		})
-	}, function() {
-		ok(false, 'Could not save user article.');
-		start();
-	});
-});
-
-asyncTest('Verify connection delete removes connection from the collection', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
-	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	user.save(function() {
-		profile.save(function() {
-			var connectOptions = {
-				__endpointa: {
-					articleid: profile.get('__id'),
-					label: 'profile'
-				},
-				__endpointb: {
-					articleid: user.get('__id'),
-					label: 'user'
-				}
-			};
-			var cC = user.getConnectedArticles({ relation: 'userprofile' });
-			var connection = cC.createNewConnection(connectOptions);
-			connection.save(function() {
-				connection.del(function() {
-					equal(cC.getAll().length, 0, 'Connection removed from the collection.');
-					start();
-				}, function() {
-					ok(false, 'onError called on connection delete.');
-					start();
-				});
-			}, function() {
-				ok(false, 'Could not save connection.');
-				start();
-			})
-		}, function() {
-			ok(false, 'Could not save article of type profile.');
-			start();
-		})
-	}, function() {
-		ok(false, 'Could not save user article.');
-		start();
-	});
-});
-
-asyncTest('Verify connection delete removes connection from the collection after fetching', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
-	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	user.save(function() {
-		profile.save(function() {
-			var connectOptions = {
-				__endpointa: {
-					articleid: profile.get('__id'),
-					label: 'profile'
-				},
-				__endpointb: {
-					articleid: user.get('__id'),
-					label: 'user'
-				}
-			};
-			var cC = new Appacitive.ConnectionCollection({ relation: 'userprofile' });
-			var connection = cC.createNewConnection(connectOptions);
-			connection.save(function() {
-				var id = connection.get('__id');
-				connection.del(function() {
-					cC.fetch(function() {
-						var conn = cC.getAll().filter(function(c) {
-							return c.get('__id') == id;
-						});
-						equal(conn.length, 0, 'Connection deleted from server');
-						start();
-					}, function() {
-						ok(false, 'onError called on fetching connections');
-						start();
-					});
-				}, function() {
-					ok(false, 'onError called on connection delete.');
-					start();
-				});
-			}, function() {
-				ok(false, 'Could not save connection.');
-				start();
-			})
-		}, function() {
-			ok(false, 'Could not save article of type profile.');
-			start();
-		})
-	}, function() {
-		ok(false, 'Could not save user article.');
-		start();
-	});
-});
-
-asyncTest('Verify created connection shows up in collection after fetching connections by type', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
-	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
-	user.save(function() {
-		profile.save(function() {
-			var connectOptions = {
-				__endpointa: {
-					articleid: profile.get('__id'),
-					label: 'profile'
-				},
-				__endpointb: {
-					articleid: user.get('__id'),
-					label: 'user'
-				}
-			};
-			var cC = new Appacitive.ConnectionCollection({ relation: 'userprofile' });
-			var connection = cC.createNewConnection(connectOptions);
-			connection.save(function() {
-				var id = connection.get('__id');
-				setTimeout(function() {
-					cC.fetch(function() {
-						var conn = cC.getAll().filter(function(c) {
-							return c.get('__id') == id;
-						});
-						equal(conn.length, 1, 'Connection shows up in connection collection');
-						start();
-					}, function() {
-						ok(false, 'onError called on fetching connections');
-						start();
-					});
-				}, 1000);
-			}, function() {
-				ok(false, 'Could not save connection.');
-				start();
-			})
-		}, function() {
-			ok(false, 'Could not save article of type profile.');
-			start();
-		})
-	}, function() {
-		ok(false, 'Could not save user article.');
-		start();
-	});
-});
-
-asyncTest('Verify no changeset on article fetched from connectedarticles', function() {
-	var schools = new Appacitive.ArticleCollection({ schema: 'school' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var school = schools.createNewArticle();
-	var profile = profiles.createNewArticle({name:'chirag sanghvi'});
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
+	
 	var connectOptions = {
 		endpoints: [{
 			article: school,
@@ -486,24 +289,90 @@ asyncTest('Verify no changeset on article fetched from connectedarticles', funct
 		relation: 'myschool'
 	};
 
-	var connection = new Appacitive.Connection(connectOptions);
-	connection.save(function(conn) {
-		var a = new Appacitive.Article(profile.toJSON());
-		var cC = a.getConnectedArticles({ relation: 'myschool' });
-		cC.fetch(function() {
-			if (cC.get(0).connectedArticle().hasChanged()) {
-				ok(false, 'Article has not changed');
-				start();
-			} else {
-				ok(true, 'Article has not changed');
-				start();
-			}
-		}, function() {
-			ok(false, 'Error occured on calling fetch for connections');
-			start();
-		});
+	//create connection
+	var conn = new Appacitive.Connection(connectOptions)
+	conn.save().then(function(conn) {
+		ok(true, 'Saved connection ');
+		
+		//verify endpoints are populated
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+		//delete connection
+		return conn.destroy();
+	}).then( function() {
+		ok(true, 'Connection deleted successfully.');
+		start();
 	}, function() {
-		ok(false, 'Could not save connection.');
+		if (conn.isNew()) {
+			ok(false, 'Could not save connection.');
+		} else {
+			ok(false, 'Could not delete connection.');
+		}
+		start();
+	});
+});
+
+asyncTest('Verify no changeset on article fetched from connectedarticles', function() {
+	
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+	
+	var connectOptions = {
+		endpoints: [{
+			article: school,
+			label: 'school'
+		}, {
+			article: profile,
+			label: 'profile'
+		}],
+		relation: 'myschool'
+	};
+
+	//create connection
+	var conn = new Appacitive.Connection(connectOptions)
+	conn.save().then(function(conn) {
+		ok(true, 'Saved connection ');
+		
+		//verify endpoints are populated
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+
+		// fetch connected articles for profile
+		return profile.getConnectedArticles({ relation: 'myschool' }).fetch();
+	}).then(function(articles) {
+		
+		//verify articles returned are not changed
+		if (articles[0].hasChanged()) {
+			ok(false, 'Article has not changed');
+		} else {
+			ok(true, 'Article has not changed');
+		}
+
+
+		//verify children property
+		if (!profile.children['myschool']) {
+			ok(false, 'Children property not set in profile');
+		} else {
+			ok(true, 'Children property set in profile');
+		}
+
+		start();
+	}, function() {
+		if (conn.isNew()) {
+			ok(false, 'Could not save connection.');
+		} else {
+			ok(false, 'Could not fetch connected articles.');
+		}
 		start();
 	});
 });
