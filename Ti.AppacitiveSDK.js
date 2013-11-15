@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Nov 15 15:18:22 IST 2013
+ * Build time 	: Fri Nov 15 16:43:38 IST 2013
  */
 "use strict";
 
@@ -4616,88 +4616,9 @@ Depends on  NOTHING
 })(global);
 (function (global) {
 
- 	"use strict";
+	"use strict";
 
-    var _browserFacebook = function() {
-
-		var _accessToken = null;
-
-		var _initialized = true;
-
-		var _app_id = null;
-
-		this.initialize = function(options) {
-		  if (!FB) throw "Facebook SDK needs be loaded before calling initialize.";
-		  if (!options.appId) throw new Error("Please provide appid");
-		  _app_id = options.appId;
-		  FB.init(options);
-		  _initialized = true;
-		};
-
-		this.requestLogin = function(scope) {
-
-			scope = scope || {};
-
-			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
-		    var promise = new Appacitive.Promise();
-			FB.login(function(response) {
-				if (response && response.status === 'connected' && response.authResponse) {
-					_accessToken = response.authResponse.accessToken;
-					promise.fulfill(response.authResponse);
-				} else {
-					promise.reject();
-				}
-			}, scope);
-
-			return promise;
-		};
-
-		this.getCurrentUserInfo = function() {
-			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
-			var promise = new Appacitive.Promise();
-			
-			FB.api('/me', function(response) {
-				if (response && !response.error) {
-					_accessToken = FB.getAuthResponse().accessToken;
-					promise.fulfill(response);
-				} else {
-					promise.reject();
-				}
-			});
-
-			return promise;
-		};
-
-		this.accessToken = function() {
-			if (arguments.length === 1) {
-				_accessToken = arguments[0];
-				return this;
-			}
-			return _accessToken;
-		};
-
-		this.getProfilePictureUrl = function(username) {
-			return 'https://graph.facebook.com/' + username + '/picture';
-		};
-
-		this.logout = function() {
-			_accessToken = null;
-			var promise = new Appacitive.Promise();
-			
-			try {
-				FB.logout(function() {
-					global.Appacitive.Users.logout();
-					promise.fulfill();
-				});
-			} catch(e) {
-				promise.reject(e.message);
-			}
-
-			return promise;
-		};
-	};
-
-	var _nodeFacebook = function() {
+	var _facebook = function() {
 
 		var _accessToken = null;
 
@@ -4705,49 +4626,64 @@ Depends on  NOTHING
 
 		var _app_id = null;
 
-		var _app_secret = null;
-
-		var _initialized = false;
+		var _initialized = true;
 
 		this.initialize = function (options) { 
-			if (!Facebook) throw new Error("node-facebook SDK needs be loaded before calling initialize.");
 			if (!options.appId) throw new Error("Please provide appid");
-			if (!options.appSecret) throw new Error("Please provide app secret");
-
+			
 			_app_id = options.appId;
-			_app_secret = options.appSecret;
-		    this.FB = new (require('facebook-node-sdk'))({ appId: _appId, secret: _app_secret });
+			Ti.Facebook.setAppid(_app_id);
+			Ti.Facebook.setPermissions("email", "user_birthday");
+			this.FB = Ti.Facebook;
 		    _initialized = true;
 		};
 
-		this.requestLogin = function(accessToken) {
-			if (accessToken) _accessToken = accessToken;
-			return new Appacitive.Promise().fulfill();
+		this.requestLogin = function() {
+			if (!_initialized) throw new Error("Titanium Facebook module has not yet been initialized, or not yet loaded.");
+		    
+		    var promise = new Appacitive.Promise();
+
+			Ti.Facebook.addEventListener('login', function(e) {
+			    if (e.success) {
+			        _accessToken = Ti.Facebook.accessToken;
+			        promise.fulfill({
+			        	id: e.data.id,
+		                access_token: Ti.Facebook.accessToken,
+		                expiration_date: Ti.Facebook.expirationDate
+			        });
+			    } else if (e.error) {
+			        promise.reject();
+			    } else if (e.cancelled) {
+			        promise.reject();
+			    }
+			});
+			Ti.Facebook.authorize();
+			return promise;
 		};
 
 		this.getCurrentUserInfo = function() {
-			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
-
+			if (!_initialized) throw new Error("Titanium Facebook module  has not yet been initialized, or not yet loaded.");
 			var promise = new Appacitive.Promise();
 
-			if (this.FB && _accessToken) {
-				this.FB.api('/me', function(err, response) {
-					if (response) {
-						promise.fulfill(response);
-					} else {
-						promise.reject("Access token is invalid");
-					}
+			if (Ti.Facebook && _accessToken){
+				
+				Ti.Facebook.requestWithGraphPath('me', {}, 'GET', function(e) {
+				    if (e.success) {
+				        promise.fulfill(e);
+				    } else {
+				        promise.reject("Access token is invalid");
+				    }
 				});
 			} else {
-				promise.reject("Either intialize facebook with your appid and appsecret or set accesstoken");
+				promise.reject("Either intialize Titanium Facebook module with your appid and appsecret or set accesstoken");
 			}
-
 			return promise;
 		};
 
 		this.accessToken = function() {
 			if (arguments.length === 1) {
 				_accessToken = arguments[0];
+				if (Ti.Facebook) Ti.Facebook.setAccessToken(_accessToken);
 				return this;
 			}
 			return _accessToken;
@@ -4758,12 +4694,13 @@ Depends on  NOTHING
 		};
 
 		this.logout = function() {
-			global.Appacitive.Facebook.accessToken = "";
+			_accessToken = "";
+			Ti.Facebook.logout();
 			return new Appacitive.Promise().fulfill();
 		};
 	};
 
-	global.Appacitive.Facebook = global.Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
+	global.Appacitive.Facebook = new _facebook();
 
 })(global);
 (function (global) {

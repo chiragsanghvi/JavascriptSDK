@@ -85,6 +85,6 @@
 		};
 	};
 
-	global.Appacitive.Facebook = _facebook;
+	global.Appacitive.Facebook = new _facebook();
 
 })(global);
