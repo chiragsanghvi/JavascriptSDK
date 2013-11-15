@@ -413,7 +413,7 @@
 			if (properties) { 
 				_copy(properties, article);
 				if (setSnapShot) {
-					_copy(properties,_snapshot);
+					_copy(properties, _snapshot);
 				}
 			}
 			return this;

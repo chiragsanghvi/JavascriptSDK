@@ -57,7 +57,7 @@
 					links = (links) ? [links] : [];
 				}
 				links.push(link);
-				that.set('__link', links);
+				that.copy({__link: links }, true);
 				promise.fulfill(that);
 			};
 			request.promise = promise;
@@ -232,9 +232,9 @@
 						}
 					});
 					if (ind != null) accounts.splice(ind, 1);
-					that.set('__link', accounts);
+					that.copy({ __link: accounts }, true);
 				} else {
-					that.set('__link', null);
+					that.copy({ __link: [] }, true);
 				}
 
 				promise.fulfill(that);
@@ -355,7 +355,7 @@
 				"createnew": true
 			};
 
-			return that.authenticateUser(authRequest, callbacks, 'FB');
+			return this.authenticateUser(authRequest, callbacks, 'FB');
 		};
 
 		this.loginWithTwitter = function(twitterObj, callbacks) {
@@ -375,7 +375,7 @@
 				authRequest.consumerkey = twitterObj.consumerKey;
 			}
 
-			return that.authenticateUser(authRequest, callbacks, 'TWITTER');
+			return this.authenticateUser(authRequest, callbacks, 'TWITTER');
 		};
 
 		this.validateCurrentUser = function(avoidApiCall, callback) {

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Nov 14 21:07:53 IST 2013
+ * Build time 	: Fri Nov 15 12:35:56 IST 2013
  */
 "use strict";
 
@@ -1291,13 +1291,15 @@ var global = {};
             var value;
             var proc = task[i]
             if (proc instanceof Promise || (proc && typeof proc.then === 'function')) {
-                /* If proc is a promise, then wait for fulfillment */
-                proc.then(function(value) {
-                    values[i] = value;
-                    notifier();
-                }, function(reason) {
-                    reasons[i] = reason;
-                    notifier();
+                 setImmediate(function() {
+                    /* If proc is a promise, then wait for fulfillment */
+                    proc.then(function(value) {
+                        values[i] = value;
+                        notifier();
+                    }, function(reason) {
+                        reasons[i] = reason;
+                        notifier();
+                    });
                 });
             } else {
                 setImmediate(function() {
@@ -3433,7 +3435,7 @@ Depends on  NOTHING
 			if (properties) { 
 				_copy(properties, article);
 				if (setSnapShot) {
-					_copy(properties,_snapshot);
+					_copy(properties, _snapshot);
 				}
 			}
 			return this;
@@ -4213,7 +4215,7 @@ Depends on  NOTHING
 					links = (links) ? [links] : [];
 				}
 				links.push(link);
-				that.set('__link', links);
+				that.copy({__link: links }, true);
 				promise.fulfill(that);
 			};
 			request.promise = promise;
@@ -4388,9 +4390,9 @@ Depends on  NOTHING
 						}
 					});
 					if (ind != null) accounts.splice(ind, 1);
-					that.set('__link', accounts);
+					that.copy({ __link: accounts }, true);
 				} else {
-					that.set('__link', null);
+					that.copy({ __link: [] }, true);
 				}
 
 				promise.fulfill(that);
@@ -4511,7 +4513,7 @@ Depends on  NOTHING
 				"createnew": true
 			};
 
-			return that.authenticateUser(authRequest, callbacks, 'FB');
+			return this.authenticateUser(authRequest, callbacks, 'FB');
 		};
 
 		this.loginWithTwitter = function(twitterObj, callbacks) {
@@ -4531,7 +4533,7 @@ Depends on  NOTHING
 				authRequest.consumerkey = twitterObj.consumerKey;
 			}
 
-			return that.authenticateUser(authRequest, callbacks, 'TWITTER');
+			return this.authenticateUser(authRequest, callbacks, 'TWITTER');
 		};
 
 		this.validateCurrentUser = function(avoidApiCall, callback) {

@@ -35,14 +35,14 @@ asyncTest('Cleaning up articles of schema user', function() {
     }).then(function() {
     	ok(true, 'All users to deleted');
     	start();
-    }, function(data, values) {
+    }, function(data) {
     	if (!Appacitive.Users.current()) {
     		ok(false, 'User authentication failed: ' + JSON.stringify(data));
     	} else if (total === 0) {
     		ok(false, 'Could not fetch articles for schema user');
     	} else {
-    		var numFailures = total;
-			values.forEach(function(v) { if (v) --numFailures; });
+    		var numFailures = 0;
+			data.forEach(function(v) { if (v) ++numFailures; });
 			ok(false, 'Article delete failed for ' + numFailures + '/' + total +' articles');
     	}
     	start();
@@ -76,15 +76,21 @@ asyncTest('Create linked facebook user in one api call', function() {
 				return Appacitive.Promise.reject();
 			}
 		}).then(function() {
-			ok(true, "Saved user");
+			ok(true, "Saved user with facebbok account linked");
+			return newUser.del();
 			start();				
+		}).then( function() {
+			ok(true, "User deleted successfullly");
+			start();
 		}, function() {
 			if (!FBLoggedIn) {
 				ok(false, 'User cancelled login or did not fully authorize.')
 			} else if (!linked) {
 				ok(false, "Facebook account could not be linked to user");
-			} else {
+			} else if (newUser.isNew()) {
 				ok(false, "Could not save user");
+			} else {
+				ok(false, "Could not delete current user");
 			}
 	        start();
 		});
@@ -106,25 +112,22 @@ asyncTest('Create and link facebook account to a user', function() {
 	var deleted = false;
 	var token = Appacitive.Facebook.accessToken();
 
-	if (Appacitive.Users.currentUser() && Appacitive.Users.currentUser().id() == testConstants.adminUserId) {
-		Appacitive.Users.logout();
-	}
-
-	Appacitive.Users.deleteCurrentUser().then(function(){
-		ok(true, "Deleted current user");	
-		return Appacitive.Users.signup(user);
-	}).then(function() {
+	Appacitive.Users.logout();
+	
+	Appacitive.Users.signup(user).then(function() {
 		return Appacitive.Users.currentUser().linkFacebook(token);
 	}).then(function(base) {
 		deepEqual(base.linkedAccounts().length, 1, 'User linked to his facebook account');
 		start();
-	}, function() {
-		if (!deleted) {
-			ok(false, "Could'nt delete current user");
-		} else if (!Appacitive.Users.current()) {
+	}, function(err) {
+		if (!Appacitive.Users.current()) {
 			ok(false, 'Couldnt create user');
 		} else {
-			ok(false, 'Could not link facebook account');
+			if (err.code == '600') {
+				ok(true, 'Facebook account is already linked to an another account');
+			} else {
+				ok(false, 'Could not link facebook account');
+			}
 		}
 		start();
 	});

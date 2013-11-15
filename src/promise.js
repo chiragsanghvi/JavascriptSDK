@@ -158,13 +158,15 @@
             var value;
             var proc = task[i]
             if (proc instanceof Promise || (proc && typeof proc.then === 'function')) {
-                /* If proc is a promise, then wait for fulfillment */
-                proc.then(function(value) {
-                    values[i] = value;
-                    notifier();
-                }, function(reason) {
-                    reasons[i] = reason;
-                    notifier();
+                 setImmediate(function() {
+                    /* If proc is a promise, then wait for fulfillment */
+                    proc.then(function(value) {
+                        values[i] = value;
+                        notifier();
+                    }, function(reason) {
+                        reasons[i] = reason;
+                        notifier();
+                    });
                 });
             } else {
                 setImmediate(function() {

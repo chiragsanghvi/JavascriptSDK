@@ -170,14 +170,14 @@ asyncTest('Cleaning up articles of schema user by fetching them using "users" fi
     }).then(function() {
     	ok(true, 'All users to deleted');
     	start();
-    }, function(data, values) {
+    }, function(data) {
     	if (!Appacitive.Users.current()) {
     		ok(false, 'User authentication failed: ' + JSON.stringify(data));
     	} else if (total === 0) {
     		ok(false, 'Could not fetch articles for schema user');
     	} else {
-    		var numFailures = total;
-			values.forEach(function(v) { if (v) --numFailures; });
+    		var numFailures = 0;
+			data.forEach(function(v) { if (v) ++numFailures; });
 			ok(false, 'Article delete failed for ' + numFailures + '/' + total +' articles');
     	}
     	start();
