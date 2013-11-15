@@ -23,44 +23,46 @@
 		    _initialized = true;
 		};
 
-		this.requestLogin = function(onSuccess, onError) {
+		this.requestLogin = function() {
 			if (!_initialized) throw new Error("Titanium Facebook module has not yet been initialized, or not yet loaded.");
-		    onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		    
+		    var promise = new Appacitive.Promise();
+
 			Ti.Facebook.addEventListener('login', function(e) {
 			    if (e.success) {
 			        _accessToken = Ti.Facebook.accessToken;
-			        if (typeof onSuccess === 'function') onSuccess({
+			        promise.fulfill({
 			        	id: e.data.id,
 		                access_token: Ti.Facebook.accessToken,
 		                expiration_date: Ti.Facebook.expirationDate
 			        });
 			    } else if (e.error) {
-			        if (typeof onError === 'function') onError();
+			        promise.reject();
 			    } else if (e.cancelled) {
-			        if (typeof onError === 'function') onError();
+			        promise.reject();
 			    }
 			});
 			Ti.Facebook.authorize();
+			return promise;
 		};
 
-		this.getCurrentUserInfo = function(onSuccess, onError) {
+		this.getCurrentUserInfo = function() {
 			if (!_initialized) throw new Error("Titanium Facebook module  has not yet been initialized, or not yet loaded.");
+			var promise = new Appacitive.Promise();
 
 			if (Ti.Facebook && _accessToken){
-				onSuccess = onSuccess || function(){};
-				onError = onError || function(){};
 				
 				Ti.Facebook.requestWithGraphPath('me', {}, 'GET', function(e) {
 				    if (e.success) {
-				        if (typeof onSuccess === 'function') onSuccess(e);
+				        promise.fulfill(e);
 				    } else {
-				        if (typeof onError === 'function') onError("Access token is invalid");
+				        promise.reject("Access token is invalid");
 				    }
 				});
 			} else {
-				onError("Either intialize Titanium Facebook module with your appid and appsecret or set accesstoken");
+				promise.reject("Either intialize Titanium Facebook module with your appid and appsecret or set accesstoken");
 			}
+			return promise;
 		};
 
 		this.accessToken = function() {
@@ -76,12 +78,10 @@
 			return 'https://graph.facebook.com/' + username + '/picture';
 		};
 
-		this.logout = function(onSuccess) {
-			onSuccess = onSuccess || function() {};
-			global.Appacitive.facebook.accessToken = "";
+		this.logout = function() {
 			_accessToken = "";
 			Ti.Facebook.logout();
-			if (typeof onSuccess === 'function') onSuccess();
+			return new Appacitive.Promise().fulfill();
 		};
 	};
 

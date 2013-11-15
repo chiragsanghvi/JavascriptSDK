@@ -207,53 +207,15 @@ var global = {};
 	  * @constructor
 	  */
 
-	var _XMLHttpRequest = null;
-
-	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
-
-	var _XDomainRequest = function(request) {
-		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
-		var xdr = new XDomainRequest();
-	    xdr.onload = function() {
-  			var response = xdr.responseText;
-			try {
-				var contentType = xdr.contentType;
-				if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
-					var jData = response;
-					if (!global.Appacitive.runtime.isBrowser) {
-						if (jData[0] != "{") {
-							jData = jData.substr(1, jData.length - 1);
-						}
-					}
-					response = JSON.parse(jData);
-				}
-			} catch(e) {}
-            promise.fulfill(response, this);       
-	    };
-	    xdr.onerror = xdr.ontimeout = function() {
-	       promise.reject(xdr);
-	    };
-	    xdr.onprogress = function() {};
-	    if (request.url.indexOf('?') === -1)
-            request.url = request.url + '?ua=ie';
-        else
-            request.url = request.url + '&ua=ie';
-
-	    xdr.open(request.method, request.url, true);
-	    xdr.send(request.data);
-		return promise
-	};
-
-
 	var _XMLHttp = function(request) {
 
 		if (!request.url) throw new Error("Please specify request url");
 		if (!request.method) request.method = 'GET' ;
 		if (!request.headers) request.headers = [];
 		var data = {};
-
-		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
 		
+		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
+
 		var doNotStringify = true;
 		request.headers.forEach(function(r){
 			if (r.key.toLowerCase() == 'content-type') {
@@ -269,15 +231,12 @@ var global = {};
 		else {
 			if (request.data) { 
 				data = request.data;
-				if (_type.isObject(request.data)) {
+				if (typeof request.data == 'object') {
 					try { data = JSON.stringify(data); } catch(e) {}
 				}
 			}
 		}
 
-		if (!request.onSuccess || !_type.isFunction(request.onSuccess)) request.onSuccess = function() {};
-	    if (!request.onError || !_type.isFunction(request.onError)) request.onError = function() {};
-	    
 	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
@@ -292,10 +251,8 @@ var global = {};
 							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
 							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 								var jData = response;
-								if (!global.Appacitive.runtime.isBrowser) {
-									if (jData[0] != "{") {
-										jData = jData.substr(1, jData.length - 1);
-									}
+								if (jData[0] != "{") {
+									jData = jData.substr(1, jData.length - 1);
 								}
 								response = JSON.parse(jData);
 							}
@@ -307,16 +264,12 @@ var global = {};
 		    	}
 		    };
 		    xhr.open(request.method, request.url, true);
-
 		    for (var x = 0; x < request.headers.length; x += 1)
 				xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
-			
 			if (!global.Appacitive.runtime.isBrowser)
 				xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
-		    
 		    xhr.send(data);
-
-		    return promise
+		    return xhr;
 		}
 	};
 
@@ -390,7 +343,7 @@ var global = {};
 					that.onError(request, xhr);
 				}
 			});
-		}
+		};
 
 		_super.send = function (request, callbacks, states) {
 			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
@@ -444,15 +397,13 @@ var global = {};
 
 			_buffer.enqueueRequest(request);
 
-			setTimeut(function(){
-				// notify the queue if the actual transport 
-				// is ready to send the requests
-				if (_inner.isOnline() && _paused === false) {
-					_buffer.notify();
-				}
-			}, 0);
-
-			return promise;
+			// notify the queue if the actual transport 
+			// is ready to send the requests
+			if (_inner.isOnline() && _paused === false) {
+				_buffer.notify();
+			}
+			
+			return request.promise;
 		};
 
 		// method used to clear the queue

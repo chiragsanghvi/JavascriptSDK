@@ -156,7 +156,7 @@
         /* Assign callbacks for task depending on its type (function/promise) */
         var defer = function(i) {
             var value;
-            var proc = task[i]
+            var proc = task[i];
             if (proc instanceof Promise || (proc && typeof proc.then === 'function')) {
                  setImmediate(function() {
                     /* If proc is a promise, then wait for fulfillment */

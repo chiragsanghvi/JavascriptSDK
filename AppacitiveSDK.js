@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Nov 15 12:35:56 IST 2013
+ * Build time 	: Fri Nov 15 15:18:22 IST 2013
  */
 "use strict";
 
@@ -443,7 +443,7 @@ var global = {};
 
 	    xdr.open(request.method, request.url, true);
 	    xdr.send(request.data);
-		return promise
+		return promise;
 	};
 
 
@@ -518,7 +518,7 @@ var global = {};
 		    
 		    xhr.send(data);
 
-		    return promise
+		    return promise;
 		}
 	};
 
@@ -592,7 +592,7 @@ var global = {};
 					that.onError(request, xhr);
 				}
 			});
-		}
+		};
 
 		_super.send = function (request, callbacks, states) {
 			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
@@ -1289,7 +1289,7 @@ var global = {};
         /* Assign callbacks for task depending on its type (function/promise) */
         var defer = function(i) {
             var value;
-            var proc = task[i]
+            var proc = task[i];
             if (proc instanceof Promise || (proc && typeof proc.then === 'function')) {
                  setImmediate(function() {
                     /* If proc is a promise, then wait for fulfillment */
@@ -1706,7 +1706,7 @@ Depends on  NOTHING
 
   		if (options.userToken) {
 
-			if (options.expiry == -1)  options.expiry = null 
+			if (options.expiry == -1)  options.expiry = null;
 			else if (!options.expiry)  options.expiry = 3600;
 
 			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
@@ -2276,13 +2276,13 @@ Depends on  NOTHING
 
     Appacitive.Filter = {
         Property: function(name) {
-            return new _propertyExpression(name)
+            return new _propertyExpression(name);
         },
         Aggregate: function(name) {
-            return new _aggregateExpression(name)
+            return new _aggregateExpression(name);
         },
         Attribute: function(name) {
-            return new _attributeExpression(name)
+            return new _attributeExpression(name);
         },
         Or: function() {
             return new _compoundFilter(_operators.or, arguments); 
@@ -2360,7 +2360,7 @@ Depends on  NOTHING
 		//define getter for isAscending
 		this.isAscending =  function() { 
 			if (arguments.length === 1) {
-				_isAscending = _type.isUndefined(arguments[0]) ? false : arguments[0];
+				_isAscending = (arguments[0] === undefined || arguments[0] == null) ? false : arguments[0];
 				return this;
 			}
 			return _isAscending; 
@@ -2539,7 +2539,7 @@ Depends on  NOTHING
 		this._setPaging = function(pi) {
 			if (pi) {
 				_pageQuery.pageNumber(pi.pagenumber);
-				_pageQuery.pageSize(pi.pagesize)
+				_pageQuery.pageSize(pi.pagesize);
 				
 				this.results = this.results || [];
 
@@ -3140,7 +3140,7 @@ Depends on  NOTHING
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
 			for (var property in article.__attributes) {
-				if (_type.isNullOrUndefined(article.__attributes[property])) {
+				if (article.__attributes[property] == null || article.__attributes[property] == undefined) {
 					changeSet[property] = null;
 					isDirty = true;
 				} else if (article.__attributes[property] != _snapshot.__attributes[property]) {
@@ -3225,7 +3225,7 @@ Depends on  NOTHING
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
 			for (var property in article) {
-				if (_type.isNullOrUndefined(article[property])) {
+				if (article[property] == null || article[property] == undefined) {
 					changeSet[property] = null;
 					isDirty = true;
 				} else if (article[property] != _snapshot[property]) {
@@ -3394,7 +3394,7 @@ Depends on  NOTHING
 
 			if(!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
 		 	
-		 	if (_type.isNullOrUndefined(value)) { article[key] = null;}
+		 	if (value == undefined || value == null) { article[key] = null;}
 		 	else if (_type.isString(value)) { article[key] = value; }
 		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { article[key] = value + ''; }
 		 	else if (_type.isObject(value)) {
@@ -3597,7 +3597,7 @@ Depends on  NOTHING
 						obj = obj.toJSON();
 						_atomicProps.forEach(function(p) {
 							var value = _types['integer'](obj[p.key]);
-							if (!value) value = 0
+							if (!value) value = 0;
 							that.set(p.key, value + p.amount);
 						});
 
@@ -3919,7 +3919,7 @@ Depends on  NOTHING
 	
 	// takes schea type and return a query for it
 	global.Appacitive.Article.findAll = function(options) {
-		return new global.Appacitive.Queries.FindAllQuery(options)
+		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
 })(global);
@@ -4137,22 +4137,22 @@ Depends on  NOTHING
 
 	//takes relation type and returns all connections for it
 	global.Appacitive.Connection.findAll = function(options) {
-		return new global.Appacitive.Queries.FindAllQuery(options)
+		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options) {
-		return new global.Appacitive.Queries.InterconnectsQuery(options)
+		return new global.Appacitive.Queries.InterconnectsQuery(options);
 	};
 
 	//takes 2 articleids and returns connections between them
 	global.Appacitive.Connection.getBetweenArticles = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options)
+		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype
 	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options)
+		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options);
 	};
 
 })(global);
@@ -4339,7 +4339,7 @@ Depends on  NOTHING
 		//method for linking twitter account to a user
 		global.Appacitive.User.prototype.linkTwitter = function(twitterObj, callbacks) {
 			
-			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking")
+			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
 			var payload = {
 				"authtype": "twitter",
@@ -4518,7 +4518,7 @@ Depends on  NOTHING
 
 		this.loginWithTwitter = function(twitterObj, callbacks) {
 			
-			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking")
+			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
 			var authRequest = {
 				"type": "twitter",
@@ -5288,7 +5288,7 @@ Depends on  NOTHING
 			    key = global.Appacitive.getAppPrefix(key);
 
 				_localStorage[key] = value;
-				return true;
+				return this;
 			};
 
 			this.get = function(key) {
@@ -5329,7 +5329,7 @@ Depends on  NOTHING
                 key = global.Appacitive.getAppPrefix(key);
 
                 _localStorage[key] = value;
-                return true;
+                return this;
             };
 
             this.get = function(key) {
@@ -5347,7 +5347,7 @@ Depends on  NOTHING
                 if (!key || _type.isString(key)) return;
                 key = global.Appacitive.getAppPrefix(key);
                 try { delete _localStorage[key]; } catch(e){}
-            }
+            };
         };
 
         global.Appacitive.localStorage = new A_LocalStorage();

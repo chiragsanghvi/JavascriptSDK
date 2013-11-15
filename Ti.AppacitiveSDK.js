@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Nov 15 12:35:56 IST 2013
+ * Build time 	: Fri Nov 15 15:18:22 IST 2013
  */
 "use strict";
 
@@ -409,53 +409,15 @@ var global = {};
 	  * @constructor
 	  */
 
-	var _XMLHttpRequest = null;
-
-	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
-
-	var _XDomainRequest = function(request) {
-		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
-		var xdr = new XDomainRequest();
-	    xdr.onload = function() {
-  			var response = xdr.responseText;
-			try {
-				var contentType = xdr.contentType;
-				if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
-					var jData = response;
-					if (!global.Appacitive.runtime.isBrowser) {
-						if (jData[0] != "{") {
-							jData = jData.substr(1, jData.length - 1);
-						}
-					}
-					response = JSON.parse(jData);
-				}
-			} catch(e) {}
-            promise.fulfill(response, this);       
-	    };
-	    xdr.onerror = xdr.ontimeout = function() {
-	       promise.reject(xdr);
-	    };
-	    xdr.onprogress = function() {};
-	    if (request.url.indexOf('?') === -1)
-            request.url = request.url + '?ua=ie';
-        else
-            request.url = request.url + '&ua=ie';
-
-	    xdr.open(request.method, request.url, true);
-	    xdr.send(request.data);
-		return promise
-	};
-
-
 	var _XMLHttp = function(request) {
 
 		if (!request.url) throw new Error("Please specify request url");
 		if (!request.method) request.method = 'GET' ;
 		if (!request.headers) request.headers = [];
 		var data = {};
-
-		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
 		
+		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
+
 		var doNotStringify = true;
 		request.headers.forEach(function(r){
 			if (r.key.toLowerCase() == 'content-type') {
@@ -471,15 +433,12 @@ var global = {};
 		else {
 			if (request.data) { 
 				data = request.data;
-				if (_type.isObject(request.data)) {
+				if (typeof request.data == 'object') {
 					try { data = JSON.stringify(data); } catch(e) {}
 				}
 			}
 		}
 
-		if (!request.onSuccess || !_type.isFunction(request.onSuccess)) request.onSuccess = function() {};
-	    if (!request.onError || !_type.isFunction(request.onError)) request.onError = function() {};
-	    
 	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
@@ -494,10 +453,8 @@ var global = {};
 							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
 							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 								var jData = response;
-								if (!global.Appacitive.runtime.isBrowser) {
-									if (jData[0] != "{") {
-										jData = jData.substr(1, jData.length - 1);
-									}
+								if (jData[0] != "{") {
+									jData = jData.substr(1, jData.length - 1);
 								}
 								response = JSON.parse(jData);
 							}
@@ -509,16 +466,12 @@ var global = {};
 		    	}
 		    };
 		    xhr.open(request.method, request.url, true);
-
 		    for (var x = 0; x < request.headers.length; x += 1)
 				xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
-			
 			if (!global.Appacitive.runtime.isBrowser)
 				xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
-		    
 		    xhr.send(data);
-
-		    return promise
+		    return xhr;
 		}
 	};
 
@@ -592,7 +545,7 @@ var global = {};
 					that.onError(request, xhr);
 				}
 			});
-		}
+		};
 
 		_super.send = function (request, callbacks, states) {
 			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
@@ -646,15 +599,13 @@ var global = {};
 
 			_buffer.enqueueRequest(request);
 
-			setTimeut(function(){
-				// notify the queue if the actual transport 
-				// is ready to send the requests
-				if (_inner.isOnline() && _paused === false) {
-					_buffer.notify();
-				}
-			}, 0);
-
-			return promise;
+			// notify the queue if the actual transport 
+			// is ready to send the requests
+			if (_inner.isOnline() && _paused === false) {
+				_buffer.notify();
+			}
+			
+			return request.promise;
 		};
 
 		// method used to clear the queue
@@ -757,7 +708,7 @@ var global = {};
     /**
      * @param {...string} var_args
      */
-    String.format = function (text, var_args) {
+    String.Format = function (text, var_args) {
         if (arguments.length <= 1) {
             return text;
         }
@@ -863,7 +814,7 @@ var global = {};
             emailServiceUrl: 'email',
             
             getSendEmailUrl: function() {
-                return String.format("{0}/send", this.emailServiceUrl);
+                return String.Format("{0}/send", this.emailServiceUrl);
             }
         };
         this.user = {
@@ -871,80 +822,80 @@ var global = {};
             userServiceUrl:  'user',
 
             getCreateUrl: function (fields) {
-                return String.format("{0}/create?fields={1}", this.userServiceUrl, _getFields(fields));
+                return String.Format("{0}/create?fields={1}", this.userServiceUrl, _getFields(fields));
             },
             getAuthenticateUserUrl: function () {
-                return String.format("{0}/authenticate", this.userServiceUrl);
+                return String.Format("{0}/authenticate", this.userServiceUrl);
             },
             getGetUrl: function (userId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
+                return String.Format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
             },
             getUserByTokenUrl: function(userToken) {
-                return String.format("{0}/me?useridtype=token&token={1}", this.userServiceUrl, userToken);
+                return String.Format("{0}/me?useridtype=token&token={1}", this.userServiceUrl, userToken);
             },
             getUserByUsernameUrl: function(username) {
-                return String.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
+                return String.Format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
             },
             getUpdateUrl: function (userId, fields, revision) {
                 if (!revision) {
-                    return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
+                    return String.Format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
                 } else {
-                    return String.format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
+                    return String.Format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
                 }
             },
             getDeleteUrl: function (userId) {
-                return String.format("{0}/{1}", this.userServiceUrl, userId);
+                return String.Format("{0}/{1}", this.userServiceUrl, userId);
             },
             getGetAllLinkedAccountsUrl: function(userId) {
-                var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
+                var url = String.Format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
                 return url;
             },
             getValidateTokenUrl: function(token) {
-                return String.format("{0}/validate?userToken={1}", this.userServiceUrl, token);
+                return String.Format("{0}/validate?userToken={1}", this.userServiceUrl, token);
             },
             getInvalidateTokenUrl: function(token) {
-                return String.format("{0}/invalidate?userToken={1}", this.userServiceUrl, token);
+                return String.Format("{0}/invalidate?userToken={1}", this.userServiceUrl, token);
             },
             getSendResetPasswordEmailUrl: function() {
-                return String.format("{0}/sendresetpasswordemail", this.userServiceUrl);
+                return String.Format("{0}/sendresetpasswordemail", this.userServiceUrl);
             },
             getUpdatePasswordUrl: function(userId) {
-                return String.format("{0}/{1}/changepassword", this.userServiceUrl, userId);
+                return String.Format("{0}/{1}/changepassword", this.userServiceUrl, userId);
             },
             getLinkAccountUrl: function(userId) {
-                return String.format("{0}/{1}/link", this.userServiceUrl, userId);
+                return String.Format("{0}/{1}/link", this.userServiceUrl, userId);
             },
             getDelinkAccountUrl: function(userId, type){
-                return String.format("{0}/{1}/{2}/delink", this.userServiceUrl, userId, type);
+                return String.Format("{0}/{1}/{2}/delink", this.userServiceUrl, userId, type);
             },
             getCheckinUrl: function(userId, lat, lng) {
-                return String.format("{0}/{1}/chekin?lat={2}&lng={3}", this.userServiceUrl, userId, lat, lng);
+                return String.Format("{0}/{1}/chekin?lat={2}&lng={3}", this.userServiceUrl, userId, lat, lng);
             },
             getResetPasswordUrl: function(token) {
-                return String.format("{0}/resetpassword?token={1}", this.userServiceUrl, token);
+                return String.Format("{0}/resetpassword?token={1}", this.userServiceUrl, token);
             },
             getValidateResetPasswordUrl: function(token) {
-                return String.format("{0}/validateresetpasswordtoken?token={1}", this.userServiceUrl, token);
+                return String.Format("{0}/validateresetpasswordtoken?token={1}", this.userServiceUrl, token);
             }
         };
         this.device = {
             deviceServiceUrl: 'device',
 
             getCreateUrl: function (fields) {
-                return String.format("{0}/register?fields={1}", this.deviceServiceUrl, _getFields(fields));
+                return String.Format("{0}/register?fields={1}", this.deviceServiceUrl, _getFields(fields));
             },
             getGetUrl: function (deviceId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
+                return String.Format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
             getUpdateUrl: function (deviceId, fields, revision) {
                 if (!revision) {
-                    return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
+                    return String.Format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
                 } else {
-                    return String.format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
+                    return String.Format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
                 }
             },
             getDeleteUrl: function (deviceId) {
-                return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
+                return String.Format("{0}/{1}", this.deviceServiceUrl, deviceId);
             }
         };
         this.article = {
@@ -953,7 +904,7 @@ var global = {};
             getSearchAllUrl: function (schemaName, queryParams, pageSize) {
                 var url = '';
 
-                url = String.format('{0}/search/{1}/all', this.articleServiceUrl, schemaName);
+                url = String.Format('{0}/search/{1}/all', this.articleServiceUrl, schemaName);
 
                 if (pageSize)
                     url = url + '?psize=' + pageSize;
@@ -968,32 +919,32 @@ var global = {};
                 return url;
             },
             getProjectionQueryUrl: function() {
-                return String.format('{0}/search/project', this.articleServiceUrl);
+                return String.Format('{0}/search/project', this.articleServiceUrl);
             },
             getPropertiesSearchUrl: function (schemaName, query) {
-                return String.format('{0}/search/{1}/all?properties={2}', this.articleServiceUrl, schemaName, query);
+                return String.Format('{0}/search/{1}/all?properties={2}', this.articleServiceUrl, schemaName, query);
             },
             getMultiGetUrl: function (schemaName, articleIds, fields) {
-                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.articleServiceUrl, schemaName, articleIds, _getFields(fields));
+                return String.Format('{0}/{1}/multiGet/{2}?fields={3}', this.articleServiceUrl, schemaName, articleIds, _getFields(fields));
             },
             getCreateUrl: function (schemaName, fields) {
-                return String.format('{0}/{1}?fields={2}', this.articleServiceUrl, schemaName, _getFields(fields));
+                return String.Format('{0}/{1}?fields={2}', this.articleServiceUrl, schemaName, _getFields(fields));
             },
             getGetUrl: function (schemaName, articleId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
+                return String.Format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
             },
             getUpdateUrl: function (schemaName, articleId, fields, revision) {
                 if (!revision) {
-                    return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
+                    return String.Format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
                 } else {
-                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.articleServiceUrl, schemaName, articleId, _getFields(fields), revision);
+                    return String.Format('{0}/{1}/{2}?fields={3}&revision={4}', this.articleServiceUrl, schemaName, articleId, _getFields(fields), revision);
                 }
             },
             getDeleteUrl: function (schemaName, articleId) {
-                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+                return String.Format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
             },
             getMultiDeleteUrl: function (schemaName) {
-                return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);
+                return String.Format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);
             }
         };
         this.connection = {
@@ -1001,31 +952,31 @@ var global = {};
             connectionServiceUrl: 'connection',
 
             getGetUrl: function (relationName, connectionId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
+                return String.Format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
             },
             getMultiGetUrl: function (relationName, connectionIds, fields) {
-                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionIds, _getFields(fields));
+                return String.Format('{0}/{1}/multiGet/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionIds, _getFields(fields));
             },
             getCreateUrl: function (relationName, fields) {
-                return String.format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, _getFields(fields));
+                return String.Format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, _getFields(fields));
             },
             getUpdateUrl: function (relationName, connectionId, fields, revision) {
                 if (!revision) {
-                    return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
+                    return String.Format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
                 } else {
-                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields), revision);
+                    return String.Format('{0}/{1}/{2}?fields={3}&revision={4}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields), revision);
                 }
             },
             getDeleteUrl: function (relationName, connectionId) {
-                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
+                return String.Format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
             },
             getMultiDeleteUrl: function (relationName) {
-                return String.format('{0}/{1}/bulkdelete', this.connectionServiceUrl, relationName);
+                return String.Format('{0}/{1}/bulkdelete', this.connectionServiceUrl, relationName);
             },
             getSearchByArticleUrl: function (relationName, articleId, label, queryParams) {
                 var url = '';
 
-                url = String.format('{0}/{1}/find/all?label={2}&articleid={3}', this.connectionServiceUrl, relationName, label, articleId);
+                url = String.Format('{0}/{1}/find/all?label={2}&articleid={3}', this.connectionServiceUrl, relationName, label, articleId);
                 // url = url + '?psize=1000';
                 if (typeof (queryParams) !== 'undefined' && queryParams.length > 0) {
                     for (var i = 0; i < queryParams.length; i = i + 1) {
@@ -1036,7 +987,7 @@ var global = {};
             },
             getConnectedArticles: function (relationName, articleId, queryParams) {
                 var url = '';
-                url = String.format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationName, articleId);
+                url = String.Format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationName, articleId);
                 if (queryParams && queryParams.length && queryParams.length > 0) {
                     for (var x = 0; x < queryParams.length; x += 1) {
                         if (x === 0) {
@@ -1049,10 +1000,10 @@ var global = {};
                 return url;
             },
             getInterconnectsUrl: function () {
-                return String.format('{0}/interconnects', this.connectionServiceUrl);
+                return String.Format('{0}/interconnects', this.connectionServiceUrl);
             },
             getPropertiesSearchUrl: function (relationName, query) {
-                return String.format('{0}/{1}/find/all?properties=', this.connectionServiceUrl, relationName, query);
+                return String.Format('{0}/{1}/find/all?properties=', this.connectionServiceUrl, relationName, query);
             }
         };
         this.cannedList = {
@@ -1060,7 +1011,7 @@ var global = {};
             cannedListServiceUrl: 'list',
 
             getGetListItemsUrl: function (cannedListId) {
-                return String.format('{0}/list/{1}/contents', this.cannedListServiceUrl, cannedListId);
+                return String.Format('{0}/list/{1}/contents', this.cannedListServiceUrl, cannedListId);
             }
         };
         this.push = {
@@ -1068,15 +1019,15 @@ var global = {};
             pushServiceUrl: 'push',
 
             getPushUrl: function () {
-                return String.format('{0}/', this.pushServiceUrl);
+                return String.Format('{0}/', this.pushServiceUrl);
             },
 
             getGetNotificationUrl: function (notificationId) {
-                return String.format('{0}/notification/{1}', this.pushServiceUrl, notificationId);
+                return String.Format('{0}/notification/{1}', this.pushServiceUrl, notificationId);
             },
 
             getGetAllNotificationsUrl: function (pagingInfo) {
-                return String.format('{0}/getAll?psize={1}&pnum={2}', this.pushServiceUrl, pagingInfo.psize, pagingInfo.pnum);
+                return String.Format('{0}/getAll?psize={1}&pnum={2}', this.pushServiceUrl, pagingInfo.psize, pagingInfo.pnum);
             }
         };
         this.file = {
@@ -1085,22 +1036,22 @@ var global = {};
 
             getUploadUrl: function (contentType, fileName) {
                 if (fileName && fileName.length > 0) {
-                    return String.format('{0}/uploadurl?contenttype={1}&expires=20&filename={2}', this.fileServiceUrl, escape(contentType), escape(fileName));
+                    return String.Format('{0}/uploadurl?contenttype={1}&expires=20&filename={2}', this.fileServiceUrl, escape(contentType), escape(fileName));
                 } else {
-                    return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
+                    return String.Format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
                 }
             },
 
             getUpdateUrl: function (fileId, contentType) {
-                return String.format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contentType));
+                return String.Format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contentType));
             },
 
             getDownloadUrl: function (fileId, expiryTime) {
-                return String.format('{0}/download/{1}?expires={2}', this.fileServiceUrl, fileId, expiryTime);
+                return String.Format('{0}/download/{1}?expires={2}', this.fileServiceUrl, fileId, expiryTime);
             },
 
             getDeleteUrl: function (fileId) {
-                return String.format('{0}/delete/{1}', this.fileServiceUrl, fileId);
+                return String.Format('{0}/delete/{1}', this.fileServiceUrl, fileId);
             }
         };
         this.query = {
@@ -1291,7 +1242,7 @@ var global = {};
         /* Assign callbacks for task depending on its type (function/promise) */
         var defer = function(i) {
             var value;
-            var proc = task[i]
+            var proc = task[i];
             if (proc instanceof Promise || (proc && typeof proc.then === 'function')) {
                  setImmediate(function() {
                     /* If proc is a promise, then wait for fulfillment */
@@ -1708,7 +1659,7 @@ Depends on  NOTHING
 
   		if (options.userToken) {
 
-			if (options.expiry == -1)  options.expiry = null 
+			if (options.expiry == -1)  options.expiry = null;
 			else if (!options.expiry)  options.expiry = 3600;
 
 			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
@@ -1786,7 +1737,7 @@ Depends on  NOTHING
         };
 
         this.getValue = function() {
-            return String.format("{0},{1}", lat, lng);
+            return String.Format("{0},{1}", lat, lng);
         };
 
         this.toString = function() { return this.getValue(); };
@@ -1814,7 +1765,7 @@ Depends on  NOTHING
         };
 
         this.toString = function() {
-             return String.format("{0}{1} {2} {3}",
+             return String.Format("{0}{1} {2} {3}",
                     this.getFieldType(),
                     this.field.toLowerCase(),
                     this.operator,
@@ -1844,7 +1795,7 @@ Depends on  NOTHING
         this.toString = function() {
             var values = [];
             for (var i = 0; i < this.value.length; i = i + 1) {
-                values.push(String.format("{0}{1} {2} {3}",
+                values.push(String.Format("{0}{1} {2} {3}",
                             this.getFieldType(),
                             this.field.toLowerCase(),
                             this.operator,
@@ -1872,7 +1823,7 @@ Depends on  NOTHING
         delete this.value;
 
         this.toString = function() {
-             return String.format("{0}{1} {2} ({3},{4})",
+             return String.Format("{0}{1} {2} ({3},{4})",
                     this.getFieldType(),
                     this.field.toLowerCase(),
                     this.operator,
@@ -1901,7 +1852,7 @@ Depends on  NOTHING
         this.distance = options.distance || 5;
 
         this.toString = function() {
-             return String.format("{0}{1} {2} {3},{4} {5}",
+             return String.Format("{0}{1} {2} {3},{4} {5}",
                     this.getFieldType(),
                     this.field.toLowerCase(),
                     this.operator,
@@ -1937,7 +1888,7 @@ Depends on  NOTHING
         };
 
         this.toString = function() {
-             return String.format("{0}{1} {2} {3}",
+             return String.Format("{0}{1} {2} {3}",
                     this.getFieldType(),
                     this.field.toLowerCase(),
                     this.operator,
@@ -1959,7 +1910,7 @@ Depends on  NOTHING
         this.operator = options.operator;
         
         this.toString = function() {
-             return String.format("{0}('{1}')", this.operator, this.tags.join(','));
+             return String.Format("{0}('{1}')", this.operator, this.tags.join(','));
         };
     };
 
@@ -1984,7 +1935,7 @@ Depends on  NOTHING
             var value = "(";
             this.innerFilters.forEach(function(f) {
                 if (value.length === 1) value += ' ' + f.toString();
-                else value += String.format(' {0} {1} ', op, f.toString());
+                else value += String.Format(' {0} {1} ', op, f.toString());
             });
             value += ")";
             return value;
@@ -2278,13 +2229,13 @@ Depends on  NOTHING
 
     Appacitive.Filter = {
         Property: function(name) {
-            return new _propertyExpression(name)
+            return new _propertyExpression(name);
         },
         Aggregate: function(name) {
-            return new _aggregateExpression(name)
+            return new _aggregateExpression(name);
         },
         Attribute: function(name) {
-            return new _attributeExpression(name)
+            return new _attributeExpression(name);
         },
         Or: function() {
             return new _compoundFilter(_operators.or, arguments); 
@@ -2362,7 +2313,7 @@ Depends on  NOTHING
 		//define getter for isAscending
 		this.isAscending =  function() { 
 			if (arguments.length === 1) {
-				_isAscending = _type.isUndefined(arguments[0]) ? false : arguments[0];
+				_isAscending = (arguments[0] === undefined || arguments[0] == null) ? false : arguments[0];
 				return this;
 			}
 			return _isAscending; 
@@ -2541,7 +2492,7 @@ Depends on  NOTHING
 		this._setPaging = function(pi) {
 			if (pi) {
 				_pageQuery.pageNumber(pi.pagenumber);
-				_pageQuery.pageSize(pi.pagesize)
+				_pageQuery.pageSize(pi.pagesize);
 				
 				this.results = this.results || [];
 
@@ -3142,7 +3093,7 @@ Depends on  NOTHING
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
 			for (var property in article.__attributes) {
-				if (_type.isNullOrUndefined(article.__attributes[property])) {
+				if (article.__attributes[property] == null || article.__attributes[property] == undefined) {
 					changeSet[property] = null;
 					isDirty = true;
 				} else if (article.__attributes[property] != _snapshot.__attributes[property]) {
@@ -3227,7 +3178,7 @@ Depends on  NOTHING
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
 			for (var property in article) {
-				if (_type.isNullOrUndefined(article[property])) {
+				if (article[property] == null || article[property] == undefined) {
 					changeSet[property] = null;
 					isDirty = true;
 				} else if (article[property] != _snapshot[property]) {
@@ -3396,7 +3347,7 @@ Depends on  NOTHING
 
 			if(!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
 		 	
-		 	if (_type.isNullOrUndefined(value)) { article[key] = null;}
+		 	if (value == undefined || value == null) { article[key] = null;}
 		 	else if (_type.isString(value)) { article[key] = value; }
 		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { article[key] = value + ''; }
 		 	else if (_type.isObject(value)) {
@@ -3599,7 +3550,7 @@ Depends on  NOTHING
 						obj = obj.toJSON();
 						_atomicProps.forEach(function(p) {
 							var value = _types['integer'](obj[p.key]);
-							if (!value) value = 0
+							if (!value) value = 0;
 							that.set(p.key, value + p.amount);
 						});
 
@@ -3921,7 +3872,7 @@ Depends on  NOTHING
 	
 	// takes schea type and return a query for it
 	global.Appacitive.Article.findAll = function(options) {
-		return new global.Appacitive.Queries.FindAllQuery(options)
+		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
 })(global);
@@ -4139,22 +4090,22 @@ Depends on  NOTHING
 
 	//takes relation type and returns all connections for it
 	global.Appacitive.Connection.findAll = function(options) {
-		return new global.Appacitive.Queries.FindAllQuery(options)
+		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options) {
-		return new global.Appacitive.Queries.InterconnectsQuery(options)
+		return new global.Appacitive.Queries.InterconnectsQuery(options);
 	};
 
 	//takes 2 articleids and returns connections between them
 	global.Appacitive.Connection.getBetweenArticles = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options)
+		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype
 	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options)
+		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options);
 	};
 
 })(global);
@@ -4341,7 +4292,7 @@ Depends on  NOTHING
 		//method for linking twitter account to a user
 		global.Appacitive.User.prototype.linkTwitter = function(twitterObj, callbacks) {
 			
-			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking")
+			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
 			var payload = {
 				"authtype": "twitter",
@@ -4520,7 +4471,7 @@ Depends on  NOTHING
 
 		this.loginWithTwitter = function(twitterObj, callbacks) {
 			
-			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking")
+			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
 			var authRequest = {
 				"type": "twitter",
@@ -5216,7 +5167,7 @@ Depends on  NOTHING
   };
 
   global.Appacitive.Date.toISODate = function(date) {
-    if (date instanceof Date) return String.format("{0}-{1}-{2}", date.getFullYear(), pad((date.getMonth() + 1)), pad(date.getDate()));
+    if (date instanceof Date) return String.Format("{0}-{1}-{2}", date.getFullYear(), pad((date.getMonth() + 1)), pad(date.getDate()));
     throw new Error("Invalid date provided Appacitive.Date.toISODate method");
   };
 
@@ -5230,7 +5181,7 @@ Depends on  NOTHING
            else if (n < 1000000) return n + '0';
            return n;
     };
-    if (date instanceof Date) return String.format("{0}:{1}:{2}.{3}", pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds()), padMilliseconds(date.getMilliseconds()));
+    if (date instanceof Date) return String.Format("{0}:{1}:{2}.{3}", pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds()), padMilliseconds(date.getMilliseconds()));
     throw new Error("Invalid date provided Appacitive.Date.toISOTime method");
   };
 
@@ -5288,7 +5239,7 @@ Depends on  NOTHING
 		    key = global.Appacitive.getAppPrefix(key);
 
 			_localStorage.setString(key, value);
-			return true;
+			return this;
 		};
 
 		this.get = function(key) {
@@ -5313,7 +5264,7 @@ Depends on  NOTHING
 			if (!key) return;
 			key = global.Appacitive.getAppPrefix(key);
 			try { _localStorage.removeProperty(key); } catch(e){}
-		}
+		};
 	};
 
 	global.Appacitive.localStorage = new A_LocalStorage();

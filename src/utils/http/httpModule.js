@@ -241,7 +241,7 @@ var global = {};
 
 	    xdr.open(request.method, request.url, true);
 	    xdr.send(request.data);
-		return promise
+		return promise;
 	};
 
 
@@ -316,7 +316,7 @@ var global = {};
 		    
 		    xhr.send(data);
 
-		    return promise
+		    return promise;
 		}
 	};
 
@@ -390,7 +390,7 @@ var global = {};
 					that.onError(request, xhr);
 				}
 			});
-		}
+		};
 
 		_super.send = function (request, callbacks, states) {
 			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");

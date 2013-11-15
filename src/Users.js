@@ -181,7 +181,7 @@
 		//method for linking twitter account to a user
 		global.Appacitive.User.prototype.linkTwitter = function(twitterObj, callbacks) {
 			
-			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking")
+			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
 			var payload = {
 				"authtype": "twitter",
@@ -360,7 +360,7 @@
 
 		this.loginWithTwitter = function(twitterObj, callbacks) {
 			
-			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking")
+			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
 			var authRequest = {
 				"type": "twitter",

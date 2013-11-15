@@ -59,7 +59,7 @@
 		//define getter for isAscending
 		this.isAscending =  function() { 
 			if (arguments.length === 1) {
-				_isAscending = _type.isUndefined(arguments[0]) ? false : arguments[0];
+				_isAscending = (arguments[0] === undefined || arguments[0] == null) ? false : arguments[0];
 				return this;
 			}
 			return _isAscending; 
@@ -238,7 +238,7 @@
 		this._setPaging = function(pi) {
 			if (pi) {
 				_pageQuery.pageNumber(pi.pagenumber);
-				_pageQuery.pageSize(pi.pagesize)
+				_pageQuery.pageSize(pi.pagesize);
 				
 				this.results = this.results || [];
 

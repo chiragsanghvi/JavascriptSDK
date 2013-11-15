@@ -212,22 +212,22 @@
 
 	//takes relation type and returns all connections for it
 	global.Appacitive.Connection.findAll = function(options) {
-		return new global.Appacitive.Queries.FindAllQuery(options)
+		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options) {
-		return new global.Appacitive.Queries.InterconnectsQuery(options)
+		return new global.Appacitive.Queries.InterconnectsQuery(options);
 	};
 
 	//takes 2 articleids and returns connections between them
 	global.Appacitive.Connection.getBetweenArticles = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options)
+		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype
 	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options)
+		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options);
 	};
 
 })(global);

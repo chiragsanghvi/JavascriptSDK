@@ -519,13 +519,13 @@
 
     Appacitive.Filter = {
         Property: function(name) {
-            return new _propertyExpression(name)
+            return new _propertyExpression(name);
         },
         Aggregate: function(name) {
-            return new _aggregateExpression(name)
+            return new _aggregateExpression(name);
         },
         Attribute: function(name) {
-            return new _attributeExpression(name)
+            return new _attributeExpression(name);
         },
         Or: function() {
             return new _compoundFilter(_operators.or, arguments); 

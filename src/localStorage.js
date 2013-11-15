@@ -20,7 +20,7 @@
 			    key = global.Appacitive.getAppPrefix(key);
 
 				_localStorage[key] = value;
-				return true;
+				return this;
 			};
 
 			this.get = function(key) {
@@ -61,7 +61,7 @@
                 key = global.Appacitive.getAppPrefix(key);
 
                 _localStorage[key] = value;
-                return true;
+                return this;
             };
 
             this.get = function(key) {
@@ -79,7 +79,7 @@
                 if (!key || _type.isString(key)) return;
                 key = global.Appacitive.getAppPrefix(key);
                 try { delete _localStorage[key]; } catch(e){}
-            }
+            };
         };
 
         global.Appacitive.localStorage = new A_LocalStorage();

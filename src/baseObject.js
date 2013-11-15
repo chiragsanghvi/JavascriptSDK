@@ -118,7 +118,7 @@
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
 			for (var property in article.__attributes) {
-				if (_type.isNullOrUndefined(article.__attributes[property])) {
+				if (article.__attributes[property] == null || article.__attributes[property] == undefined) {
 					changeSet[property] = null;
 					isDirty = true;
 				} else if (article.__attributes[property] != _snapshot.__attributes[property]) {
@@ -203,7 +203,7 @@
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
 			for (var property in article) {
-				if (_type.isNullOrUndefined(article[property])) {
+				if (article[property] == null || article[property] == undefined) {
 					changeSet[property] = null;
 					isDirty = true;
 				} else if (article[property] != _snapshot[property]) {
@@ -372,7 +372,7 @@
 
 			if(!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
 		 	
-		 	if (_type.isNullOrUndefined(value)) { article[key] = null;}
+		 	if (value == undefined || value == null) { article[key] = null;}
 		 	else if (_type.isString(value)) { article[key] = value; }
 		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { article[key] = value + ''; }
 		 	else if (_type.isObject(value)) {
@@ -575,7 +575,7 @@
 						obj = obj.toJSON();
 						_atomicProps.forEach(function(p) {
 							var value = _types['integer'](obj[p.key]);
-							if (!value) value = 0
+							if (!value) value = 0;
 							that.set(p.key, value + p.amount);
 						});
 

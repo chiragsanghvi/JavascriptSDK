@@ -138,7 +138,7 @@
 	
 	// takes schea type and return a query for it
 	global.Appacitive.Article.findAll = function(options) {
-		return new global.Appacitive.Queries.FindAllQuery(options)
+		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
 })(global);
