@@ -8,37 +8,35 @@
 			
 			if (!options) throw new Error("Please specify push options");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request =  new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getPushUrl();
-
-			request.method = 'post';
-			request.data = options;
-
-			request.onSuccess = function(d) {
-				promise.fulfill(d.id);
-			};
-			request.promise = promise;
-			request.entity = options; 
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'push',
+				op: 'getPushUrl',
+				callbacks: callbacks,
+				data: options,
+				entity: options,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.id);
+				}
+			});
+			return request.send();
 		};
 
 		this.getNotification = function(notificationId, callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			if (!notificationId) throw new Error("Please specify notification id");
 
-			var request =  new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getGetNotificationUrl(notificationId);
-
-			request.method = 'get';
-
-			request.onSuccess = function(d) {
-				promise.fulfill(d.pushnotification);
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'push',
+				op: 'getGetNotificationUrl',
+				args: [notificationId],
+				callbacks: callbacks,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.pushnotification);
+				}
+			});
+			return request.send();
 		};
 
 		this.getAllNotifications = function(pagingInfo, callbacks) {
@@ -50,18 +48,17 @@
 				pagingInfo.psize = pagingInfo.psize || 20;
 			}
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request =  new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getGetAllNotificationsUrl(pagingInfo);
-
-			request.method = 'get';
-
-			request.onSuccess = function(d) {
-				promise.fulfill(d.pushnotifications, d.paginginfo);
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'push',
+				op: 'getGetAllNotificationsUrl',
+				args: [pagingInfo],
+				callbacks: callbacks,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.pushnotifications, d.paginginfo);
+				}
+			});
+			return request.send();
 		};
 
 	};

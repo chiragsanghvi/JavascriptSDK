@@ -18,51 +18,52 @@
 			if (!oldPassword || !_type.isString(oldPassword) || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
 			if (!newPassword || !_type.isString(newPassword) || newPassword.length === 0) throw new Error("Please specify valid newPassword");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUpdatePasswordUrl(userId);
-			request.method = 'post';
-			request.data = updatedPasswordOptions;
-			var that = this;
-
-			request.onSuccess = function(a) {
-				promise.fulfill(that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+			
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getUpdatePasswordUrl',
+				args: [userId],
+				callbacks: callbacks,
+				data: updatedPasswordOptions,
+				entity: this,
+				onSuccess: function(data) {
+					request.promise.fulfill(that);
+				}
+			});
+			return request.send();
 		};
 
 		var _link = function(link, callbacks) {
 			var userId = this.get('__id');
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			if (!this.get('__id')) {
 				this.set('__link', link);
-				promise.fulfill(this);
-				return promise;
+				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this);
 			}
 
 			var that = this;
 
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getLinkAccountUrl(userId);
-			request.method = 'post';
-			request.data = link;
-			request.onSuccess = function(a) {
-				var links = that.get('__link');
-				if (!_type.isArray(links)) {
-					links = (links) ? [links] : [];
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getLinkAccountUrl',
+				args: [userId],
+				callbacks: callbacks,
+				data: link,
+				entity: this,
+				onSuccess: function(data) {
+					var links = that.get('__link');
+					if (!_type.isArray(links)) {
+						links = (links) ? [links] : [];
+					}
+					links.push(link);
+					that.copy({__link: links }, true);
+					request.promise.fulfill(that);
 				}
-				links.push(link);
-				that.copy({__link: links }, true);
-				promise.fulfill(that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
 		this.setCurrentUser = function(user, token, expiry) {
@@ -119,27 +120,29 @@
 		//method for getting all linked accounts
 		global.Appacitive.User.prototype.getAllLinkedAccounts = function(callbacks) {
 			var userId = this.get('__id');
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 			
 			if (!userId || !_type.isString(userId) || userId.length === 0) {
-				promise.fulfill(this.linkedAccounts(), this);
-				return promise;
+				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this.linkedAccounts(), this);
 			}
 
 			var that = this;
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getGetAllLinkedAccountsUrl(userId);
-			request.method = 'get';
-			request.onSuccess = function(a) {
-				var accounts = a.identities || []; 
-				if (accounts.length > 0) that.set('__link', accounts);
-				else that.set('__link', null);
-				
-				promise.fulfill(accounts, that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'user',
+				op: 'getGetAllLinkedAccountsUrl',
+				args: [userId],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function() {
+					var accounts = a.identities || []; 
+					if (accounts.length > 0) that.set('__link', accounts);
+					else that.set('__link', null);
+					
+					request.promise.fulfill(accounts, that);
+				}
+			});
+			return request.send();
 		};
 
 		global.Appacitive.User.prototype.checkin = function(coords, callbacks) {
@@ -149,19 +152,20 @@
 			}
 			if (!coords || !(coords instanceof global.Appacitive.GeoCoord)) throw new Error("Invalid coordinates provided");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			var that = this;
 
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getCheckinUrl(userId, coords.lat, coords.lng);
-			request.method = 'post';
-			request.onSuccess = function(a) {
-				promise.fulfill(accounts, that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getCheckinUrl',
+				args: [userId, coords.lat, coords.lngerId],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function() {
+					request.promise.fulfill(that);
+				}
+			});
+			return request.send();
 		};
 
 		//method for linking facebook account to a user
@@ -204,8 +208,6 @@
 
 			var userId = this.get('__id');
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			if (!this.get('__id')) {
 				this.set('__link', null);
 				promise.fulfill(this);
@@ -214,34 +216,37 @@
 
 			var that = this;
 
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getLinkAccountUrl(userId, name);
-			request.method = 'post';
-			request.onSuccess = function(a) {
-				var accounts = that.get('__link');
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getDelinkAccountUrl',
+				args: [userId, name],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function(a) {
+					var accounts = that.get('__link');
 			
-				if (!accounts) accounts = [];
-				else if (!_type.isArray(accounts)) accounts = [accounts];
+					if (!accounts) accounts = [];
+					else if (!_type.isArray(accounts)) accounts = [accounts];
 
-				if (accounts.length >= 0) {
-					var ind = null;
-					accounts.forEach(function(a, i) {
-						if (a.name == name.toLowerCase()) {
-							ind = i;
-							return;
-						}
-					});
-					if (ind != null) accounts.splice(ind, 1);
-					that.copy({ __link: accounts }, true);
-				} else {
-					that.copy({ __link: [] }, true);
+					if (accounts.length >= 0) {
+						var ind = null;
+						accounts.forEach(function(a, i) {
+							if (a.name == name.toLowerCase()) {
+								ind = i;
+								return;
+							}
+						});
+						if (ind != null) accounts.splice(ind, 1);
+						that.copy({ __link: accounts }, true);
+					} else {
+						that.copy({ __link: [] }, true);
+					}
+
+					request.promise.fulfill(that);
 				}
-
-				promise.fulfill(that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
 		global.Appacitive.User.prototype.clone = function() {
@@ -309,25 +314,26 @@
 		//authenticate user with authrequest that contains username , password and expiry
 		this.authenticateUser = function(authRequest, callbacks, provider) {
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
-			var request = new global.Appacitive.HttpRequest();
-			request.method = 'post';
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
-			request.data = authRequest;
-			request.onSuccess = function(data) {
-				if (data && data.user) {
-					if (provider) data.user.__authType = provider;
-					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					promise.fulfill({ user : _authenticatedUser, token: data.token });
-				} else {
-					promise.reject(data.status);
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getAuthenticateUserUrl',
+				callbacks: callbacks,
+				data: authRequest,
+				onSuccess: function(data) {
+					if (data && data.user) {
+						if (provider) data.user.__authType = provider;
+						that.setCurrentUser(data.user, data.token, authRequest.expiry);
+						request.promise.fulfill({ user : _authenticatedUser, token: data.token });
+					} else {
+						request.promise.reject(data.status);
+					}
 				}
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
 		//An overrride for user login with username and password directly
@@ -413,30 +419,30 @@
 			return promise;
 		};
 
-		var _getUserByIdType = function(url, callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-			var request = new global.Appacitive.HttpRequest();
-			request.url = url;
-			request.method = 'get';
-			request.onSuccess = function(data) {
-				if (data && data.user) promise.fulfill(new global.Appacitive.User(data.user));
-				else promise.reject(data.status);
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request);
+		var _getUserByIdType = function(op, args, callbacks) {
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'user',
+				op: op,
+				callbacks: callbacks,
+				args: args,
+				onSuccess: function(data) {
+					if (data && data.user) request.promise.fulfill(new global.Appacitive.User(data.user));
+					else request.promise.reject(data.status);
+				}
+			});
+			return request.send();
 		};
 
 		this.getUserByToken = function(token, callbacks) {
 			if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByTokenUrl(token);
 			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
-			return _getUserByIdType(url, callbacks);
+			return _getUserByIdType("getUserByTokenUrl", [token], callbacks);
 		};
 
 		this.getUserByUsername = function(username, callbacks) {
 			if (!username || !_type.isString(username) || username.length === 0) throw new Error("Please specify valid username");
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByUsernameUrl(username);
-			return _getUserByIdType(url, callbacks);
+			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
 		};
 
 		this.logout = function(callback, avoidApiCall) {
@@ -450,18 +456,19 @@
 			if (!username || !_type.isString(username)  || username.length === 0) throw new Error("Please specify valid username");
 			if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			var passwordResetOptions = { username: username, subject: subject };
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getSendResetPasswordEmailUrl();
-			request.method = 'post';
-			request.data = passwordResetOptions;
-			request.onSuccess = function() {
-				promise.fulfill();
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request); 
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getSendResetPasswordEmailUrl',
+				callbacks: callbacks,
+				data: passwordResetOptions,
+				onSuccess: function() {
+					request.promise.fulfill();
+				}
+			});
+			return request.send();
 		};
 
 		this.resetPassword = function(token, newPassword, callbacks) {
@@ -469,34 +476,36 @@
 			if (!token) throw new Error("Please specify token");
 			if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getResetPasswordUrl(token);
-			request.method = 'post';
-			request.data = { newpassword: newPassword };
-			request.onSuccess = function(a) {
-				promise.fulfill();
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request); 
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getResetPasswordUrl',
+				callbacks: callbacks,
+				data: { newpassword: newPassword },
+				args: [token],
+				onSuccess: function() {
+					request.promise.fulfill();
+				}
+			});
+			return request.send();
 		};
 
 		this.validateResetPasswordToken = function(token, callbacks) {
 			
 			if (!token) throw new Error("Please specify token");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateResetPasswordUrl(token);
-			request.method = 'post';
-			request.data = {};
-			request.onSuccess = function(a) {
-				promise.fulfill(a.user);
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request); 
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getValidateResetPasswordUrl',
+				callbacks: callbacks,
+				data: {},
+				args: [token],
+				onSuccess: function(a) {
+					request.promise.fulfill(a.user);
+				}
+			});
+			return request.send();
 		};
 	};
 

@@ -107,6 +107,14 @@
             return fields;
         };
 
+        this.application = {
+            applicationServiceUrl : 'application',
+
+            getSessionCreateUrl: function() {
+                return String.format("{0}/session", this.applicationServiceUrl);
+            }
+        };
+
         this.email = {
             emailServiceUrl: 'email',
             
@@ -140,7 +148,7 @@
                     return String.format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (userId) {
+            getDeleteUrl: function (type, userId) {
                 return String.format("{0}/{1}", this.userServiceUrl, userId);
             },
             getGetAllLinkedAccountsUrl: function(userId) {
@@ -191,7 +199,7 @@
                     return String.format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (deviceId) {
+            getDeleteUrl: function (type, deviceId) {
                 return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
             }
         };
@@ -237,8 +245,12 @@
                     return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.articleServiceUrl, schemaName, articleId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (schemaName, articleId) {
-                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            getDeleteUrl: function (schemaName, articleId, deleteConnections) {
+                if (deleteConnections === true ) {
+                    return String.format('{0}/{1}/{2}?deleteconnections=true', this.articleServiceUrl, schemaName, articleId);
+                } else {
+                    return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+                }
             },
             getMultiDeleteUrl: function (schemaName) {
                 return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);

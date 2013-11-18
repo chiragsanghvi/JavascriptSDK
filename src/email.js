@@ -23,18 +23,18 @@
 
 		var _sendEmail = function (email, callbacks) {
 			
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.email.getSendEmailUrl();
-			request.method = 'post';
-			request.data = email;
-			request.onSuccess = function(d) {
-				promise.fulfill(d.email);
-			};
-			request.promise = promise;
-			request.entity = email;
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'email',
+				op: 'getSendEmailUrl',
+				callbacks: callbacks,
+				data: email,
+				entity: email,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.email);
+				}
+			});
+			return request.send();
 		};
 
 		this.setupEmail = function(options) {

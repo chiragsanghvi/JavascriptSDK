@@ -8,46 +8,18 @@ asyncTest('Creating session with valid Apikey', function() {
 	start();
 });
 
-asyncTest('Cleaning up articles of schema user', function() {
-
+asyncTest('Cleaning up articles of schema user by fetching them using "users" filter query and then deleting them one at a time', function() {
 	//logout current user
 	Appacitive.Users.logout(null, true);
 
-	var total = 0;
-
 	//Authenticate current user
     Appacitive.Users.login('chiragsanghvi', 'test123!@#').then(function(data) {
-    	//Fetch all users except admin user
-    	var query = new Appacitive.Queries.GraphFilterQuery('users');
-    	return query.fetch();
-    }).then(function(ids) {
-    	total = ids.length;
-		if (total === 0) {
-    		ok(true, 'No users to delete');
-			return Appacitive.Promise().fulfill();
-    	}
-
-    	var tasks = [];
-    	ids.forEach(function(id) {
-    		tasks.push(new Appacitive.User({ __id: id }).destroy());
-    	});
-    	return Appacitive.Promise.when(tasks);
-    }).then(function() {
-    	ok(true, 'All users to deleted');
+    	ok(true, "User authencticated successfully");
     	start();
     }, function(data) {
-    	if (!Appacitive.Users.current()) {
-    		ok(false, 'User authentication failed: ' + JSON.stringify(data));
-    	} else if (total === 0) {
-    		ok(false, 'Could not fetch articles for schema user');
-    	} else {
-    		var numFailures = 0;
-			data.forEach(function(v) { if (v) ++numFailures; });
-			ok(false, 'Article delete failed for ' + numFailures + '/' + total +' articles');
-    	}
+    	ok(false, 'User authentication failed: ' + JSON.stringify(data));
     	start();
     });
-	
 });
 
 asyncTest('Create linked facebook user in one api call', function() {

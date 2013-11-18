@@ -20,7 +20,6 @@
 		global.Appacitive.BaseObject.call(this, options, setSnapShot);
 
 		this.type = 'article';
-		this.connectionCollections = [];
 		this.getArticle = this.getObject;
 		this.children = {};
 
@@ -70,17 +69,19 @@
 		if (options.schema.toLowerCase() === 'user' || options.schema.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiDeleteUrl(options.schema);
-		request.method = 'post';
-		request.data = { idlist : options.ids };
-		request.onSuccess = function(d) {
-			promise.fulfill();
-		};
-		request.promise = promise;
-		return global.Appacitive.http.send(request);
+		var request = new global.Appacitive._Request({
+			method: 'POST',
+			data: { idlist : options.ids },
+			type: 'article',
+			op: 'getMultiDeleteUrl',
+			args: [options.schema],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill();
+			}
+		});
+		
+		return request.send();
 	};
 
 
@@ -90,16 +91,18 @@
 		if (!options.schema || !_type.isString(options.schema) || options.schema.length === 0) throw new Error("Specify valid schema");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
-		request.method = 'get';
-		request.onSuccess = function(d) {
-			promise.fulfill(_parseArticles(d.articles));
-		};
-		request.promise = promise;
-		return global.Appacitive.http.send(request);
+		var request = new global.Appacitive._Request({
+			method: 'GET',
+			type: 'article',
+			op: 'getMultiGetUrl',
+			args: [options.schema, options.ids.join(','), options.fields],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill(_parseArticles(d.articles));
+			}
+		});
+			
+		return request.send();
 	};
 
 	//takes article id , type and fields and returns that article

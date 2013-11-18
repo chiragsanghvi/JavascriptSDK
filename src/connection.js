@@ -177,37 +177,40 @@
 		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
-		request.method = 'get';
-
-		request.onSuccess = function(d) {
-			promise.fulfill(_parseConnections(d.connections));
-		};
-		request.promise = promise;
-		return global.Appacitive.http.send(request);
+		var request = new global.Appacitive._Request({
+			method: 'GET',
+			type: 'connection',
+			op: 'getMultiGetUrl',
+			args: [options.relation, options.ids.join(','), options.fields],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill(_parseConnections(d.connections));
+			}
+		});
+			
+		return request.send();
 	};
 
 	//takes relationame, and array of connections ids
 	global.Appacitive.Connection.multiDelete = function(options, callbacks) {
 		options = options || {};
-
-		var promise = global.Appacitive.Promise.buildPromise(callbacks);
 		
 		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to get");
 		
-		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
-		request.method = 'post';
-		request.data = { idlist : options.ids };
-		request.onSuccess = function(d) {
-			promise.fulfill();
-		};
-		request.promise = promise;
-		return global.Appacitive.http.send(request);
+		var request = new global.Appacitive._Request({
+			method: 'POST',
+			data: { idlist : options.ids },
+			type: 'connection',
+			op: 'getMultiDeleteUrl',
+			args: [options.relation],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill();
+			}
+		});
+		
+		return request.send();
 	};
 
 	//takes relation type and returns all connections for it

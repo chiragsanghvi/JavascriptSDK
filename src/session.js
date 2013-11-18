@@ -32,27 +32,27 @@
 
 		this.create = function(callbacks) {
 
-			if (!this.initialized) throw new Error("Intialize Appacitvie SDK");
-
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+			if (!this.initialized) throw new Error("Intialize Appacitive SDK");
 
 			// create the session
 			var _sRequest = new _sessionRequest();
 
 			_sRequest.apikey = _apikey;
-			
-			var _request = new global.Appacitive.HttpRequest();
-			_request.url = global.Appacitive.config.apiBaseUrl + 'application.svc/session';
-			_request.method = 'put';
-			_request.data = _sRequest;
-			_request.onSuccess = function(data) {
-				_sessionKey = data.session.sessionkey;
-				global.Appacitive.Session.useApiKey = false;
-				promise.fulfill(data);
-				global.Appacitive.Session.onSessionCreated();
-			};
-			_request.promise = promise;
-			return global.Appacitive.http.send(_request);
+
+			var request = new global.Appacitive._Request({
+				method: 'PUT',
+				type: 'application',
+				op: 'getSessionCreateUrl',
+				callbacks: callbacks,
+				data: _sRequest,
+				onSuccess: function(data) {
+					_sessionKey = data.session.sessionkey;
+					global.Appacitive.Session.useApiKey = false;
+					request.promise.fulfill(data);
+					global.Appacitive.Session.onSessionCreated();
+				}
+			});
+			return request.send();
 		};
 
 		global.Appacitive.http.addProcessor({
@@ -116,8 +116,6 @@
 				callback = function() {}; 
 			}
 
-			var promise = global.Appacitive.Promise.buildPromise({ success: callback, error: callback });
-
 			authEnabled = false;
 			callback = callback || function() {};
 			global.Appacitive.localStorage.remove('Appacitive-User');
@@ -125,23 +123,23 @@
 		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
 			if (_authToken  && !avoidApiCall) {
 				try {
-					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
-					_authToken = null;
-					_request.method = 'POST';
-					_request.data = {};
-					_request.onSuccess = function() {
-						promise.fulfill();	
-					};
-					_request.promise = promise;
-					return global.Appacitive.http.send(_request);
+					var request = new global.Appacitive._Request({
+						method: 'POST',
+						type: 'user',
+						op: 'getInvalidateTokenUrl',
+						args: [_authToken],
+						callbacks: { success: callback, error: callback },
+						data: {},
+						onSuccess: function(data) {
+							request.promise.fulfill();
+						}
+					});
+					return request.send();
 				} catch (e){}
 			} else {
 				_authToken = null;
-				promise.fulfill();
+				return global.Appacitive.Promise.buildPromise({ success: callback, error: callback }).fulfill();
 			}
-
-			return promise;
 		};
 
 		this.isSessionValid = function(response) {

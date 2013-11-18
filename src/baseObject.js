@@ -452,16 +452,10 @@
 		// to create the article
 		var _create = function(callbacks) {
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var fields = _fields;
-
-			// save this article
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, fields);
-
-			// for User and Device articles
-			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
-				url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getCreateUrl();
+			var type = that.type;
+			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
+				type = article.__schematype.toLowerCase()
+			}
 
 			//remove __revision and aggregate poprerties
 			for (var p in article) {
@@ -469,36 +463,38 @@
 			}
 			if (article["__revision"]) delete article["__revision"];
 			
+			var request = new global.Appacitive._Request({
+				method: 'PUT',
+				type: type,
+				op: 'getCreateUrl',
+				args: [article.__schematype || article.__relationtype, _fields],
+				data: article,
+				callbacks: callbacks,
+				entity: that,
+				onSuccess: function(data) {
+					var savedState = null;
+					if (data && (data.article || data.connection || data.user || data.device)) {
+						savedState = data.article || data.connection || data.user || data.device;
+					}
+					if (data && savedState) {
+						_snapshot = savedState;
+						article.__id = savedState.__id;
+						_copy(savedState, article);
 
-			var _saveRequest = new global.Appacitive.HttpRequest();
-			_saveRequest.url = url;
-			_saveRequest.method = 'put';
+						if (that.type == 'connection') that.parseConnection();
+						global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
 
-			_saveRequest.data = article;
-			_saveRequest.onSuccess = function(data) {
-				var savedState = null;
-				if (data && (data.article || data.connection || data.user || data.device)) {
-					savedState = data.article || data.connection || data.user || data.device;
+						that.created = true;
+
+						request.promise.fulfill(that);
+					} else {
+						global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
+						request.promise.reject(data.status, that);
+					}
 				}
-				if (data && savedState) {
-					_snapshot = savedState;
-					article.__id = savedState.__id;
-					_copy(savedState, article);
-
-					if (that.type == 'connection') that.parseConnection();
-					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
-
-					that.created = true;
-
-					promise.fulfill(that);
-				} else {
-					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
-					promise.reject(data.status, that);
-				}
-			};
-			_saveRequest.promise = promise;
-			_saveRequest.entity = this;
-			return global.Appacitive.http.send(_saveRequest);
+			});
+				
+			return request.send();
 		};
 
 		// to update the article
@@ -592,35 +588,32 @@
 
 			if (!article.__id) throw new Error('Please specify id for get operation');
 			
-			var promise = new global.Appacitive.Promise.buildPromise(callbacks);
-
-			var fields = _fields;
-
-			// get this article by id
-			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[that.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, fields);
-			var _getRequest = new global.Appacitive.HttpRequest();
-			_getRequest.url = url;
-			_getRequest.method = 'get';
-			_getRequest.onSuccess = function(data) {
-				if (data && data[that.type]) {
-					_snapshot = data[that.type];
-					_copy(_snapshot, article);
-					if (data.connection) {
-						if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
-							that.setupConnection(article.__endpointa, article.__endpointb);
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: that.type,
+				op: 'getGetUrl',
+				args: [article.__schematype || article.__relationtype, article.__id, _fields],
+				callbacks: callbacks,
+				entity: that,
+				onSuccess: function(data) {
+					if (data && data[that.type]) {
+						_snapshot = data[that.type];
+						_copy(_snapshot, article);
+						if (data.connection) {
+							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
+								that.setupConnection(article.__endpointa, article.__endpointb);
+							}
 						}
+						request.promise.fulfill(that);
+					} else {
+						data = data || {};
+						data.status =  data.status || {};
+						data.status = _getOutpuStatus(data.status);
+						request.promise.reject(data.status, that);
 					}
-					promise.fulfill(that);
-				} else {
-					data = data || {};
-					data.status =  data.status || {};
-					data.status = _getOutpuStatus(data.status);
-					promise.reject(data.status, that);
 				}
-			};
-			_getRequest.entity = this;
-			_getRequest.promise = promise;
-			return global.Appacitive.http.send(_getRequest);
+			});
+			return request.send();
 		};
 
 		// fetch ( by id )
@@ -638,42 +631,29 @@
 				deleteConnections = false;
 			}
 
-			var promise = new global.Appacitive.Promise.buildPromise(callbacks);
-
-
 			// if the article does not have __id set, 
 	        // just call success
 	        // else delete the article
 
-	        if (!article['__id']) {
-	            promise.fulfill();
-	            return promise;
-	        }
+	        if (!article['__id']) return new global.Appacitive.Promise.buildPromise(callbacks).fulfill();
 
-			var url = global.Appacitive.config.apiBaseUrl;
-			url += global.Appacitive.storage.urlFactory[this.type].getDeleteUrl(article.__schematype || article.__relationtype, article.__id);
-
-			// for User and Device articles
-			if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
-				url = global.Appacitive.config.apiBaseUrl;
-				url += global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getDeleteUrl(article.__id);
+	        var type = this.type;
+			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
+				type = article.__schematype.toLowerCase()
 			}
 
-			// if deleteConnections is specified
-			if (deleteConnections && deleteConnections === true) {
-				if (url.indexOf('?') == -1) url += '?deleteconnections=true';
-				else url += '&deleteconnections=true';
-			}
-
-			var _deleteRequest = new global.Appacitive.HttpRequest();
-			_deleteRequest.url = url;
-			_deleteRequest.method = 'delete';
-			_deleteRequest.onSuccess = function(data) {
-				promise.fulfill(data);
-			};
-			_deleteRequest.promise = promise;
-			_deleteRequest.entity = this;
-			return global.Appacitive.http.send(_deleteRequest);
+			var request = new global.Appacitive._Request({
+				method: 'DELETE',
+				type: type,
+				op: 'getDeleteUrl',
+				args: [article.__schematype || article.__relationtype, article.__id, deleteConnections],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function(data) {
+					request.promise.fulfill(data);
+				}
+			});
+			return request.send();
 		};
 		this.del = this.destroy;
 	};

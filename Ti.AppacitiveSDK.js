@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Nov 15 16:43:38 IST 2013
+ * Build time 	: Mon Nov 18 14:05:59 IST 2013
  */
 "use strict";
 
@@ -810,6 +810,14 @@ var global = {};
             return fields;
         };
 
+        this.application = {
+            applicationServiceUrl : 'application',
+
+            getSessionCreateUrl: function() {
+                return String.Format("{0}/session", this.applicationServiceUrl);
+            }
+        };
+
         this.email = {
             emailServiceUrl: 'email',
             
@@ -843,7 +851,7 @@ var global = {};
                     return String.Format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (userId) {
+            getDeleteUrl: function (type, userId) {
                 return String.Format("{0}/{1}", this.userServiceUrl, userId);
             },
             getGetAllLinkedAccountsUrl: function(userId) {
@@ -894,7 +902,7 @@ var global = {};
                     return String.Format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (deviceId) {
+            getDeleteUrl: function (type, deviceId) {
                 return String.Format("{0}/{1}", this.deviceServiceUrl, deviceId);
             }
         };
@@ -940,8 +948,12 @@ var global = {};
                     return String.Format('{0}/{1}/{2}?fields={3}&revision={4}', this.articleServiceUrl, schemaName, articleId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (schemaName, articleId) {
-                return String.Format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            getDeleteUrl: function (schemaName, articleId, deleteConnections) {
+                if (deleteConnections === true ) {
+                    return String.Format('{0}/{1}/{2}?deleteconnections=true', this.articleServiceUrl, schemaName, articleId);
+                } else {
+                    return String.Format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+                }
             },
             getMultiDeleteUrl: function (schemaName) {
                 return String.Format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);
@@ -1150,6 +1162,7 @@ var global = {};
                 try {
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
+                    console.dir(error);
                     promise.reject(error); 
                 }
 
@@ -1433,7 +1446,47 @@ Depends on  NOTHING
 	}
 
 }(global));
-(function (global) {
+
+(function(global) {
+
+    "use strict";
+	
+    var getUrl = function(options) {
+    	var ctx = global.Appacitive.storage.urlFactory[options.type];
+    	return global.Appacitive.config.apiBaseUrl + ctx[options.op].apply(ctx, options.args || []);
+    };
+
+    var _request = function(options) {
+
+		if (!options || !_type.isObject(options)) throw new Error("Please specify request options");
+
+		this.promise = global.Appacitive.Promise.buildPromise(options.callbacks);
+
+		var request = this.request = new global.Appacitive.HttpRequest();
+		
+		request.url = getUrl(options);
+
+		request.method = options.method || 'get';
+		
+		request.data = options.data || {} ;
+
+		request.onSuccess = options.onSuccess;
+		request.onError = options.onError;
+
+		request.promise = this.promise;
+
+		if (options.entity) request.entity = options.entity; 
+
+		return this;
+    };
+
+    _request.prototype.send = function() {
+    	return global.Appacitive.http.send(this.request);
+    };
+
+    global.Appacitive._Request = _request;
+
+})(global);(function (global) {
 
 	"use strict";
 
@@ -1467,27 +1520,27 @@ Depends on  NOTHING
 
 		this.create = function(callbacks) {
 
-			if (!this.initialized) throw new Error("Intialize Appacitvie SDK");
-
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+			if (!this.initialized) throw new Error("Intialize Appacitive SDK");
 
 			// create the session
 			var _sRequest = new _sessionRequest();
 
 			_sRequest.apikey = _apikey;
-			
-			var _request = new global.Appacitive.HttpRequest();
-			_request.url = global.Appacitive.config.apiBaseUrl + 'application.svc/session';
-			_request.method = 'put';
-			_request.data = _sRequest;
-			_request.onSuccess = function(data) {
-				_sessionKey = data.session.sessionkey;
-				global.Appacitive.Session.useApiKey = false;
-				promise.fulfill(data);
-				global.Appacitive.Session.onSessionCreated();
-			};
-			_request.promise = promise;
-			return global.Appacitive.http.send(_request);
+
+			var request = new global.Appacitive._Request({
+				method: 'PUT',
+				type: 'application',
+				op: 'getSessionCreateUrl',
+				callbacks: callbacks,
+				data: _sRequest,
+				onSuccess: function(data) {
+					_sessionKey = data.session.sessionkey;
+					global.Appacitive.Session.useApiKey = false;
+					request.promise.fulfill(data);
+					global.Appacitive.Session.onSessionCreated();
+				}
+			});
+			return request.send();
 		};
 
 		global.Appacitive.http.addProcessor({
@@ -1551,8 +1604,6 @@ Depends on  NOTHING
 				callback = function() {}; 
 			}
 
-			var promise = global.Appacitive.Promise.buildPromise({ success: callback, error: callback });
-
 			authEnabled = false;
 			callback = callback || function() {};
 			global.Appacitive.localStorage.remove('Appacitive-User');
@@ -1560,23 +1611,23 @@ Depends on  NOTHING
 		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
 			if (_authToken  && !avoidApiCall) {
 				try {
-					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
-					_authToken = null;
-					_request.method = 'POST';
-					_request.data = {};
-					_request.onSuccess = function() {
-						promise.fulfill();	
-					};
-					_request.promise = promise;
-					return global.Appacitive.http.send(_request);
+					var request = new global.Appacitive._Request({
+						method: 'POST',
+						type: 'user',
+						op: 'getInvalidateTokenUrl',
+						args: [_authToken],
+						callbacks: { success: callback, error: callback },
+						data: {},
+						onSuccess: function(data) {
+							request.promise.fulfill();
+						}
+					});
+					return request.send();
 				} catch (e){}
 			} else {
 				_authToken = null;
-				promise.fulfill();
+				return global.Appacitive.Promise.buildPromise({ success: callback, error: callback }).fulfill();
 			}
-
-			return promise;
 		};
 
 		this.isSessionValid = function(response) {
@@ -3427,16 +3478,10 @@ Depends on  NOTHING
 		// to create the article
 		var _create = function(callbacks) {
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var fields = _fields;
-
-			// save this article
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[this.type].getCreateUrl(article.__schematype || article.__relationtype, fields);
-
-			// for User and Device articles
-			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) 
-				url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getCreateUrl();
+			var type = that.type;
+			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
+				type = article.__schematype.toLowerCase()
+			}
 
 			//remove __revision and aggregate poprerties
 			for (var p in article) {
@@ -3444,36 +3489,38 @@ Depends on  NOTHING
 			}
 			if (article["__revision"]) delete article["__revision"];
 			
+			var request = new global.Appacitive._Request({
+				method: 'PUT',
+				type: type,
+				op: 'getCreateUrl',
+				args: [article.__schematype || article.__relationtype, _fields],
+				data: article,
+				callbacks: callbacks,
+				entity: that,
+				onSuccess: function(data) {
+					var savedState = null;
+					if (data && (data.article || data.connection || data.user || data.device)) {
+						savedState = data.article || data.connection || data.user || data.device;
+					}
+					if (data && savedState) {
+						_snapshot = savedState;
+						article.__id = savedState.__id;
+						_copy(savedState, article);
 
-			var _saveRequest = new global.Appacitive.HttpRequest();
-			_saveRequest.url = url;
-			_saveRequest.method = 'put';
+						if (that.type == 'connection') that.parseConnection();
+						global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
 
-			_saveRequest.data = article;
-			_saveRequest.onSuccess = function(data) {
-				var savedState = null;
-				if (data && (data.article || data.connection || data.user || data.device)) {
-					savedState = data.article || data.connection || data.user || data.device;
+						that.created = true;
+
+						request.promise.fulfill(that);
+					} else {
+						global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
+						request.promise.reject(data.status, that);
+					}
 				}
-				if (data && savedState) {
-					_snapshot = savedState;
-					article.__id = savedState.__id;
-					_copy(savedState, article);
-
-					if (that.type == 'connection') that.parseConnection();
-					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
-
-					that.created = true;
-
-					promise.fulfill(that);
-				} else {
-					global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
-					promise.reject(data.status, that);
-				}
-			};
-			_saveRequest.promise = promise;
-			_saveRequest.entity = this;
-			return global.Appacitive.http.send(_saveRequest);
+			});
+				
+			return request.send();
 		};
 
 		// to update the article
@@ -3567,35 +3614,32 @@ Depends on  NOTHING
 
 			if (!article.__id) throw new Error('Please specify id for get operation');
 			
-			var promise = new global.Appacitive.Promise.buildPromise(callbacks);
-
-			var fields = _fields;
-
-			// get this article by id
-			var url = global.Appacitive.config.apiBaseUrl  + global.Appacitive.storage.urlFactory[that.type].getGetUrl(article.__schematype || article.__relationtype, article.__id, fields);
-			var _getRequest = new global.Appacitive.HttpRequest();
-			_getRequest.url = url;
-			_getRequest.method = 'get';
-			_getRequest.onSuccess = function(data) {
-				if (data && data[that.type]) {
-					_snapshot = data[that.type];
-					_copy(_snapshot, article);
-					if (data.connection) {
-						if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
-							that.setupConnection(article.__endpointa, article.__endpointb);
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: that.type,
+				op: 'getGetUrl',
+				args: [article.__schematype || article.__relationtype, article.__id, _fields],
+				callbacks: callbacks,
+				entity: that,
+				onSuccess: function(data) {
+					if (data && data[that.type]) {
+						_snapshot = data[that.type];
+						_copy(_snapshot, article);
+						if (data.connection) {
+							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
+								that.setupConnection(article.__endpointa, article.__endpointb);
+							}
 						}
+						request.promise.fulfill(that);
+					} else {
+						data = data || {};
+						data.status =  data.status || {};
+						data.status = _getOutpuStatus(data.status);
+						request.promise.reject(data.status, that);
 					}
-					promise.fulfill(that);
-				} else {
-					data = data || {};
-					data.status =  data.status || {};
-					data.status = _getOutpuStatus(data.status);
-					promise.reject(data.status, that);
 				}
-			};
-			_getRequest.entity = this;
-			_getRequest.promise = promise;
-			return global.Appacitive.http.send(_getRequest);
+			});
+			return request.send();
 		};
 
 		// fetch ( by id )
@@ -3613,42 +3657,29 @@ Depends on  NOTHING
 				deleteConnections = false;
 			}
 
-			var promise = new global.Appacitive.Promise.buildPromise(callbacks);
-
-
 			// if the article does not have __id set, 
 	        // just call success
 	        // else delete the article
 
-	        if (!article['__id']) {
-	            promise.fulfill();
-	            return promise;
-	        }
+	        if (!article['__id']) return new global.Appacitive.Promise.buildPromise(callbacks).fulfill();
 
-			var url = global.Appacitive.config.apiBaseUrl;
-			url += global.Appacitive.storage.urlFactory[this.type].getDeleteUrl(article.__schematype || article.__relationtype, article.__id);
-
-			// for User and Device articles
-			if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
-				url = global.Appacitive.config.apiBaseUrl;
-				url += global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getDeleteUrl(article.__id);
+	        var type = this.type;
+			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
+				type = article.__schematype.toLowerCase()
 			}
 
-			// if deleteConnections is specified
-			if (deleteConnections && deleteConnections === true) {
-				if (url.indexOf('?') == -1) url += '?deleteconnections=true';
-				else url += '&deleteconnections=true';
-			}
-
-			var _deleteRequest = new global.Appacitive.HttpRequest();
-			_deleteRequest.url = url;
-			_deleteRequest.method = 'delete';
-			_deleteRequest.onSuccess = function(data) {
-				promise.fulfill(data);
-			};
-			_deleteRequest.promise = promise;
-			_deleteRequest.entity = this;
-			return global.Appacitive.http.send(_deleteRequest);
+			var request = new global.Appacitive._Request({
+				method: 'DELETE',
+				type: type,
+				op: 'getDeleteUrl',
+				args: [article.__schematype || article.__relationtype, article.__id, deleteConnections],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function(data) {
+					request.promise.fulfill(data);
+				}
+			});
+			return request.send();
 		};
 		this.del = this.destroy;
 	};
@@ -3754,7 +3785,6 @@ Depends on  NOTHING
 		global.Appacitive.BaseObject.call(this, options, setSnapShot);
 
 		this.type = 'article';
-		this.connectionCollections = [];
 		this.getArticle = this.getObject;
 		this.children = {};
 
@@ -3804,17 +3834,19 @@ Depends on  NOTHING
 		if (options.schema.toLowerCase() === 'user' || options.schema.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiDeleteUrl(options.schema);
-		request.method = 'post';
-		request.data = { idlist : options.ids };
-		request.onSuccess = function(d) {
-			promise.fulfill();
-		};
-		request.promise = promise;
-		return global.Appacitive.http.send(request);
+		var request = new global.Appacitive._Request({
+			method: 'POST',
+			data: { idlist : options.ids },
+			type: 'article',
+			op: 'getMultiDeleteUrl',
+			args: [options.schema],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill();
+			}
+		});
+		
+		return request.send();
 	};
 
 
@@ -3824,16 +3856,18 @@ Depends on  NOTHING
 		if (!options.schema || !_type.isString(options.schema) || options.schema.length === 0) throw new Error("Specify valid schema");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.article.getMultiGetUrl(options.schema, options.ids.join(','), options.fields);
-		request.method = 'get';
-		request.onSuccess = function(d) {
-			promise.fulfill(_parseArticles(d.articles));
-		};
-		request.promise = promise;
-		return global.Appacitive.http.send(request);
+		var request = new global.Appacitive._Request({
+			method: 'GET',
+			type: 'article',
+			op: 'getMultiGetUrl',
+			args: [options.schema, options.ids.join(','), options.fields],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill(_parseArticles(d.articles));
+			}
+		});
+			
+		return request.send();
 	};
 
 	//takes article id , type and fields and returns that article
@@ -4055,37 +4089,40 @@ Depends on  NOTHING
 		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
-		request.method = 'get';
-
-		request.onSuccess = function(d) {
-			promise.fulfill(_parseConnections(d.connections));
-		};
-		request.promise = promise;
-		return global.Appacitive.http.send(request);
+		var request = new global.Appacitive._Request({
+			method: 'GET',
+			type: 'connection',
+			op: 'getMultiGetUrl',
+			args: [options.relation, options.ids.join(','), options.fields],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill(_parseConnections(d.connections));
+			}
+		});
+			
+		return request.send();
 	};
 
 	//takes relationame, and array of connections ids
 	global.Appacitive.Connection.multiDelete = function(options, callbacks) {
 		options = options || {};
-
-		var promise = global.Appacitive.Promise.buildPromise(callbacks);
 		
 		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to get");
 		
-		var request = new global.Appacitive.HttpRequest();
-		request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
-		request.method = 'post';
-		request.data = { idlist : options.ids };
-		request.onSuccess = function(d) {
-			promise.fulfill();
-		};
-		request.promise = promise;
-		return global.Appacitive.http.send(request);
+		var request = new global.Appacitive._Request({
+			method: 'POST',
+			data: { idlist : options.ids },
+			type: 'connection',
+			op: 'getMultiDeleteUrl',
+			args: [options.relation],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill();
+			}
+		});
+		
+		return request.send();
 	};
 
 	//takes relation type and returns all connections for it
@@ -4129,51 +4166,52 @@ Depends on  NOTHING
 			if (!oldPassword || !_type.isString(oldPassword) || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
 			if (!newPassword || !_type.isString(newPassword) || newPassword.length === 0) throw new Error("Please specify valid newPassword");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUpdatePasswordUrl(userId);
-			request.method = 'post';
-			request.data = updatedPasswordOptions;
-			var that = this;
-
-			request.onSuccess = function(a) {
-				promise.fulfill(that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+			
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getUpdatePasswordUrl',
+				args: [userId],
+				callbacks: callbacks,
+				data: updatedPasswordOptions,
+				entity: this,
+				onSuccess: function(data) {
+					request.promise.fulfill(that);
+				}
+			});
+			return request.send();
 		};
 
 		var _link = function(link, callbacks) {
 			var userId = this.get('__id');
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			if (!this.get('__id')) {
 				this.set('__link', link);
-				promise.fulfill(this);
-				return promise;
+				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this);
 			}
 
 			var that = this;
 
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getLinkAccountUrl(userId);
-			request.method = 'post';
-			request.data = link;
-			request.onSuccess = function(a) {
-				var links = that.get('__link');
-				if (!_type.isArray(links)) {
-					links = (links) ? [links] : [];
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getLinkAccountUrl',
+				args: [userId],
+				callbacks: callbacks,
+				data: link,
+				entity: this,
+				onSuccess: function(data) {
+					var links = that.get('__link');
+					if (!_type.isArray(links)) {
+						links = (links) ? [links] : [];
+					}
+					links.push(link);
+					that.copy({__link: links }, true);
+					request.promise.fulfill(that);
 				}
-				links.push(link);
-				that.copy({__link: links }, true);
-				promise.fulfill(that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
 		this.setCurrentUser = function(user, token, expiry) {
@@ -4230,27 +4268,29 @@ Depends on  NOTHING
 		//method for getting all linked accounts
 		global.Appacitive.User.prototype.getAllLinkedAccounts = function(callbacks) {
 			var userId = this.get('__id');
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 			
 			if (!userId || !_type.isString(userId) || userId.length === 0) {
-				promise.fulfill(this.linkedAccounts(), this);
-				return promise;
+				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this.linkedAccounts(), this);
 			}
 
 			var that = this;
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getGetAllLinkedAccountsUrl(userId);
-			request.method = 'get';
-			request.onSuccess = function(a) {
-				var accounts = a.identities || []; 
-				if (accounts.length > 0) that.set('__link', accounts);
-				else that.set('__link', null);
-				
-				promise.fulfill(accounts, that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'user',
+				op: 'getGetAllLinkedAccountsUrl',
+				args: [userId],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function() {
+					var accounts = a.identities || []; 
+					if (accounts.length > 0) that.set('__link', accounts);
+					else that.set('__link', null);
+					
+					request.promise.fulfill(accounts, that);
+				}
+			});
+			return request.send();
 		};
 
 		global.Appacitive.User.prototype.checkin = function(coords, callbacks) {
@@ -4260,19 +4300,20 @@ Depends on  NOTHING
 			}
 			if (!coords || !(coords instanceof global.Appacitive.GeoCoord)) throw new Error("Invalid coordinates provided");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			var that = this;
 
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getCheckinUrl(userId, coords.lat, coords.lng);
-			request.method = 'post';
-			request.onSuccess = function(a) {
-				promise.fulfill(accounts, that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getCheckinUrl',
+				args: [userId, coords.lat, coords.lngerId],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function() {
+					request.promise.fulfill(that);
+				}
+			});
+			return request.send();
 		};
 
 		//method for linking facebook account to a user
@@ -4315,8 +4356,6 @@ Depends on  NOTHING
 
 			var userId = this.get('__id');
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			if (!this.get('__id')) {
 				this.set('__link', null);
 				promise.fulfill(this);
@@ -4325,34 +4364,37 @@ Depends on  NOTHING
 
 			var that = this;
 
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getLinkAccountUrl(userId, name);
-			request.method = 'post';
-			request.onSuccess = function(a) {
-				var accounts = that.get('__link');
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getDelinkAccountUrl',
+				args: [userId, name],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function(a) {
+					var accounts = that.get('__link');
 			
-				if (!accounts) accounts = [];
-				else if (!_type.isArray(accounts)) accounts = [accounts];
+					if (!accounts) accounts = [];
+					else if (!_type.isArray(accounts)) accounts = [accounts];
 
-				if (accounts.length >= 0) {
-					var ind = null;
-					accounts.forEach(function(a, i) {
-						if (a.name == name.toLowerCase()) {
-							ind = i;
-							return;
-						}
-					});
-					if (ind != null) accounts.splice(ind, 1);
-					that.copy({ __link: accounts }, true);
-				} else {
-					that.copy({ __link: [] }, true);
+					if (accounts.length >= 0) {
+						var ind = null;
+						accounts.forEach(function(a, i) {
+							if (a.name == name.toLowerCase()) {
+								ind = i;
+								return;
+							}
+						});
+						if (ind != null) accounts.splice(ind, 1);
+						that.copy({ __link: accounts }, true);
+					} else {
+						that.copy({ __link: [] }, true);
+					}
+
+					request.promise.fulfill(that);
 				}
-
-				promise.fulfill(that);
-			};
-			request.promise = promise;
-			request.entity = this;
-			return global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
 		global.Appacitive.User.prototype.clone = function() {
@@ -4420,25 +4462,26 @@ Depends on  NOTHING
 		//authenticate user with authrequest that contains username , password and expiry
 		this.authenticateUser = function(authRequest, callbacks, provider) {
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
-			var request = new global.Appacitive.HttpRequest();
-			request.method = 'post';
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
-			request.data = authRequest;
-			request.onSuccess = function(data) {
-				if (data && data.user) {
-					if (provider) data.user.__authType = provider;
-					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					promise.fulfill({ user : _authenticatedUser, token: data.token });
-				} else {
-					promise.reject(data.status);
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getAuthenticateUserUrl',
+				callbacks: callbacks,
+				data: authRequest,
+				onSuccess: function(data) {
+					if (data && data.user) {
+						if (provider) data.user.__authType = provider;
+						that.setCurrentUser(data.user, data.token, authRequest.expiry);
+						request.promise.fulfill({ user : _authenticatedUser, token: data.token });
+					} else {
+						request.promise.reject(data.status);
+					}
 				}
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
 		//An overrride for user login with username and password directly
@@ -4524,30 +4567,30 @@ Depends on  NOTHING
 			return promise;
 		};
 
-		var _getUserByIdType = function(url, callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-			var request = new global.Appacitive.HttpRequest();
-			request.url = url;
-			request.method = 'get';
-			request.onSuccess = function(data) {
-				if (data && data.user) promise.fulfill(new global.Appacitive.User(data.user));
-				else promise.reject(data.status);
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request);
+		var _getUserByIdType = function(op, args, callbacks) {
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'user',
+				op: op,
+				callbacks: callbacks,
+				args: args,
+				onSuccess: function(data) {
+					if (data && data.user) request.promise.fulfill(new global.Appacitive.User(data.user));
+					else request.promise.reject(data.status);
+				}
+			});
+			return request.send();
 		};
 
 		this.getUserByToken = function(token, callbacks) {
 			if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByTokenUrl(token);
 			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
-			return _getUserByIdType(url, callbacks);
+			return _getUserByIdType("getUserByTokenUrl", [token], callbacks);
 		};
 
 		this.getUserByUsername = function(username, callbacks) {
 			if (!username || !_type.isString(username) || username.length === 0) throw new Error("Please specify valid username");
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByUsernameUrl(username);
-			return _getUserByIdType(url, callbacks);
+			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
 		};
 
 		this.logout = function(callback, avoidApiCall) {
@@ -4561,18 +4604,19 @@ Depends on  NOTHING
 			if (!username || !_type.isString(username)  || username.length === 0) throw new Error("Please specify valid username");
 			if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
 			var passwordResetOptions = { username: username, subject: subject };
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getSendResetPasswordEmailUrl();
-			request.method = 'post';
-			request.data = passwordResetOptions;
-			request.onSuccess = function() {
-				promise.fulfill();
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request); 
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getSendResetPasswordEmailUrl',
+				callbacks: callbacks,
+				data: passwordResetOptions,
+				onSuccess: function() {
+					request.promise.fulfill();
+				}
+			});
+			return request.send();
 		};
 
 		this.resetPassword = function(token, newPassword, callbacks) {
@@ -4580,34 +4624,36 @@ Depends on  NOTHING
 			if (!token) throw new Error("Please specify token");
 			if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getResetPasswordUrl(token);
-			request.method = 'post';
-			request.data = { newpassword: newPassword };
-			request.onSuccess = function(a) {
-				promise.fulfill();
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request); 
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getResetPasswordUrl',
+				callbacks: callbacks,
+				data: { newpassword: newPassword },
+				args: [token],
+				onSuccess: function() {
+					request.promise.fulfill();
+				}
+			});
+			return request.send();
 		};
 
 		this.validateResetPasswordToken = function(token, callbacks) {
 			
 			if (!token) throw new Error("Please specify token");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateResetPasswordUrl(token);
-			request.method = 'post';
-			request.data = {};
-			request.onSuccess = function(a) {
-				promise.fulfill(a.user);
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request); 
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getValidateResetPasswordUrl',
+				callbacks: callbacks,
+				data: {},
+				args: [token],
+				onSuccess: function(a) {
+					request.promise.fulfill(a.user);
+				}
+			});
+			return request.send();
 		};
 	};
 
@@ -4629,6 +4675,7 @@ Depends on  NOTHING
 		var _initialized = true;
 
 		this.initialize = function (options) { 
+			if (!Ti.Facebook) throw new Error("Titanium Facebook module needs be loaded before calling initialize.");
 			if (!options.appId) throw new Error("Please provide appid");
 			
 			_app_id = options.appId;
@@ -4728,18 +4775,18 @@ Depends on  NOTHING
 
 		var _sendEmail = function (email, callbacks) {
 			
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.email.getSendEmailUrl();
-			request.method = 'post';
-			request.data = email;
-			request.onSuccess = function(d) {
-				promise.fulfill(d.email);
-			};
-			request.promise = promise;
-			request.entity = email;
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'email',
+				op: 'getSendEmailUrl',
+				callbacks: callbacks,
+				data: email,
+				entity: email,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.email);
+				}
+			});
+			return request.send();
 		};
 
 		this.setupEmail = function(options) {
@@ -4852,37 +4899,35 @@ Depends on  NOTHING
 			
 			if (!options) throw new Error("Please specify push options");
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request =  new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getPushUrl();
-
-			request.method = 'post';
-			request.data = options;
-
-			request.onSuccess = function(d) {
-				promise.fulfill(d.id);
-			};
-			request.promise = promise;
-			request.entity = options; 
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'push',
+				op: 'getPushUrl',
+				callbacks: callbacks,
+				data: options,
+				entity: options,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.id);
+				}
+			});
+			return request.send();
 		};
 
 		this.getNotification = function(notificationId, callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			if (!notificationId) throw new Error("Please specify notification id");
 
-			var request =  new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getGetNotificationUrl(notificationId);
-
-			request.method = 'get';
-
-			request.onSuccess = function(d) {
-				promise.fulfill(d.pushnotification);
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'push',
+				op: 'getGetNotificationUrl',
+				args: [notificationId],
+				callbacks: callbacks,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.pushnotification);
+				}
+			});
+			return request.send();
 		};
 
 		this.getAllNotifications = function(pagingInfo, callbacks) {
@@ -4894,18 +4939,17 @@ Depends on  NOTHING
 				pagingInfo.psize = pagingInfo.psize || 20;
 			}
 
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
-
-			var request =  new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getGetAllNotificationsUrl(pagingInfo);
-
-			request.method = 'get';
-
-			request.onSuccess = function(d) {
-				promise.fulfill(d.pushnotifications, d.paginginfo);
-			};
-			request.promise = promise;
-			return global.Appacitive.http.send(request);
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'push',
+				op: 'getGetAllNotificationsUrl',
+				args: [pagingInfo],
+				callbacks: callbacks,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.pushnotifications, d.paginginfo);
+				}
+			});
+			return request.send();
 		};
 
 	};
