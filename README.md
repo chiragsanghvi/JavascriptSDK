@@ -60,13 +60,14 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
     * [Sorting](#sorting)
     * [Fields](#fields)
     * [Filter](#filter)
-  * [Geolocation](#geolocation)
-    * [Radial Search](#radial-search)
-    * [Polygon Search](#polygon-search)
-  * [Tag Based Searches](#tag-based-searches)
-    * [Query data tagged with one or more of the given tags](#query-data-tagged-with-one-or-more-of-the-given-tags)
-    * [Query data tagged with all of the given tags](#query-data-tagged-with-all-of-the-given-tags)
-  * [FreeText](#freetext)
+    * [Geolocation](#geolocation)
+      * [Radial Search](#radial-search)
+      * [Polygon Search](#polygon-search)
+    * [Tag Based Searches](#tag-based-searches)
+      * [Query data tagged with one or more of the given tags](#query-data-tagged-with-one-or-more-of-the-given-tags)
+      * [Query data tagged with all of the given tags](#query-data-tagged-with-all-of-the-given-tags)
+    * [Composite Filters](#composite-filters)
+    * [FreeText](#freetext)
   * [Counts](#counts)
 
 ## Setup
@@ -1693,6 +1694,8 @@ query.filter(countFilter);
 query.filter(new Appacitive.Filter.Property('name').equalTo('name'));
 ```
 
+**List of all filters and their support**
+
 | Filter        | Property         | Attribute  | Aggregate |
 | ------------- |:-----:| :-----:|:-----:|
 | equalTo      | Y | Y | Y |
@@ -1723,10 +1726,6 @@ query.filter(new Appacitive.Filter.Property('name').equalTo('name'));
 | startsWith      | Y | Y | N |
 | endsWith      | Y | Y | N |
 | contains      | Y | Y | N |
-
-```
-
-**Samples***
 
 ```javascript
 //First name like "oh"
@@ -1774,7 +1773,7 @@ var greaterThanFilter = Appacitive.Filter.Property("age").greaterThan(25);
 // and for equalTo, equalToDate, equalToDateTime, equalToTime
 ```
 
-### Geolocation
+#### Geolocation
 
 You can specify a property type as a geography type for a given schema or relation. These properties are essential latitude-longitude pairs. Such properties support geo queries based on a user defined radial or polygonal region on the map. These are extremely useful for making map based or location based searches. E.g., searching for a list of all restaurants within 20 miles of a given users locations.
 
@@ -1927,7 +1926,7 @@ query.fetch();
 
 ```
 
-### FreeText
+#### FreeText
 
 There are situations when you would want the ability to search across all text content inside your data. Free text queries are ideal for implementing this kind of functionality. As an example, consider a free text lookup for users which searches across the username, firstname, lastname, profile description etc.You can pass multiple values inside a free text search. It also supports passing certain modifiers that allow you to control how each search term should be used. This is detailed below.
 
