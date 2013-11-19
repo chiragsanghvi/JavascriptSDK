@@ -14,7 +14,6 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
 
 * [Setup](#setup)  
 * [Initialize](#initialize)  
-* [API Sessions and Security](#api-sessions-and-security)  
 * [Conventions](#conventions)  
 * [Data storage and retrieval](#data-storage-and-retrieval)  
   * [Creating](#creating)  
@@ -55,7 +54,20 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
   * [Creating Appacitive.File Object](#creating-appacitivefile-object)  
   * [Uploading](#uploading)  
   * [Downloading](#downloading)
-  
+* [Queries](#queries)
+  * [Modifiers](#modifiers)
+    * [Paging](#pagination)
+    * [Sorting](#sorting)
+    * [Fields](#fields)
+    * [Filter](#filter)
+  * [Geolocation](#geolocation)
+    * [Radial Search](#radial-search)
+    * [Polygon Search](#polygon-search)
+  * [Tag Based Searches](#tag-based-searches)
+    * [Query data tagged with one or more of the given tags](#query-data-tagged-with-one-or-more-of-the-given-tags)
+    * [Query data tagged with all of the given tags](#query-data-tagged-with-all-of-the-given-tags)
+  * [FreeText](#freetext)
+  * [Counts](#counts)
 
 ## Setup
 
@@ -97,35 +109,22 @@ Appacitive.initialize({
 ```
 Now you are ready to use the SDK
 
-### API Sessions and Security
-
-Appacitive also provides a way to use sessions instead of apikey directly in your API calls. You can create a session as
-```javascript
-Appacitive.Session.create({ apikey: {{your_api_key_here}} }, function() {
-    // your session is created and stored within the sdk and is commanded to use session instead of apikey
-}, function(err) {
-    // your session creation failed.
-});
-```
-**Note** : On successful creation of session, SDK sets `Appacitive.session.useApiKey` to false which is true by default. This flag indicates whether to use ApiKey or Session for api calls. To change it use
-```javascript
-Appacitive.session.useApiKey = /*true or false */
-//To get the session use 
-Appacitive.Session.get();
-//To set the session use 
-Appacitive.Session.setSession('/* session */')
-//To set the apikey use 
-Appacitive.Session.setApiKey('/* apikey */')
-```
 ## Conventions
 ```javascript
-obj.save(function(obj) {
-}, function(err, obj){
+//callbacks
+obj.save({ 
+	success: function(obj) {}, 
+	error: function(err, obj){} 
 });
+
+//promise
+var promise = obj.save();
+promise.then(function(obj) {}, function(err, obj){} );
 ```
- 1. The javascript SDK is an async library and all data calls are async. Most calls have a signature like `object::method(onSuccess, onError)` where `onSuccess` and `onError` are functions that'll get executed in case of the call being a success or a failure respectively.
- 2. Every onSuccess callback for an object will get 1 argument viz. its own instance.
- 3. Every onError callback for an object will get 2 argument viz. error object and its own instance.
+ 1. The javascript SDK is an async library and all data calls are async. Most calls have a signature like `object::method({ success: onSuccess, error: onError })` where `onSuccess` and `onError` are functions that'll get executed in case of the call being a success or a failure respectively.
+ 2. Every data call also returns a promise.
+ 3. Every onSuccess callback for an object will get 1 argument viz. its own instance.
+ 4. Every onError callback for an object will get 2 argument viz. error object and its own instance.
      Error object basically contains a code and message.
 
 ----------
@@ -133,28 +132,21 @@ obj.save(function(obj) {
 
 ## Data storage and retrieval
 
-All data is represented as entities. Entities of the same type are organized into collections. Collections act as the containers for entities. This will become clearer as you read on. Lets assume that we are building a game and we need to store player data on the server.
+All data is represented as entities. This will become clearer as you read on. Lets assume that we are building a game and we need to store player data on the server.
 
 ### Creating
 To create a player via the sdk, do the following
 ```javascript
-var players = new Appacitive.ArticleCollection('player');
-var player = players.createNewArticle();
+var player = new Appacitive.Article('player');
 ```
 Huh?
 
-An `Appacitive.ArticleCollection` comprises of entities (referred to as 'articles' in Appacitive jargon). To initialize a collection, we need to provide it some options. The mandatory argument is the `schema` argument.
+An `Appacitive.Article` comprises of an entity (referred to as 'article' in Appacitive jargon). To initialize an article, we need to provide it some options. The mandatory argument is the `schema` argument.
 
-What is a schema? In short, think of schemas as tables in a contemporary relational database. A schema has properties which hold values just like columns in a table. A property has a data type and additional constraints are configured according to your application's need. Thus we are specifying that the players collection is supposed to contain entities of the type 'player' (which should already defined in your application). The `players` collection is currently empty, ie it contains no actual entities.
+What is a schema? In short, think of schemas as tables in a contemporary relational database. A schema has properties which hold values just like columns in a table. A property has a data type and additional constraints are configured according to your application's need. Thus we are specifying that the player is supposed to contain an entity of the type 'player' (which should already be defined in your application).
 
-Every `ArticleCollection` has a method called `createNewArticle` that initializes an empty entity (aka article) and returns it. Thus, `player` is an empty, initialized entity.
+The player object is an instance of `Appacitive.Article`. An `Appacitive.Article` is a class which encapsulates the data (the actual entity or the article) and methods that provide ways to update it, delete it etc. To see the raw entity that is stored within the `Appacitive.Article`, fire `player.toJSON()`.
 
-The player object is an instance of `Appacitive.Article`. An `Appacitive.Article` is a class which encapsulates the data (the actual entity or the article) and methods that provide ways to update it, delete it etc. To see the raw entity that is stored within the `Appacitive.Article`, fire `player.getArticle()`.
-
-**Note**:  You can also instantiate an article object without using `ArticleCollection`. Doing so will return you `Appacitive.Article` object, on which you can perform all CRUD operations.
-```javascript
-var player = new Appacitive.Article({name: 'John Doe', schema: 'player'});
-```
 #### Setting Values
 Now we need to name our player 'John Doe'. This can be done as follows
 ```javascript
@@ -189,9 +181,7 @@ alert(player.get('age', 'integer'));
 
 //get a 'boolean' object from an 'isenabled' property.
 alert(player.get('isenabled', 'boolean'));
-
 ```
-
 Types supported are `date`, `datetime`, `time`, `integer`, `decimal`, `boolean` and `string` 
 
 #### Try-Get values
@@ -208,22 +198,24 @@ You can also type cast these values
 alert(player.tryGet('age', 12, 'integer'))
 ```
 
-
 #### Saving
 Saving a player to the server is easy.
 ```javascript
 player.set('age','22');
-player.save(function() {
+player.save().then(function() {
 	alert('saved successfully!');
-}, function(err) {
-	alert('error while saving!');
-}, ["name", "age"] //optional
-);
+});
 ```
 When you call save, the entity is taken and stored on Appacitive's servers. A unique identifier called `__id` is generated and is stored along with the player object. This identifier is also returned to the object on the client-side. You can access it directly using `id`.
 This is what is available in the `player` object after a successful save.
 ```javascript
-player.save(function(obj) {
+
+if (player.isNew()) console.log("Creating player");
+if (!player.isNew()) console.log("Updating player");
+
+//isNew determines that an article is created or not
+
+player.save().then(function(obj) {
 	console.log("ID : " + player.id()); //
 	console.dir(palyer.toJSON());
 });
@@ -255,25 +247,26 @@ Appacitive.Article.get({
 	schema: 'player', //mandatory
 	id: '{{existing__id}}', //mandatory
 	fields: ["name"] //optional
-}, function(obj) {
+}).then(function(obj) {
 	alert('Fetched player with name: ' + obj.get('name')); // artice obj is returned as argument to onsuccess
-}, function(err, obj) {
-	alert('Could not fetch, probably because of an incorrect id');
 });
 ```
 
 Retrieving can also be done via the `fetch` method. Here's an example
 ```javascript
+// create a new article
 var player = new Appacitive.Article('player'); //You can initialize article in this way too.
+
 // set an (existing) id in the object
 player.id({{existing_id}});
+
+// set fields to be returned in the object 
+player.fields(["name"]);
+
 // retrieve the player
-player.fetch(function(obj) {
+player.fetch().then(function(obj) {
 	alert('Fetched player with name: ' + player.get('name'));
-}, function(err, obj) {
-	alert('Could not fetch, probably because of an incorrect id');
-}, ["name", "age"]//optional
-);
+});
 ```
 
 **Note**:  You can mention exactly which all fields you want returned so as to reduce payload. By default all fields are returned. Fields `__id` and `__schematype` are the fields which will always be returned. Every create, save and fetch call will return only these fields, if they're specified in third argument to these calls.
@@ -288,10 +281,8 @@ Appacitive.Article.multiGet({
 	schema: 'players', //name of schema : mandatory
 	ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of article ids to get : mandatory
 	fields: ["name"]// this denotes the fields to be returned in the article object, to avoid increasing the payload : optional
-}, function(articles) { 
+}).then(function(articles) { 
 	// articles is an array of article objects
-}, function(err) {
-	alert("code:" + err.code + "\nmessage:" + err.message);
 });
 ```
 ### Updating
@@ -303,16 +294,27 @@ var player = new Appacitive.Article({
    	name: 'John Doe',
    	schema: 'player'
 });
+
+// isNew determines that an article is created or not
+// this'll be true for now
+if (player.isNew()) console.log("Creating player");
+
 // save it
-player.save(function() {
-  // player has been saved successfully
-  // now lets update the player's name
+player.save().then(function() {
+    // player has been saved successfully
+    // this will be false
+    if (!player.isNew()) console.log("Updating player");
+
+    // now lets update the player's name
 	player.set('name', 'Jane Doe');
-	player.save(function() {
-	       alert(player.get('name')); // Jane Doe
-	}, function(err, obj) {
-	       alert('update failed');
-	}, ["name", "age"]);
+
+	// returns a promise
+	return player.save();
+}).then(function() {
+    alert(player.get('name')); // Jane Doe
+}, function(err, obj) {
+	if (player.isNew())  alert('create failed');
+	else  alert('update failed');
 });
 ```
 As you might notice, update is done via the save method as well. The SDK combines the create operation and the update operation under the hood and provides a unified interface. This is done be detecting the presence of the property `__id` to decide whether the object has been created and needs updating or whether the object needs to be created. 
@@ -322,18 +324,14 @@ This also means that you should never delete/modify the `__id`/ id property on a
 
 Deleting is provided via the `del` method (`delete` is a keyword in javascript apparently o_O). Lets say we've had enough of John Doe and want to remove him from the server, here's what we'd do.
 ```javascript
-player.del(function(obj) {
+player.destroy().then(function(obj) {
 	alert('Deleted successfully');
-}, function(err, obj) {
-	alert('Delete failed')
 });
 
 //You can also delete article with its connections in a simple call.
-player.del(function(obj) {
+player.destroy(true).then(function(obj) {
 	alert('Deleted successfully');
-}, function(err, obj) {
-	alert('Delete failed')
-}, true); // setting the third argument to true will delete its connections if they exist
+}); // setting the first argument to true will delete its connections if they exist
 
 // Multiple articles can also be deleted at a time. Here's an example
 Appacitive.Article.multiDelete({ 	
@@ -370,7 +368,7 @@ var userDetails = {
 };
 
 // now to create the user
-Appacitive.Users.createUser(userDetails , function(obj) {
+Appacitive.Users.createUser(userDetails).then(function(obj) {
 	alert('Saved successfully, id: ' + obj.get('__id'));
 }, function(err, obj) {
 	alert('An error occured while saving the user.');
@@ -386,8 +384,6 @@ var newUser = new Appacitive.User(userDetails);
 //and then call save on that object
 newUser.save(function(obj) {
 	alert('Saved successfully, id: ' + newUser.get('__id'));
-}, function(err, obj) {
-	alert('An error occured while saving the user.');
 });
 ```
 #### Creating Users via Facebook
@@ -402,7 +398,7 @@ You can give your users the option of signing up or logging in via facebook. For
 window.fbAsyncInit = function() {
 	Appacitive.Facebook.initialize({
 		appId      : 'YOUR_APP_ID', // Facebook App ID
-		status     : true, // check login status
+		status     : false, // check login status
 		cookie     : true, // enable cookies to allow Appacitive to access the session
 		xfbml      : true  // parse XFBML
 	});
@@ -410,19 +406,32 @@ window.fbAsyncInit = function() {
 };
 
 //Registering via facebook is done like so
-Appacitive.Users.signupWithFacebook(function (authResult) {
+
+//Login with facebook
+Appacitive.Facebook.requestLogin().then(function(fbResponse) {
+	console.log('Facebook login successfull with access token: ' + Appacitive.Facebook.accessToken());
+	
+	// signup with Appacitive
+	return Appacitive.Users.signupWithFacebook(Appacitive.Facebook.accessToken());
+
+}).then(function (authResult) {
 	// user has been successfully signed up and set as current user
 	// authresult contains the user and Appacitive-usertoken
 }, function(err) {
-	// there was an error signing up the user
+	if (global.Appacitive.Facebook.accessToken()) {
+		// there was an error during facebook login
+	} else {
+		// there was an error signing up the user
+	}
 });
+
 ```
 So simple? Indeed.
 These're the steps followed
  1. The user is shown Facebook login modal.
- 2. After the user logs in successfully, the SDK gets the accessToken which can be set and retrieved using `Appacitive.Facebook.AccessToken()`, and sends it to our App
- 4. Our app gets the userinfo for that accessToken and creates an Appacitive User.
- 3. After creating, the user is logged-in and set as current user
+ 2. After the user logs in successfully, SDK gets the accessToken which can be set and retrieved using `Appacitive.Facebook.AccessToken()`, and sends it to our App
+ 3. Our app gets the userinfo for that accessToken and creates an Appacitive User.
+ 4. After creating, the user is logged-in and set as current user
 
 The success callback is given one argument: `authresult`
 ```javascript
@@ -434,7 +443,7 @@ The success callback is given one argument: `authresult`
 * The `token` field is the user token. This is similar to the session token, but instead of authenticating the app with the server, it authenticates the logged in user with the app. More on this later, in the authentication section.
 * The `user` field is the Appacitive User object. The data that exists in the user field got pulled from facebook when he/she logged in. Note: <span style="font-weight: bold">The user must agree to share his/her  email address with your app to be able to use facebook to signup/login.</span>
 
-**Note :** For nodejs you just need to set the `Appacitive.Facebook.accessToken()` value, and call Appacitive.Users.signupWithFacebook.
+**Note :** For nodejs you just need to set the `Appacitive.Facebook.accessToken()` value, and call Appacitive.Users.signupWithFacebook with the token.
 
 ### Retrieve
 
@@ -443,23 +452,19 @@ There are three ways you could retreive the user
 #### By id.
 Fetching users by id is exactly like fetching articles/data. Let's say you want to fetch user with `__id` 12345.
 ```javascript
-var users = new Appacitive.ArticleCollection({ schema: 'user' });
-var user = users.createNewArticle({ __id: '12345' });
-user.fetch(function (obj) {
-	alert('Could not fetch user with id 12345');
-}, function(err, obj) {
+var user = new Appacitive.User({ __id: '12345'});
+
+user.fetch().then(function (obj) {
 	alert('Could not fetch user with id 12345');
 });
 ```
 **Note**: All `Appacitive.Article` operations can be performed on `Appacitive.User` object. Infact its a subclass of `Appacitive.Article` class. So, above data documenation is valid for users too.
-But, you need a user logged in to perform user-specific operations.
+But, you need a user logged in to perform user-specific operations like update, fetch and delete.
 #### By username
 
 ```javascript
 //fetch user by username
-Appacitive.Users.getUserByUsername("john.doe", function(obj) {
-	alert('Could not fetch user with id 12345');
-}, function(err) {
+Appacitive.Users.getUserByUsername("john.doe").then(function(obj) {
 	alert('Could not fetch user with id 12345');
 });
 ```
@@ -467,9 +472,7 @@ Appacitive.Users.getUserByUsername("john.doe", function(obj) {
 
 ```javascript
 //fetch user by usertoken
-Appacitive.Users.getUserByToken("{{usertoken}}", function(obj) {
-	alert('Could not fetch user with id 12345');
-}, function(err) {
+Appacitive.Users.getUserByToken("{{usertoken}}").then(function(obj) {
 	alert('Could not fetch user with id 12345');
 });
 ```
@@ -477,10 +480,8 @@ Appacitive.Users.getUserByToken("{{usertoken}}", function(obj) {
 Again, there's no difference between updating a user and updating any other data. It is done via the `save` method.
 ```javascript
 user.set('firstname', 'Superman');
-user.save(function(obj) {
+user.save().then(function(obj) {
 	alert('Update successful');
-}, function(err) {
-	alert('Update failed');
 });
 ```
 
@@ -489,30 +490,24 @@ There are 3 ways of deleting a user.
 #### Via the user id
 ```javascript
 //To delete a user with an `__id` of, say, 1000.
-Appacitive.Users.deleteUser('1000', function() {
+Appacitive.Users.deleteUser('1000').then(function() {
 	// deleted successfully
-}, function(err) {
-	// delete failed
 });
 ```
 
 #### Via the object
 ```javascript
 //If you have a reference to the user object, you can just call 'del' on it to delete it.
-user.del(function() {
+user.destroy().then(function() {
 	// deleted successfully
-}, function(err) {
-	// delete failed
 });
 ```
 
 #### Deleting the currently logged in user
 ```javascript
 //You can delete the currently logged in user via a helper method.
-Appacitive.Users.deleteCurrentUser(function() {
+Appacitive.Users.deleteCurrentUser().then(function() {
 	// delete successful
-}, function(err) {
-	// delete failed
 });
 ```
 ### Authentication
@@ -530,6 +525,9 @@ Appacitive.session.setUserAuthHeader(token);
 // removing the auth token
 Appacitive.session.removeUserAuthHeader();
 // Access control has been disabled
+
+//Setting accessToken doesn't takes care of setting user associated for it. For that you will need to set current user too specified in further sections.
+
 ```
 #### Signup and login
 
@@ -545,11 +543,9 @@ var userDetails = {
 };
 
 // now to create the user
-Appacitive.Users.signup(userDetails , function(authResult) {
+Appacitive.Users.signup(userDetails).then(function(authResult) {
 	conole.log(authResult.token);
 	alert('Saved successfully, id: ' + authResult.user.get('__id'));
-}, function(err) {
-	alert('An error occured while saving the user.');
 });
 
 //The `authResult` is.
@@ -564,10 +560,8 @@ Appacitive.Users.signup(userDetails , function(authResult) {
 You can ask your users to authenticate via their username and password.
 ```javascript
 
-Appacitive.Users.login("username", "password", function (authResult) {
+Appacitive.Users.login("username", "password").then(function (authResult) {
     // user has been logged in successfully
-}, function(data) {
-    // log in attempt failed
 });
 
 //The `authResult` is similar as given above.
@@ -577,15 +571,50 @@ Appacitive.Users.login("username", "password", function (authResult) {
 }
 ```
 
-#### Login with facebook
+#### Login with Facebook
 
 You can ask your users to log in via facebook. The process is very similar to signing up with facebook.
 ```javascript
-Appacitive.Users.loginWithFacebook(function (authResult) {
-	// authentication successful
-}, function(er) {
-	// authentication unsuccessful
-	// maybe incorrect credentials or maybe the user denied permissions
+
+//Login with facebook
+Appacitive.Facebook.requestLogin().then(function(fbResponse) {
+	console.log('Facebook login successfull with access token: ' + Appacitive.Facebook.accessToken());
+	
+	// signup with Appacitive
+	return Appacitive.Users.loginWithFacebook(Appacitive.Facebook.accessToken());
+
+}).then(function (authResult) {
+	// user has been successfully signed up and set as current user
+	// authresult contains the user and Appacitive-usertoken
+}, function(err) {
+	if (global.Appacitive.Facebook.accessToken()) {
+		// there was an error during facebook login
+	} else {
+		// there was an error during user login
+	}
+});
+
+
+//As before the `authResult` parameter is the same.
+{
+    "token": "UjRFNVFKSWdGWmtwT0JhNU9jRG5sV0tOTDlPU0drUE1TQXJ0WXBHSlBreWVYdEtFaWRNV2k3TXlUK1BxSlMwcFp1L09wcHFzQUpSdTB3V3NBOFNVa2srNThYUUczYzM5cGpnWExUOHVMcmNZVmpLTHB4K1RLM3BRS2JtNXJCbHdoMWsxandjV3FFbFFacEpYajlNQmNCdm1HbWdsTHFDdzhlZjJiM0ljRUUyVUY2eUl2cllDdUE9PQ==",
+    "user": Appacitive.User object
+}
+```
+
+#### Login with Twitter
+
+You can ask your users to log in via Twitter. This'll require you to implement twitter login and provide the SDK with consumerkey, consumersecret, oauthtoken and oauthtokensecret
+```javascript
+
+//Once you've logged-in with twitter, pass twitter credentials to SDK
+Appacitive.Users.loginWithTwitter({
+	oauthtoken: {{twitterObj.oAuthToken}} ,
+	oauthtokensecret: {{twitterObj.oAuthTokenSecret}},
+	consumerKey: {{twitterObj.consumerKey}},
+	consumerSecret: {{twitterObj.consumerSecret}}
+}).then(function(authResult){
+	//User logged-in successfully
 });
 
 //As before the `authResult` parameter is the same.
@@ -597,18 +626,37 @@ Appacitive.Users.loginWithFacebook(function (authResult) {
 
 #### Current User
 
-Whenever you use any signup or login method, the user is stored in localStorage and can be retrieved using `Appacitive.Users.currentUser`.So, everytime your app opens, you just need to check this value, to be sure whether the user is logged-in or logged-out.
+Whenever you use any signup or login method, the user is stored in localStorage and can be retrieved using `Appacitive.Users.current`.So, everytime your app opens, you just need to check this value, to be sure whether the user is logged-in or logged-out.
 ```javascript
-var cUser = Appacitive.User.currentUser();
+var cUser = Appacitive.User.current();
 if (cUser) {
     // user is logged in
 } else {
     // user is not logged in
 }
 ```
-You can clear this value, calling `Appacitive.Users.logout()` method.
+
+You can explicitly set the current user as
+
 ```javascript
-Appacitive.Users.logout(function() {
+var user = new Appacitive.User({
+    __id : '2121312'
+    username: 'john.doe@appacitive.com'
+    email: 'johndoe@appacitive.com',
+    firstname: 'John',
+    lastname: 'Doe'
+});
+
+Appacitive.Users.setCurrentUser(user, token);
+
+//Now current user points to `john.doe`
+console.log(Appacitive.Users.current().get('__id'));
+
+```
+
+You can clear currentuser, calling `Appacitive.Users.logout()` method.
+```javascript
+Appacitive.Users.logout().then(function() {
 	// user is looged out	
 	// this will now be null
 	var cUser = Appacitive.Users.currentUser();  
@@ -635,31 +683,35 @@ User session validation is used to check whether the user is authenticated and h
 ```javascript
 
 // to check whether user is loggedin locally. This won't make any explicit apicall to validate user
-Appacitive.Users.validateCurrentUser(function(isValid) {
+Appacitive.Users.validateCurrentUser().then(function(isValid) {
 	if(isValid) //user is logged in
 });
 // to check whether user is loggedin, explicitly making apicall to validate usertoken
-Appacitive.Users.validateCurrentUser(function(isValid) {
+// pass true as first argument to validate usertoken making an apicall
+Appacitive.Users.validateCurrentUser(true).then(function(isValid) {
 	if (isValid)  //user is logged in
-}, true); // set to true to validate usertoken making an apicall
+}); 
 ```
 
 ### Linking and Unlinking accounts
 
 #### Linking Facebook account
 
+**Note:** here, we consider that the user has already logged-in with facebook using `Appacitive.Facebook.requestLogin` method
+
 If you want to associate an existing loggedin Appacitive.User to a Facebook account, you can link it like so
+
 ```javascript
 var user = Appacitive.User.currentUser();
-user.linkFacebookAccount(function(obj) {
-	console.dir(user.linkedAccounts);//You can access linked accounts of a user, using this field
-}, function(err, obj){
-	alert("Could not link FB account");
+user.linkFacebook(global.Appacitive.Facebook.accessToken()).then(function(obj) {
+	//You can access linked accounts of a user, using this field
+	console.dir(user.linkedAccounts()); 
 });
 ```
-Under the hood the same steps followed for login are executed, except in this case the user is linked with facebook account.
 
 #### Create Facebook linked accounts
+
+**Note:** here, we consider that the user has already logged-in with facebook using `Appacitive.Facebook.requestLogin` method
 
 If you want to associate a new Appacitive.User to a Facebook account, you can link it like so
 ```javascript
@@ -671,36 +723,78 @@ var user = new Appacitive.User({
 	firstname: 'John',
 	lastname: 'Doe'	
 });
+
 //link facebook account
-user.linkFacebookAccount(function(obj) {
-	console.dir(user.linkedAccounts);//You can access linked accounts of a user, using this field
-}, function(err, obj){
-	alert("Could not link FB account");
-});
+user.linkFacebook(global.Appacitive.Facebook.accessToken());
+
 //create the user on server
-user.save(function(obj) {
-	console.dir(user.linkedAccounts);
-}, function(err, obj) {
-	alert('An error occured while saving the user.');
+user.save().then(function(obj) {
+	console.dir(user.linkedAccounts());
 });
 
 ```
-Under the hood the same steps followed for login are executed.
+#### Linking Twitter account
 
-#### Retreiving Facebook linked account
+**Note:** here, we consider that the user has already logged-in with twitter
+
+If you want to associate an existing loggedin Appacitive.User to a Twitter account, you can link it like so
+
 ```javascript
-Appacitive.Users.currentUser().getAllLinkedAccounts(function() {
-	console.dir(Appacitive.Users.currentUser.linkedAccounts);
-}, function(err){
-	alert("Could not reteive facebook linked account")
+var user = Appacitive.User.currentUser();
+user.linkTwitter({
+	oauthtoken: {{twitterObj.oAuthToken}} ,
+	oauthtokensecret: {{twitterObj.oAuthTokenSecret}},
+	consumerKey: {{twitterObj.consumerKey}},
+	consumerSecret: {{twitterObj.consumerSecret}}
+}).then(function(obj) {
+	//You can access linked accounts of a user, using this field
+	console.dir(user.linkedAccounts()); 
 });
 ```
+
+#### Create Twitter linked accounts
+
+**Note:** here, we consider that the user has already logged-in with twitter
+
+If you want to associate a new Appacitive.User to a Twitter account, you can link it like so
+```javascript
+//create user object
+var user = new Appacitive.User({
+	username: 'john.doe@appacitive.com',
+	password: /* password as string */,
+	email: 'johndoe@appacitive.com',
+	firstname: 'John',
+	lastname: 'Doe'	
+});
+
+//link facebook account
+user.linkTwitter({
+	oauthtoken: {{twitterObj.oAuthToken}} ,
+	oauthtokensecret: {{twitterObj.oAuthTokenSecret}},
+	consumerKey: {{twitterObj.consumerKey}},
+	consumerSecret: {{twitterObj.consumerSecret}}
+});
+
+//create the user on server
+user.save().then(function(obj) {
+	console.dir(user.linkedAccounts());
+});
+
+```
+
+
+#### Retreiving all linked accounts
+```javascript
+Appacitive.Users.currentUser().getAllLinkedAccounts().then(function() {
+	console.dir(Appacitive.Users.currentUser.linkedAccounts());
+});
+```
+
 #### Delinking Facebook account
 ```javascript
-Appacitive.Users.currentUser().unlinkFacebookAccount(function() {
+//specify account which needs to be delinked
+Appacitive.Users.currentUser().unlink('facebook').then(function() {
 	alert("Facebook account delinked successfully");
-}, function(err){
-	alert("Could not delink facebook account");
 });
 ```
 ### Password Management
@@ -710,10 +804,8 @@ Appacitive.Users.currentUser().unlinkFacebookAccount(function() {
 Users often forget their passwords for your app. So you are provided with an API to reset their passwords.To start, you ask the user for his username and call
 
 ```javascript
-Appacitive.Users.sendResetPasswordEmail("{username}", "{subject for the mail}", function(){
+Appacitive.Users.sendResetPasswordEmail("{username}", "{subject for the mail}").then(function(){
 	alert("Password reset mail sent successfully"); 
-},function(){
-	alert("Failed to reset password for user");
 });
 ```
 
@@ -737,18 +829,14 @@ So basically, following flow can be utilized for reset password
 1. Validate token specified in URL
 
 ```javascript
-Appacitive.Users.validateResetPasswordToken(token, function(user) {
+Appacitive.Users.validateResetPasswordToken(token).then(function(user) {
 	//token is valid and json user object is returned for that token
-}, function(status) { 
-	//token is invalid
 });
 ```
 2.If valid then allow the user to enter his new password and save it
 ```javascript
-Appacitive.Users.resetPassword(token, newPassword, function() {
+Appacitive.Users.resetPassword(token, newPassword).then(function() {
 	//password for user has been updated successfully
-}, function(status) { 
-	//token is invalid
 });
 ```
 
@@ -756,22 +844,16 @@ Appacitive.Users.resetPassword(token, newPassword, function() {
 Users need to change their passwords whenever they've compromised it. You can update it using this call:
 ```javascript
 //You can make this call only for a loggedin user
-Appacitive.Users.currentUser().updatePassword('{oldPassword}','{newPassword}', function(){
+Appacitive.Users.current().updatePassword('{oldPassword}','{newPassword}').then(function(){
 	alert("Password updated successfully"); 
-},function(){
-	alert("Failed to updated password for user");
 });
 ```
 ### Check-in
 
 Users can check-in at a particular co-ordinate uing this call. Basically this call updates users location.
 ```javascript
-Appacitive.Users.currentUser().checkin({
-	lat:18.57, lng: 75.55
-}, function() {
+Appacitive.Users.currentUser().checkin(new Appacitive.GeoCoord(18.57, 75.55)).then(function() {
 	alert("Checked in successfully");
-}, function(err) {
-	alert("There was an error checking in");
 });
 ```
 
@@ -799,31 +881,34 @@ Let's jump in!
 Before we go about creating connections, we need two entities. Consider the following
 
 ```javascript
-var people = new Appacitive.ArticleCollection({ schema: 'person' })
-		, tarzan = people.createNewArticle({ name: 'Tarzan' })
-		, jane = people.createNewArticle({ name: 'Jane' });
-	
+var  tarzan = new Appacitive.Article({ schema:'person', name: 'Tarzan' })
+		, jane =  new Appacitive.Article({ schema:'person', name: 'Jane' });
+
 // save the entites tarzan and jane
 // ...
 // ...
 
-// initialize a connection collection
-var marriages = new Appacitive.ConnectionCollection({ relation: 'marriage' });
-
-// setup the connection of type 'marriage'
-var marriage = marriages.createNewConnection({ 
+// initialize and set up a connection
+var marriage = new Appacitive.Connection({ 
+  relation: 'marriage',
   endpoints: [{
-      articleid: tarzan.id(),  //mandatory
+      article: tarzan,  //mandatory
       label: 'husband'  //mandatory
   }, {
-      articleid: jane.id(),  //mandatory
+      article: jane,  //mandatory
       label: 'wife' //mandatory
-  }] 
+  }],
+  date: '01-01-2010'
+});
+
+// call save
+marriage.save().then(function(obj) {
+    alert('saved successfully!');
 });
 
 ```
 
-If you've read the previous guide, most of this should be familiar. What happens in the `createConnection` method is that the relation is configured to actually connect the two entities. We initialize with the `__id`s of the two entities and specify which is which for example here, Tarzan is the husband and Jane is the wife. 
+If you've read the previous guide, most of this should be familiar. What happens in the `Appacitive.Connection` class is that the relation is configured to actually connect the two entities. We initialize with the `__id`s of the two entities and specify which is which for example here, Tarzan is the husband and Jane is the wife. 
 
 In case you are wondering why this is necessary then here is the answer, it allows you to structure queries like 'who is tarzan's wife?' or 'which houses does tarzan own?' and much more. Queries are covered in later guides.
 
@@ -853,10 +938,8 @@ var marriage = new Appacitive.Connection({
 });
 
 // call save
-marriage.save(function() {
+marriage.save().then(function(obj) {
     alert('saved successfully!');
-}, function() {
-    alert('error while saving!');
 });
 
 ```
@@ -892,10 +975,8 @@ Appacitive.Connection.get({
 	relation: 'marriage', //mandatory
     id: '{{existing__id}}', //mandatory
     fields: ["name"] //optional
-},function(obj) {
+}).then(function(obj) {
 	alert('Fetched marriage which occured on: ' + obj.get('date'));
-}, function(err) {
-	alert('Could not fetch, probably because of an incorrect __id');
 });
 ```
 Retrieving can also be done via the `fetch` method. Here's an example
@@ -905,13 +986,13 @@ var marriage = new Appacitive.Connection('marriage');
 // set an (existing) id in the object
 marriage.set('__id', '{{existing_id}}');
 
+//set fields to return
+marriage.fields(["date"]);
+
 // retrieve the marriage connection
-marriage.fetch(function(obj) {
+marriage.fetch().then(function(obj) {
     alert('Fetched marriage which occured on: ' + marriage.get('date'));
-}, function(err, obj) {
-    alert('Could not fetch, probably because of an incorrect __id');
-}, ["date"] //optional
-);
+});
 ```
 The marriage object is similar to the article object, except you get two new fields viz. endpointA and endpointB which contain the id and label of the two entities that this object connects.
 
@@ -939,13 +1020,14 @@ var jane = new Appacitive.Article({ __id : '123345456', schema : 'person');
 
 //call fetchConnectedArticles with all options that're supported by queries syntax
 // we'll cover queries in next section
-jane.fetchConnectedArticles({ 
+var query = jane.fetchConnectedArticles({ 
 	relation : 'freinds', //mandatory
-    label: 'freind' //madatory for a relation between same schema and differenct labels
-}, function(obj, pi) {
+	returnEdge: true, // set to false to stop returning connection
+    label: 'freind' //mandatory for a relation between same schema and different labels
+});
+
+query.fetch(function(results) {
 	console.log(jane.children["freinds"]);
-}, function (err, obj) {
-	alert("code:" + err.code + "\nmessage:" + err.message);
 });
 
 ```
@@ -973,20 +1055,20 @@ Consider you want to check whether `Tarzan` and `Jane` are married, you can do i
 ```javascript
 //'marriage' is the relation between person schema
 //and 'husband' and 'wife' are the endpoint labels
-Appacitive.Connection.getBetweenArticlesForRelation({ 
+var query = Appacitive.Connection.getBetweenArticlesForRelation({ 
     relation: "marriage", //mandatory
     articleAId : "22322", //mandatory 
     articleBId : "33422", //mandatory
     label : "wife" //madatory for a relation between same schema and differenct labels
-}, function(marriage){
+});
+
+query.fetch().then(function(marriage){
 	if(marriage != null) {
     	// connection obj is returned as argument to onsuccess
     	alert('Tarzan and jane are married at location ', marriage.get('location'));
     } else {
     	alert('Tarzan and jane are not married');
     }
-}, function(err) {
-    alert('Could not fetch, probably because of an incorrect id');
 });
 
 //For a relation between same schema type and differenct endpoint labels
@@ -996,18 +1078,18 @@ Appacitive.Connection.getBetweenArticlesForRelation({
 
 Conside you want to check that a particular `house` is owned by `Jane`, you can do it by fetching connection for relation `owns_house` between `person` and `house`.
 ```javascript
-Appacitive.Connection.getBetweenArticlesForRelation({ 
+var query = Appacitive.Connection.getBetweenArticlesForRelation({ 
     relation: "owns_house", 
     articleAId : "22322", // person schema entity id
     articleBId : "33422" //house schema entity id
-}, function(obj){
+});
+
+query.fetch().then(function(obj) {
     if(obj != null) {
     	alert('Jane owns this house');
     } else {
     	alert("Jane doesn't owns this house");
     }
-}, function(err, obj) {
-    alert('Could not fetch, probably because of an incorrect id');
 });
 ```
 
@@ -1016,13 +1098,13 @@ Appacitive.Connection.getBetweenArticlesForRelation({
 Consider `jane` is connected to `tarzan` via a `marriage` and a `freind` relationship. If we want to fetch al connections between them we could do this as
 
 ```javascript
-Appacitive.Connection.getBetweenArticles({
+var query = Appacitive.Connection.getBetweenArticles({
 	articleAId : "22322", // id of jane
     articleBId : "33422" // id of tarzan
-}, function(connections, pi) {
+});
+
+query.fetch().then(function(connections) {
 	console.log(connections);
-}, function(err) {
-	alert("code:" + err.code + "\nmessage:" + err.message);
 });
 ```
 On success, we get a list of all connections that connects `jane` and `tarzan`.
@@ -1031,10 +1113,12 @@ On success, we get a list of all connections that connects `jane` and `tarzan`.
 
 Consider, `jane` wants to what type of connections exists between her and a group of persons and houses , she could do this as
 ```javascript
-Appacitive.Connection.getInterconnects({
+var query = Appacitive.Connection.getInterconnects({
 	articleAId: '13432',
     articleBIds: ['32423423', '2342342', '63453425', '345345342']
-}, function(connections) {
+});
+
+query.fetch().then(function(connections) {
 	console.log(connections);
 }, function(err) {
 	alert("code:" + err.code + "\nmessage:" + err.message);
@@ -1052,10 +1136,8 @@ Updating is done exactly in the same way as entities, i.e. via the `save()` meth
 ```javascript
 marriage.set('location', 'Las Vegas');
 
-marriage.save(function(obj) {
+marriage.save().then(function(obj) {
     alert('saved successfully!');
-}, function(err, obj) {
-    alert('error while saving!');
 });
 ```
 As before, do not modify the `__id` property.
@@ -1065,10 +1147,8 @@ As before, do not modify the `__id` property.
 
 Deleting is provided via the `del` method.
 ```javascript
-marriage.del(function() {
+marriage.destroy().then(function() {
 	alert('Tarzan and Jane are no longer married.');
-}, function(err, obj) {
-	alert('Delete failed, they are still married.')
 });
 
 
@@ -1076,10 +1156,8 @@ marriage.del(function() {
 Appacitive.Article.multiDelete({ 	
 	relation: 'freinds', //name of relation
 	ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of connection ids to delete
-}, function() { 
+}).then(function() { 
 	//successfully deleted all connections
-}, function(err) {
-	alert("code:" + err.code + "\nmessage:" + err.message);
 });
 ```
 
@@ -1126,10 +1204,8 @@ var email = {
 ```
 And to send the email
 ```javascript
-Appacitive.Email.sendRawEmail(email, function (email) {
+Appacitive.Email.sendRawEmail(email).then(function (email) {
     alert('Successfully sent.');
-}, function(err) {
-    alert('Email sending failed.')
 });
 ```
 
@@ -1160,10 +1236,8 @@ var email = {
 ```
 And to send the email,
 ```javascript
-Appacitive.Email.sendTemplatedEmail(email, function (email) {
+Appacitive.Email.sendTemplatedEmail(email).then(function (email) {
     alert('Successfully sent.');
-}, function(err) {
-    alert('Email sending failed.')
 });
 ```
 
@@ -1191,10 +1265,8 @@ First we'll see how to send a push notification and then we will discuss the abo
 
 ```javascript
 var options = {..}; //Some options specific to senders
-Appacitive.Push.send(options, function(notification) {
+Appacitive.Push.send(options).then(function(notification) {
 	alert('Push notification sent successfully');
-}, function(err) {
-	alert('Sending Push Notification failed.');
 });
 ```
 
@@ -1418,10 +1490,8 @@ Here, we gave the fileId as the name of the original file. There're three things
 
 If you want to upload a file without using SDK, you can get an upload URL by calling its instance method `getUploadUrl`, and simply upload your file onto this url.
 ```javascript
-file.getUploadUrl(function(url) {
+file.getUploadUrl().then(function(url) {
    //alert("Upload url:" + url);
-}, function(err) {
-   //alert("Error getting upload url for file");
 });
 ```
 
@@ -1430,10 +1500,8 @@ file.getUploadUrl(function(url) {
 Once you're done creating `Appacitive.File` object, simply call save to save it on the server.
 ```javascript
 // save it on server
-file.save(function(url) {
+file.save().then(function(url) {
   alert('Download url is ' + url);
-}, function(err) {
-  //alert("Error uploading file");
 });
 ```
 
@@ -1467,10 +1535,427 @@ var file = new Appacitive.File({
 });
 
 // call to get donwload url
-file.getDownloadUrl(function(url) {
+file.getDownloadUrl().then(function(url) {
     alert("Download url:" + url);
     $("#imgUpload").attr('src',file.url);
-}, function(err) {
-	alert("Downloading file");
+});
+```
+
+----------
+
+## Queries
+
+All searching in SDK is done via `Appacitive.Queries` object. You can retrieve many objects at once, put conditions on the objects you wish to retrieve, and more.
+
+```javascript
+
+var filter = Appacitive.Filter.Property("firstname").equalTo("John");
+
+var query = new Appacitive.Queries.FindAllQuery(
+  schema: 'player', //mandatory 
+  //or relation: 'freinds'
+  fields: [*],      //optional: returns all user fields only
+  filter: filter,   //optional  
+  pageNumber: 1 ,   //optional: default is 1
+  pageSize: 20,     //optional: default is 50
+  orderBy: '__id',  //optional: default is __utclastupdateddate
+  isAscending: false  //optional: default is false
+}); 
+
+// success callback
+var successHandler = function(players) {
+  //`players` is `PagedList` of `Article`
+
+  console.log(players.total); //total records for query
+  console.log(players.pageNumber); //pageNumber for this set of records
+  console.log(players.pageSize); //pageSize for this set of records
+
+  // fetching other left players
+  if (!players.isLastPage) {
+    // if this is not the last page then fetch further records 
+    query.fetchNext(successHandler);
+  }
+};
+
+// make a call
+query.fetch().then(successHandler);
+
+```
+
+Go ahead and explore the query returned. The query contains a private object which is an instance of the `Appacitive.HttpRequest` class which we'll disccus ahead . This request gets transformed into an actual ajax request and does the fetching. In case you are interested in the actual rest endpoints, fire the `toRequest` method on the query. This will return a representation of the http request.
+
+### Modifiers
+
+Notice the `pageSize`, `pageNumber`, `orderBy`, `isAscending`, `filter`, `fields`  and `freeText` in the query? These're the options that you can specify in a query. Lets get to those.
+
+#### Pagination
+
+All queries on the Appacitive platform support pagination and sorting. To specify pagination and sorting on your queries, you need to access the query from within the collection and set these parameters.
+
+```javascript
+var query = new Appacitive.Queries.FindAllQuery({ 
+	schema: 'person' // or relation: 'freinds'
+});
+
+//set pageSize
+query.pageSize(30);
+//get pageSize
+alert(query.pageSize()); // will print 30
+
+//set pageNumber
+query.pageNumber(2);
+//get pageNumber
+alert(query.pageNumber()); // will print 2
+
+
+people.fetch().then(function() {
+    // this is the 2nd page of results
+    // where each page is 10 results long
+});
+```
+**Note**: By default, pageNumber is 1 and pageSize is 50
+
+#### Sorting
+
+Queries can be sorted similarly. Lets take the same example from above:
+```javascript
+var query = people.query();
+
+//set orderBy to specify the field on which you want to sort
+query.orderBy('name');
+//get orderBy
+alert(query.orderBy()); //will print name
+
+//set whether sortOrder is ascending or not 
+query.isAscending(true);
+//get orderBy
+alert(query.isAscending()); // will print true
+```
+**Note**: By default, orderBy is set as `__utclastupdateddate` property and `isAscending` is set as false
+
+#### Fields
+
+You can also mention exactly which all fields you want returned in query results. 
+
+Fields `__id` and `__schematype`/`__relationtype`  are the fields which will always be returned. 
+```javascript
+//set fields
+query.fields(["name", "age", "__createby"]); //will set fields to return __id, __schematype, name, age and __createdby
+
+query.fields([]); //will set fields to return only __id and __schematype
+query.fields([*]); //will set fields to return all user-defined properties and __id and __schematype
+```
+**Note**: By default fields is set as empty, so it returns all fields.
+
+#### Filter
+
+Filters are useful for limiting or funneling your results. They can be added on properties, attributes, aggregates and tags.
+
+Adding filters in a query is done using the `Appacitive.Filter` object, which has following functions to initialize a new filter.
+
+```javascript
+Appacitive.Filter.Property
+Appacitive.Filter.Attribute
+Appacitive.Filter.Aggregate
+Appacitive.Filter.TaggedWithOneOrMore
+Appacitive.Filter.TaggedWithAll
+Appacitive.Filter.Or
+Appacitive.Filter.And
+```
+
+Lets first discuss how to use **Appacitive.Filter.Property**, **Appacitive.Filter.Attribute** and **Appacitive.Filter.Aggregate**. 
+
+All of these take one argument, which is either the property or the attribute or the aggregate name on which you want to filter
+
+```javascript
+var name = new Appacitive.Filter.Property('name');
+var nickName = new Appacitive.Filter.Attribute('nickname');
+var count = new Appacitive.Filter.Aggregate('count');
+```
+
+In response it returns you an expression object, which has all the conditional methods that can be applied for respective property/ attribute/aggregate. 
+
+Most of these methods other than
+
+```javascript
+var nameFilter = name.equalTo('jane'); // exact match
+var nickNameFilter = nickName.like('an'); // like match
+var countFilter = count.lessThan(20); // less than search
+```
+
+This returns you a filter object, which can be directly assigned to query
+```javascript
+query.filter(nameFilter);
+query.filter(nickNameFilter);
+query.filter(countFilter);
+
+//you can also set it as
+query.filter(new Appacitive.Filter.Property('name').equalTo('name'));
+```
+
+| Filter        | Property         | Attribute  | Aggregate |
+| ------------- |:-----:| :-----:|:-----:|
+| equalTo      | Y | Y | Y |
+| equalToDate      | Y | - | - |
+| equalToTime      | Y | - | - |
+| equalToDateTime      | Y | - | - |
+| greaterThan      | Y | - | Y |
+| greaterThanDate      | Y | - | - |
+| greaterThanTime      | Y | - | - |
+| greaterThanDateTime      | Y | - | - |
+| greaterThanEqualTo      | Y | - | Y |
+| greaterThanEqualToDate      | Y | - | - |
+| greaterThanEqualToTime      | Y | - | - |
+| greaterThanEqualToDateTime      | Y | - | N |
+| lessThan      | Y | N | Y |
+| lessThanDate      | Y | N | N |
+| lessThanTime      | Y | N | N |
+| lessThanDateTime      | Y | N | N |
+| lessThanEqualTo      | Y | N | Y |
+| lessThanEqualToDate      | Y | N | N |
+| lessThanEqualToTime      | Y | N | N |
+| lessThanEqualToDateTime      | Y | N | N |
+| between      | Y | Y | Y |
+| betweenDate      | Y | - | - |
+| betweenTime      | Y | - | - |
+| betweenDateTime      | Y | - | - |
+| like      | Y | Y | N |
+| startsWith      | Y | Y | N |
+| endsWith      | Y | Y | N |
+| contains      | Y | Y | N |
+
+```
+
+**Samples***
+
+```javascript
+//First name like "oh"
+var likeFilter = Appacitive.Filter.Property("firstname").like("oh");
+
+//First name starts with "jo"
+var startsWithFilter = Appacitive.Filter.Property("firstname").startsWith("jo");
+
+//First name ends with "oe"
+var endsWithFilter = Appacitive.Filter.Property("firstname").endsWith("oe");
+
+//First name matching several different values
+var containsFilter = Appacitive.Filter.Property("firstname").contains(["John", "Jane", "Tarzan"]);
+
+//Between two dates
+var start = new Date("12 Dec 1975");
+var end = new Date("12 Jun 1995");
+var betweenDatesFilter = Appacitive.Filter.Property("birthdate").betweenDate(start, end);
+
+//Between two datetime objects
+var betweenDateTimeFilter = Appacitive.Filter.Property("__utclastupdateddate").betweenDateTime(start, end);
+
+//Between some time
+var betweenTimeFilter = Appacitive.Filter.Property("birthtime").betweenTime(start, end);
+
+//Between some two numbers
+var betweenFilter = Appacitive.Filter.Property("age").between(23, 70);
+
+//Greater than a date
+var date = new Date("12 Dec 1975");
+var greaterThanDateFilter = Appacitive.Filter.Property("birthdate").greaterThanDate(date);
+
+//Greater than a datetime
+var greaterThanDateTimeFilter = Appacitive.Filter.Property("birthdate").greaterThanDateTime(date);
+
+//Greater than a time
+var greaterThanTimeFilter = Appacitive.Filter.Property("birthtime").greaterThanTime(date);
+
+//greater then some number 
+var greaterThanFilter = Appacitive.Filter.Property("age").greaterThan(25);
+
+//Same works for greaterThanEqualTo, greaterThanEqualToDate, greaterThanEqualToDateTime and greaterThanEqualToTime
+//and for lessThan, lessThanDate, lessThanDateTime and lessThanTime
+//and for lessThanEqualTo, lessThanEqualToDate, lessThanEqualToDateTime and lessThanEqualToTime
+// and for equalTo, equalToDate, equalToDateTime, equalToTime
+```
+
+### Geolocation
+
+You can specify a property type as a geography type for a given schema or relation. These properties are essential latitude-longitude pairs. Such properties support geo queries based on a user defined radial or polygonal region on the map. These are extremely useful for making map based or location based searches. E.g., searching for a list of all restaurants within 20 miles of a given users locations.
+
+##### Radial Search
+
+A radial search allows you to search for all records of a specific type which contain a geocode which lies within a predefined distance from a point on the map. A radial search requires the following parameters.
+
+```javascript
+//create Appacitive.GeoCoord object
+var center = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
+
+//create filter
+var radialFilter = Appacitive.Filter.Property('location').withinCircle(center, 10, 'km');
+
+//create query object
+var query = new Appacitive.Queries.FindAllQuery({
+  schema: 'hotel',
+  filter: radialFilter
+});
+
+//or set it in an existing query
+query.filter(radialFilter);
+
+query.fetch();
+```
+
+##### Polygon Search
+
+A polygon search is a more generic form of geographcal search. It allows you to specify a polygonal region on the map via a set of geocodes indicating the vertices of the polygon. The search will allow you to query for all data of a specific type that lies within the given polygon. This is typically useful when you want finer grained control on the shape of the region to search.
+
+```javascript
+//create Appacitive.GeoCoord objects
+var pt1 = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
+var pt2 = new Appacitive.GeoCoord(34.1749687195, -116.1372222900);
+var pt3 = new Appacitive.GeoCoord(35.1749687195, -114.1372222900);
+var pt4 = new Appacitive.GeoCoord(36.1749687195, -114.1372222900);
+var geocodes = [ pt1, pt2, pt3, pt4 ];
+
+//create polygon filter
+var polygonFilter = Appacitive.Filter.Property("location")
+                                         .withinPolygon(geocodes);
+
+
+//create query object
+var query = new Appacitive.Queries.FindAllQuery({
+  schema: 'hotel',
+  filter: polygonFilter
+});
+
+//or set it in an existing query
+query.filter(polygonFilter);
+
+//call fetch
+query.fetch();
+```
+
+#### Tag Based Searches
+
+The Appacitive platform provides inbuilt support for tagging on all data (articles, connections, users and devices). You can use this tag information to query for a specific data set. The different options available for searching based on tags is detailed in the sections below.
+
+##### Query data tagged with one or more of the given tags
+
+For data of a given type, you can query for all records that are tagged with one or more tags from a given list. For example - querying for all articles of type message that are tagged as personal or private.
+
+```javascript
+//create the filter 
+//accepts an array of tags
+var tagFilter = Appacitive.Filter
+                      .taggedWithOneOrMore(["personal", "private"]);
+
+//create the query
+var query = new Appacitvie.Filter.FindAllQuery({
+  schema: 'message',
+  filter: tagFilter
+});
+
+//or set it in an existing query
+query.filter(tagFilter);
+
+//call fetch
+query.fetch();
+```
+
+##### Query data tagged with all of the given tags
+
+An alternative variation of the above tag based search allows you to query for all records that are tagged with all the tags from a given list. For example, querying for all articles of type message that are tagged as personal AND private.
+
+```javascript
+//create the filter 
+//accepts an array of tags
+var tagFilter = Appacitive.Filter
+                          .taggedWithAll(["personal", "test"]);
+
+//create the query
+var query = new Appacitvie.Filter.FindAllQuery({
+  schema: 'message',
+  filter: tagFilter
+});
+
+//or set it in an existing query
+query.filter(tagFilter);
+
+//call fetch
+query.fetch();
+```
+
+#### Composite Filters
+
+Compound queries allow you to combine multiple queries into one single query. The multiple queries can be combined using `Appacitive.Filter.Or` and `Appacitive.Filter.And` operators. NOTE: All types of queries with the exception of free text queries can be combined into a compound query.
+
+```javascript
+//Use of `And` and `Or` operators
+var center = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
+
+//AND query
+var complexFilter = 
+      Appacitive.Filter.And(
+          //OR query
+          Appacitive.Filter.Or( 
+             Appacitive.Filter.Property("firstname").startsWith("jo"),
+             Appacitive.Filter.Property("lastname").like("oe")
+          ),
+          Appacitive.Filter.Property("location")
+              .withinCircle(center, 
+                      10, 
+                      'mi') // can be set to 'km' or 'mi'
+      );
+
+//Or you can do it as
+
+var complexFilter = Appacitive.Filter.Property("firstname").startsWith("jo")
+					.Or(Appacitive.Filter.Property("lastname").like("oe"))
+					.And(Appacitive.Filter.Property("location")
+              				.withinCircle(center, 10, 'mi')) // can be set to 'km' or 'mi'
+					
+
+//create query object
+var query = new Appacitive.Queries.FindAllQuery({
+  schema: 'player'
+});
+
+//set filter in query
+query.filter(complexFilter);
+
+//add more filters
+query.filter(query.filter.And( Appacitive.Filter.Property('gender').equalTo('male')));
+
+//fire the query
+query.fetch();
+
+```
+
+### FreeText
+
+There are situations when you would want the ability to search across all text content inside your data. Free text queries are ideal for implementing this kind of functionality. As an example, consider a free text lookup for users which searches across the username, firstname, lastname, profile description etc.You can pass multiple values inside a free text search. It also supports passing certain modifiers that allow you to control how each search term should be used. This is detailed below.
+
+```javascript
+//create the query
+var query = new Appacitvie.Filter.FindAllQuery({
+  schema: 'message',
+  freeText: 'champs palais'
+});
+
+//or set it in the query
+query.freeText('champs palais');
+
+//call fetch
+query.fetch();
+```
+
+### Counts
+
+You can always count the number of records for a search, instead of retreiving all records
+
+```javascript
+var query = new Appacitvie.Filter.FindAllQuery({
+  schema: 'message',
+  freeText: 'champs palais'
+});
+
+query.count().then(function(noOfRecords) {
+	//There're noOfRecords for above query
 });
 ```
