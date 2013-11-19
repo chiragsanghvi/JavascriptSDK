@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Nov 18 14:05:59 IST 2013
+ * Build time 	: Tue Nov 19 12:15:33 IST 2013
  */
 "use strict";
 
@@ -1841,7 +1841,21 @@ Depends on  NOTHING
         this.toString = function() { return this.getValue(); };
     };
 
-    var _filter = function() { this.toString = function() { }; };
+    var _filter = function() { 
+        this.toString = function() { }; 
+
+        this.Or = function() {
+            var args = Array.prototype.slice.call(arguments, 0);
+            args.splice(0, 0, this);
+            return new _compoundFilter(_operators.or, args); 
+        };
+
+        this.And = function() {
+            var args = Array.prototype.slice.call(arguments, 0);
+            args.splice(0, 0, this);
+            return new _compoundFilter(_operators.and, args); 
+        };
+    };
 
     var _fieldFilter = function(options) {
 

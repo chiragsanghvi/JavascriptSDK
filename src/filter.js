@@ -33,7 +33,21 @@
         this.toString = function() { return this.getValue(); };
     };
 
-    var _filter = function() { this.toString = function() { }; };
+    var _filter = function() { 
+        this.toString = function() { }; 
+
+        this.Or = function() {
+            var args = Array.prototype.slice.call(arguments, 0);
+            args.splice(0, 0, this);
+            return new _compoundFilter(_operators.or, args); 
+        };
+
+        this.And = function() {
+            var args = Array.prototype.slice.call(arguments, 0);
+            args.splice(0, 0, this);
+            return new _compoundFilter(_operators.and, args); 
+        };
+    };
 
     var _fieldFilter = function(options) {
 
