@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Nov 19 12:15:33 IST 2013
+ * Build time 	: Wed Nov 20 13:59:42 IST 2013
  */
 "use strict";
 
@@ -204,7 +204,7 @@ _type['isNullOrUndefined'] = function(o) {
 
 var global = {};
 
-(function () {
+(function (root) {
 
 	"use strict";
 
@@ -228,6 +228,8 @@ var global = {};
 		}
 	};
 	_initialize();
+
+
 
 	// httpBuffer class, stores a queue of the requests
 	// and fires them. Global level pre and post processing 
@@ -724,7 +726,7 @@ var global = {};
 						}
 					} else {
 						if (response && ((response.status && response.status.code && response.status.code == '19036') || (response.code &&response.code == '19036'))) {
-							global.Appacitive.Users.logout(function(){}, true);
+							global.Appacitive.Users.logout();
 						} else {
 							global.Appacitive.Session.incrementExpiry();
 						}
@@ -747,7 +749,7 @@ var global = {};
 
 	/* Http Utilities */
 
-})();
+})(this);
 (function (global) {
 
     "use strict";
@@ -1199,7 +1201,7 @@ var global = {};
     Promise.prototype.done = function() {
         var then, promise, res, state = this.state, value = this.value;
 
-        if (!state) return;
+        if (!state) return this;
 
         while (then = this.calls.shift()) {
             promise = then[PROMISE];
@@ -1236,7 +1238,7 @@ var global = {};
     };
 
     Promise.prototype.fulfill = function() {
-        if (this.state) return;
+        if (this.state) return this;
 
         this.state = FULFILLED;
         this.value = arguments;
@@ -1249,7 +1251,7 @@ var global = {};
     Promise.prototype.resolve = Promise.prototype.fulfill;
 
     Promise.prototype.reject = function() {
-        if(this.state) return;
+        if(this.state) return this;
 
         this.state = REJECTED;
         this.reason = this.value = arguments;
@@ -1645,35 +1647,35 @@ Depends on  NOTHING
 			} catch(e) {}*/
 		};
 
-		this.removeUserAuthHeader = function(callback, avoidApiCall) {
-			if (callback && _type.isBoolean(callback)) {
-				avoidApiCall = callback;
-				callback = function() {}; 
-			}
-
-			authEnabled = false;
-			callback = callback || function() {};
+		this.removeUserAuthHeader = function(makeApiCall) {
+			
 			global.Appacitive.localStorage.remove('Appacitive-User');
-		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
-			if (_authToken  && !avoidApiCall) {
+		 	if (_authToken && makeApiCall) {
 				try {
-					var request = new global.Appacitive._Request({
-						method: 'POST',
-						type: 'user',
-						op: 'getInvalidateTokenUrl',
-						args: [_authToken],
-						callbacks: { success: callback, error: callback },
-						data: {},
-						onSuccess: function(data) {
-							request.promise.fulfill();
-						}
-					});
-					return request.send();
+					var promise = new global.Appacitive.Promise();
+
+					var _request = new global.Appacitive.HttpRequest();
+		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
+		            _request.method = 'POST';
+		            _request.data = {};
+		            _request.onSuccess = _request.onError = function() {
+		            	authEnabled = false;
+		            	_authToken = null;
+		            	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+		 				global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+						promise.fulfill();  
+		            };
+
+		 	        global.Appacitive.http.send(_request);
+
+		 	        return promise;
 				} catch (e){}
 			} else {
+				authEnabled = false;
 				_authToken = null;
-				return global.Appacitive.Promise.buildPromise({ success: callback, error: callback }).fulfill();
+				global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+		 		global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+				return global.Appacitive.Promise().fulfill();
 			}
 		};
 
@@ -4484,6 +4486,7 @@ Depends on  NOTHING
 			var currentUserId = _authenticatedUser.get('__id');
 			
 			this.deleteUser(currentUserId).then(function() { 
+				_authenticatedUser = null;
 				_callback();
 			}, function() { 
 				promise.reject(arguments);
@@ -4654,10 +4657,9 @@ Depends on  NOTHING
 			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
 		};
 
-		this.logout = function(callback, avoidApiCall) {
-			callback = callback || function() {};
+		this.logout = function(makeApiCall) {
 			_authenticatedUser = null;
-			return global.Appacitive.Session.removeUserAuthHeader(callback, avoidApiCall);
+			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall);
 		};
 
 		this.sendResetPasswordEmail = function(username, subject, callbacks) {

@@ -657,11 +657,17 @@ console.log(Appacitive.Users.current().get('__id'));
 
 You can clear currentuser, calling `Appacitive.Users.logout()` method.
 ```javascript
-Appacitive.Users.logout().then(function() {
+var makeAPICall = true
+
+//setting makeAPICall true will tell the SDK to make an API call and invalidate the token
+//setting it false won't make an API call and simply reset the token and currentUser
+
+Appacitive.Users.logout(makeAPICall).then(function() {
 	// user is looged out	
 	// this will now be null
 	var cUser = Appacitive.Users.currentUser();  
 });
+
 ```
 
 ### User Session Management

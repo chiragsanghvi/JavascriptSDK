@@ -54,7 +54,7 @@
     Promise.prototype.done = function() {
         var then, promise, res, state = this.state, value = this.value;
 
-        if (!state) return;
+        if (!state) return this;
 
         while (then = this.calls.shift()) {
             promise = then[PROMISE];
@@ -91,7 +91,7 @@
     };
 
     Promise.prototype.fulfill = function() {
-        if (this.state) return;
+        if (this.state) return this;
 
         this.state = FULFILLED;
         this.value = arguments;
@@ -104,7 +104,7 @@
     Promise.prototype.resolve = Promise.prototype.fulfill;
 
     Promise.prototype.reject = function() {
-        if(this.state) return;
+        if(this.state) return this;
 
         this.state = REJECTED;
         this.reason = this.value = arguments;

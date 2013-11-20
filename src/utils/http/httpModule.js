@@ -2,7 +2,7 @@
 
 var global = {};
 
-(function () {
+(function (root) {
 
 	"use strict";
 
@@ -26,6 +26,8 @@ var global = {};
 		}
 	};
 	_initialize();
+
+
 
 	// httpBuffer class, stores a queue of the requests
 	// and fires them. Global level pre and post processing 
@@ -522,7 +524,7 @@ var global = {};
 						}
 					} else {
 						if (response && ((response.status && response.status.code && response.status.code == '19036') || (response.code &&response.code == '19036'))) {
-							global.Appacitive.Users.logout(function(){}, true);
+							global.Appacitive.Users.logout();
 						} else {
 							global.Appacitive.Session.incrementExpiry();
 						}
@@ -545,4 +547,4 @@ var global = {};
 
 	/* Http Utilities */
 
-})();
+})(this);

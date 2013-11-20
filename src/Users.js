@@ -275,6 +275,7 @@
 			var currentUserId = _authenticatedUser.get('__id');
 			
 			this.deleteUser(currentUserId).then(function() { 
+				_authenticatedUser = null;
 				_callback();
 			}, function() { 
 				promise.reject(arguments);
@@ -445,10 +446,9 @@
 			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
 		};
 
-		this.logout = function(callback, avoidApiCall) {
-			callback = callback || function() {};
+		this.logout = function(makeApiCall) {
 			_authenticatedUser = null;
-			return global.Appacitive.Session.removeUserAuthHeader(callback, avoidApiCall);
+			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall);
 		};
 
 		this.sendResetPasswordEmail = function(username, subject, callbacks) {

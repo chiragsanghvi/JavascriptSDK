@@ -110,35 +110,35 @@
 			} catch(e) {}*/
 		};
 
-		this.removeUserAuthHeader = function(callback, avoidApiCall) {
-			if (callback && _type.isBoolean(callback)) {
-				avoidApiCall = callback;
-				callback = function() {}; 
-			}
-
-			authEnabled = false;
-			callback = callback || function() {};
+		this.removeUserAuthHeader = function(makeApiCall) {
+			
 			global.Appacitive.localStorage.remove('Appacitive-User');
-		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
-			if (_authToken  && !avoidApiCall) {
+		 	if (_authToken && makeApiCall) {
 				try {
-					var request = new global.Appacitive._Request({
-						method: 'POST',
-						type: 'user',
-						op: 'getInvalidateTokenUrl',
-						args: [_authToken],
-						callbacks: { success: callback, error: callback },
-						data: {},
-						onSuccess: function(data) {
-							request.promise.fulfill();
-						}
-					});
-					return request.send();
+					var promise = new global.Appacitive.Promise();
+
+					var _request = new global.Appacitive.HttpRequest();
+		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
+		            _request.method = 'POST';
+		            _request.data = {};
+		            _request.onSuccess = _request.onError = function() {
+		            	authEnabled = false;
+		            	_authToken = null;
+		            	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+		 				global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+						promise.fulfill();  
+		            };
+
+		 	        global.Appacitive.http.send(_request);
+
+		 	        return promise;
 				} catch (e){}
 			} else {
+				authEnabled = false;
 				_authToken = null;
-				return global.Appacitive.Promise.buildPromise({ success: callback, error: callback }).fulfill();
+				global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+		 		global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+				return global.Appacitive.Promise().fulfill();
 			}
 		};
 
