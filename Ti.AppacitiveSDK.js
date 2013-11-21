@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Nov 20 13:59:42 IST 2013
+ * Build time 	: Thu Nov 21 19:24:10 IST 2013
  */
 "use strict";
 
@@ -829,14 +829,14 @@ var global = {};
 
             userServiceUrl:  'user',
 
-            getCreateUrl: function (fields) {
+            getCreateUrl: function (type, fields) {
                 return String.Format("{0}/create?fields={1}", this.userServiceUrl, _getFields(fields));
             },
             getAuthenticateUserUrl: function () {
                 return String.Format("{0}/authenticate", this.userServiceUrl);
             },
-            getGetUrl: function (userId, fields) {
-                return String.Format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
+            getGetUrl: function (type, userId, fields) {
+                return String.Format("{0}/{1}?fields={2}", type, userId, _getFields(fields));
             },
             getUserByTokenUrl: function(userToken) {
                 return String.Format("{0}/me?useridtype=token&token={1}", this.userServiceUrl, userToken);
@@ -889,10 +889,10 @@ var global = {};
         this.device = {
             deviceServiceUrl: 'device',
 
-            getCreateUrl: function (fields) {
+            getCreateUrl: function (type, fields) {
                 return String.Format("{0}/register?fields={1}", this.deviceServiceUrl, _getFields(fields));
             },
-            getGetUrl: function (deviceId, fields) {
+            getGetUrl: function (type, deviceId, fields) {
                 return String.Format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
             getUpdateUrl: function (deviceId, fields, revision) {
@@ -3055,7 +3055,7 @@ Depends on  NOTHING
 			for (var property in src) {
 				if (_type.isString(src[property])) {
 					des[property] = src[property];
-				} else if (_type.isObject(src[property] == 'object'))  {
+				} else if (_type.isObject(src[property]))  {
 					if (src[property].length >=0 ) des[property] = [];
 					else des[property] = {};
 					for (var p in src[property]) {
@@ -3099,6 +3099,21 @@ Depends on  NOTHING
 
 		this.cid = __cid;
 
+		//attributes
+		if (!article.__attributes) article.__attributes = {};
+		if (!_snapshot.__attributes) _snapshot.__attributes = {};
+
+		//atomic properties
+		var _atomicProps = [];
+
+		//tags
+		var _removeTags = []; 
+		if (!article.__tags) article.__tags = [];
+		if (!_snapshot.__tags) _snapshot.__tags = [];
+
+		//fields to be returned
+		var _fields = '';
+
 		//Fileds to be ignored while update operation
 		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__schemaid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
 		
@@ -3130,9 +3145,6 @@ Depends on  NOTHING
 			return this.get('__id');	
 		};
 
-		if (!article.__attributes) article.__attributes = {};
-		if (!_snapshot.__attributes) _snapshot.__attributes = {};
-
 		// accessor function for the article's attributes
 		this.attr = function() {
 			if (arguments.length === 0) {
@@ -3153,7 +3165,7 @@ Depends on  NOTHING
 
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
-			if (!_snapshot.__attributes) return null;
+			if (!article.__attributes) return null;
 
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
@@ -3187,10 +3199,6 @@ Depends on  NOTHING
 			else if (arguments.length == 1) return aggregates[arguments[0]];
 			else throw new Error('.aggregates() called with an incorrect number of arguments. 0, and 1 are supported.');
 		};
-
-		var _removeTags = []; 
-		if (!article.__tags) article.__tags = [];
-		if (!_snapshot.__tags) _snapshot.__tags = [];
 
 		this.tags = function()  {
 			if (!article.__tags) return [];
@@ -3232,7 +3240,7 @@ Depends on  NOTHING
 				if (_snapshot.__tags.indexOf(a) == -1)
 					_tags.push(a);
 			});
-			return _tags;
+			return _tags.length > 0 ? _tags : null;
 		};
 
 		this.getChangedTags = _getChangedTags;
@@ -3264,9 +3272,10 @@ Depends on  NOTHING
 				});
 			} catch(e) {}
 
+			var changedTags = _getChangedTags();
 			if (isInternal) {
-				if (article.__tags && article.__tags.length > 0) { 
-					changeSet["__addtags"] = _getChangedTags(); 
+				if (changedTags) { 
+					changeSet["__addtags"] = changedTags; 
 					isDirty = true;
 				}
 				if (_removeTags && _removeTags.length > 0) {
@@ -3274,10 +3283,10 @@ Depends on  NOTHING
 				    isDirty = true;
 				}
 			} else {
-				if (article.__tags && article.__tags.length > 0) { 
-					changeSet["__tags"] = _getChangedTags();
+				if (changedTags) { 
+					changeSet["__addtags"] = changedTags; 
 					isDirty = true;
-			  	}
+				}
 			}
 
 			var attrs = _getChangedAttributes();
@@ -3334,8 +3343,6 @@ Depends on  NOTHING
 		};
 
 		this.previousAttributes = function() { return _snapshot; };
-
-		var _fields = '';
 
 		this.fields = function() {
 			if (arguments.length == 1) {
@@ -3459,7 +3466,20 @@ Depends on  NOTHING
 			return this;
 		};
 
-		var _atomicProps = [];
+		this.mergeWithPrevious = function() {
+			_copy(_snapshot, article);
+			_removeTags = [];
+			_atomicProps.length = 0;
+			return this;
+		};
+
+		this.rollback = function() {
+			article = raw = {};
+			_copy(_snapshot, article);
+			_removeTags = [];
+			_atomicProps.length = 0;
+			return this;
+		};
 
 		var _atomic = function(key, amount, multiplier) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
@@ -3519,7 +3539,8 @@ Depends on  NOTHING
 					if (data && savedState) {
 						_snapshot = savedState;
 						article.__id = savedState.__id;
-						_copy(savedState, article);
+						
+						that.mergeWithPrevious();
 
 						if (that.type == 'connection') that.parseConnection();
 						global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
@@ -3567,10 +3588,10 @@ Depends on  NOTHING
 					_updateRequest.data = changeSet;
 					_updateRequest.onSuccess = function(data) {
 						if (data && data[type]) {
-							_atomicProps.length = 0;
 							_snapshot = data[that.type];
-							_copy(_snapshot, article);
-							_removeTags = [];
+							
+							that.mergeWithPrevious();
+							
 							delete that.created;
 							
 							global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updated', that, { object : that });

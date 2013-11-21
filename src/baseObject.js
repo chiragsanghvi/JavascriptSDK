@@ -15,7 +15,7 @@
 			for (var property in src) {
 				if (_type.isString(src[property])) {
 					des[property] = src[property];
-				} else if (_type.isObject(src[property] == 'object'))  {
+				} else if (_type.isObject(src[property]))  {
 					if (src[property].length >=0 ) des[property] = [];
 					else des[property] = {};
 					for (var p in src[property]) {
@@ -59,6 +59,21 @@
 
 		this.cid = __cid;
 
+		//attributes
+		if (!article.__attributes) article.__attributes = {};
+		if (!_snapshot.__attributes) _snapshot.__attributes = {};
+
+		//atomic properties
+		var _atomicProps = [];
+
+		//tags
+		var _removeTags = []; 
+		if (!article.__tags) article.__tags = [];
+		if (!_snapshot.__tags) _snapshot.__tags = [];
+
+		//fields to be returned
+		var _fields = '';
+
 		//Fileds to be ignored while update operation
 		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__schemaid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
 		
@@ -90,9 +105,6 @@
 			return this.get('__id');	
 		};
 
-		if (!article.__attributes) article.__attributes = {};
-		if (!_snapshot.__attributes) _snapshot.__attributes = {};
-
 		// accessor function for the article's attributes
 		this.attr = function() {
 			if (arguments.length === 0) {
@@ -113,7 +125,7 @@
 
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
-			if (!_snapshot.__attributes) return null;
+			if (!article.__attributes) return null;
 
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
@@ -147,10 +159,6 @@
 			else if (arguments.length == 1) return aggregates[arguments[0]];
 			else throw new Error('.aggregates() called with an incorrect number of arguments. 0, and 1 are supported.');
 		};
-
-		var _removeTags = []; 
-		if (!article.__tags) article.__tags = [];
-		if (!_snapshot.__tags) _snapshot.__tags = [];
 
 		this.tags = function()  {
 			if (!article.__tags) return [];
@@ -192,7 +200,7 @@
 				if (_snapshot.__tags.indexOf(a) == -1)
 					_tags.push(a);
 			});
-			return _tags;
+			return _tags.length > 0 ? _tags : null;
 		};
 
 		this.getChangedTags = _getChangedTags;
@@ -224,9 +232,10 @@
 				});
 			} catch(e) {}
 
+			var changedTags = _getChangedTags();
 			if (isInternal) {
-				if (article.__tags && article.__tags.length > 0) { 
-					changeSet["__addtags"] = _getChangedTags(); 
+				if (changedTags) { 
+					changeSet["__addtags"] = changedTags; 
 					isDirty = true;
 				}
 				if (_removeTags && _removeTags.length > 0) {
@@ -234,10 +243,10 @@
 				    isDirty = true;
 				}
 			} else {
-				if (article.__tags && article.__tags.length > 0) { 
-					changeSet["__tags"] = _getChangedTags();
+				if (changedTags) { 
+					changeSet["__addtags"] = changedTags; 
 					isDirty = true;
-			  	}
+				}
 			}
 
 			var attrs = _getChangedAttributes();
@@ -294,8 +303,6 @@
 		};
 
 		this.previousAttributes = function() { return _snapshot; };
-
-		var _fields = '';
 
 		this.fields = function() {
 			if (arguments.length == 1) {
@@ -419,7 +426,20 @@
 			return this;
 		};
 
-		var _atomicProps = [];
+		this.mergeWithPrevious = function() {
+			_copy(_snapshot, article);
+			_removeTags = [];
+			_atomicProps.length = 0;
+			return this;
+		};
+
+		this.rollback = function() {
+			article = raw = {};
+			_copy(_snapshot, article);
+			_removeTags = [];
+			_atomicProps.length = 0;
+			return this;
+		};
 
 		var _atomic = function(key, amount, multiplier) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
@@ -479,7 +499,8 @@
 					if (data && savedState) {
 						_snapshot = savedState;
 						article.__id = savedState.__id;
-						_copy(savedState, article);
+						
+						that.mergeWithPrevious();
 
 						if (that.type == 'connection') that.parseConnection();
 						global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
@@ -527,10 +548,10 @@
 					_updateRequest.data = changeSet;
 					_updateRequest.onSuccess = function(data) {
 						if (data && data[type]) {
-							_atomicProps.length = 0;
 							_snapshot = data[that.type];
-							_copy(_snapshot, article);
-							_removeTags = [];
+							
+							that.mergeWithPrevious();
+							
 							delete that.created;
 							
 							global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updated', that, { object : that });
