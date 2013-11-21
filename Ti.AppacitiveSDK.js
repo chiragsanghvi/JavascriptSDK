@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Nov 21 19:24:10 IST 2013
+ * Build time 	: Thu Nov 21 21:16:12 IST 2013
  */
 "use strict";
 
@@ -3056,11 +3056,18 @@ Depends on  NOTHING
 				if (_type.isString(src[property])) {
 					des[property] = src[property];
 				} else if (_type.isObject(src[property]))  {
-					if (src[property].length >=0 ) des[property] = [];
-					else des[property] = {};
+					
+					if (!des[property]) des[property] = {};
+
 					for (var p in src[property]) {
 						des[property][p] = src[property][p];
 					}
+				} else if (_type.isArray(src[property])) {
+					if (!des[property] || !_type.isArray(des[property])) des[property] = [];
+				
+					src[property].forEach(function(d) {
+						des[property].push(d);
+					});
 				} else {
 					des[property] = src[property];
 				}
@@ -3467,17 +3474,21 @@ Depends on  NOTHING
 		};
 
 		this.mergeWithPrevious = function() {
-			_copy(_snapshot, article);
+			_copy(article, _snapshot);
 			_removeTags = [];
 			_atomicProps.length = 0;
 			return this;
 		};
 
-		this.rollback = function() {
-			article = raw = {};
+		var _merge = function() {
 			_copy(_snapshot, article);
 			_removeTags = [];
 			_atomicProps.length = 0;
+		};
+
+		this.rollback = function() {
+			article = raw = {};
+			_merge();
 			return this;
 		};
 
@@ -3540,7 +3551,7 @@ Depends on  NOTHING
 						_snapshot = savedState;
 						article.__id = savedState.__id;
 						
-						that.mergeWithPrevious();
+						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
 						global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
@@ -3590,7 +3601,7 @@ Depends on  NOTHING
 						if (data && data[type]) {
 							_snapshot = data[that.type];
 							
-							that.mergeWithPrevious();
+							_merge();
 							
 							delete that.created;
 							
