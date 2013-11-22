@@ -255,7 +255,7 @@
 
 		this.deleteUser = function(userId, callbacks) {
 			if (!userId) throw new Error('Specify userid for user delete');
-			return new global.Appacitive.Article({ __schematype: 'user', __id: userId }).del(callbacks);
+			return new global.Appacitive.Article({ __schematype: 'user', __id: userId }).del(true, callbacks);
 		};
 
 		this.deleteCurrentUser = function(callbacks) {

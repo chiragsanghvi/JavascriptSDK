@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Nov 21 21:16:12 IST 2013
+ * Build time 	: Fri Nov 22 19:23:37 IST 2013
  */
 "use strict";
 
@@ -851,8 +851,13 @@ var global = {};
                     return String.Format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (type, userId) {
-                return String.Format("{0}/{1}", this.userServiceUrl, userId);
+            getDeleteUrl: function (type, userId, deleteConnections) {
+                if (deleteConnections === true ) {
+                    return String.Format("{0}/{1}?deleteconnections=true", this.userServiceUrl, userId);
+                } else {
+                    return String.Format("{0}/{1}", this.userServiceUrl, userId);
+                }
+
             },
             getGetAllLinkedAccountsUrl: function(userId) {
                 var url = String.Format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
@@ -902,8 +907,12 @@ var global = {};
                     return String.Format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (type, deviceId) {
-                return String.Format("{0}/{1}", this.deviceServiceUrl, deviceId);
+            getDeleteUrl: function (type, deviceId, deleteConnections) {
+                if (deleteConnections === true ) {
+                    return String.Format('{0}/{1}?deleteconnections=true', this.deviceServiceUrl, deviceId);
+                } else {
+                    return String.Format('{0}/{1}', this.deviceServiceUrl, deviceId);
+                }
             }
         };
         this.article = {
@@ -2566,7 +2575,7 @@ Depends on  NOTHING
 				this.results.pageNumber = pi.pagenumber;
 				this.results.pageSize = pi.pagesize;
 				
-				if ((pi.pagenumber * pi.pagesize) <= pi.totalrecords) {
+				if ((pi.pagenumber * pi.pagesize) >= pi.totalrecords) {
 					this.results.isLastPage = true;
 				}
 			}
@@ -4449,7 +4458,7 @@ Depends on  NOTHING
 
 		this.deleteUser = function(userId, callbacks) {
 			if (!userId) throw new Error('Specify userid for user delete');
-			return new global.Appacitive.Article({ __schematype: 'user', __id: userId }).del(callbacks);
+			return new global.Appacitive.Article({ __schematype: 'user', __id: userId }).del(true, callbacks);
 		};
 
 		this.deleteCurrentUser = function(callbacks) {

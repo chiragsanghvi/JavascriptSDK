@@ -148,8 +148,13 @@
                     return String.format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (type, userId) {
-                return String.format("{0}/{1}", this.userServiceUrl, userId);
+            getDeleteUrl: function (type, userId, deleteConnections) {
+                if (deleteConnections === true ) {
+                    return String.format("{0}/{1}?deleteconnections=true", this.userServiceUrl, userId);
+                } else {
+                    return String.format("{0}/{1}", this.userServiceUrl, userId);
+                }
+
             },
             getGetAllLinkedAccountsUrl: function(userId) {
                 var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
@@ -199,8 +204,12 @@
                     return String.format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (type, deviceId) {
-                return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
+            getDeleteUrl: function (type, deviceId, deleteConnections) {
+                if (deleteConnections === true ) {
+                    return String.format('{0}/{1}?deleteconnections=true', this.deviceServiceUrl, deviceId);
+                } else {
+                    return String.format('{0}/{1}', this.deviceServiceUrl, deviceId);
+                }
             }
         };
         this.article = {

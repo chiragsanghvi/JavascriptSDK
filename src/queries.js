@@ -247,7 +247,7 @@
 				this.results.pageNumber = pi.pagenumber;
 				this.results.pageSize = pi.pagesize;
 				
-				if ((pi.pagenumber * pi.pagesize) <= pi.totalrecords) {
+				if ((pi.pagenumber * pi.pagesize) >= pi.totalrecords) {
 					this.results.isLastPage = true;
 				}
 			}
