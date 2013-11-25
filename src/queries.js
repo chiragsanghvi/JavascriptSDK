@@ -242,7 +242,7 @@
 				
 				this.results = this.results || [];
 
-				this.results.isLastPage = true;
+				this.results.isLastPage = false;
 				this.results.total = pi.totalrecords;
 				this.results.pageNumber = pi.pagenumber;
 				this.results.pageSize = pi.pagesize;

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Nov 22 19:23:37 IST 2013
+ * Build time 	: Mon Nov 25 10:59:41 IST 2013
  */
 "use strict";
 
@@ -2619,7 +2619,7 @@ Depends on  NOTHING
 				
 				this.results = this.results || [];
 
-				this.results.isLastPage = true;
+				this.results.isLastPage = false;
 				this.results.total = pi.totalrecords;
 				this.results.pageNumber = pi.pagenumber;
 				this.results.pageSize = pi.pagesize;
