@@ -276,7 +276,7 @@
         else this.type = typeof this.value; 
 
         this.getValue = function() {
-            if (this.type === 'string') return "'" + String.addSlashes(this.value) + "'";
+            if (this.type === 'string') return "'" + this.value + "'";
             else if (this.type === 'number' || _type.isBoolean(this.value)) return this.value;  
             else if (this.type === 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
