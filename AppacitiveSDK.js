@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Nov 25 10:59:41 IST 2013
+ * Build time 	: Mon Nov 25 13:32:01 IST 2013
  */
 "use strict";
 
@@ -3657,7 +3657,7 @@ Depends on  NOTHING
 					_updateRequest.data = changeSet;
 					_updateRequest.onSuccess = function(data) {
 						if (data && data[type]) {
-							_snapshot = data[that.type];
+							_snapshot = data[type];
 							
 							_merge();
 							
@@ -3718,16 +3718,23 @@ Depends on  NOTHING
 
 			if (!article.__id) throw new Error('Please specify id for get operation');
 			
+			var type = this.type;
+
+			// for User and Device articles
+			if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) { 
+				type = article.__schematype.toLowerCase();
+			}
+
 			var request = new global.Appacitive._Request({
 				method: 'GET',
-				type: that.type,
+				type: type,
 				op: 'getGetUrl',
 				args: [article.__schematype || article.__relationtype, article.__id, _fields],
 				callbacks: callbacks,
 				entity: that,
 				onSuccess: function(data) {
-					if (data && data[that.type]) {
-						_snapshot = data[that.type];
+					if (data && data[type]) {
+						_snapshot = data[type];
 						_copy(_snapshot, article);
 						if (data.connection) {
 							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
