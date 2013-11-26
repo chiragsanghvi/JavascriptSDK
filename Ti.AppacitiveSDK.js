@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Nov 25 15:09:01 IST 2013
+ * Build time 	: Tue Nov 26 16:02:33 IST 2013
  */
 "use strict";
 
@@ -3706,7 +3706,7 @@ Depends on  NOTHING
 
 		// fetch ( by id )
 		this.fetch = function(callbacks) {
-			return _fetch(callbacks);
+			return _fetch.apply(this ,[callbacks]);
 		};
 
 		// delete the article

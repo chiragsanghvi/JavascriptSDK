@@ -657,7 +657,7 @@
 
 		// fetch ( by id )
 		this.fetch = function(callbacks) {
-			return _fetch(callbacks);
+			return _fetch.apply(this ,[callbacks]);
 		};
 
 		// delete the article
