@@ -34,6 +34,7 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
   * [Creating & Saving](#creating--saving)  
   * [Retrieving](#retrieving-1)  
      * [Get Connection by Id](#get-connection-by-id)  
+     * [Get all Connections for an Endpoint Article Id](#get-all-connections-for-an-endpoint-article-id)
      * [Get Connected Articles](#get-connected-articles)  
      * [Get Connection by Endpoint Article Ids](#get-connection-by-endpoint-article-ids)  
      * [Get all connections between two Article Ids](#get-all-connections-between-two-article-ids)  
@@ -1033,7 +1034,7 @@ var query = jane.fetchConnectedArticles({
     label: 'freind' //mandatory for a relation between same schema and different labels
 });
 
-query.fetch(function(results) {
+query.fetch().then(function(results) {
 	console.log(jane.children["freinds"]);
 });
 
@@ -1052,6 +1053,34 @@ jane.children.freinds[0].connection
 In this query, you provide a relation type (name) and a label if both endpoints are of same type and what is returned is a list of all the articles connected to above article. 
 
 Such queries come helpful in a situation where you want to know all the interactions of a specific kind for of a particular article in the system.
+
+#### Get all Connections for an Endpoint Article Id
+
+Scenarios where you may need to just get all connections of a particular relation for an articleId, this query comes to rescue.
+
+Consider `Jane` is connected to some articles of type `person` via `invite` relationship, that also contains a `bool` property viz. `attending`,  which is false by default and will be set to true if that person is attending marriage.
+
+Now she wants to know who all are attending her marriage without actually fetching their connected `person` article, this can be done as
+
+```javascript
+//set an instance of person Article for Jane 
+var jane = new Appacitive.Article({ __id : '123345456', schema : 'person');
+
+//call fetchConnectedArticles with all options that're supported by queries syntax
+// we'll cover queries in dept in next section
+var query = jane.getConnections({
+	relation: 'invite', //mandatory
+	label: 'invitee', //mandatory
+	filter: Appacitive.Filter.Property('attending').equalTo(true)
+});
+
+query.fetch().then(function(invites) {
+	//invites is an array of connections
+	console.log(invites);
+});
+```
+
+In this query, you provide a relation type (name) and a label of opposite side whose conenction you want to fetch and what is returned is a list of all the connections for above article. 
 
 #### Get Connection by Endpoint Article Ids
 
