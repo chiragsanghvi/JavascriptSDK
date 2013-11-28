@@ -66,7 +66,7 @@
                 } catch(error) {
                     if (global.Appacitive.log) {
                         global.Appacitive.logs.exceptions.push(error);
-                        console.dir(error);
+                        console.log(JSON.stringify({name: error.name, message: error.message, stack: error.stack}, null, 2));
                     }   
                     promise.reject(error); 
                 }
