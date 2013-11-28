@@ -12,14 +12,42 @@ asyncTest('Cleaning up articles of schema user by fetching them using "users" fi
 	//logout current user
 	Appacitive.Users.logout(null, true);
 
+	var total = 0;
+
 	//Authenticate current user
     Appacitive.Users.login('chiragsanghvi', 'test123!@#').then(function(data) {
-    	ok(true, "User authencticated successfully");
+    	ok(true, "User authenticated successfully");
+    	//Fetch all users except admin user
+    	var query = new Appacitive.Queries.GraphFilterQuery('users');
+    	return query.fetch();
+    }).then(function(ids) {
+    	total = ids.length;
+		if (total === 0) {
+    		ok(true, 'No users to delete');
+			return Appacitive.Promise().fulfill();
+    	}
+
+    	var tasks = [];
+    	ids.forEach(function(id) {
+    		tasks.push(new Appacitive.User({ __id: id }).destroy(true));
+    	});
+    	return Appacitive.Promise.when(tasks);
+    }).then(function() {
+    	ok(true, 'All users to deleted');
     	start();
     }, function(data) {
-    	ok(false, 'User authentication failed: ' + JSON.stringify(data));
+    	if (!Appacitive.Users.current()) {
+    		ok(false, 'User authentication failed: ' + JSON.stringify(data));
+    	} else if (total === 0) {
+    		ok(false, 'Could not fetch articles for schema user');
+    	} else {
+    		var numFailures = 0;
+			data.forEach(function(v) { if (v) ++numFailures; });
+			ok(false, 'Article delete failed for ' + numFailures + '/' + total +' articles');
+    	}
     	start();
     });
+	
 });
 
 asyncTest('Create linked facebook user in one api call', function() {
@@ -49,8 +77,7 @@ asyncTest('Create linked facebook user in one api call', function() {
 			}
 		}).then(function() {
 			ok(true, "Saved user with facebbok account linked");
-			return newUser.del();
-			start();				
+			return newUser.del();				
 		}).then( function() {
 			ok(true, "User deleted successfullly");
 			start();

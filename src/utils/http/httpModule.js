@@ -477,13 +477,25 @@ var global = {};
 		          }
 		        } catch (e) {}
 		    }
+
 		    error = error || { code: response.status, message: response.responseText };
+		    
+		    request.result = error;
+		    if (global.Appacitive.log) {
+		    	error.request = request;	
+		    	global.Appacitive.log.push(error);
+		    	console.dir(error);
+		    }	
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
 
 		// the success handler
 		this.onResponse = function (request, response) {
+			request.result = response;
+			if (global.Appacitive.log) {
+				global.Appacitive.log.push(request);
+			}
 			if (request.onSuccess) {
 				if (request.context) {
 					request.onSuccess.apply(request.context, [response]);

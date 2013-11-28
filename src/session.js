@@ -219,6 +219,7 @@
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
   		
 		if (options.debug) global.Appacitive.config.debug = true;
+		if (options.log) global.Appacitive.log = [];
 
   		if (options.userToken) {
 

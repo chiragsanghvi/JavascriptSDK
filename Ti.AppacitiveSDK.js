@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Nov 26 16:02:33 IST 2013
+ * Build time 	: Thu Nov 28 12:34:40 IST 2013
  */
 "use strict";
 
@@ -1171,7 +1171,10 @@ var global = {};
                 try {
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
-                    console.dir(error);
+                    if (global.Appacitive.log) {
+                        global.Appacitive.log.push(error);
+                        console.dir(error);
+                    }   
                     promise.reject(error); 
                 }
 
@@ -1716,6 +1719,7 @@ Depends on  NOTHING
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
   		
 		if (options.debug) global.Appacitive.config.debug = true;
+		if (options.log) global.Appacitive.log = [];
 
   		if (options.userToken) {
 
@@ -3064,6 +3068,8 @@ Depends on  NOTHING
 			for (var property in src) {
 				if (_type.isString(src[property])) {
 					des[property] = src[property];
+				} else if(src[property] instanceof Date){
+					des[property] = global.Appacitive.Date.toISOString(src[property]);
 				} else if (_type.isObject(src[property]))  {
 					
 					if (!des[property]) des[property] = {};
@@ -3072,11 +3078,29 @@ Depends on  NOTHING
 						des[property][p] = src[property][p];
 					}
 				} else if (_type.isArray(src[property])) {
-					if (!des[property] || !_type.isArray(des[property])) des[property] = [];
+					des[property] = [];
 				
-					src[property].forEach(function(d) {
-						des[property].push(d);
+					src[property].forEach(function(v) {
+						if (_type.isString(v)) { des[property].push(v); }
+			 			else if (_type.isNumber(v) || _type.isBoolean(v)) { des[property].push(value + ''); }
+			 			else if (v instanceof Date) des[property].push(global.Appacitive.Date.toISOString(v));
+			 			else if (property == '__link') des[property].push(v);
+			 			else throw new Error("Multivalued property cannot have values of property as an object");
 					});
+
+					if (property !== '__tags' || property !== '__link') {
+						des[property].push = function(v) {
+						  	var len = this.length;
+						  	if (_type.isString(v)) { this[len] = v; }
+				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
+				 			else if (v instanceof Date) {
+			 					this[len] = global.Appacitive.Date.toISOString(v);
+			 				} else {
+			 					throw new Error("Multivalued property cannot have values of property as an object");
+			 				} 
+			 				return this;
+						}
+					}
 				} else {
 					des[property] = src[property];
 				}
@@ -3438,13 +3462,33 @@ Depends on  NOTHING
 		 	if (value == undefined || value == null) { article[key] = null;}
 		 	else if (_type.isString(value)) { article[key] = value; }
 		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { article[key] = value + ''; }
+		 	else if (value instanceof Date) article[key] = global.Appacitive.Date.toISOString(value);
 		 	else if (_type.isObject(value)) {
-		 		if (value instanceof Date) {
-		 			article[key] = global.Appacitive.Date.toISOString(value);
+	 			if (_allowObjectSetOperations.indexOf(key) !== -1) {
+		 		 	article[key] = value;
 		 		} else {
-			 		if (value.length >= 0) article[key] = value; 
-			 		else if (_allowObjectSetOperations.indexOf(key) !== -1) article[key] = value;
-			 	}
+		 			throw new Error("Property cannot have value as an object");
+		 		}
+			} else if(_type.isArray(value)) {
+				article[key] = [];
+
+				value.forEach(function(v) {
+					if (_type.isString(v)) { article[key].push(v); }
+		 			else if (_type.isNumber(v) || _type.isBoolean(v)) { article[key].push(v + ''); }
+		 			else if (v instanceof Date) article[key].push(global.Appacitive.Date.toISOString(v));
+	 				else throw new Error("Multivalued property cannot have values of property as an object");
+				});
+
+				if (key !== 'tags' || key !== '__link') {
+					article[key].push = function(v) {
+					  	var len = this.length;
+					  	if (_type.isString(v)) { this[len] = v; }
+			 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
+			 			else if (v instanceof Date) this[len] = global.Appacitive.Date.toISOString(v);
+		 				else throw new Error("Multivalued property cannot have values of property as an object");
+		 				return this; 
+					}
+				}
 			}
 		 	
 		 	return this;
