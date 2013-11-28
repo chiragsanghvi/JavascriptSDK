@@ -6,6 +6,8 @@
 
     global.Appacitive.logs.errors = [];
 
+    global.Appacitive.logs.exceptions = []; 
+
 	global.Appacitive.logs.logRequest = function(request, response, status, type) {
 		if (global.Appacitive.log) {
 			response = response || {};
@@ -46,5 +48,19 @@
 		    this.push(log);
 	    }
 	};    
+
+	var getLogs = function(log, method) {
+		var logs = [];
+		log.forEach(function(l) { if (l.method == method) logs.push(l); });
+		return logs;
+	};
+
+	global.Appacitive.logs.getPutLogs = function() { return getLogs(this, 'PUT'); };
+
+	global.Appacitive.logs.getGetLogs = function() { return getLogs(this, 'GET'); };
+
+	global.Appacitive.logs.getPostLogs = function() { return getLogs(this, 'POST'); };
+
+	global.Appacitive.logs.getDeleteLogs = function() { return getLogs(this, 'DELETE'); };
 
 })(global);

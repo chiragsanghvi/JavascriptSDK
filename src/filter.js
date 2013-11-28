@@ -257,6 +257,7 @@
         isLessThan: "<",
         isLessThanEqualTo: "<=",
         like: "like",
+        match: "match",
         between: "between",
         withinCircle: "within_circle",
         withinPolygon: "within_polygon",
@@ -415,6 +416,10 @@
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.like });
         };
 
+        context.match = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.match });
+        };
+
         context.startsWith = function(value) {
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value + "*"), operator: _operators.like });
         };
@@ -510,6 +515,10 @@
         /* Helper functions for string operations */
         this.like = function(value) {
             return _fieldFilters.like(value);
+        };
+
+        this.like = function(value) {
+            return _fieldFilters.match(value);
         };
 
         this.startWith = function(value) {

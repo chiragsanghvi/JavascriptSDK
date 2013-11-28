@@ -65,7 +65,7 @@
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
                     if (global.Appacitive.log) {
-                        global.Appacitive.logs.errors.push(error);
+                        global.Appacitive.logs.exceptions.push(error);
                         console.dir(error);
                     }   
                     promise.reject(error); 

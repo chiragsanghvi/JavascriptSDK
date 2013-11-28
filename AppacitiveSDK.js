@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Nov 28 14:34:21 IST 2013
+ * Build time 	: Thu Nov 28 14:54:51 IST 2013
  */
 "use strict";
 
@@ -761,6 +761,8 @@ var global = {};
 
     global.Appacitive.logs.errors = [];
 
+    global.Appacitive.logs.exceptions = []; 
+
 	global.Appacitive.logs.logRequest = function(request, response, status, type) {
 		if (global.Appacitive.log) {
 			response = response || {};
@@ -801,6 +803,20 @@ var global = {};
 		    this.push(log);
 	    }
 	};    
+
+	var getLogs = function(log, method) {
+		var logs = [];
+		log.forEach(function(l) { if (l.method == method) logs.push(l); });
+		return logs;
+	};
+
+	global.Appacitive.logs.getPutLogs = function() { return getLogs(this, 'PUT'); };
+
+	global.Appacitive.logs.getGetLogs = function() { return getLogs(this, 'GET'); };
+
+	global.Appacitive.logs.getPostLogs = function() { return getLogs(this, 'POST'); };
+
+	global.Appacitive.logs.getDeleteLogs = function() { return getLogs(this, 'DELETE'); };
 
 })(global);(function (global) {
 
@@ -1273,7 +1289,7 @@ var global = {};
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
                     if (global.Appacitive.log) {
-                        global.Appacitive.logs.errors.push(error);
+                        global.Appacitive.logs.exceptions.push(error);
                         console.dir(error);
                     }   
                     promise.reject(error); 
@@ -2132,6 +2148,7 @@ Depends on  NOTHING
         isLessThan: "<",
         isLessThanEqualTo: "<=",
         like: "like",
+        match: "match",
         between: "between",
         withinCircle: "within_circle",
         withinPolygon: "within_polygon",
@@ -2290,6 +2307,10 @@ Depends on  NOTHING
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.like });
         };
 
+        context.match = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.match });
+        };
+
         context.startsWith = function(value) {
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value + "*"), operator: _operators.like });
         };
@@ -2385,6 +2406,10 @@ Depends on  NOTHING
         /* Helper functions for string operations */
         this.like = function(value) {
             return _fieldFilters.like(value);
+        };
+
+        this.like = function(value) {
+            return _fieldFilters.match(value);
         };
 
         this.startWith = function(value) {
