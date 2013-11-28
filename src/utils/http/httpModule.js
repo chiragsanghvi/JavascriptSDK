@@ -120,6 +120,7 @@ var global = {};
 			request.headers.forEach(function(h) {
 				body[h.key] = h.value;
 			});
+			request.prevHeaders = request.headers;
 			request.headers = [];
 			request.headers.push({ key:'Content-Type', value: 'text/plain' });
 			request.method = 'POST';
@@ -479,23 +480,13 @@ var global = {};
 		    }
 
 		    error = error || { code: response.status, message: response.responseText };
-		    
-		    request.result = error;
-		    if (global.Appacitive.log) {
-		    	error.request = request;	
-		    	global.Appacitive.log.push(error);
-		    	console.dir(error);
-		    }	
+		    global.Appacitive.logs.logRequest(request, error, error, 'error');
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
 
 		// the success handler
 		this.onResponse = function (request, response) {
-			request.result = response;
-			if (global.Appacitive.log) {
-				global.Appacitive.log.push(request);
-			}
 			if (request.onSuccess) {
 				if (request.context) {
 					request.onSuccess.apply(request.context, [response]);
@@ -503,6 +494,7 @@ var global = {};
 					request.onSuccess(response);
 				}
 			}
+			global.Appacitive.logs.logRequest(request, response, response ? response.status : null, 'successful');
 		};
 		_inner.onResponse = this.onResponse;
 	};
@@ -547,11 +539,10 @@ var global = {};
 
 		global.Appacitive.http.addProcessor({
 			pre: function (req) {
-				return new Date().getTime();
+				return { start: new Date().getTime(), request: req };
 			},
-			post: function (response, state) {
-				var timeSpent = new Date().getTime() - state;
-				response._timeTakenInMilliseconds = timeSpent;
+			post: function (response, args) {
+				args.request.timeTakenInMilliseconds = new Date().getTime() - args.start;
 			}
 		});
 

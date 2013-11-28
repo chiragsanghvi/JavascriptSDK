@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Nov 28 12:34:40 IST 2013
+ * Build time 	: Thu Nov 28 14:34:21 IST 2013
  */
 "use strict";
 
@@ -322,6 +322,7 @@ var global = {};
 			request.headers.forEach(function(h) {
 				body[h.key] = h.value;
 			});
+			request.prevHeaders = request.headers;
 			request.headers = [];
 			request.headers.push({ key:'Content-Type', value: 'text/plain' });
 			request.method = 'POST';
@@ -681,23 +682,13 @@ var global = {};
 		    }
 
 		    error = error || { code: response.status, message: response.responseText };
-		    
-		    request.result = error;
-		    if (global.Appacitive.log) {
-		    	error.request = request;	
-		    	global.Appacitive.log.push(error);
-		    	console.dir(error);
-		    }	
+		    global.Appacitive.logs.logRequest(request, error, error, 'error');
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
 
 		// the success handler
 		this.onResponse = function (request, response) {
-			request.result = response;
-			if (global.Appacitive.log) {
-				global.Appacitive.log.push(request);
-			}
 			if (request.onSuccess) {
 				if (request.context) {
 					request.onSuccess.apply(request.context, [response]);
@@ -705,6 +696,7 @@ var global = {};
 					request.onSuccess(response);
 				}
 			}
+			global.Appacitive.logs.logRequest(request, response, response ? response.status : null, 'successful');
 		};
 		_inner.onResponse = this.onResponse;
 	};
@@ -749,11 +741,10 @@ var global = {};
 
 		global.Appacitive.http.addProcessor({
 			pre: function (req) {
-				return new Date().getTime();
+				return { start: new Date().getTime(), request: req };
 			},
-			post: function (response, state) {
-				var timeSpent = new Date().getTime() - state;
-				response._timeTakenInMilliseconds = timeSpent;
+			post: function (response, args) {
+				args.request.timeTakenInMilliseconds = new Date().getTime() - args.start;
 			}
 		});
 
@@ -762,7 +753,56 @@ var global = {};
 	/* Http Utilities */
 
 })(this);
-(function (global) {
+(function(global) {
+
+    "use strict";
+
+    global.Appacitive.logs = [];
+
+    global.Appacitive.logs.errors = [];
+
+	global.Appacitive.logs.logRequest = function(request, response, status, type) {
+		if (global.Appacitive.log) {
+			response = response || {};
+			status = status || {};
+			var body = JSON.parse(request.data);
+	    	var log = {
+	    		status: type,
+	    		referenceId: status.referenceid,
+	    		date: new Date().toISOString(),
+	    		method: body['m'],
+	    		url: request.url,
+	    		responseTime : request.timeTakenInMilliseconds,
+	    		headers: {},
+	    		request: null,
+	    		response: response
+			};
+
+			if (request.headers) {
+				request.headers.forEach(function(h) {
+					log.headers[h.key] = h.value;
+				});
+			}
+
+			if (request.prevHeaders) {
+				request.prevHeaders.forEach(function(h) {
+					log.headers[h.key] = h.value;
+				});
+			}
+
+			if (log.method !== 'GET') {
+		    	log.request = body['b'];
+		    }
+	    	
+	    	if (type == 'error') {
+	    		console.dir(log);
+	    		this.errors.push(log);
+		    }
+		    this.push(log);
+	    }
+	};    
+
+})(global);(function (global) {
 
     "use strict";
 
@@ -1233,7 +1273,7 @@ var global = {};
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
                     if (global.Appacitive.log) {
-                        global.Appacitive.log.push(error);
+                        global.Appacitive.logs.errors.push(error);
                         console.dir(error);
                     }   
                     promise.reject(error); 

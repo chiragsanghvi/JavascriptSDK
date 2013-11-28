@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Nov 28 12:34:40 IST 2013
+ * Build time 	: Thu Nov 28 14:34:21 IST 2013
  */
 "use strict";
 
@@ -701,7 +701,56 @@ var global = {};
 	/* Http Utilities */
 
 })();
-(function (global) {
+(function(global) {
+
+    "use strict";
+
+    global.Appacitive.logs = [];
+
+    global.Appacitive.logs.errors = [];
+
+	global.Appacitive.logs.logRequest = function(request, response, status, type) {
+		if (global.Appacitive.log) {
+			response = response || {};
+			status = status || {};
+			var body = JSON.parse(request.data);
+	    	var log = {
+	    		status: type,
+	    		referenceId: status.referenceid,
+	    		date: new Date().toISOString(),
+	    		method: body['m'],
+	    		url: request.url,
+	    		responseTime : request.timeTakenInMilliseconds,
+	    		headers: {},
+	    		request: null,
+	    		response: response
+			};
+
+			if (request.headers) {
+				request.headers.forEach(function(h) {
+					log.headers[h.key] = h.value;
+				});
+			}
+
+			if (request.prevHeaders) {
+				request.prevHeaders.forEach(function(h) {
+					log.headers[h.key] = h.value;
+				});
+			}
+
+			if (log.method !== 'GET') {
+		    	log.request = body['b'];
+		    }
+	    	
+	    	if (type == 'error') {
+	    		console.dir(log);
+	    		this.errors.push(log);
+		    }
+		    this.push(log);
+	    }
+	};    
+
+})(global);(function (global) {
 
     "use strict";
 
@@ -1172,7 +1221,7 @@ var global = {};
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
                     if (global.Appacitive.log) {
-                        global.Appacitive.log.push(error);
+                        global.Appacitive.logs.errors.push(error);
                         console.dir(error);
                     }   
                     promise.reject(error); 
