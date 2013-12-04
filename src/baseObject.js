@@ -377,7 +377,7 @@
 				}
 				return value;
 			}, "string": function(value) { 
-				if (value) return value.toSting();
+				if (value) return value.toString();
 				return value;
 			}
 		};
@@ -411,10 +411,14 @@
 		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { article[key] = value + ''; }
 		 	else if (value instanceof Date) article[key] = global.Appacitive.Date.toISOString(value);
 		 	else if (_type.isObject(value)) {
-	 			if (_allowObjectSetOperations.indexOf(key) !== -1) {
+		 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
 		 		 	article[key] = value;
 		 		} else {
-		 			throw new Error("Property cannot have value as an object");
+		 			if (value instanceof global.Appacitive.GeoCoord) {
+		 				article[key] = value.toString();
+		 			} else {
+		 				throw new Error("Property cannot have value as an object");
+		 			}
 		 		}
 			} else if(_type.isArray(value)) {
 				article[key] = [];

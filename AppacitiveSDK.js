@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Nov 28 15:10:34 IST 2013
+ * Build time 	: Wed Dec  4 10:45:28 IST 2013
  */
 "use strict";
 
@@ -204,17 +204,17 @@ _type['isNullOrUndefined'] = function(o) {
 
 var global = {};
 
-(function (root) {
+(function () {
 
 	"use strict";
 
 	// create the global object
 
 	if (typeof window === 'undefined') {
-		global = this;
-	} else {
-		global = window;
-	}
+        global = process;
+    } else {
+        global = window;
+    }
 
 	var _initialize = function () {
 		var t;
@@ -3556,7 +3556,7 @@ Depends on  NOTHING
 				}
 				return value;
 			}, "string": function(value) { 
-				if (value) return value.toSting();
+				if (value) return value.toString();
 				return value;
 			}
 		};
@@ -3590,10 +3590,14 @@ Depends on  NOTHING
 		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { article[key] = value + ''; }
 		 	else if (value instanceof Date) article[key] = global.Appacitive.Date.toISOString(value);
 		 	else if (_type.isObject(value)) {
-	 			if (_allowObjectSetOperations.indexOf(key) !== -1) {
+		 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
 		 		 	article[key] = value;
 		 		} else {
-		 			throw new Error("Property cannot have value as an object");
+		 			if (value instanceof global.Appacitive.GeoCoord) {
+		 				article[key] = value.toString();
+		 			} else {
+		 				throw new Error("Property cannot have value as an object");
+		 			}
 		 		}
 			} else if(_type.isArray(value)) {
 				article[key] = [];

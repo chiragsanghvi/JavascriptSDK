@@ -2,17 +2,17 @@
 
 var global = {};
 
-(function (root) {
+(function () {
 
 	"use strict";
 
 	// create the global object
 
 	if (typeof window === 'undefined') {
-		global = this;
-	} else {
-		global = window;
-	}
+        global = process;
+    } else {
+        global = window;
+    }
 
 	var _initialize = function () {
 		var t;
