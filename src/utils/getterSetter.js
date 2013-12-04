@@ -192,3 +192,7 @@ for (var i = 0; i < types.length; i++) {
 _type['isNullOrUndefined'] = function(o) {
     return _type(o) == 'null' || _type(o) == 'undefined';
 };
+
+_type['isNumeric'] = function(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+}

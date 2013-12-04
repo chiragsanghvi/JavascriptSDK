@@ -276,9 +276,13 @@
         if (type) this.type = type;
         else this.type = typeof this.value; 
 
+        if (this.type === 'number') {
+          if (!_type.isNumeric(this.value)) throw new Error("Value should be numeric for filter expression");  
+        }
+
         this.getValue = function() {
             if (this.type === 'string') return "'" + this.value + "'";
-            else if (this.type === 'number' || _type.isBoolean(this.value)) return this.value;  
+            else if (this.type === 'number' || _type.isBoolean(this.value))return this.value;  
             else if (this.type === 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
         };
@@ -343,7 +347,7 @@
 
         /* Helper functions for GreaterThan */
         context.greaterThan = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThan });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isGreaterThan });
         };
 
         context.greaterThanDate = function(value) {
@@ -361,7 +365,7 @@
 
         /* Helper functions for GreaterThanEqualTo */
         context.greaterThanEqualTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThanEqualTo });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isGreaterThanEqualTo });
         };
 
         context.greaterThanEqualToDate = function(value) {
@@ -378,7 +382,7 @@
 
         /* Helper functions for LessThan */
         context.lessThan = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThan });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isLessThan });
         };
 
         context.lessThanDate = function(value) {
@@ -396,7 +400,7 @@
 
         /* Helper functions for LessThanEqualTo */
         context.lessThanEqualTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThanEqualTo });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isLessThanEqualTo });
         };
 
         context.lessThanEqualToDate = function(value) {
@@ -434,7 +438,7 @@
 
         /* Helper functions for between */
         context.between = function(val1, val2) {
-            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1), val2: new _primitiveFieldValue(val2), operator: _operators.between });
+            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1, 'number'), val2: new _primitiveFieldValue(val2, 'number'), operator: _operators.between });
         };
 
         context.betweenDate = function(val1, val2) {
