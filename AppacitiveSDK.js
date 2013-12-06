@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Dec  4 12:40:13 IST 2013
+ * Build time 	: Fri Dec  6 12:09:46 IST 2013
  */
 "use strict";
 
@@ -124,7 +124,7 @@ if ( !Date.prototype.toISOString ) {
         };
 
     }() );
-}
+};
 
 String.addSlashes = function (str) {
     if (!str) return str;
@@ -144,10 +144,14 @@ String.stripSlashes = function (str) {
     return str;
 };
 
+if (typeof console === 'undefined' || console === null) {
+    console = { log: function() {}, dir: function() {} };
+}
+
 var _type = function (o) {
 
     // handle null in old IE
-    if (o === null) {
+    if (o === null || typeof o === 'undefined' || o === 'undefined') {
         return 'null';
     }
 

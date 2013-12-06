@@ -116,7 +116,7 @@ if ( !Date.prototype.toISOString ) {
         };
 
     }() );
-}
+};
 
 String.addSlashes = function (str) {
     if (!str) return str;
@@ -136,10 +136,14 @@ String.stripSlashes = function (str) {
     return str;
 };
 
+if (typeof console === 'undefined' || console === null) {
+    console = { log: function() {}, dir: function() {} };
+}
+
 var _type = function (o) {
 
     // handle null in old IE
-    if (o === null) {
+    if (o === null || typeof o === 'undefined' || o === 'undefined') {
         return 'null';
     }
 
