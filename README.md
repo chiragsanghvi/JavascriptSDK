@@ -1594,7 +1594,7 @@ var query = new Appacitive.Queries.FindAllQuery(
   filter: filter,   //optional  
   pageNumber: 1 ,   //optional: default is 1
   pageSize: 20,     //optional: default is 50
-  orderBy: '__id',  //optional: default is __utclastupdateddate
+  orderBy: '__id',  //optional: default is by relevance
   isAscending: false  //optional: default is false
 }); 
 
@@ -1667,7 +1667,6 @@ query.isAscending(true);
 //get orderBy
 alert(query.isAscending()); // will print true
 ```
-**Note**: By default, orderBy is set as `__utclastupdateddate` property and `isAscending` is set as false
 
 #### Fields
 

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Dec  6 12:09:46 IST 2013
+ * Build time 	: Mon Dec  9 17:33:57 IST 2013
  */
 "use strict";
 
@@ -2462,13 +2462,13 @@ Depends on  NOTHING
 	**/
 	var SortQuery = function(o) {
 		var options = o || {};
-		var _orderBy = '__UtcLastUpdatedDate';
+		var _orderBy = null;
 		var _isAscending = false;
 
 		//define getter/setter for orderby
 		this.orderBy =  function() { 
-			if (arguments.length === 1) {
-				_orderBy = arguments[0] || '__UtcLastUpdatedDate';
+			if (arguments.length === 1 && _type.isString(arguments[0])) {
+				_orderBy = arguments[0];
 				return this;
 			}
 			return _orderBy; 
@@ -2487,7 +2487,11 @@ Depends on  NOTHING
 		this.isAscending(options.isAscending);
 	};
 	SortQuery.prototype.toString = function() {
-		return 'orderBy=' + this.orderBy() + '&isAsc=' + this.isAscending();
+		if (this.orderBy() && this.orderBy().length > 0) {
+			return 'orderBy=' + this.orderBy() + '&isAsc=' + this.isAscending();
+		} else {
+			return '';
+		}
 	};
 
 	// base query
@@ -2614,7 +2618,11 @@ Depends on  NOTHING
 
 		this.getQueryString = function() {
 
-			var finalUrl = _pageQuery.toString() + '&' + _sortQuery.toString();
+			var finalUrl = _pageQuery.toString();
+
+			var sortQuery =  _sortQuery.toString();
+
+			if (sortQuery) finalUrl += '&' + sortQuery;
 
 			if (this.filter()) {
 				var filter = this.filter().toString();
@@ -3158,10 +3166,15 @@ Depends on  NOTHING
 					des[property] = global.Appacitive.Date.toISOString(src[property]);
 				} else if (_type.isObject(src[property]))  {
 					
-					if (!des[property]) des[property] = {};
+					if (src[property] instanceof global.Appacitive.GeoCoord) {
+		 				des[property] = src[property].toString();
+		 			} else {
 
-					for (var p in src[property]) {
-						des[property][p] = src[property][p];
+						if (!des[property]) des[property] = {};
+
+						for (var p in src[property]) {
+							des[property][p] = src[property][p];
+						}
 					}
 				} else if (_type.isArray(src[property])) {
 					des[property] = [];
@@ -3292,6 +3305,7 @@ Depends on  NOTHING
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
 			if (!article.__attributes) return null;
+			if (!_snapshot.__attributes) return article.__attributes;
 
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
@@ -3518,6 +3532,18 @@ Depends on  NOTHING
 			}, "string": function(value) { 
 				if (value) return value.toString();
 				return value;
+			}, "geocode": function(value) {
+				// value is not string or its length is 0, return false
+				if (!_type.isString(value) || value.trim().length == 0) return false;
+				  
+				// Split value string by ,
+				var split = value.split(',');
+
+				// split length is not equal to 2 so return false
+				if (split.length !== 2 ) return false;
+
+				// validate the value
+				return new global.Appacitive.GeoCoord(split[0], split[1]);
 			}
 		};
 

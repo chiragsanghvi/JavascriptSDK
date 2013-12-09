@@ -6,7 +6,7 @@ test('Basic search all query for articles', function() {
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=1';
 
 	equal(url, request.url, 'Request url generated is ok');
 	equal('get', request.method.toLowerCase(), 'Request method is ok');
@@ -44,7 +44,7 @@ test('Basic search all query for articles with pagination', function() {
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=3&orderBy=__UtcLastUpdatedDate&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=3';
 	equal(url, request.url, 'Url generated has correct pagination options - page number');
 	
 	query = new Appacitive.Queries.FindAllQuery({
@@ -54,7 +54,7 @@ test('Basic search all query for articles with pagination', function() {
 	});
 	request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=1';
 	equal(url, request.url, 'Url generated has correct pagination options - page size');
 
 	query = new Appacitive.Queries.FindAllQuery({
@@ -65,7 +65,7 @@ test('Basic search all query for articles with pagination', function() {
 	});
 	request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=10&orderBy=__UtcLastUpdatedDate&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=10';
 	equal(url, request.url, 'Url generated has correct pagination options - page size & page number');
 });
 
@@ -94,7 +94,7 @@ test('Verify basic filtered search query', function() {
 		filter: 'some_field == "some_value"'
 	};
 	var filteredQuery = new Appacitive.Queries.FindAllQuery(options);
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=1&orderBy=__UtcLastUpdatedDate&isAsc=false'
+	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=1'
 	url += '&query=some_field == "some_value"';
 	equal(filteredQuery.toRequest().url, url, 'Url formation correct in basic filtered query');
 });

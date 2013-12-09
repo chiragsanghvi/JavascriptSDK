@@ -19,10 +19,15 @@
 					des[property] = global.Appacitive.Date.toISOString(src[property]);
 				} else if (_type.isObject(src[property]))  {
 					
-					if (!des[property]) des[property] = {};
+					if (src[property] instanceof global.Appacitive.GeoCoord) {
+		 				des[property] = src[property].toString();
+		 			} else {
 
-					for (var p in src[property]) {
-						des[property][p] = src[property][p];
+						if (!des[property]) des[property] = {};
+
+						for (var p in src[property]) {
+							des[property][p] = src[property][p];
+						}
 					}
 				} else if (_type.isArray(src[property])) {
 					des[property] = [];
@@ -153,6 +158,7 @@
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
 			if (!article.__attributes) return null;
+			if (!_snapshot.__attributes) return article.__attributes;
 
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
@@ -379,6 +385,18 @@
 			}, "string": function(value) { 
 				if (value) return value.toString();
 				return value;
+			}, "geocode": function(value) {
+				// value is not string or its length is 0, return false
+				if (!_type.isString(value) || value.trim().length == 0) return false;
+				  
+				// Split value string by ,
+				var split = value.split(',');
+
+				// split length is not equal to 2 so return false
+				if (split.length !== 2 ) return false;
+
+				// validate the value
+				return new global.Appacitive.GeoCoord(split[0], split[1]);
 			}
 		};
 

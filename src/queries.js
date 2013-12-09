@@ -44,13 +44,13 @@
 	**/
 	var SortQuery = function(o) {
 		var options = o || {};
-		var _orderBy = '__UtcLastUpdatedDate';
+		var _orderBy = null;
 		var _isAscending = false;
 
 		//define getter/setter for orderby
 		this.orderBy =  function() { 
-			if (arguments.length === 1) {
-				_orderBy = arguments[0] || '__UtcLastUpdatedDate';
+			if (arguments.length === 1 && _type.isString(arguments[0])) {
+				_orderBy = arguments[0];
 				return this;
 			}
 			return _orderBy; 
@@ -69,7 +69,11 @@
 		this.isAscending(options.isAscending);
 	};
 	SortQuery.prototype.toString = function() {
-		return 'orderBy=' + this.orderBy() + '&isAsc=' + this.isAscending();
+		if (this.orderBy() && this.orderBy().length > 0) {
+			return 'orderBy=' + this.orderBy() + '&isAsc=' + this.isAscending();
+		} else {
+			return '';
+		}
 	};
 
 	// base query
@@ -196,7 +200,11 @@
 
 		this.getQueryString = function() {
 
-			var finalUrl = _pageQuery.toString() + '&' + _sortQuery.toString();
+			var finalUrl = _pageQuery.toString();
+
+			var sortQuery =  _sortQuery.toString();
+
+			if (sortQuery) finalUrl += '&' + sortQuery;
 
 			if (this.filter()) {
 				var filter = this.filter().toString();
