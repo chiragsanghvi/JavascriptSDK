@@ -12,7 +12,7 @@
 				value = value || '';
 				if (!key) return false;
 
-			    if (typeof value === "object") {
+			    if (_type.isObject(value) || _type.isArray(value)) {
 			    	try {
 				      value = JSON.stringify(value);
 				    } catch(e){}
@@ -20,7 +20,7 @@
 			    key = global.Appacitive.getAppPrefix(key);
 
 				_localStorage[key] = value;
-				return true;
+				return this;
 			};
 
 			this.get = function(key) {
@@ -56,16 +56,16 @@
 
             this.set = function(key, value) {
                 value = value || '';
-                if (!key || typeof key !== 'string') return false;
+                if (!key || _type.isString(key)) return false;
 
                 key = global.Appacitive.getAppPrefix(key);
 
                 _localStorage[key] = value;
-                return true;
+                return this;
             };
 
             this.get = function(key) {
-                if (!key || typeof key !== 'string') return null;
+                if (!key || _type.isString(key)) return null;
 
                 key = global.Appacitive.getAppPrefix(key);
 
@@ -76,10 +76,10 @@
             };
             
             this.remove = function(key) {
-                if (!key || typeof key !== 'string') return;
+                if (!key || _type.isString(key)) return;
                 key = global.Appacitive.getAppPrefix(key);
                 try { delete _localStorage[key]; } catch(e){}
-            }
+            };
         };
 
         global.Appacitive.localStorage = new A_LocalStorage();

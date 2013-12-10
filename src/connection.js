@@ -6,13 +6,13 @@
 		var result = { label: endpoint.label };
 		if (endpoint.articleid)  result.articleid = endpoint.articleid;
 		if (endpoint.article) {
-			if (typeof endpoint.article.getArticle === 'function') {
+			if (_type.isFunction(endpoint.article.getArticle)) {
 				// provided an instance of Appacitive.ArticleCollection
 				// stick the whole article if there is no __id
 				// else just stick the __id
 				if (endpoint.article.get('__id')) result.articleid = endpoint.article.get('__id');
 				else result.article = endpoint.article.getArticle();
-			} else if (typeof endpoint.article === 'object' && endpoint.article.__schematype) {
+			} else if (_type.isObject(endpoint.article)) {
 				// provided a raw article
 				// if there is an __id, just add that
 				// else add the entire article
@@ -30,7 +30,7 @@
 	};
 
 	var _convertEndpoint = function(endpoint, type, base) {
-		if ( endpoint.article && typeof endpoint.article === 'object') {
+		if ( endpoint.article && _type.isObject(endpoint.article)) {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
 				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
@@ -43,8 +43,6 @@
 			base["endpoint" + type].articleid = endpoint.article.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
-
-			base["endpoint" + type].article.___collection = base.___collection;
 		} else {
 			base["endpoint" + type] = endpoint;
 		}
@@ -53,7 +51,7 @@
 	global.Appacitive.Connection = function(options, doNotSetup) {
 		options = options || {};
 		
-		if (typeof options === 'string') {
+		if (_type.isString(options)) {
 			var rName = options;
 			options = { __relationtype : rName };
 		}
@@ -89,7 +87,7 @@
 			_convertEndpoint(this.get('__endpointb'), typeB, this);
 
 			this.endpoints = function() {
-				if (arguments.length === 1 && typeof arguments[0] === 'string') {
+				if (arguments.length === 1 && _type.isString(arguments[0])) {
 					if (this.endpointA.label.toLowerCase() === arguments[0].toLowerCase()) return this.endpointA;
 					else if (this.endpointB.label.toLowerCase() === arguments[0].toLowerCase()) return this.endpointB;
 					else throw new Error("Invalid label provided");
@@ -104,17 +102,6 @@
 		};
 
 		if (doNotSetup) {
-			this.connectedArticle = function() {
-				if (!this.___collection.connectedArticle) {
-					throw new Error('connectedArticle can be accessed only by using the getConnectedArticles call');
-				}
-				var articleId = this.___collection.connectedArticle.get('__id');
-				if (!articleId) return null;
-				var otherArticleId = this.endpointA.articleid;
-				if (otherArticleId == articleId)
-					otherArticleId = this.endpointB.articleid;
-				return this.___collection.getConnectedArticle(otherArticleId);
-			};
 			this.parseConnection(options);
 		} else {
 			if (options.__endpointa && options.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));
@@ -149,7 +136,7 @@
 		// 3
 		this.endpoints = function() {
 
-			if (arguments.length === 1 && typeof arguments[0] === 'string') {
+			if (arguments.length === 1 && _type.isString(arguments[0])) {
 				if (this.endpointA.label.toLowerCase() === arguments[0].toLowerCase()) return this.endpointA;
 				else if (this.endpointB.label.toLowerCase() === arguments[0].toLowerCase()) return this.endpointB;
 				else throw new Error("Invalid label provided");
@@ -163,13 +150,13 @@
 
 	};
 
-	global.Appacitive.Connection.get = function(options, onSuccess, onError) {
+	global.Appacitive.Connection.get = function(options, callbacks) {
 		options = options || {};
 		if (!options.relation) throw new Error("Specify relation");
 		if (!options.id) throw new Error("Specify id to fetch");
 		var obj = new global.Appacitive.Connection({ __relationtype: options.relation, __id: options.id });
 		obj.fields = options.fields;
-		obj.fetch(onSuccess, onError);
+		return obj.fetch(callbacks);
 	};
 
     //private function for parsing api connections in sdk connection object
@@ -177,86 +164,73 @@
 		var connectionObjects = [];
 		if (!connections) connections = [];
 		connections.forEach(function(c){
-			connectionObjects.push(new global.Appacitive.Connection(c));
+			connectionObjects.push(new global.Appacitive.Connection(c, true));
 		});
 		return connectionObjects;
 	};
 
-	//private function for firing a request
-	var _fetch = function(request, onSuccess, onError) {
-		request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-			   if (typeof onSuccess === 'function') onSuccess(_parseConnections(d.connections), d.paginginfo);
-			} else {
-				d = d || {};
-				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-			}
-		};
-		request.onError = function(d) {
-			d = d || { message : 'Server error', code: 400 };
-			if (typeof onError === 'function') onError(d);
-		};
-		global.Appacitive.http.send(request);
-	};
+	global.Appacitive.Connection._parseConnections = _parseConnections;
 
 	//takes relationname and array of connectionids and returns an array of Appacitive article objects
-	global.Appacitive.Connection.multiGet = function(options, onSuccess, onError) {
+	global.Appacitive.Connection.multiGet = function(options, callbacks) {
 		options = options || {};
-		if (!options.relation || typeof options.relation !== 'string' || options.relation.length === 0) throw new Error("Specify valid relation");
-		if (options.ids && options.ids.length > 0) {
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiGetUrl(options.relation, options.ids.join(','), options.fields);
-			request.method = 'get';
-			return _fetch(request, onSuccess, onError); 
-		} else { 
-			if (typeof onSuccess === 'function') onSuccess([]);
-		}
+		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
+		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
+
+		var request = new global.Appacitive._Request({
+			method: 'GET',
+			type: 'connection',
+			op: 'getMultiGetUrl',
+			args: [options.relation, options.ids.join(','), options.fields],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill(_parseConnections(d.connections));
+			}
+		});
+			
+		return request.send();
 	};
 
 	//takes relationame, and array of connections ids
-	global.Appacitive.Connection.multiDelete = function(options, onSuccess, onError) {
+	global.Appacitive.Connection.multiDelete = function(options, callbacks) {
 		options = options || {};
 		
-		if (!options.relation || typeof options.relation !== 'string' || options.relation.length === 0) throw new Error("Specify valid relation");
+		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
+		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to get");
+		
+		var request = new global.Appacitive._Request({
+			method: 'POST',
+			data: { idlist : options.ids },
+			type: 'connection',
+			op: 'getMultiDeleteUrl',
+			args: [options.relation],
+			callbacks: callbacks,
+			onSuccess: function(d) {
+				request.promise.fulfill();
+			}
+		});
+		
+		return request.send();
+	};
 
-		if (options.ids && options.ids.length > 0) {
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.connection.getMultiDeleteUrl(options.relation);
-			request.method = 'post';
-			request.data = { idlist : options.ids };
-			request.onSuccess = function(d) {
-				if (d && d.code == '200') {
-					if (typeof onSuccess === 'function') onSuccess();
-				} else {
-					d = d || {};
-					if (typeof onError === 'function') onError(d || { message : 'Server error', code: 400 });
-				}
-			};
-			request.onError = function(d) {
-				d = d || {};
-				if (typeof onError === 'function') onError(d || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-		} else { 
-			if (typeof onSuccess === 'function') onSuccess();
-		}
+	//takes relation type and returns all connections for it
+	global.Appacitive.Connection.findAll = function(options) {
+		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
 	//takes 1 articleid and multiple aricleids and returns connections between both 
-	global.Appacitive.Connection.getInterconnects = function(options, onSuccess, onError) {
-		var q = new global.Appacitive.Queries.InterconnectsQuery(options);
-		_fetch(q.toRequest(), request, onSuccess, onError);
+	global.Appacitive.Connection.getInterconnects = function(options) {
+		return new global.Appacitive.Queries.InterconnectsQuery(options);
 	};
 
 	//takes 2 articleids and returns connections between them
-	global.Appacitive.Connection.getBetweenArticles = function(options, onSuccess, onError) {
-		var q = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
-		_fetch(q.toRequest(), onSuccess, onError);
+	global.Appacitive.Connection.getBetweenArticles = function(options) {
+		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
 	};
 
 	//takes 2 articles and returns connections between them of particluar relationtype
-	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options, onSuccess, onError) {
-		new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options).fetch(onSuccess, onError);
+	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options) {
+		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options);
 	};
 
 })(global);

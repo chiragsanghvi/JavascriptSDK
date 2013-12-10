@@ -9,49 +9,46 @@ asyncTest('Creating session with valid Apikey', function() {
 });
 
 asyncTest('Save article', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
-	article.save(function() {
-			ok(true, 'Created article successfully, id: ' + JSON.stringify(article.getArticle()));
-			start();
-		});
+	var article = new Appacitive.Article('profile');
+	article.save().then(function() {
+		ok(true, 'Created article successfully, id: ' + JSON.stringify(article.getArticle()));
+		start();
+	}, function() {
+		ok(false, 'Article create failed');
+		start();
+	});
 });
 
 asyncTest('Save article with properties', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
+	var article = new Appacitive.Article('profile');
 	var name = 'Aragorn' + parseInt(Math.random() * 10000);
 	article.set('name', name);
-	article.save(function() {
+	article.save().then(function() {
 		equal(article.get('name'), name, 'Created article successfully ' + JSON.stringify(article.getArticle()));
 		start();
 	}, function() {
-		ok(false, 'Article save failed');
+		ok(false, 'Article create failed');
+		start();
 	});
 });
 
 asyncTest('Save article and verify', function() {
-	var collection = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var article = collection.createNewArticle();
-	article.save(function() {
+	var article = new Appacitive.Article('profile');
+	article.save().then(function() {
 			var _id = article.get('__id');
-			setTimeout(function() {
-				collection.fetch(function() {
-					var articles = collection.getAll();
-					var createdArticle = articles.filter(function(article) {
-						return article.get('__id') == _id;
-					});
-					if (createdArticle.length == 1) {
-						ok(true, 'Article with id (' + _id + ') saved and retrieved successfully.');
-					} else {
-						debugger;
-						ok(false, 'Article could not be saved');
-					}
-					start();
-				}, function() {
-					ok(false, 'Could not fetch articles.');
-					start();
-				});
-			}, 1000);
+			Appacitive.Article.get({
+				schema: 'profile',
+				id: _id
+			}).then(function(createdArticle) {
+				if (createdArticle && createdArticle instanceof Appacitive.Article) {
+					ok(true, 'Article with id (' + _id + ') saved and retrieved successfully.');
+				} else {
+					ok(false, 'Article not found');
+				}
+				start();
+			}, function() {
+				ok(false, 'Could not fetch article with id .' + _id);
+				start();
+			});
 	});
 });

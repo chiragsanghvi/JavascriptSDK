@@ -107,6 +107,14 @@
             return fields;
         };
 
+        this.application = {
+            applicationServiceUrl : 'application',
+
+            getSessionCreateUrl: function() {
+                return String.format("{0}/session", this.applicationServiceUrl);
+            }
+        };
+
         this.email = {
             emailServiceUrl: 'email',
             
@@ -118,14 +126,14 @@
 
             userServiceUrl:  'user',
 
-            getCreateUrl: function (fields) {
+            getCreateUrl: function (type, fields) {
                 return String.format("{0}/create?fields={1}", this.userServiceUrl, _getFields(fields));
             },
             getAuthenticateUserUrl: function () {
                 return String.format("{0}/authenticate", this.userServiceUrl);
             },
-            getGetUrl: function (userId, fields) {
-                return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
+            getGetUrl: function (type, userId, fields) {
+                return String.format("{0}/{1}?fields={2}", type, userId, _getFields(fields));
             },
             getUserByTokenUrl: function(userToken) {
                 return String.format("{0}/me?useridtype=token&token={1}", this.userServiceUrl, userToken);
@@ -140,8 +148,13 @@
                     return String.format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (userId) {
-                return String.format("{0}/{1}", this.userServiceUrl, userId);
+            getDeleteUrl: function (type, userId, deleteConnections) {
+                if (deleteConnections === true ) {
+                    return String.format("{0}/{1}?deleteconnections=true", this.userServiceUrl, userId);
+                } else {
+                    return String.format("{0}/{1}", this.userServiceUrl, userId);
+                }
+
             },
             getGetAllLinkedAccountsUrl: function(userId) {
                 var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
@@ -178,10 +191,10 @@
         this.device = {
             deviceServiceUrl: 'device',
 
-            getCreateUrl: function (fields) {
+            getCreateUrl: function (type, fields) {
                 return String.format("{0}/register?fields={1}", this.deviceServiceUrl, _getFields(fields));
             },
-            getGetUrl: function (deviceId, fields) {
+            getGetUrl: function (type, deviceId, fields) {
                 return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
             getUpdateUrl: function (deviceId, fields, revision) {
@@ -191,8 +204,12 @@
                     return String.format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (deviceId) {
-                return String.format("{0}/{1}", this.deviceServiceUrl, deviceId);
+            getDeleteUrl: function (type, deviceId, deleteConnections) {
+                if (deleteConnections === true ) {
+                    return String.format('{0}/{1}?deleteconnections=true', this.deviceServiceUrl, deviceId);
+                } else {
+                    return String.format('{0}/{1}', this.deviceServiceUrl, deviceId);
+                }
             }
         };
         this.article = {
@@ -237,8 +254,12 @@
                     return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.articleServiceUrl, schemaName, articleId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (schemaName, articleId) {
-                return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+            getDeleteUrl: function (schemaName, articleId, deleteConnections) {
+                if (deleteConnections === true ) {
+                    return String.format('{0}/{1}/{2}?deleteconnections=true', this.articleServiceUrl, schemaName, articleId);
+                } else {
+                    return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+                }
             },
             getMultiDeleteUrl: function (schemaName) {
                 return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);

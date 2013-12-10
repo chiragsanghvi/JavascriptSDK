@@ -18,7 +18,7 @@
   <!--<div id="fb-root"></div>-->
   <script>
     Appacitive.config.apiBaseUrl = "http://apis.appacitive.com/";
-    Appacitive.initialize({apikey: testConstants.apiKey, env: testConstants.environment, appId: testConstants.appId });
+    Appacitive.initialize({apikey: testConstants.apiKey, env: testConstants.environment, appId: testConstants.appId, log:true });
     Appacitive.Session.resetSession();
     Appacitive.Session.removeUserAuthHeader();
 

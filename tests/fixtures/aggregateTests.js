@@ -1,48 +1,12 @@
 module('Aggregate tests');
 
 test('Verify article::aggregates is a function on articles', function() {
-	var articles = new Appacitive.ArticleCollection({ schema: 'article' });
-	var article = articles.createNewArticle();
+	var article = new Appacitive.Article({ schema: 'article' });
 	equal(typeof article.aggregate, 'function', 'article::aggregates is a function on articles');
 });
 
 test('Verify article::aggregates returns null for unsaved article', function() {
-	var articles = new Appacitive.ArticleCollection({ schema: 'article' });
-	var article = articles.createNewArticle();
+	var article = new Appacitive.Article({ schema: 'article' });
 	var aggregates = article.aggregate();
 	deepEqual(aggregates, {}, 'article::aggregates returns blank object on unsaved article');
-});
-
-test('Verify aggregates can not be set via returned object', function() {
-	var articles = new Appacitive.ArticleCollection({ schema: 'article' });
-	var article = articles.createNewArticle({ $aggregate1: { all: '12345' } });
-	article.aggregate().aggregate1 = 'value1';
-	ok(article.aggregate().aggregate1.all == 12345, 'aggregates can not be set via returned object');
-
-	article = articles.createNewArticle();
-	article.aggregate().aggregate1 = 'value1';
-	ok(article.aggregate().aggregate1 == undefined, 'aggregates can not be set via returned object');
-});
-
-test('Verify aggregates can not be set via aggregates function', function() {
-	var articles = new Appacitive.ArticleCollection({ schema: 'article' });
-	var article = articles.createNewArticle();
-	try {
-		article.aggregate('key1', 'value1');
-		ok(false, 'Aggregate value changed.');
-	} catch (e) {
-		ok(true, 'Aggregate update failed with message: ' + (e || {}).message || 'No error message');
-	}
-});
-
-test('Verify aggregates can be got via returned object', function() {
-	var articles = new Appacitive.ArticleCollection({ schema: 'article' });
-	var article = articles.createNewArticle({ $aggregate1: { all: '12345' } });
-	equal(article.aggregate().aggregate1.all, '12345', 'aggregates can be got via returned object');
-});
-
-test('Verify aggregates can be got via aggregates function', function() {
-	var articles = new Appacitive.ArticleCollection({ schema: 'article' });
-	var article = articles.createNewArticle({ $aggregate1: { all: '12345' } });
-	equal(article.aggregate('aggregate1').all, '12345', 'aggregates can be got via aggregates function');
 });

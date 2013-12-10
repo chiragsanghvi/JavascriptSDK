@@ -18,32 +18,38 @@
 		  _initialized = true;
 		};
 
-		this.requestLogin = function(onSuccess, onError) {
+		this.requestLogin = function(scope) {
+
+			scope = scope || {};
+
 			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
-		    onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		    var promise = new Appacitive.Promise();
 			FB.login(function(response) {
 				if (response && response.status === 'connected' && response.authResponse) {
 					_accessToken = response.authResponse.accessToken;
-					if (typeof onSuccess === 'function') onSuccess(response.authResponse);
+					promise.fulfill(response.authResponse);
 				} else {
-					if (typeof onError === 'function') onError();
+					promise.reject();
 				}
-			}, { scope:'email,user_birthday' });
+			}, scope);
+
+			return promise;
 		};
 
-		this.getCurrentUserInfo = function(onSuccess, onError) {
+		this.getCurrentUserInfo = function() {
 			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+			var promise = new Appacitive.Promise();
+			
 			FB.api('/me', function(response) {
 				if (response && !response.error) {
 					_accessToken = FB.getAuthResponse().accessToken;
-					if (typeof onSuccess === 'function') onSuccess(response);
+					promise.fulfill(response);
 				} else {
-					if (typeof onError === 'function') onError();
+					promise.reject();
 				}
 			});
+
+			return promise;
 		};
 
 		this.accessToken = function() {
@@ -58,18 +64,20 @@
 			return 'https://graph.facebook.com/' + username + '/picture';
 		};
 
-		this.logout = function(onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function(){};
-			global.Appacitive.Facebook.accessToken = "";
+		this.logout = function() {
+			_accessToken = null;
+			var promise = new Appacitive.Promise();
+			
 			try {
 				FB.logout(function() {
 					global.Appacitive.Users.logout();
-					if (typeof onSuccess === 'function') onSuccess();
+					promise.fulfill();
 				});
 			} catch(e) {
-				if (typeof onError === 'function') onError(e.message);
+				promise.reject(e.message);
 			}
+
+			return promise;
 		};
 	};
 
@@ -96,27 +104,29 @@
 		    _initialized = true;
 		};
 
-		this.requestLogin = function(onSuccess, onError, accessToken) {
+		this.requestLogin = function(accessToken) {
 			if (accessToken) _accessToken = accessToken;
-			global.Appacitive.Users.loginWithFacebook(onSuccess, onError, true);
+			return new Appacitive.Promise().fulfill();
 		};
 
-		this.getCurrentUserInfo = function(onSuccess, onError) {
+		this.getCurrentUserInfo = function() {
 			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
 
-			if (this.FB && _accessToken){
-				onSuccess = onSuccess || function(){};
-				onError = onError || function(){};
+			var promise = new Appacitive.Promise();
+
+			if (this.FB && _accessToken) {
 				this.FB.api('/me', function(err, response) {
 					if (response) {
-						if (typeof onSuccess === 'function') onSuccess(response);
+						promise.fulfill(response);
 					} else {
-						if (typeof onError === 'function') onError("Access token is invalid");
+						promise.reject("Access token is invalid");
 					}
 				});
 			} else {
-				onError("Either intialize facebook with your appid and appsecret or set accesstoken");
+				promise.reject("Either intialize facebook with your appid and appsecret or set accesstoken");
 			}
+
+			return promise;
 		};
 
 		this.accessToken = function() {
@@ -131,11 +141,9 @@
 			return 'https://graph.facebook.com/' + username + '/picture';
 		};
 
-		this.logout = function(onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function(){};
+		this.logout = function() {
 			global.Appacitive.Facebook.accessToken = "";
-			if (typeof onSuccess === 'function') onSuccess();
+			return new Appacitive.Promise().fulfill();
 		};
 	};
 

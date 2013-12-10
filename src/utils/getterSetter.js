@@ -93,28 +93,30 @@ if (!('some' in Array.prototype)) {
     };
 }
 // Override only if native toISOString is not defined
-if (!Date.prototype.toISOString) {
-    // Here we rely on JSON serialization for dates because it matches 
-    // the ISO standard. However, we check if JSON serializer is present 
-    // on a page and define our own .toJSON method only if necessary
-    if (!Date.prototype.toJSON) {
-        Date.prototype.toJSON = function (key) {
-            function f(n) {
-                // Format integers to have at least two digits.
-                return n < 10 ? '0' + n : n;
+if ( !Date.prototype.toISOString ) {
+    ( function() {
+
+        function pad(number) {
+            var r = String(number);
+            if ( r.length === 1 ) {
+                r = '0' + r;
+            }
+            return r;
         }
 
-        return this.getUTCFullYear()   + '-' +
-            f(this.getUTCMonth() + 1) + '-' +
-            f(this.getUTCDate())      + 'T' +
-            f(this.getUTCHours())     + ':' +
-            f(this.getUTCMinutes())   + ':' +
-            f(this.getUTCSeconds())   + 'Z';
+        Date.prototype.toISOString = function() {
+            return this.getUTCFullYear()
+                + '-' + pad( this.getUTCMonth() + 1 )
+                + '-' + pad( this.getUTCDate() )
+                + 'T' + pad( this.getUTCHours() )
+                + ':' + pad( this.getUTCMinutes() )
+                + ':' + pad( this.getUTCSeconds() )
+                + '.' + String( (this.getUTCMilliseconds()/1000).toFixed(3) ).slice( 2, 5 )
+                + 'Z';
         };
-    }
 
-    Date.prototype.toISOString = Date.prototype.toJSON;
-}
+    }() );
+};
 
 String.addSlashes = function (str) {
     if (!str) return str;
@@ -133,3 +135,68 @@ String.stripSlashes = function (str) {
     str = str.replace(/\\\\/g, '\\');
     return str;
 };
+
+if (typeof console === 'undefined' || console === null) {
+    console = { log: function() {}, dir: function() {} };
+}
+
+var _type = function (o) {
+
+    // handle null in old IE
+    if (o === null || typeof o === 'undefined' || o === 'undefined') {
+        return 'null';
+    }
+
+    // handle DOM elements
+    if (o && (o.nodeType === 1 || o.nodeType === 9)) {
+        return 'element';
+    }
+
+    var s = Object.prototype.toString.call(o);
+    var type = s.match(/\[object (.*?)\]/)[1].toLowerCase();
+
+    // handle NaN and Infinity
+    if (type === 'number') {
+        if (isNaN(o)) {
+            return 'nan';
+        }
+        if (!isFinite(o)) {
+            return 'infinity';
+        }
+    }
+
+    return type;
+};
+
+var types = [
+    'Null',
+    'Undefined',
+    'Object',
+    'Array',
+    'String',
+    'Number',
+    'Boolean',
+    'Function',
+    'RegExp',
+    'Element',
+    'NaN',
+    'Infinite'
+];
+
+var generateMethod = function (t) {
+    _type['is' + t] = function (o) {
+        return _type(o) === t.toLowerCase();
+    };
+};
+
+for (var i = 0; i < types.length; i++) {
+    generateMethod(types[i]);
+}
+
+_type['isNullOrUndefined'] = function(o) {
+    return _type(o) == 'null' || _type(o) == 'undefined';
+};
+
+_type['isNumeric'] = function(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+}

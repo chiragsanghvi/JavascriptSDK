@@ -1,4 +1,4 @@
-module('Connected Articles API tests');
+module('Connection Query API tests');
 
 asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.Session.resetSession();
@@ -8,211 +8,237 @@ asyncTest('Creating session with valid Apikey', function() {
 	start();
 });
 
-asyncTest('Verify created connection shows up in collection when fetching connected articles', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
-	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle();
-	var userId = null;
-	user.save(function() {
-		userId = user.get('__id');
-		profile.save(function() {
-			var connectOptions = {
-				__endpointa: {
-					articleid: profile.get('__id'),
-					label: 'profile'
-				},
-				__endpointb: {
-					articleid: user.get('__id'),
-					label: 'user'
-				}
-			};
-			var cC = new Appacitive.ConnectionCollection({ relation: 'userprofile' });
-			var connection = cC.createNewConnection(connectOptions);
-			connection.save(function() {
-				var id = connection.get('__id');
-				setTimeout(function() {
-					var collection = user.getConnectedArticles({ relation: 'userprofile'});
-					collection.fetch(function() {
-						var existingConnection = collection.getAll().filter(function (_c) {
-							return _c.get('__id') == id;
-						});
-						equal(existingConnection.length, 1, 'Connection fetched on calling get connected articles');
-						
-						if (existingConnection[0].connectedArticle())
-							ok('true','Connection has connectedArticle property populated');
-						else
-							ok('false','Connection has connectedArticle property populated');
+asyncTest('Verify created connection is fetched when fetching connected articles', function() {
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+	
+	var connectOptions = {
+		endpoints: [{
+			article: school,
+			label: 'school'
+		}, {
+			article: profile,
+			label: 'profile'
+		}],
+		relation: 'myschool'
+	};
 
-						var coll = user.getConnections({relation: 'userprofile', label: 'profile'});
-						coll.fetch(function() {
-							var collConnection = coll.getAll().filter(function (_c) {
-								return _c.get('__id') == id;
-							});
-							equal(collConnection.length, 1, 'Connections fetched on calling get connectios');
-							var btwArticle = new Appacitive.ConnectionCollection({relation: 'userprofile'});
-							btwArticle.query  =  new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ relation: 'userprofile', articleAId: user.get('__id'), articleBId: profile.get('__id')});
-							btwArticle.fetch(function() {
-								var collConnection = btwArticle.getAll().filter(function (_c) {
-									return _c.get('__id') == id;
-								});
-								equal(collConnection.length, 1, 'Connections fetched between 2 articles');
-								Appacitive.Connection.getBetweenArticlesForRelation( { articleAId : user.get('__id'), articleBId: profile.get('__id'), relation: 'userprofile' }, function(conn) {
-									ok('true','Connection between 2 articles fetched');
-									start();
-								}, function() {
-									ok(false, 'Could not fetch connections between 2 articles');
-							        start();
-								});
-								start();
-							}, function () {
-								ok(false, 'Could not fetch connections between 2 articles of relation type userprofile');
-							    start();
-							});
-						}, function () {
-							ok(false, 'Could not fetch connections for article of relation type userprofile');
-						    start();
-						});
-					}, function() {
-						ok(false, 'Could not fetch connected articles of relation type userprofile');
-						start();
-					});
-				}, 100);
-			}, function() {
-				ok(false, 'Could not save connection.');
-				start();
-			});
-		}, function() {
-			ok(false, 'Could not save article of type profile.');
-			start();
-		})
+	//create connection
+	var conn = new Appacitive.Connection(connectOptions)
+	conn.save().then(function(conn) {
+		ok(true, 'Saved connection ');
+		
+		//verify endpoints are populated
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+
+		// fetch connected articles for profile
+		return profile.getConnectedArticles({ relation: 'myschool' }).fetch();
+	}).then(function(articles) {
+		
+		//verify articles returned are not changed
+		if (articles[0].hasChanged()) {
+			ok(false, 'Article has not changed');
+		} else {
+			ok(true, 'Article has not changed');
+		}
+
+
+		//verify children property
+		if (!profile.children['myschool']) {
+			ok(false, 'Children property not set in profile');
+		} else {
+			ok(true, 'Children property set in profile');
+		}
+
+		var existingConnections = articles.filter(function (_c) {
+			return _c.connection.id() == conn.id();
+		});
+
+		//Verify connection is returned via the getConnectedArticles
+		equal(existingConnections.length, 1, 'Connection fetched on calling get connected articles for profile');
+		start();
 	}, function() {
-		ok(false, 'Could not save user article.');
+		if (conn.isNew()) {
+			ok(false, 'Could not save connection.');
+		} else {
+			ok(false, 'Could not fetch connected articles of relation type myschool');
+		}
 		start();
 	});
 });
 
-asyncTest('Verify connectedArticle property sets properly on returned connectionCollection', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.save(function() {
-		var connectedProfiles = user.getConnectedArticles({ relation: 'userprofile' });
-		deepEqual(user, connectedProfiles.connectedArticle, 'ConnectionCollection::connectedArticle sets properly');
+asyncTest('Verify created connection is fetched when fetching connections for an article', function() {
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+	
+	var connectOptions = {
+		endpoints: [{
+			article: school,
+			label: 'school'
+		}, {
+			article: profile,
+			label: 'profile'
+		}],
+		relation: 'myschool'
+	};
+
+	//create connection
+	var conn = new Appacitive.Connection(connectOptions)
+	conn.save().then(function(conn) {
+		ok(true, 'Saved connection ');
+		
+		//verify endpoints are populated
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+
+		// fetch connections for profile
+		return profile.getConnections({ relation: 'myschool', label: 'school' }).fetch();
+	}).then(function(connections) {
+		
+		var existingConnections = connections.filter(function (_c) {
+			return _c.id() == conn.id();
+		});
+
+		//Verify connection is returned via the get connections
+		equal(existingConnections.length, 1, 'Connection fetched on calling get connections for profile');
 		start();
 	}, function() {
-		ok(false, 'Could not save article of type user');
+		if (conn.isNew()) {
+			ok(false, 'Could not save connection.');
+		} else {
+			ok(false, 'Could not fetch connections for article of relation type myschool');
+		}
+		start();
+	});
+});
+
+asyncTest('Verify created connection is fetched when fetching connection between two articles', function() {
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+	
+	var connectOptions = {
+		endpoints: [{
+			article: school,
+			label: 'school'
+		}, {
+			article: profile,
+			label: 'profile'
+		}],
+		relation: 'myschool'
+	};
+
+	//create connection
+	var conn = new Appacitive.Connection(connectOptions)
+	conn.save().then(function(conn) {
+		ok(true, 'Saved connection ');
+		
+		//verify endpoints are populated
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+
+		//fetch connection between profile and school
+		var btwArticleQuery = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ 
+			relation: 'myschool',
+			articleAId: school.get('__id'), 
+			articleBId: profile.get('__id')
+		});
+		return btwArticleQuery.fetch();
+	}).then(function(connection) {
+		
+		//Verify connection is returned via the getBetweenArticles
+		equal(connection.id(), conn.id() , 'Connection fetched between 2 articles');
+		start();
+	}, function() {
+		if (conn.isNew()) {
+			ok(false, 'Could not save connection.');
+		} else {
+			ok(false, 'Could not fetch connections between 2 articles of relation type myschool');
+		}
 		start();
 	});
 });
 
 asyncTest('Verify article fetched via the collection returned via getConnectedArticles has correct id', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
-	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle();
-	var userId = null, profileId = null;
-	user.save(function() {
-		userId = user.get('__id');
-		profile.save(function() {
-			profileId = profile.get('__id');
-			var connectOptions = {
-				__endpointa: {
-					articleid: profile.get('__id'),
-					label: 'profile'
-				},
-				__endpointb: {
-					articleid: user.get('__id'),
-					label: 'user'
-				}
-			};
-			var cC = new Appacitive.ConnectionCollection({ relation: 'userprofile' });
-			var connection = cC.createNewConnection(connectOptions);
-			connection.save(function() {
-				var id = connection.get('__id');
-				setTimeout(function() {
-					var collection = user.getConnectedArticles({ relation: 'userprofile' });
-					collection.fetch(function() {
-						var existingConnection = collection.getAll().filter(function (_c) {
-							return _c.get('__id') == id;
-						});
-						var connectedProfile = existingConnection[0].connectedArticle();
-						equal(connectedProfile.get('__id'), profile.get('__id'), 'Correct connected article returned');
-						start();
-					}, function() {
-						ok(false, 'Could not fetch connected articles of relation type userprofile');
-						start();
-					});
-				}, 1000);
-			}, function() {
-				ok(false, 'Could not save connection.');
-				start();
-			});
-		}, function() {
-			ok(false, 'Could not save article of type profile.');
-			start();
-		})
-	}, function() {
-		ok(false, 'Could not save user article.');
-		start();
-	});
-});
+	var school = new Appacitive.Article('school');
+	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+	var connectOptions = {
+		endpoints: [{
+			article: school,
+			label: 'school'
+		}, {
+			article: profile,
+			label: 'profile'
+		}],
+		relation: 'myschool'
+	};
 
-asyncTest('Verify article fetched via the collection returned via getConnectedArticles is correct article', function() {
-	var users = new Appacitive.ArticleCollection({ schema: 'user' }), profiles = new Appacitive.ArticleCollection({ schema: 'profile' });
-	var user = users.createNewArticle();
-	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
-	testConstants.populateDefaultUserFields(user);
-	var profile = profiles.createNewArticle();
-	var userId = null, profileId = null;
-	user.save(function() {
-		userId = user.get('__id');
-		profile.save(function() {
-			profileId = profile.get('__id');
-			var connectOptions = {
-				__endpointa: {
-					articleid: profile.get('__id'),
-					label: 'profile'
-				},
-				__endpointb: {
-					articleid: user.get('__id'),
-					label: 'user'
-				}
-			};
-			var cC = new Appacitive.ConnectionCollection({ relation: 'userprofile' });
-			var connection = cC.createNewConnection(connectOptions);
-			connection.save(function() {
-				var id = connection.get('__id');
-				setTimeout(function() {
-					var collection = user.getConnectedArticles({ relation: 'userprofile' });
-					collection.fetch(function() {
-						var existingConnection = collection.getAll().filter(function (_c) {
-							return _c.get('__id') == id;
-						});
-						var connectedProfile = existingConnection[0].connectedArticle();
-						connectedProfile.fetch(function() {
-							deepEqual(connectedProfile.getArticle(), profile.getArticle(), 'Correct connected article returned: ' + JSON.stringify(connectedProfile.getArticle()));
-							start();
-						}, function() {
-							ok(false, 'Could not fetch article for connected profile');
-							start();
-						});
-					}, function() {
-						ok(false, 'Could not fetch connected articles of relation type userprofile');
-						start();
-					});
-				}, 1000);
-			}, function() {
-				ok(false, 'Could not save connection.');
-				start();
-			});
-		}, function() {
-			ok(false, 'Could not save article of type profile.');
-			start();
-		})
+	//create connection
+	var conn = new Appacitive.Connection(connectOptions)
+	conn.save().then(function(conn) {
+		ok(true, 'Saved connection ');
+		
+		//verify endpoints are populated
+		if (!conn.endpoints('school') || school.isNew()) {
+			ok(false, 'School properties not reflected in object or not returned');
+		}
+		if (!conn.endpoints('profile') || profile.isNew()) {
+			ok(false, 'profile properties not reflected in object or not returned');
+		}
+
+		// fetch connected articles for profile
+		return profile.getConnectedArticles({ relation: 'myschool' }).fetch();
+	}).then(function(articles) {
+		
+		//verify articles returned are not changed
+		if (articles[0].hasChanged()) {
+			ok(false, 'Article has not changed');
+		} else {
+			ok(true, 'Article has not changed');
+		}
+
+		//verify children property
+		if (!profile.children['myschool']) {
+			ok(false, 'Children property not set in profile');
+		} else {
+			ok(true, 'Children property set in profile');
+		}
+
+		var existingArticles = articles.filter(function (_a) {
+			return _a.connection.id() == conn.id();
+		});
+
+		//Verify connection is returned via the getConnectedArticles
+		equal(existingArticles.length, 1, 'Connection fetched on calling get connected articles for profile');
+
+		//Verify article fetched via the articles returned via getConnectedArticles has correct id
+		var connectedSchool = existingArticles[0];
+		equal(connectedSchool.get('__id'), school.get('__id'), 'Correct connected article returned');
+
+		//Verify article fetched via the articles returned via getConnectedArticles is correct article
+		deepEqual(connectedSchool.toJSON(), school.toJSON(), 'Correct connected article returned: ' + JSON.stringify(connectedSchool.getArticle()));
+
+		start();
 	}, function() {
-		ok(false, 'Could not save user article.');
+		if (conn.isNew()) {
+			ok(false, 'Could not save connection.');
+		} else {
+			ok(false, 'Could not fetch connected articles of relation type myschool');
+		}
 		start();
 	});
 });
