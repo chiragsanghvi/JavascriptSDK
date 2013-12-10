@@ -10,6 +10,8 @@ Except as otherwise noted, the Javascript SDK for Appacitive is licensed under t
 
 # Documentation 
 
+For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSDK/tree/release0.9)
+
 ##### Table of Contents  
 
 * [Setup](#setup)  
