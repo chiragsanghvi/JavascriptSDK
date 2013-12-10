@@ -91,18 +91,19 @@
 		var _queryType = options.queryType || 'BasicQuery';
 		var _pageQuery = new PageQuery(o);
 		var _sortQuery = new SortQuery(o);
-		var _entityType = options.schema || options.relation;
-		var _etype = (options.relation) ? 'connection' : 'article';
+		var _entityType = options.type || options.relation;
+		var _etype = (options.relation) ? 'connection' : 'object';
+		var _apiType = (_etype == 'object') ? 'data' : 'connection';
 
 		var self = this;
 
-		//define getter for type (article/connection)
+		//define getter for type (object/connection)
 		this.type = function() { return _etype; };
 
-		//define getter for basetype (schema/relation)
+		//define getter for basetype (type/relation)
 		this.entityType = function() { return _entityType; };
 
-		//define getter for querytype (basic,connectedarticles etc)
+		//define getter for querytype (basic,connectedobjects etc)
 		this.queryType = function() { return _queryType; };
 
 		//define getter for pagequery 
@@ -223,7 +224,7 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString();
+			return global.Appacitive.config.apiBaseUrl + _apiType + '/' + _entityType + '/find/all?' + this.getQueryString();
 		};
 
 		this.toRequest = function() {
@@ -264,7 +265,7 @@
 		var _parse = function(entities) {
 			var entityObjects = [];
 			if (!entities) entities = [];
-			var eType = (_etype === 'article') ? 'Article' : 'Connection';
+			var eType = (_etype === 'object') ? 'Object' : 'Connection';
 			
 			if (_entityType && _entityType.toLowerCase() == 'user') eType = 'User';
 			
@@ -333,8 +334,8 @@
 
 		options = options || {};
 
-		if ((!options.schema && !options.relation) || (options.schema && options.relation)) 
-		    throw new Error('Specify either schema or relation for basic filter query');
+		if ((!options.type && !options.relation) || (options.type && options.relation)) 
+		    throw new Error('Specify either type or relation for basic filter query');
 
 		options.queryType = 'BasicFilterQuery';
 
@@ -350,26 +351,25 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.ConnectedArticlesQuery = function(options) {
+	global.Appacitive.Queries.ConnectedObjectsQuery = function(options) {
 
 		options = options || {};
 
-		if (!options.relation) throw new Error('Specify relation for connected articles query');
-		if (!options.articleId) throw new Error('Specify articleId for connected articles query');
-		if (!options.schema) throw new Error('Specify schema of article id for connected articles query');
+		if (!options.relation) throw new Error('Specify relation for connected objects query');
+		if (!options.objectId) throw new Error('Specify objectId for connected objects query');
+		if (!options.type) throw new Error('Specify type of object id for connected objects query');
 		
+		var type = options.type;
+		delete options.type;
 
-		var schema = options.schema;
-		delete options.schema;
-
-		options.queryType = 'ConnectedArticlesQuery';
+		options.queryType = 'ConnectedObjectsQuery';
 
 		BasicQuery.call(this, options);
 
-		this.articleId = options.articleId;
+		this.objectId = options.objectId;
 		this.relation = options.relation;
-		this.schema = schema;
-		if (options.article instanceof global.Appacitive.Article) this.article = options.article;
+		this.type = type;
+		if (options.object instanceof global.Appacitive.Object) this.object = options.object;
 
 		this.returnEdge = true;
 		if (options.returnEdge !== undefined && options.returnEdge !== null && !options.returnEdge && !this.prev) this.returnEdge = false;
@@ -387,39 +387,39 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.schema + '/' + this.articleId + '/find?' +
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
 				this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge;
 		};
 
 
 		var parseNodes = function(nodes, endpointA) {
-			var articles = [];
+			var objects = [];
 			nodes.forEach(function(o) {
-				var tmpArticle = null;
+				var tmpObject = null;
 				if (o.__edge) {
 					var edge = o.__edge;
 					delete o.__edge;
 
 					edge.__endpointa = endpointA;
 					edge.__endpointb = {
-						articleid: o.__id,
+						objectid: o.__id,
 						label: edge.__label,
-						type: o.__schematype
+						type: o.__type
 					};
 					delete edge.label;
 
 					var connection = new global.Appacitive.Connection(edge, true);
-					tmpArticle = new global.Appacitive.Article(o, true);
-					tmpArticle.connection = connection;
+					tmpObject = new global.Appacitive.Object(o, true);
+					tmpObject.connection = connection;
 				} else {
-					tmpArticle = new global.Appacitive.Article(o, true);
+					tmpObject = new global.Appacitive.Object(o, true);
 				}
-				articles.push(tmpArticle);
+				objects.push(tmpObject);
 			});
 			
-			if (self.article) self.article.children[self.relation] = articles;
+			if (self.object) self.object.children[self.relation] = objects;
 
-			return articles;
+			return objects;
 		};
 
 		this.fetch = function(callbacks) {
@@ -430,7 +430,7 @@
 			    var _parse = parseNodes;
 			    if (self.prev) _parse = prevParseNodes;
 
-			    self.results = _parse(d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent });
+			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent });
 		   	    self._setPaging(d.paginginfo);
 
 		   	    promise.fulfill(self.results, d.paginginfo);   
@@ -443,9 +443,9 @@
 		return this;
 	};
 
-	global.Appacitive.Queries.ConnectedArticlesQuery.prototype = new BasicQuery();
+	global.Appacitive.Queries.ConnectedObjectsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.ConnectedArticlesQuery.prototype.constructor = global.Appacitive.Queries.ConnectedArticlesQuery;
+	global.Appacitive.Queries.ConnectedObjectsQuery.prototype.constructor = global.Appacitive.Queries.ConnectedObjectsQuery;
 
 	/** 
 	* @constructor
@@ -455,15 +455,15 @@
 		options = options || {};
 
 		if (!options.relation) throw new Error('Specify relation for GetConnectionsQuery query');
-		if (!options.articleId) throw new Error('Specify articleId for GetConnectionsQuery query');
+		if (!options.objectId) throw new Error('Specify objectId for GetConnectionsQuery query');
 		if (!options.label || options.label.trim().length === 0) throw new Error('Specify label for GetConnectionsQuery query');
-		if (options.schema) delete options.schema;
+		if (options.type) delete options.type;
 
 		options.queryType = 'GetConnectionsQuery';
 
 		BasicQuery.call(this, options);
 
-		this.articleId = options.articleId;
+		this.objectId = options.objectId;
 		this.relation = options.relation;
 		this.label = options.label;
 
@@ -477,7 +477,7 @@
 		this.toUrl = function() {
 			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
 				this.getQueryString() + 
-				'&articleid=' + this.articleId +
+				'&objectid=' + this.objectId +
 				'&label=' + this.label;
 		};
 
@@ -491,21 +491,21 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery = function(options, queryType) {
+	global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery = function(options, queryType) {
 
 		options = options || {};
 
-		if (!options.articleAId || !_type.isString(options.articleAId) || options.articleAId.length === 0) throw new Error('Specify valid articleAId for GetConnectionsBetweenArticlesQuery query');
-		if (!options.articleBId || !_type.isString(options.articleBId) || options.articleBId.length === 0) throw new Error('Specify articleBId for GetConnectionsBetweenArticlesQuery query');
-		if (options.schema) delete options.schema;
+		if (!options.objectAId || !_type.isString(options.objectAId) || options.objectAId.length === 0) throw new Error('Specify valid objectAId for GetConnectionsBetweenObjectsQuery query');
+		if (!options.objectBId || !_type.isString(options.objectBId) || options.objectBId.length === 0) throw new Error('Specify objectBId for GetConnectionsBetweenObjectsQuery query');
+		if (options.type) delete options.type;
 
-		options.queryType = queryType || 'GetConnectionsBetweenArticlesQuery';
+		options.queryType = queryType || 'GetConnectionsBetweenObjectsQuery';
 
 		BasicQuery.call(this, options);
 
-		this.articleAId = options.articleAId;
-		this.articleBId = options.articleBId;
-		this.label = (this.queryType() === 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && _type.isString(options.label) && options.label.length > 0) ? '&label=' + options.label : '';
+		this.objectAId = options.objectAId;
+		this.objectBId = options.objectBId;
+		this.label = (this.queryType() === 'GetConnectionsBetweenObjectsForRelationQuery' && options.label && _type.isString(options.label) && options.label.length > 0) ? '&label=' + options.label : '';
 		this.relation = (options.relation && _type.isString(options.relation) && options.relation.length > 0) ? options.relation + '/' : '';
 		
 		this.toRequest = function() {
@@ -516,27 +516,27 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.articleAId + '/' + this.articleBId + '?'
+			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
 				+ this.getQueryString() + this.label;
 		};
 
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype = new BasicQuery();
+	global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery;
+	global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery = function(options) {
+	global.Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery = function(options) {
 		
 		options = options || {};
 		
-		if (!options.relation) throw new Error('Specify relation for GetConnectionsBetweenArticlesForRelationQuery query');
+		if (!options.relation) throw new Error('Specify relation for GetConnectionsBetweenObjectsForRelationQuery query');
 		
-		var inner = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options, 'GetConnectionsBetweenArticlesForRelationQuery');
+		var inner = new global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options, 'GetConnectionsBetweenObjectsForRelationQuery');
 
 		inner.fetch = function(callbacks) {
 			var promise = global.Appacitive.Promise.buildPromise(callbacks);
@@ -560,24 +560,24 @@
 
 		options = options || {};
 
-		if (!options.articleAId || !_type.isString(options.articleAId) || options.articleAId.length === 0) throw new Error('Specify valid articleAId for InterconnectsQuery query');
-		if (!options.articleBIds || !_type.isArray(options.articleBIds) || !(options.articleBIds.length > 0)) throw new Error('Specify list of articleBIds for InterconnectsQuery query');
-		if (options.schema) delete options.schema;
+		if (!options.objectAId || !_type.isString(options.objectAId) || options.objectAId.length === 0) throw new Error('Specify valid objectAId for InterconnectsQuery query');
+		if (!options.objectBIds || !_type.isArray(options.objectBIds) || !(options.objectBIds.length > 0)) throw new Error('Specify list of objectBIds for InterconnectsQuery query');
+		if (options.type) delete options.type;
 
 		options.queryType = 'InterconnectsQuery';
 
 		BasicQuery.call(this, options);
 
-		this.articleAId = options.articleAId;
-		this.articleBIds = options.articleBIds;
+		this.objectAId = options.objectAId;
+		this.objectBIds = options.objectBIds;
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
 			r.url = this.toUrl();
 			r.method = 'post';
 			r.data = {
-				article1id: this.articleAId,
-				article2ids: this.articleBIds
+				object1id: this.objectAId,
+				object2ids: this.objectBIds
 			};
 			return r;
 		};
@@ -686,26 +686,26 @@
 					var edge = o.__edge;
 					delete o.__edge;
 
-					var tmpArticle = new global.Appacitive.Article(o, true);
-					tmpArticle.children = {};
+					var tmpObject = new global.Appacitive.Object(o, true);
+					tmpObject.children = {};
 					for (var key in children) {
-						tmpArticle.children[key] = [];
-						tmpArticle.children[key] = parseChildren(children[key].values, children[key].parent, tmpArticle.id);
+						tmpObject.children[key] = [];
+						tmpObject.children[key] = parseChildren(children[key].values, children[key].parent, tmpObject.id);
 					}
 
 					if (edge) {
 						edge.__endpointa = {
-							articleid : parentId,
+							objectid : parentId,
 							label: parentLabel
 						};
 						edge.__endpointb = {
-							articleid: tmpArticle.id(),
+							objectid: tmpObject.id(),
 							label: edge.__label
 						};
 						delete edge.__label;
-						tmpArticle.connection = new global.Appacitive.Connection(edge, true);
+						tmpObject.connection = new global.Appacitive.Connection(edge, true);
 					}
-					props.push(tmpArticle);
+					props.push(tmpObject);
 				});
 				return props;
 			};

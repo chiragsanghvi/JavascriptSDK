@@ -1,12 +1,12 @@
 module('Aggregate tests');
 
-test('Verify article::aggregates is a function on articles', function() {
-	var article = new Appacitive.Article({ schema: 'article' });
-	equal(typeof article.aggregate, 'function', 'article::aggregates is a function on articles');
+test('Verify object::aggregates is a function on objects', function() {
+	var object = new Appacitive.Object({ type: 'object' });
+	equal(typeof object.aggregate, 'function', 'object::aggregates is a function on objects');
 });
 
-test('Verify article::aggregates returns null for unsaved article', function() {
-	var article = new Appacitive.Article({ schema: 'article' });
-	var aggregates = article.aggregate();
-	deepEqual(aggregates, {}, 'article::aggregates returns blank object on unsaved article');
+test('Verify object::aggregates returns null for unsaved object', function() {
+	var object = new Appacitive.Object({ type: 'object' });
+	var aggregates = object.aggregate();
+	deepEqual(aggregates, {}, 'object::aggregates returns blank object on unsaved object');
 });

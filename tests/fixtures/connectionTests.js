@@ -8,16 +8,16 @@ asyncTest('Creating session with valid Apikey', function() {
 	start();
 });
 
-var createUserProfileArticles = function() {
+var createUserProfileObjects = function() {
 	var promise = new Appacitive.Promise();
 
-	//Create user article
+	//Create user object
 	var user = new Appacitive.User();
 	user.set('username', 'DeepClone #' + parseInt(Math.random() * 10000));
 	testConstants.populateDefaultUserFields(user);
 	
-	//create profile article
-	profile = new Appacitive.Article({ schema: 'profile', name:'chirag sanghvi'});
+	//create profile object
+	profile = new Appacitive.Object({ type: 'profile', name:'chirag sanghvi'});
 	
 	var tasks = [user.save()];
 	tasks.push(profile.save());
@@ -28,10 +28,10 @@ var createUserProfileArticles = function() {
 		return promise.fulfill(user, profile);
 	}, function() {
 		if (user.isNew()) {
-			ok(false, 'Could not save article of type profile.');
+			ok(false, 'Could not save object of type profile.');
 		}
 		if (profile.isNew()) {
-			ok(false, 'Could not save user article.');
+			ok(false, 'Could not save user object.');
 		}
 		start();
 	});
@@ -39,17 +39,17 @@ var createUserProfileArticles = function() {
 	return promise;
 };
 
-asyncTest('Happy path for create two articles and connect them', function() {
-	//Create user and profile articles
-	createUserProfileArticles().then(function(user, profile) {
+asyncTest('Happy path for create two objects and connect them', function() {
+	//Create user and profile objects
+	createUserProfileObjects().then(function(user, profile) {
 		//create connection between newly created user and profile
 		var connectOptions = {
 			__endpointa: {
-				articleid: profile.id(),
+				objectid: profile.id(),
 				label: 'profile'
 			},
 			__endpointb: {
-				article: user,
+				object: user,
 				label: 'user'
 			},
 			relation: 'userprofile'
@@ -65,17 +65,17 @@ asyncTest('Happy path for create two articles and connect them', function() {
 
 });
 
-asyncTest('Happy path for create connection with two article objects passed in proper api endpoints', function() {
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
+asyncTest('Happy path for create connection with two object objects passed in proper api endpoints', function() {
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		__endpointa: {
-			article: school,
+			object: school,
 			label: 'school'
 		},
 		__endpointb: {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		},
 		relation: 'myschool'
@@ -100,17 +100,17 @@ asyncTest('Happy path for create connection with two article objects passed in p
 	});
 });
 
-asyncTest('Happy path for create connection with two article objects passed in sdk endpoint objects', function() {
+asyncTest('Happy path for create connection with two object objects passed in sdk endpoint objects', function() {
 	
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
-			article: school,
+			object: school,
 			label: 'school'
 		}, {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		}],
 		relation: 'myschool'
@@ -135,15 +135,15 @@ asyncTest('Happy path for create connection with two article objects passed in s
 
 asyncTest('Happy path to fetch connection using its id', function() {
 	
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
-			article: school,
+			object: school,
 			label: 'school'
 		}, {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		}],
 		relation: 'myschool'
@@ -183,15 +183,15 @@ asyncTest('Happy path to fetch connection using its id', function() {
 asyncTest('Verify connection update after it is created', function() {
 	var connectOptions = {
 		__endpointa: {
-			article: {
-				__schematype: 'school',
+			object: {
+				__type: 'school',
 				name: 'Chirag Sanghvi'
 			},
 			label: 'school'
 		},
 		__endpointb: {
-			article: {
-				__schematype: 'profile'
+			object: {
+				__type: 'profile'
 			},
 			label: 'profile'
 		},
@@ -206,10 +206,10 @@ asyncTest('Verify connection update after it is created', function() {
 		equal(conn.get('year'), '2003', 'Connection properly created');
 		
 		//verify endpoints are populated
-		if (conn.endpointA.article && conn.endpointA.article instanceof Appacitive.Article && conn.endpointB.article && conn.endpointB.article instanceof Appacitive.Article) 
-			ok(true, 'Article set properly in connection');
+		if (conn.endpointA.object && conn.endpointA.object instanceof Appacitive.Object && conn.endpointB.object && conn.endpointB.object instanceof Appacitive.Object) 
+			ok(true, 'Object set properly in connection');
 		else
-			ok(false, 'Article not set in connection');
+			ok(false, 'Object not set in connection');
 		
 		//update connection
 		conn.set('year', year);
@@ -229,15 +229,15 @@ asyncTest('Verify connection update after it is created', function() {
 
 asyncTest('Verify connection update directly', function() {
 	
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
-			article: school,
+			object: school,
 			label: 'school'
 		}, {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		}],
 		relation: 'myschool'
@@ -275,15 +275,15 @@ asyncTest('Verify connection update directly', function() {
 });
 
 asyncTest('Verify happy path for connection delete', function() {
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'prodile', name:'chirag sanghvi'});
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
-			article: school,
+			object: school,
 			label: 'school'
 		}, {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		}],
 		relation: 'myschool'
@@ -317,17 +317,17 @@ asyncTest('Verify happy path for connection delete', function() {
 	});
 });
 
-asyncTest('Verify no changeset on article fetched from connectedarticles', function() {
+asyncTest('Verify no changeset on object fetched from connectedobjects', function() {
 	
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({type: 'profile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
-			article: school,
+			object: school,
 			label: 'school'
 		}, {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		}],
 		relation: 'myschool'
@@ -347,15 +347,15 @@ asyncTest('Verify no changeset on article fetched from connectedarticles', funct
 			ok(false, 'profile properties not reflected in object or not returned');
 		}
 
-		// fetch connected articles for profile
-		return profile.getConnectedArticles({ relation: 'myschool' }).fetch();
-	}).then(function(articles) {
+		// fetch connected objects for profile
+		return profile.getConnectedObjects({ relation: 'myschool' }).fetch();
+	}).then(function(objects) {
 		
-		//verify articles returned are not changed
-		if (articles[0].hasChanged()) {
-			ok(false, 'Article has not changed');
+		//verify objects returned are not changed
+		if (objects[0].hasChanged()) {
+			ok(false, 'Object has not changed');
 		} else {
-			ok(true, 'Article has not changed');
+			ok(true, 'Object has not changed');
 		}
 
 
@@ -371,7 +371,7 @@ asyncTest('Verify no changeset on article fetched from connectedarticles', funct
 		if (conn.isNew()) {
 			ok(false, 'Could not save connection.');
 		} else {
-			ok(false, 'Could not fetch connected articles.');
+			ok(false, 'Could not fetch connected objects.');
 		}
 		start();
 	});

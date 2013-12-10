@@ -212,13 +212,13 @@
                 }
             }
         };
-        this.article = {
-            articleServiceUrl: 'article',
+        this.object = {
+            objectServiceUrl: 'data',
 
-            getSearchAllUrl: function (schemaName, queryParams, pageSize) {
+            getSearchAllUrl: function (typeName, queryParams, pageSize) {
                 var url = '';
 
-                url = String.format('{0}/search/{1}/all', this.articleServiceUrl, schemaName);
+                url = String.format('{0}/search/{1}/all', this.objectServiceUrl, typeName);
 
                 if (pageSize)
                     url = url + '?psize=' + pageSize;
@@ -233,36 +233,36 @@
                 return url;
             },
             getProjectionQueryUrl: function() {
-                return String.format('{0}/search/project', this.articleServiceUrl);
+                return String.format('{0}/search/project', this.objectServiceUrl);
             },
-            getPropertiesSearchUrl: function (schemaName, query) {
-                return String.format('{0}/search/{1}/all?properties={2}', this.articleServiceUrl, schemaName, query);
+            getPropertiesSearchUrl: function (typeName, query) {
+                return String.format('{0}/search/{1}/all?properties={2}', this.objectServiceUrl, typeName, query);
             },
-            getMultiGetUrl: function (schemaName, articleIds, fields) {
-                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.articleServiceUrl, schemaName, articleIds, _getFields(fields));
+            getMultiGetUrl: function (typeName, objectIds, fields) {
+                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.objectServiceUrl, typeName, objectIds, _getFields(fields));
             },
-            getCreateUrl: function (schemaName, fields) {
-                return String.format('{0}/{1}?fields={2}', this.articleServiceUrl, schemaName, _getFields(fields));
+            getCreateUrl: function (typeName, fields) {
+                return String.format('{0}/{1}?fields={2}', this.objectServiceUrl, typeName, _getFields(fields));
             },
-            getGetUrl: function (schemaName, articleId, fields) {
-                return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
+            getGetUrl: function (typeName, objectId, fields) {
+                return String.format('{0}/{1}/{2}?fields={3}', this.objectServiceUrl, typeName, objectId, _getFields(fields));
             },
-            getUpdateUrl: function (schemaName, articleId, fields, revision) {
+            getUpdateUrl: function (typeName, objectId, fields, revision) {
                 if (!revision) {
-                    return String.format('{0}/{1}/{2}?fields={3}', this.articleServiceUrl, schemaName, articleId, _getFields(fields));
+                    return String.format('{0}/{1}/{2}?fields={3}', this.objectServiceUrl, typeName, objectId, _getFields(fields));
                 } else {
-                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.articleServiceUrl, schemaName, articleId, _getFields(fields), revision);
+                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.objectServiceUrl, typeName, objectId, _getFields(fields), revision);
                 }
             },
-            getDeleteUrl: function (schemaName, articleId, deleteConnections) {
+            getDeleteUrl: function (typeName, objectId, deleteConnections) {
                 if (deleteConnections === true ) {
-                    return String.format('{0}/{1}/{2}?deleteconnections=true', this.articleServiceUrl, schemaName, articleId);
+                    return String.format('{0}/{1}/{2}?deleteconnections=true', this.objectServiceUrl, typeName, objectId);
                 } else {
-                    return String.format('{0}/{1}/{2}', this.articleServiceUrl, schemaName, articleId);
+                    return String.format('{0}/{1}/{2}', this.objectServiceUrl, typeName, objectId);
                 }
             },
-            getMultiDeleteUrl: function (schemaName) {
-                return String.format('{0}/{1}/bulkdelete', this.articleServiceUrl, schemaName);
+            getMultiDeleteUrl: function (typeName) {
+                return String.format('{0}/{1}/bulkdelete', this.objectServiceUrl, typeName);
             }
         };
         this.connection = {
@@ -291,10 +291,10 @@
             getMultiDeleteUrl: function (relationName) {
                 return String.format('{0}/{1}/bulkdelete', this.connectionServiceUrl, relationName);
             },
-            getSearchByArticleUrl: function (relationName, articleId, label, queryParams) {
+            getSearchByArticleUrl: function (relationName, objectId, label, queryParams) {
                 var url = '';
 
-                url = String.format('{0}/{1}/find/all?label={2}&articleid={3}', this.connectionServiceUrl, relationName, label, articleId);
+                url = String.format('{0}/{1}/find/all?label={2}&objectid={3}', this.connectionServiceUrl, relationName, label, objectId);
                 // url = url + '?psize=1000';
                 if (typeof (queryParams) !== 'undefined' && queryParams.length > 0) {
                     for (var i = 0; i < queryParams.length; i = i + 1) {
@@ -303,9 +303,9 @@
                 }
                 return url;
             },
-            getConnectedArticles: function (relationName, articleId, queryParams) {
+            getConnectedArticles: function (relationName, objectId, queryParams) {
                 var url = '';
-                url = String.format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationName, articleId);
+                url = String.format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationName, objectId);
                 if (queryParams && queryParams.length && queryParams.length > 0) {
                     for (var x = 0; x < queryParams.length; x += 1) {
                         if (x === 0) {

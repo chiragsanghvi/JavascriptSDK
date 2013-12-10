@@ -4,25 +4,25 @@
 
 	var _parseEndpoint = function(endpoint, type, base) {
 		var result = { label: endpoint.label };
-		if (endpoint.articleid)  result.articleid = endpoint.articleid;
-		if (endpoint.article) {
-			if (_type.isFunction(endpoint.article.getArticle)) {
-				// provided an instance of Appacitive.ArticleCollection
-				// stick the whole article if there is no __id
+		if (endpoint.objectid)  result.objectid = endpoint.objectid;
+		if (endpoint.object) {
+			if (_type.isFunction(endpoint.object.getObject)) {
+				// provided an instance of Appacitive.ObjectCollection
+				// stick the whole object if there is no __id
 				// else just stick the __id
-				if (endpoint.article.get('__id')) result.articleid = endpoint.article.get('__id');
-				else result.article = endpoint.article.getArticle();
-			} else if (_type.isObject(endpoint.article)) {
-				// provided a raw article
+				if (endpoint.object.get('__id')) result.objectid = endpoint.object.get('__id');
+				else result.object = endpoint.object.getObject();
+			} else if (_type.isObject(endpoint.object)) {
+				// provided a raw object
 				// if there is an __id, just add that
-				// else add the entire article
-				if (endpoint.article.__id) result.articleid = endpoint.article.__id;
-				else result.article = endpoint.article;
+				// else add the entire object
+				if (endpoint.object.__id) result.objectid = endpoint.object.__id;
+				else result.object = endpoint.object;
 
-				endpoint.article =  new global.Appacitive.Article(endpoint.article);
+				endpoint.object =  new global.Appacitive.Object(endpoint.object);
 			} 
 		} else {
-			if (!result.articleid && !result.article) throw new Error('Incorrectly configured endpoints provided to setupConnection');
+			if (!result.objectid && !result.object) throw new Error('Incorrectly configured endpoints provided to setupConnection');
 		}
 
 		base["endpoint" + type] = endpoint;
@@ -30,17 +30,17 @@
 	};
 
 	var _convertEndpoint = function(endpoint, type, base) {
-		if ( endpoint.article && _type.isObject(endpoint.article)) {
+		if ( endpoint.object && _type.isObject(endpoint.object)) {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
-				base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
+				base['endpoint' + type].object = new global.Appacitive.Object(endpoint.object, true);
 			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].article && base['endpoint' + type].article instanceof global.Appacitive.Article)
-					base["endpoint" + type].article.copy(endpoint.article, true);
+				if (base['endpoint' + type] && base['endpoint' + type].object && base['endpoint' + type].object instanceof global.Appacitive.Object)
+					base["endpoint" + type].object.copy(endpoint.object, true);
 				else 
-					base['endpoint' + type].article = new global.Appacitive.Article(endpoint.article, true);
+					base['endpoint' + type].object = new global.Appacitive.Object(endpoint.object, true);
 			}
-			base["endpoint" + type].articleid = endpoint.article.__id;
+			base["endpoint" + type].objectid = endpoint.object.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
 		} else {
@@ -77,7 +77,7 @@
 			
 			var typeA = 'A', typeB ='B';
 			if ( options.__endpointa.label.toLowerCase() === this.get('__endpointb').label.toLowerCase() ) {
-				if ((options.__endpointa.label.toLowerCase() != options.__endpointb.label.toLowerCase()) && (options.__endpointa.articleid == this.get('__endpointb').articleid || !options.__endpointa.articleid)) {
+				if ((options.__endpointa.label.toLowerCase() != options.__endpointb.label.toLowerCase()) && (options.__endpointa.objectid == this.get('__endpointb').objectid || !options.__endpointa.objectid)) {
 				 	typeA = 'B';
 				 	typeB = 'A';
 				}
@@ -117,14 +117,14 @@
 	global.Appacitive.Connection.prototype.setupConnection = function(endpointA, endpointB) {
 		
 		// validate the endpoints
-		if (!endpointA || (!endpointA.articleid &&  !endpointA.article) || !endpointA.label || !endpointB || (!endpointB.articleid && !endpointB.article) || !endpointB.label) {
+		if (!endpointA || (!endpointA.objectid &&  !endpointA.object) || !endpointA.label || !endpointB || (!endpointB.objectid && !endpointB.object) || !endpointB.label) {
 			throw new Error('Incorrect endpoints configuration passed.');
 		}
 
 		// there are two ways to do this
-		// either we are provided the article id
-		// or a raw article
-		// or an Appacitive.Article instance
+		// either we are provided the object id
+		// or a raw object
+		// or an Appacitive.Object instance
 		// sigh
 		
 		// 1
@@ -171,7 +171,7 @@
 
 	global.Appacitive.Connection._parseConnections = _parseConnections;
 
-	//takes relationname and array of connectionids and returns an array of Appacitive article objects
+	//takes relationname and array of connectionids and returns an array of Appacitive object objects
 	global.Appacitive.Connection.multiGet = function(options, callbacks) {
 		options = options || {};
 		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
@@ -218,19 +218,19 @@
 		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
-	//takes 1 articleid and multiple aricleids and returns connections between both 
+	//takes 1 objectid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options) {
 		return new global.Appacitive.Queries.InterconnectsQuery(options);
 	};
 
-	//takes 2 articleids and returns connections between them
-	global.Appacitive.Connection.getBetweenArticles = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options);
+	//takes 2 objectids and returns connections between them
+	global.Appacitive.Connection.getBetweenObjects = function(options) {
+		return new global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options);
 	};
 
-	//takes 2 articles and returns connections between them of particluar relationtype
-	global.Appacitive.Connection.getBetweenArticlesForRelation = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery(options);
+	//takes 2 objects and returns connections between them of particluar relationtype
+	global.Appacitive.Connection.getBetweenObjectsForRelation = function(options) {
+		return new global.Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery(options);
 	};
 
 })(global);

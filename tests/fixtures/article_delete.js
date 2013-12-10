@@ -1,4 +1,4 @@
-module('Article Tests - Delete');
+module('Object Tests - Delete');
 
 asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.Session.resetSession();
@@ -8,47 +8,47 @@ asyncTest('Creating session with valid Apikey', function() {
 	start();
 });
 
-asyncTest('Delete unsaved article', function() {
-	var article = new Appacitive.Article('profile');
+asyncTest('Delete unsaved object', function() {
+	var object = new Appacitive.Object('profile');
 	var random = Math.random();
-	article.set('random', random);
-	article.destroy().then(function() {
-		ok(true, 'Article deleted successfully');
+	object.set('random', random);
+	object.destroy().then(function() {
+		ok(true, 'Object deleted successfully');
 		start();
 	}, function() {
-		ok(false, 'Deleting unsaved article failed');
+		ok(false, 'Deleting unsaved object failed');
 		start();
 	});
 });
 
 
-asyncTest('Delete saved article', function() {
-	var article = new Appacitive.Article('profile');
+asyncTest('Delete saved object', function() {
+	var object = new Appacitive.Object('profile');
 	var created = false;
-	article.save().then(function() {
-		return article.destroy();
+	object.save().then(function() {
+		return object.destroy();
 	}).then(function() {
-		ok(true, 'Article deleted successfully');
+		ok(true, 'Object deleted successfully');
 		start();
 	}, function() {
-		if (article.created) {
-			ok(false, 'Deleting saved article with id ' + article.id() + ' failed');
+		if (object.created) {
+			ok(false, 'Deleting saved object with id ' + object.id() + ' failed');
 			start();
 		} else {
-			ok(false, 'Article create failed');
+			ok(false, 'Object create failed');
 			start();
 		}
 	});
 });
 
-asyncTest('Delete non-existent article', function() {
-	var article = new Appacitive.Article('profile');
-	article.set('__id', 0070);
-	article.destroy().then(function() {
-		ok(false, 'onSuccess called after deleting unsaved article');
+asyncTest('Delete non-existent object', function() {
+	var object = new Appacitive.Object('profile');
+	object.set('__id', 0070);
+	object.destroy().then(function() {
+		ok(false, 'onSuccess called after deleting unsaved object');
 		start();
 	}, function() {
-		ok(true, 'Deleting unsaved article failed as expected');
+		ok(true, 'Deleting unsaved object failed as expected');
 		start();
 	});
 });

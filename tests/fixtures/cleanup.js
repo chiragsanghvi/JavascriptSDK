@@ -9,7 +9,7 @@ asyncTest('Creating session with valid Apikey', function() {
 });
 
 
-asyncTest('Cleaning up articles of schema user by fetching them using "users" filter query and then deleting them one at a time', function() {
+asyncTest('Cleaning up objects of type user by fetching them using "users" filter query and then deleting them one at a time', function() {
 	//logout current user
 	Appacitive.Users.logout(null, true);
 
@@ -39,42 +39,42 @@ asyncTest('Cleaning up articles of schema user by fetching them using "users" fi
     	if (!Appacitive.Users.current()) {
     		ok(false, 'User authentication failed: ' + JSON.stringify(data));
     	} else if (total === 0) {
-    		ok(false, 'Could not fetch articles for schema user');
+    		ok(false, 'Could not fetch objects for type user');
     	} else {
     		var numFailures = 0;
 			data.forEach(function(v) { if (v) ++numFailures; });
-			ok(false, 'Article delete failed for ' + numFailures + '/' + total +' articles');
+			ok(false, 'Object delete failed for ' + numFailures + '/' + total +' objects');
     	}
     	start();
     });
 	
 });
 
-asyncTest('Cleaning up articles of schema school', function() {
-	var query = new Appacitive.Article.findAll({ schema: 'school', pageSize: 200 });
+asyncTest('Cleaning up objects of type school', function() {
+	var query = new Appacitive.Object.findAll({ type: 'school', pageSize: 200 });
 	var total = 0, tasks = [];
-	query.fetch().then(function(articles) {
-		total = articles.length;
+	query.fetch().then(function(objects) {
+		total = objects.length;
 		
-		if (articles.length == 0) {
-			ok(true, 'No articles to delete');
+		if (objects.length == 0) {
+			ok(true, 'No objects to delete');
 			return Appacitive.Promise().fulfill();
 		} else {
-			articles.forEach(function (article) {
-				tasks.push(article.destroy(true));
+			objects.forEach(function (object) {
+				tasks.push(object.destroy(true));
 			});
 			return Appacitive.Promise.when(tasks);
 		}
 	}).then (function() {
-		ok(true, total + ' articles of type school deleted successfully');
+		ok(true, total + ' objects of type school deleted successfully');
 		start();
 	}, function(reasons, values) {
 		if (tasks.length > 0) {
 			var deleted = 0;
 			values.forEach(function(v) { if (v) ++deleted; });
-			ok(false, deleted + ' of ' + total + ' articles of school deleted.');
+			ok(false, deleted + ' of ' + total + ' objects of school deleted.');
 		} else {
-			ok(false, 'Could not fetch articles for schema school');
+			ok(false, 'Could not fetch objects for type school');
 		}
 		start();
 	});
@@ -149,38 +149,38 @@ asyncTest('Cleaning up connections of relation userprofile using multiDelete', f
 });
 
 
-asyncTest('Cleaning up articles of schema profile using multidelete', function() {
+asyncTest('Cleaning up objects of type profile using multidelete', function() {
 
-	var query = new Appacitive.Article.findAll({ schema: 'profile', pageSize: 200 });
+	var query = new Appacitive.Object.findAll({ type: 'profile', pageSize: 200 });
 	var total = 0, ids = [];
 	
-	//Fetch all profile articles
-	query.fetch().then(function(articles) {
-		total = articles.length;
+	//Fetch all profile objects
+	query.fetch().then(function(objects) {
+		total = objects.length;
 		
-		if (articles.length == 0) {
-			ok(true, 'No articles to delete');
+		if (objects.length == 0) {
+			ok(true, 'No objects to delete');
 			return Appacitive.Promise().fulfill();
 		} else {
-			articles.forEach(function (article) {
-				ids.push(article.id());
+			objects.forEach(function (object) {
+				ids.push(object.id());
 			});
 			//Multidelete them
-			return Appacitive.Article.multiDelete({
-				schema: 'profile',
+			return Appacitive.Object.multiDelete({
+				type: 'profile',
 				ids: ids
 			});
 		}
 	}).then (function() {
-		ok(true, total + ' articles of type profile deleted successfully');
+		ok(true, total + ' objects of type profile deleted successfully');
 		start();
 	}, function(reasons, values) {
 		if (ids.length > 0) {
 			var deleted = 0;
 			values.forEach(function(v) { if (v) ++deleted; });
-			ok(false, deleted + ' of ' + total + ' articles of profile.');
+			ok(false, deleted + ' of ' + total + ' objects of profile.');
 		} else {
-			ok(false, 'Could not fetch articles for schema profile');
+			ok(false, 'Could not fetch objects for type profile');
 		}
 		start();
 	});

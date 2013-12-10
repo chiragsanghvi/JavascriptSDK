@@ -8,7 +8,7 @@ asyncTest('Creating session with valid Apikey', function() {
 	start();
 });
 
-asyncTest('Cleaning up articles of schema user by fetching them using "users" filter query and then deleting them one at a time', function() {
+asyncTest('Cleaning up objects of type user by fetching them using "users" filter query and then deleting them one at a time', function() {
 	//logout current user
 	Appacitive.Users.logout(null, true);
 
@@ -39,11 +39,11 @@ asyncTest('Cleaning up articles of schema user by fetching them using "users" fi
     	if (!Appacitive.Users.current()) {
     		ok(false, 'User authentication failed: ' + JSON.stringify(data));
     	} else if (total === 0) {
-    		ok(false, 'Could not fetch articles for schema user');
+    		ok(false, 'Could not fetch objects for type user');
     	} else {
     		var numFailures = 0;
 			data.forEach(function(v) { if (v) ++numFailures; });
-			ok(false, 'Article delete failed for ' + numFailures + '/' + total +' articles');
+			ok(false, 'Object delete failed for ' + numFailures + '/' + total +' objects');
     	}
     	start();
     });
@@ -219,7 +219,7 @@ asyncTest('Verify get facebook user if info is requested', function() {
 		var accessToken = global.Appacitive.Facebook.accessToken();
 		var loggedIn = false;
 		Appacitive.Users.loginWithFacebook(accessToken).then(function(data) {
-			var user = data.user.getArticle();
+			var user = data.user.getObject();
 			var id = user.__id;
 			ok(true, 'Signed up with facebook: ' + JSON.stringify(user));
 			return Appacitive.Facebook.getCurrentUserInfo();

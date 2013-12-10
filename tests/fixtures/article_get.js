@@ -1,4 +1,4 @@
-module('Article Tests - Get');
+module('Object Tests - Get');
 
 asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.Session.resetSession();
@@ -8,24 +8,24 @@ asyncTest('Creating session with valid Apikey', function() {
 	start();
 });
 
-asyncTest('Get non-existent article', function() {
-	var article = new Appacitive.Article('profile');
-	article.id('12345')
-	article.fetch().then(function() {
-		ok(false, 'onSuccess called on fetching non-existent article');
+asyncTest('Get non-existent object', function() {
+	var object = new Appacitive.Object('profile');
+	object.id('12345')
+	object.fetch().then(function() {
+		ok(false, 'onSuccess called on fetching non-existent object');
 		start();
 	}, function() {
-		ok(true, 'onError called on fetching non-existent article');
+		ok(true, 'onError called on fetching non-existent object');
 		start();
 	})
 });
 
-asyncTest('Save 2 articles and multiget them', function() {
-	var article = new Appacitive.Article('profile');
-	var profile = new Appacitive.Article('profile');
+asyncTest('Save 2 objects and multiget them', function() {
+	var object = new Appacitive.Object('profile');
+	var profile = new Appacitive.Object('profile');
 
 	var tasks = [];
-	tasks.push(article.save());
+	tasks.push(object.save());
 	tasks.push(profile.save());
 
 	var promise = Appacitive.Promise.when(tasks);
@@ -33,18 +33,18 @@ asyncTest('Save 2 articles and multiget them', function() {
 	promise.then(function() {
 		var ids = [];
 		ids.push(profile.get('__id'));
-		ids.push(article.get('__id'));
-		return Appacitive.Article.multiGet({ schema: 'profile', ids: ids });
-	}).then(function(articles) {
-		equal(articles.length, 2, 'Articles fetched successfully  using multiget');
+		ids.push(object.get('__id'));
+		return Appacitive.Object.multiGet({ type: 'profile', ids: ids });
+	}).then(function(objects) {
+		equal(objects.length, 2, 'Objects fetched successfully  using multiget');
 		start();
 	}, function() {
-		if (article.isNew()) {
-			ok(false, 'First Article could not be saved!');
+		if (object.isNew()) {
+			ok(false, 'First Object could not be saved!');
 		} else if (profile.isNew()) {
-			ok(false, 'Second Article could not be saved!');
+			ok(false, 'Second Object could not be saved!');
 		} else {
-			ok(false, 'Could not multiget articles of type profile');
+			ok(false, 'Could not multiget objects of type profile');
 		}
 	});
 })

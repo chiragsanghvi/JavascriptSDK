@@ -88,8 +88,8 @@
 
 			_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
 
-			global.Appacitive.eventManager.clearAndSubscribe('user.article.' + userObject.get('__id') + '.updated', function(sender, args) {
-				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
+			global.Appacitive.eventManager.clearAndSubscribe('type.user.' + userObject.get('__id') + '.updated', function(sender, args) {
+				global.Appacitive.localStorage.set('Appacitive-User', args.object.getObject());
 			});
 
 			return _authenticatedUser;
@@ -97,12 +97,12 @@
 		
 		global.Appacitive.User = function(options) {
 			options = options || {};
-			options.__schematype = 'user';
-			global.Appacitive.Article.call(this, options);
+			options.__type = 'user';
+			global.Appacitive.Object.call(this, options);
 			return this;
 		};
 
-		global.Appacitive.User.prototype = new global.Appacitive.Article('user');
+		global.Appacitive.User.prototype = new global.Appacitive.Object('user');
 
 		global.Appacitive.User.prototype.constructor = global.Appacitive.User;
 
@@ -255,7 +255,7 @@
 
 		this.deleteUser = function(userId, callbacks) {
 			if (!userId) throw new Error('Specify userid for user delete');
-			return new global.Appacitive.Article({ __schematype: 'user', __id: userId }).del(true, callbacks);
+			return new global.Appacitive.Object({ __type: 'user', __id: userId }).del(true, callbacks);
 		};
 
 		this.deleteCurrentUser = function(callbacks) {
@@ -286,7 +286,7 @@
 
 		this.createNewUser = function(user, callbacks) {
 			user = user || {};
-			user.__schematype = 'user';
+			user.__type = 'user';
 			if (!user.username || !user.password || !user.firstname || user.username.length === 0 || user.password.length === 0 || user.firstname.length === 0) 
 				throw new Error('username, password and firstname are mandatory');
 
