@@ -44,13 +44,13 @@
 	**/
 	var SortQuery = function(o) {
 		var options = o || {};
-		var _orderBy = '__UtcLastUpdatedDate';
+		var _orderBy = null;
 		var _isAscending = false;
 
 		//define getter/setter for orderby
 		this.orderBy =  function() { 
-			if (arguments.length === 1) {
-				_orderBy = arguments[0] || '__UtcLastUpdatedDate';
+			if (arguments.length === 1 && _type.isString(arguments[0])) {
+				_orderBy = arguments[0];
 				return this;
 			}
 			return _orderBy; 
@@ -59,7 +59,7 @@
 		//define getter for isAscending
 		this.isAscending =  function() { 
 			if (arguments.length === 1) {
-				_isAscending = typeof arguments[0] === 'undefined' ? false : arguments[0];
+				_isAscending = (arguments[0] === undefined || arguments[0] == null) ? false : arguments[0];
 				return this;
 			}
 			return _isAscending; 
@@ -69,7 +69,11 @@
 		this.isAscending(options.isAscending);
 	};
 	SortQuery.prototype.toString = function() {
-		return 'orderBy=' + this.orderBy() + '&isAsc=' + this.isAscending();
+		if (this.orderBy() && this.orderBy().length > 0) {
+			return 'orderBy=' + this.orderBy() + '&isAsc=' + this.isAscending();
+		} else {
+			return '';
+		}
 	};
 
 	// base query
@@ -88,12 +92,12 @@
 		var _pageQuery = new PageQuery(o);
 		var _sortQuery = new SortQuery(o);
 		var _entityType = options.schema || options.relation;
-		var _type = (options.relation) ? 'connection' : 'article';
+		var _etype = (options.relation) ? 'connection' : 'article';
 
 		var self = this;
 
 		//define getter for type (article/connection)
-		this.type = function() { return _type; };
+		this.type = function() { return _etype; };
 
 		//define getter for basetype (schema/relation)
 		this.entityType = function() { return _entityType; };
@@ -157,8 +161,8 @@
 		this.freeText =  function() { 
 			if (arguments.length === 1) {
 				var value = arguments[0];
-				if (typeof value === 'string') _freeText = arguments[0];
-				else if (typeof value === 'object' && value.length) _freeText = arguments[0].join(' ');
+				if (_type.isString(value)) _freeText = arguments[0];
+				else if (_type.isArray(value) && value.length) _freeText = arguments[0].join(' ');
 				return this;
 			}
 			return _freeText; 
@@ -168,8 +172,8 @@
 		this.fields = function() {
 			if (arguments.length === 1) {
 				var value = arguments[0];
-				if (typeof value === 'string') _fields = value;
-				else if (typeof value === 'object' && value.length) _fields = value.join(',');
+				if (_type.isString(value)) _fields = value;
+				else if (_type.isArray(value) && value.length) _fields = value.join(',');
 				return this;
 			} else {
 				return _fields;
@@ -196,7 +200,11 @@
 
 		this.getQueryString = function() {
 
-			var finalUrl = _pageQuery.toString() + '&' + _sortQuery.toString();
+			var finalUrl = _pageQuery.toString();
+
+			var sortQuery =  _sortQuery.toString();
+
+			if (sortQuery) finalUrl += '&' + sortQuery;
 
 			if (this.filter()) {
 				var filter = this.filter().toString();
@@ -215,7 +223,7 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + _type + '/' + _entityType + '/find/all?' + this.getQueryString();
+			return global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString();
 		};
 
 		this.toRequest = function() {
@@ -228,7 +236,7 @@
 		this.getOptions = function() {
 			var o = {};
 			for (var key in this) {
-				if (this.hasOwnProperty(key) && typeof this[key] != 'function') {
+				if (this.hasOwnProperty(key) && !_type.isFunction(this[key])) {
 					o[key] = this[key];
 				}
 			}
@@ -238,16 +246,16 @@
 		this._setPaging = function(pi) {
 			if (pi) {
 				_pageQuery.pageNumber(pi.pagenumber);
-				_pageQuery.pageSize(pi.pagesize)
+				_pageQuery.pageSize(pi.pagesize);
 				
 				this.results = this.results || [];
 
-				this.results.isLastPage = true;
+				this.results.isLastPage = false;
 				this.results.total = pi.totalrecords;
 				this.results.pageNumber = pi.pagenumber;
 				this.results.pageSize = pi.pagesize;
 				
-				if ((pi.pagenumber * pi.pagesize) <= pi.totalrecords) {
+				if ((pi.pagenumber * pi.pagesize) >= pi.totalrecords) {
 					this.results.isLastPage = true;
 				}
 			}
@@ -256,7 +264,7 @@
 		var _parse = function(entities) {
 			var entityObjects = [];
 			if (!entities) entities = [];
-			var eType = (_type === 'article') ? 'Article' : 'Connection';
+			var eType = (_etype === 'article') ? 'Article' : 'Connection';
 			
 			if (_entityType && _entityType.toLowerCase() == 'user') eType = 'User';
 			
@@ -267,46 +275,37 @@
 			return entityObjects;
 		};
 
-		this.fetch = function(onSuccess, onError) {
+		this.fetch = function(callbacks) {
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-				   self.results = _parse(d[_type + 's']);
-				   self._setPaging(d.paginginfo);
+			   self.results = _parse(d[_etype + 's']);
+			   self._setPaging(d.paginginfo);
 
-				   if (typeof onSuccess === 'function') onSuccess(self.results, d.paginginfo);
-				} else {
-					d = d || {};
-					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-				}
+			   promise.fulfill(self.results, d.paginginfo);
 			};
-			request.onError = function(d) {
-				d = d || {};
-				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-			return this;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 
-		this.fetchNext = function(onSuccess, onError) {
+		this.fetchNext = function(callbacks) {
 			var pNum = this.pageNumber();
 			this.pageNumber(++pNum);
-			this.fetch(onSuccess, onError);
-			return this;
+			return this.fetch(callbacks);
 		};
 
-		this.fetchPrev = function(onSuccess, onError) {
+		this.fetchPrev = function(callbacks) {
 			var pNum = this.pageNumber();
 			pNum -= 1;
 			if (pNum <= 0) pNum = 1;
 			this.pageNumber(pNum);
-			this.fetch(onSuccess, onError);
-			return this;
+			return this.fetch(callbacks);
 		};
 
-		this.count = function(onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
+		this.count = function(callbacks) {
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
 			var _queryRequest = this.toRequest();
 			_queryRequest.onSuccess = function(data) {
@@ -315,25 +314,15 @@
 
 				var count = 0;
 				if (!pagingInfo) {
-					if (data.status && data.status.code && data.status.code == '200') {
-						count = 0;
-					} else {
-						var d = data.status || { message : 'Server error', code: 400 };
-				        if (typeof onError === 'function') onError(d, that);
-						return;
-					}
+					count = 0;
 				} else {
 					count = pagingInfo.totalrecords;
 				}
-				if (typeof onSuccess === 'function') onSuccess(count);
+				promise.fulfill(count);
 			};
-			_queryRequest.onError = function(d) {
-				d = d || { message : 'Server error', code: 400 };
-			    if (typeof onError === 'function') onError(d, that);
-			};
-			global.Appacitive.http.send(_queryRequest);
-
-			return this;
+			_queryRequest.promise = promise;
+			_queryRequest.entity = this;
+			return global.Appacitive.http.send(_queryRequest);
 		};
 	};
 
@@ -380,15 +369,15 @@
 		this.articleId = options.articleId;
 		this.relation = options.relation;
 		this.schema = schema;
-		this.prev = options.prev;
-		
+		if (options.article instanceof global.Appacitive.Article) this.article = options.article;
+
 		this.returnEdge = true;
 		if (options.returnEdge !== undefined && options.returnEdge !== null && !options.returnEdge && !this.prev) this.returnEdge = false;
 		
 		this.label = '';
 		var self = this;
 
-		if (options.label && typeof options.label === 'string' && options.label.length > 0) this.label = '&label=' + options.label;
+		if (_type.isString(options.label) && options.label.length > 0) this.label = '&label=' + options.label;
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
@@ -427,53 +416,28 @@
 				}
 				articles.push(tmpArticle);
 			});
+			
+			if (self.article) self.article.children[self.relation] = articles;
+
 			return articles;
 		};
 
-
-		var	prevParseNodes = function(nodes, endpointA) {
-			var connections = [];
-			nodes.forEach(function(o) {
-				var edge = o.__edge;
-				delete o.__edge;
-
-				edge.__endpointa = endpointA;
-				edge.__endpointb = {
-					article: o,
-					label: edge.__label,
-					type: o.__schematype
-				};
-				delete edge.label;
-
-				var connection = new global.Appacitive.Connection(edge, true);
-
-				connections.push(connection);
-			});
-			return connections;
-		};
-
-		this.fetch = function(onSuccess, onError) {
+		this.fetch = function(callbacks) {
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+			
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
-				    var _parse = parseNodes;
-				    if (self.prev) _parse = prevParseNodes;
+			    var _parse = parseNodes;
+			    if (self.prev) _parse = prevParseNodes;
 
-				    self.results = _parse(d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent });
-			   	    self._setPaging(d.paginginfo);
+			    self.results = _parse(d.nodes ? d.nodes : [], { articleid : options.articleId, type: schema, label: d.parent });
+		   	    self._setPaging(d.paginginfo);
 
-			   	    if (typeof onSuccess === 'function') onSuccess(self.results, d.paginginfo);   
-				} else {
-					d = d || {};
-					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-				}
+		   	    promise.fulfill(self.results, d.paginginfo);   
 			};
-			request.onError = function(d) {
-				d = d || {};
-				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-			return this;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 
 		return this;
@@ -531,8 +495,8 @@
 
 		options = options || {};
 
-		if (!options.articleAId || typeof options.articleAId !== 'string' || options.articleAId.length === 0) throw new Error('Specify valid articleAId for GetConnectionsBetweenArticlesQuery query');
-		if (!options.articleBId || typeof options.articleBId !== 'string' || options.articleBId.length === 0) throw new Error('Specify articleBId for GetConnectionsBetweenArticlesQuery query');
+		if (!options.articleAId || !_type.isString(options.articleAId) || options.articleAId.length === 0) throw new Error('Specify valid articleAId for GetConnectionsBetweenArticlesQuery query');
+		if (!options.articleBId || !_type.isString(options.articleBId) || options.articleBId.length === 0) throw new Error('Specify articleBId for GetConnectionsBetweenArticlesQuery query');
 		if (options.schema) delete options.schema;
 
 		options.queryType = queryType || 'GetConnectionsBetweenArticlesQuery';
@@ -541,8 +505,8 @@
 
 		this.articleAId = options.articleAId;
 		this.articleBId = options.articleBId;
-		this.label = (this.queryType() === 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && typeof options.label === 'string' && options.label.length > 0) ? '&label=' + options.label : '';
-		this.relation = (options.relation && typeof options.relation === 'string' && options.relation.length > 0) ? options.relation + '/' : '';
+		this.label = (this.queryType() === 'GetConnectionsBetweenArticlesForRelationQuery' && options.label && _type.isString(options.label) && options.label.length > 0) ? '&label=' + options.label : '';
+		this.relation = (options.relation && _type.isString(options.relation) && options.relation.length > 0) ? options.relation + '/' : '';
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
@@ -574,22 +538,16 @@
 		
 		var inner = new global.Appacitive.Queries.GetConnectionsBetweenArticlesQuery(options, 'GetConnectionsBetweenArticlesForRelationQuery');
 
-		inner.fetch = function(onSuccess, onError) {
+		inner.fetch = function(callbacks) {
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess === 'function') onSuccess(d.connection ? new global.Appacitive.Connection(d.connection) :  null);
-				} else {
-					d = d || {};
-					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-				}
+				promise.fulfill(d.connection ? new global.Appacitive.Connection(d.connection, true) :  null);
 			};
-			request.onError = function(d) {
-				d = d || {};
-				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-			return this;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 
 		return inner;
@@ -602,8 +560,8 @@
 
 		options = options || {};
 
-		if (!options.articleAId || typeof options.articleAId !== 'string' || options.articleAId.length === 0) throw new Error('Specify valid articleAId for InterconnectsQuery query');
-		if (!options.articleBIds || typeof options.articleBIds !== 'object' || !(options.articleBIds.length > 0)) throw new Error('Specify list of articleBIds for InterconnectsQuery query');
+		if (!options.articleAId || !_type.isString(options.articleAId) || options.articleAId.length === 0) throw new Error('Specify valid articleAId for InterconnectsQuery query');
+		if (!options.articleBIds || !_type.isArray(options.articleBIds) || !(options.articleBIds.length > 0)) throw new Error('Specify list of articleBIds for InterconnectsQuery query');
 		if (options.schema) delete options.schema;
 
 		options.queryType = 'InterconnectsQuery';
@@ -650,7 +608,7 @@
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
 			for (var ph in this.data.placeholders) {
-				this.data.placeholders[ph] = String.addSlashes(this.data.placeholders[ph]);
+				this.data.placeholders[ph] = this.data.placeholders[ph];
 			}
 		}
 		
@@ -666,25 +624,16 @@
 			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter';
 		};
 
-		this.fetch = function(onSuccess, onError) {
-			
+		this.fetch = function(callbacks) {
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess === 'function') {
-				   		onSuccess(d.ids ? d.ids : []);
-					}
-				} else {
-					d = d || {};
-					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-				}
+		   		promise.fulfill(d.ids ? d.ids : []);
 			};
-			request.onError = function(d) {
-				d = d || {};
-				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-			return this;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 
 	};
@@ -704,7 +653,7 @@
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
 			for (var ph in this.data.placeholders) {
-				this.data.placeholders[ph] = String.addSlashes(this.data.placeholders[ph]);
+				this.data.placeholders[ph] = this.data.placeholders[ph];
 			}
 		}
 
@@ -754,7 +703,7 @@
 							label: edge.__label
 						};
 						delete edge.__label;
-						tmpArticle.connection = new global.Appacitive.Connection(edge);
+						tmpArticle.connection = new global.Appacitive.Connection(edge, true);
 					}
 					props.push(tmpArticle);
 				});
@@ -763,25 +712,17 @@
 			return parseChildren(root.values);
 		};
 
-		this.fetch = function(onSuccess, onError) {
+		this.fetch = function(callbacks) {
 			
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-			if (d && d.status && d.status.code == '200') {
-				   if (typeof onSuccess === 'function') {
-				   		onSuccess(_parseResult(d));
-					}
-				} else {
-					d = d || {};
-					if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-				}
+		   		promise.fulfill(_parseResult(d));
 			};
-			request.onError = function(d) {
-				d = d || {};
-				if (typeof onError === 'function') onError(d.status || { message : 'Server error', code: 400 });
-			};
-			global.Appacitive.http.send(request);
-			return this;
+			request.promise = promise;
+			request.entity = this;
+			return global.Appacitive.http.send(request);
 		};
 	};
 

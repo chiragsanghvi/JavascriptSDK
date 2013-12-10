@@ -4,96 +4,61 @@
 
 	var _pushManager = function() {
 
-		this.send = function(options, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		this.send = function(options, callbacks) {
+			
+			if (!options) throw new Error("Please specify push options");
 
-			if(!options)
-				throw new Error("Please specify push options");
-
-			var request =  new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getPushUrl();
-
-			request.method = 'post';
-			request.data = options;
-
-			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
-					onSuccess(d.id);
-				} else {
-					d = d || {};
-					d.status = d.status || {};
-					onError(d.status.message || 'Server error');
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'push',
+				op: 'getPushUrl',
+				callbacks: callbacks,
+				data: options,
+				entity: options,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.id);
 				}
-			};
-
-			request.onError = function(d){
-				onError(d || "Server error");
-			};
-
-			global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
-		this.getNotification = function(notificationId, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		this.getNotification = function(notificationId, callbacks) {
 
-			if(!notificationId)
-				throw new Error("Please specify notification id");
+			if (!notificationId) throw new Error("Please specify notification id");
 
-			var request =  new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getGetNotificationUrl(notificationId);
-
-			request.method = 'get';
-
-			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
-					onSuccess(d.pushnotification);
-				} else {
-					d = d || {};
-					d.status = d.status || {};
-					onError(d.status.message || 'Server error');
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'push',
+				op: 'getGetNotificationUrl',
+				args: [notificationId],
+				callbacks: callbacks,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.pushnotification);
 				}
-			};
-
-			request.onError = function(d){
-				onError(d || "Server error");
-			};
-
-			global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
-		this.getAllNotifications = function(pagingInfo, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
-			if(!pagingInfo)
+		this.getAllNotifications = function(pagingInfo, callbacks) {
+			
+			if (!pagingInfo)
 				pagingInfo = { pnum: 1, psize: 20 };
 			else {
 				pagingInfo.pnum = pagingInfo.pnum || 1;
 				pagingInfo.psize = pagingInfo.psize || 20;
 			}
 
-			var request =  new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.push.getGetAllNotificationsUrl(pagingInfo);
-
-			request.method = 'get';
-
-			request.onSuccess = function(d) {
-				if (d && d.status && d.status.code == '200') {
-					onSuccess(d.pushnotifications, d.paginginfo);
-				} else {
-					d = d || {};
-					d.status = d.status || {};
-					onError(d.status.message || 'Server error');
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'push',
+				op: 'getGetAllNotificationsUrl',
+				args: [pagingInfo],
+				callbacks: callbacks,
+				onSuccess: function(d) {
+					request.promise.fulfill(d.pushnotifications, d.paginginfo);
 				}
-			};
-
-			request.onError = function(d){
-				onError(d || "Server error");
-			};
-
-			global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
 	};

@@ -9,7 +9,7 @@ var global = {};
 	// create the global object
 
 	if (typeof window === 'undefined') {
-		global = process;
+		global = this;
 	} else {
 		global = window;
 	}
@@ -19,7 +19,8 @@ var global = {};
 		if (!global.Appacitive) {
 			global.Appacitive = {
 				runtime: {
-					isBrowser: true
+					isNode: typeof process != typeof t,
+					isBrowser: typeof window != typeof t
 				}
 			};
 		}
@@ -38,7 +39,7 @@ var global = {};
 
 		// validate the httpTransport passed
 		// and assign the callback
-		if (!httpTransport || !httpTransport.send || typeof httpTransport.send !== 'function') {
+		if (!httpTransport || !httpTransport.send || !_type.isFunction(httpTransport.send)) {
 			throw new Error('No applicable httpTransport class found');
 		} else {
 			httpTransport.onResponse = this.onResponse;
@@ -213,6 +214,8 @@ var global = {};
 		if (!request.headers) request.headers = [];
 		var data = {};
 		
+		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
+
 		var doNotStringify = true;
 		request.headers.forEach(function(r){
 			if (r.key.toLowerCase() == 'content-type') {
@@ -228,16 +231,13 @@ var global = {};
 		else {
 			if (request.data) { 
 				data = request.data;
-				if (typeof request.data === 'object') {
+				if (typeof request.data == 'object') {
 					try { data = JSON.stringify(data); } catch(e) {}
 				}
 			}
 		}
 
-		if (!request.onSuccess || typeof request.onSuccess !== 'function') request.onSuccess = function() {};
-	    if (!request.onError || typeof request.onError !== 'function') request.onError = function() {};
-	    
-	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') !== -1 || global.navigator.userAgent.indexOf('MSIE 9') !== -1)) {
+	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;
@@ -257,9 +257,9 @@ var global = {};
 								response = JSON.parse(jData);
 							}
 						} catch(e) {}
-			            request.onSuccess(response, this);
+			            promise.fulfill(response, this);
 			        } else {
-			        	request.onError({code: this.status , message: this.statusText }, this);
+			        	promise.reject(this);
 			        }
 		    	}
 		    };
@@ -285,8 +285,8 @@ var global = {};
 		this.data = o.data || {};
 		this.headers = o.headers || [];
 		this.method = o.method || 'GET';
-		this.onSuccess = o.onSuccess || function(){}
-		this.onError = o.onError || function(){}
+		this.onSuccess = o.onSuccess || function(){};
+		this.onError = o.onError || function(){};
 
 		this.send = function(doNotStringify) {
 			return new _XMLHttp(this, doNotStringify);
@@ -315,40 +315,42 @@ var global = {};
 		var that = _super;
 
 		var _trigger = function(request, callbacks, states) {
-			var xhr = new  _XMLHttp({
+			new  _XMLHttp({
 				method: request.method,
 				url: request.url,
 				headers: request.headers,
 				data: request.data,
 				onSuccess: function(data, xhr) {
 					if (!data) {
-					 	that.onError(request, { code:'400', messgae: 'Invalid request' });
+					 	that.onError(request, { responseText: JSON.stringify({ code:'400', message: 'Invalid request' }) });
 						return;
 					}
-					try{ data = JSON.parse(data);} catch(e){}
+					try { data = JSON.parse(data);} catch(e) {}
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
-					that.onResponse(data, request);
+
+					if ((data.code >= '200' && data.code <= '300') || (data.status && data.status.code >= '200' && data.status.code <= '300')) {
+						that.onResponse(request, data);
+					} else {
+						data = data || {};
+						data = data.status || data;
+						data.message = data.message || 'Bad Request';
+						data.code = data.code || '400';
+						that.onError(request, { responseText: JSON.stringify(data) });
+					}
 				},
-				onError: function(e) {
-					that.onError(request, e);
+				onError: function(xhr) {
+					that.onError(request, xhr);
 				}
 			});
 		};
 
 		_super.send = function (request, callbacks, states) {
 			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
-			if (typeof request.beforeSend === 'function') {
+			if (_type.isFunction(request.beforeSend)) {
 				request.beforeSend(request);
 			}
 			_trigger(request, callbacks, states);
-		};
-
-		_super.upload = function (request, callbacks, states) {
-			if (typeof request.beforeSend === 'function') {
-				request.beforeSend(request);
-			}
-			_trigger(request, callbacks, states, true);
 		};
 
 		return _super;
@@ -374,6 +376,7 @@ var global = {};
 		this.pause = function () {
 			_paused = true;
 		};
+
 		this.unpause = function () {
 			_paused = false;
 		};
@@ -389,13 +392,18 @@ var global = {};
 
 		// the method used to send the requests
 		this.send = function (request) {
+			
+			request.promise = (global.Appacitive.Promise.is(request.promise)) ? request.promise : new global.Appacitive.Promise.buildPromise({ error: request.onError });
+
 			_buffer.enqueueRequest(request);
 
 			// notify the queue if the actual transport 
 			// is ready to send the requests
-			if (_inner.isOnline() && _paused == false) {
+			if (_inner.isOnline() && _paused === false) {
 				_buffer.notify();
 			}
+			
+			return request.promise;
 		};
 
 		// method used to clear the queue
@@ -410,19 +418,23 @@ var global = {};
 		};
 
 		// the error handler
-		this.onError = function (request, err) {
-			if (request.onError) {
-				if (request.context) {
-					request.onError.apply(request.context, [err]);
-				} else {
-					request.onError(err);
-				}
-			}
+		this.onError = function (request, response) {
+			var error;
+		    if (response && response.responseText) {
+		        try {
+		          var errorJSON = JSON.parse(response.responseText);
+		          if (errorJSON) {
+		            error = { code: errorJSON.code, error: errorJSON.message };
+		          }
+		        } catch (e) {}
+		    }
+		    error = error || { code: response.status, message: response.responseText };
+		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
 
 		// the success handler
-		this.onResponse = function (response, request) {
+		this.onResponse = function (request, response) {
 			if (request.onSuccess) {
 				if (request.context) {
 					request.onSuccess.apply(request.context, [response]);
@@ -456,7 +468,7 @@ var global = {};
 					var _valid = global.Appacitive.Session.isSessionValid(response);
 					if (!_valid.status) {
 						if (_valid.isSession) {
-							if (global.Appacitive.Session.get() != null) {
+							if (global.Appacitive.Session.get() !== null) {
 								global.Appacitive.Session.resetSession();
 							}
 							global.Appacitive.http.send(request);

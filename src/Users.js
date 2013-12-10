@@ -6,139 +6,64 @@
 
 		var _authenticatedUser = null;
 
-		this.currentUser = function() {
+		this.current = function() {
 			return _authenticatedUser;
 		};
 
-		var _updatePassword = function(base, oldPassword, newPassword, onSuccess, onError) {
-			var userId = base.get('__id');
-			if (!userId || typeof userId !== 'string' || userId.length === 0) throw new Error("Please specify valid userid");
-			if (!oldPassword || typeof oldPassword !== 'string' || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
-			if (!newPassword || typeof newPassword !== 'string' || newPassword.length === 0) throw new Error("Please specify valid newPassword");
+		this.currentUser = this.current;
 
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		var _updatePassword = function(oldPassword, newPassword, callbacks) {
+			var userId = this.get('__id');
+			if (!userId || !_type.isString(userId) || userId.length === 0) throw new Error("Please specify valid userid");
+			if (!oldPassword || !_type.isString(oldPassword) || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
+			if (!newPassword || !_type.isString(newPassword) || newPassword.length === 0) throw new Error("Please specify valid newPassword");
 
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUpdatePasswordUrl(userId);
-			request.method = 'post';
-			request.data = updatedPasswordOptions;
-			request.onSuccess = function(a) {
-				if (a && a.code == '200') {
-					if (typeof onSuccess == 'function') onSuccess(base);
-				}
-				else { onError(a, base); }
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
-		};
-
-		var _getAllLinkedAccounts = function(base, onSuccess, onError) {
-			var userId = base.get('__id');
-			if (!userId || typeof userId !== 'string' || userId.length === 0) {
-				if (typeof onSuccess === 'function') onSuccess(base.linkedAccounts(), base);
-			}
-
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getGetAllLinkedAccountsUrl(userId);
-			request.method = 'get';
-			request.onSuccess = function(a) {
-				if (a && a.status && a.status.code == '200') { 
-					var accounts = a.identities || []; 
-					if (accounts.length > 0) base.set('__link', accounts);
-					else base.set('__link', null);
-					if (typeof onSuccess === 'function') onSuccess(accounts, base);
-				}
-				else { onError(a.status, base); }
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
-		};
-
-		var _checkin = function(coords, base, onSuccess, onError) {
-			var userId = base.get('__id');
-			if (!userId || typeof userId !== 'string' || userId.length === 0) {
-				if (onSuccess && typeof onSuccess == 'function') onSuccess();
-			}
-			if (!coords || !coords.lat || !coords.lng) throw new Error("Invalid coordinates provides");
-
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getCheckinUrl(userId, coords.lat, coords.lng);
-			request.method = 'post';
-			request.onSuccess = function(a) {
-				if (a && a.code == '200') { 
-					if (typeof onSuccess === 'function') onSuccess(accounts, base);
-				}
-				else { if (typeof onError === 'function') onError(a, base); }
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
-		};
-
-		var _link = function(accessToken, base, onSuccess, onError) {
-
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
 			
-			var payload = {
-				"authtype": "facebook",
-				"accesstoken": accessToken,
-				"name": "facebook"
-			};
-
-			var userId = base.get('__id');
-
-			if (!base.get('__id')) {
-				base.set('__link', payload);
-				if (typeof onSuccess == 'function') onSuccess(base);
-				return;
-			}
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getLinkAccountUrl(userId);
-			request.method = 'post';
-			request.data = payload;
-			request.onSuccess = function(a) {
-				if (a && a.code == '200') {
-					base.set('__link', payload);
-					if (typeof onSuccess === 'function') onSuccess(base);
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getUpdatePasswordUrl',
+				args: [userId],
+				callbacks: callbacks,
+				data: updatedPasswordOptions,
+				entity: this,
+				onSuccess: function(data) {
+					request.promise.fulfill(that);
 				}
-				else { onError(a, base); }
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
-		var _unlink = function(name, base, onSuccess, onError) {
-			onSuccess = onSuccess || function() {};
-			onError = onError || function() {};
-			
-			var userId = base.get('__id');
+		var _link = function(link, callbacks) {
+			var userId = this.get('__id');
 
-			if (!base.get('__id')) {
-				if (typeof onSuccess === 'function') onSuccess(base);
-				return;
+			if (!this.get('__id')) {
+				this.set('__link', link);
+				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this);
 			}
 
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getLinkAccountUrl(userId, name);
-			request.method = 'post';
-			request.onSuccess = function(a) {
-				if (a && a.code == '200') {
-					base.set('__link', null);
-					if (typeof onSuccess === 'function') onSuccess(base);
+			var that = this;
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getLinkAccountUrl',
+				args: [userId],
+				callbacks: callbacks,
+				data: link,
+				entity: this,
+				onSuccess: function(data) {
+					var links = that.get('__link');
+					if (!_type.isArray(links)) {
+						links = (links) ? [links] : [];
+					}
+					links.push(link);
+					that.copy({__link: links }, true);
+					request.promise.fulfill(that);
 				}
-				else { onError(a, base); }
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
 		this.setCurrentUser = function(user, token, expiry) {
@@ -155,48 +80,14 @@
 
 			if (token) global.Appacitive.Session.setUserAuthHeader(token, expiry);
 
-			_authenticatedUser.logout = function(callback) { global.Appacitive.Users.logout(callback); };
+			_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
 
-			_authenticatedUser.updatePassword = function(oldPassword, newPassword, onSuccess, onError) {
-				_updatePassword(this, oldPassword, newPassword, onSuccess, onError);
-				return this;
+			_authenticatedUser.updatePassword = function(oldPassword, newPassword, callbacks) {
+				return _updatePassword.apply(this, [oldPassword, newPassword, callbacks]);
 			};
 
-			_authenticatedUser.linkFacebookAccount = function(onSuccess, onError) {
-				var _callback = function() {
-					_link(Appacitive.Facebook.accessToken(), _authenticatedUser, function(base) {
-						global.Appacitive.eventManager.fire('user..article.' + base.get('__id') + '.updated', base, { object: base });
-						if (typeof onSuccess === 'function') onSuccess(base);
-					}, onError);
-				};
+			_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
 
-				Appacitive.Facebook.getCurrentUserInfo(function() {
-					_callback();
-				}, function() {
-					Appacitive.Facebook.requestLogin(function() {
-						_callback();
-					}, onError);
-				});
-
-				return this;
-			};
-
-			_authenticatedUser.unlinkFacebookAccount = function(onSuccess, onError) {
-
-				_unlink('facebook', this, function(base) {
-					global.Appacitive.eventManager.fire('user.article.' + base.get('__id') + '.updated', base, { object: base });
-					if (typeof onSuccess === 'function') onSuccess(base);
-				}, onError);
-				
-				return this;
-			};
-
-			_authenticatedUser.logout = function(callback) { global.Appacitive.Users.logout(callback); };
-
-			_authenticatedUser.checkin = function(coords, onSuccess, onError) {
-				_checkin(coords, this, onSuccess, onError);
-				return this;
-			};
 			global.Appacitive.eventManager.clearAndSubscribe('user.article.' + userObject.get('__id') + '.updated', function(sender, args) {
 				global.Appacitive.localStorage.set('Appacitive-User', args.object.getArticle());
 			});
@@ -221,134 +112,235 @@
 			var accounts = this.get('__link');
 			
 			if (!accounts) accounts = [];
-			else if (typeof accounts === 'object' && !(accounts.length >= 0)) accounts = [accounts];
-			else if (!(accounts.length >= 0)) accounts = accounts[0];
-
+			else if (!_type.isArray(accounts)) accounts = [accounts];
+			
 			return accounts;
 		};
 
 		//method for getting all linked accounts
-		global.Appacitive.User.prototype.getAllLinkedAccounts = function(onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
+		global.Appacitive.User.prototype.getAllLinkedAccounts = function(callbacks) {
+			var userId = this.get('__id');
+			
+			if (!userId || !_type.isString(userId) || userId.length === 0) {
+				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this.linkedAccounts(), this);
+			}
+
 			var that = this;
 
-			_getAllLinkedAccounts(this, function(accounts) {
-				if (typeof onSuccess === 'function') onSuccess(accounts, that);
-			}, onError);
-			return this;
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'user',
+				op: 'getGetAllLinkedAccountsUrl',
+				args: [userId],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function() {
+					var accounts = a.identities || []; 
+					if (accounts.length > 0) that.set('__link', accounts);
+					else that.set('__link', null);
+					
+					request.promise.fulfill(accounts, that);
+				}
+			});
+			return request.send();
+		};
+
+		global.Appacitive.User.prototype.checkin = function(coords, callbacks) {
+			var userId = this.get('__id');
+			if (!userId || !_type.isString(userId) || userId.length === 0) {
+				if (onSuccess && _type.isFunction(onSuccess)) onSuccess();
+			}
+			if (!coords || !(coords instanceof global.Appacitive.GeoCoord)) throw new Error("Invalid coordinates provided");
+
+			var that = this;
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getCheckinUrl',
+				args: [userId, coords.lat, coords.lngerId],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function() {
+					request.promise.fulfill(that);
+				}
+			});
+			return request.send();
 		};
 
 		//method for linking facebook account to a user
-		global.Appacitive.User.prototype.linkFacebookAccount = function(accessToken, onSuccess, onError) {
-			_link(accessToken, this, onSuccess, onError);
-			return this;
+		global.Appacitive.User.prototype.linkFacebook = function(accessToken, callbacks) {
+			
+			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
+
+			var payload = {
+				"authtype": "facebook",
+				"accesstoken": accessToken,
+				"name": "facebook"
+			};
+
+			return _link.apply(this, [payload, callbacks]);
 		};
 
-		//method for unlinking facebook account for a user
-		global.Appacitive.User.prototype.unlinkFacebookAccount = function(onSuccess, onError) {
-			var that = this;
-			_unlink('facebook', this, function() {
-				var accounts = that.get('__link');
+		//method for linking twitter account to a user
+		global.Appacitive.User.prototype.linkTwitter = function(twitterObj, callbacks) {
 			
-				if (!accounts) accounts = [];
-				else if(!(accounts.length >= 0)) accounts = [accounts];
+			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
+			
+			var payload = {
+				"authtype": "twitter",
+				"oauthtoken": twitterObj.oAuthToken ,
+				"oauthtokensecret": twitterObj.oAuthTokenSecret
+			};
 
-				if (accounts.length > 0) {
-					if (accounts[0].name == 'facebook') {
-						that.set('__link', null);
+			if (twitterObj.consumerKey && twitterObj.consumerSecret) {
+				payload.consumersecret = twitterObj.consumerSecret;
+				payload.consumerkey = twitterObj.consumerKey;
+			}
+
+			return _link.apply(this, [payload, callbacks]);
+		};
+
+		//method to unlink an oauth account
+		global.Appacitive.User.prototype.unlink = function(name, callbacks) {
+			
+			if (!_.isString(name)) throw new Error("Specify aouth account type for unlinking");
+
+			var userId = this.get('__id');
+
+			if (!this.get('__id')) {
+				this.set('__link', null);
+				promise.fulfill(this);
+				return promise;
+			}
+
+			var that = this;
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getDelinkAccountUrl',
+				args: [userId, name],
+				callbacks: callbacks,
+				entity: this,
+				onSuccess: function(a) {
+					var accounts = that.get('__link');
+			
+					if (!accounts) accounts = [];
+					else if (!_type.isArray(accounts)) accounts = [accounts];
+
+					if (accounts.length >= 0) {
+						var ind = null;
+						accounts.forEach(function(a, i) {
+							if (a.name == name.toLowerCase()) {
+								ind = i;
+								return;
+							}
+						});
+						if (ind != null) accounts.splice(ind, 1);
+						that.copy({ __link: accounts }, true);
+					} else {
+						that.copy({ __link: [] }, true);
 					}
-				}
 
-				if (typeof onSuccess === 'function') onSuccess(that);
-			}, onError);
-			return this;
+					request.promise.fulfill(that);
+				}
+			});
+			return request.send();
 		};
 
 		global.Appacitive.User.prototype.clone = function() {
 			return new global.Appacitive.User(this.getObject());
 		};
 
-		this.deleteUser = function(userId, onSuccess, onError) {
+		this.deleteUser = function(userId, callbacks) {
 			if (!userId) throw new Error('Specify userid for user delete');
-
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
-			var userObject = new global.Appacitive.Article({ __schematype: 'user', __id: userId });
-			userObject.del(onSuccess, onError);
+			return new global.Appacitive.Article({ __schematype: 'user', __id: userId }).del(true, callbacks);
 		};
 
-		this.deleteCurrentUser = function(onSuccess, onError) {
+		this.deleteCurrentUser = function(callbacks) {
 			
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+
 			var _callback = function() {
 				global.Appacitive.Session.removeUserAuthHeader();
-				if (typeof onSuccess === 'function') onSuccess();
+				promise.fulfill();
 			};
+
 			if (_authenticatedUser === null) { 
 				_callback();
-				return;
+				return promise;
 			}
+
 			var currentUserId = _authenticatedUser.get('__id');
-			this.deleteUser(currentUserId, function() { 
+			
+			this.deleteUser(currentUserId).then(function() { 
+				_authenticatedUser = null;
 				_callback();
-			}, onError);
+			}, function() { 
+				promise.reject(arguments);
+			});
+
+			return promise;
 		};
 
-		this.createNewUser = function(user, onSuccess, onError) {
+		this.createNewUser = function(user, callbacks) {
 			user = user || {};
 			user.__schematype = 'user';
 			if (!user.username || !user.password || !user.firstname || user.username.length === 0 || user.password.length === 0 || user.firstname.length === 0) 
 				throw new Error('username, password and firstname are mandatory');
 
-			var userObject = new global.Appacitive.User(user);
-			userObject.save(onSuccess, onError);
+			return new global.Appacitive.User(user).save(callbacks);
 		};
 		this.createUser = this.createNewUser;
 
 		//method to allow user to signup and then login 
-		this.signup = function(user, onSuccess, onError) {
+		this.signup = function(user, callbacks) {
 			var that = this;
-			this.createUser(user, function() {
-				that.login(user.username, user.password, onSuccess, onError);
-			}, function(status) {
-				onError(status);
+			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+
+			this.createUser(user).then(function() {
+				that.login(user.username, user.password).then(function() {
+					promise.fulfill.apply(promise, arguments);
+				}, function(staus) {
+					promise.reject.apply(promise, arguments);
+				});
+			}, function() {
+				promise.reject(arguments);
 			});
+
+			return promise;
 		};
 
 		//authenticate user with authrequest that contains username , password and expiry
-		this.authenticateUser = function(authRequest, onSuccess, onError, provider) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		this.authenticateUser = function(authRequest, callbacks, provider) {
 
 			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
-			var request = new global.Appacitive.HttpRequest();
-			request.method = 'post';
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getAuthenticateUserUrl();
-			request.data = authRequest;
-			request.onSuccess = function(data) {
-				if (data && data.user) {
-					if (provider) { 
-						data.user.__authType = provider;
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getAuthenticateUserUrl',
+				callbacks: callbacks,
+				data: authRequest,
+				onSuccess: function(data) {
+					if (data && data.user) {
+						if (provider) data.user.__authType = provider;
+						that.setCurrentUser(data.user, data.token, authRequest.expiry);
+						request.promise.fulfill({ user : _authenticatedUser, token: data.token });
+					} else {
+						request.promise.reject(data.status);
 					}
-					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					onSuccess({ user : _authenticatedUser, token: data.token });
-				} else {
-					data = data || {};
-					onError(data.status);
 				}
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
+			});
+			return request.send();
 		};
 
 		//An overrride for user login with username and password directly
-		this.login = function(username, password, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		this.login = function(username, password, callbacks) {
 
-			if (!username || !password || username.length ==0 || password.length == 0) 
-				throw new Error('Please specify username and password');
+			if (!username || !password || username.length ==0 || password.length == 0) throw new Error('Please specify username and password');
 
 			var authRequest = {
 				username : username,
@@ -356,51 +348,48 @@
 				expiry: 86400000
 			};
 
-			this.authenticateUser(authRequest, onSuccess, onError, 'BASIC');
+			return this.authenticateUser(authRequest, callbacks, 'BASIC');
 		};
 
-		this.signupWithFacebook = function(onSuccess, onError) {
-			this.loginWithFacebook(onSuccess, onError, false, true);
-		};
+		this.loginWithFacebook = function(accessToken, callbacks) {
+			
+			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
-		this.loginWithFacebook = function(onSuccess, onError, ignoreFBLogin, isNew) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-			var that = this;
-
-			var _callback = function() {
-
-				var authRequest = {
-					"accesstoken": global.Appacitive.Facebook.accessToken(),
-					"type": "facebook",
-					"expiry": 86400000,
-					"createnew": true
-				};
-
-				that.authenticateUser(authRequest, function(a) {
-					if (a.user) {
-						a.user.__authType = 'FB';
-						if (typeof onSuccess === 'function') onSuccess({ user : _authenticatedUser, token: a.token });
-					} else {
-						a = a || {};
-						if (typeof onError === 'function') onError(a.status);
-					}
-				}, onError, 'FB');
+			var authRequest = {
+				"accesstoken": accessToken,
+				"type": "facebook",
+				"expiry": 86400000,
+				"createnew": true
 			};
-			if (ignoreFBLogin) {
-				_callback();
-			} else { 
-				global.Appacitive.Facebook.requestLogin(function(authResponse) {
-					_callback(authResponse);
-				}, onError);
-			}
+
+			return this.authenticateUser(authRequest, callbacks, 'FB');
 		};
 
-		this.authenticateWithFacebook = this.signupWithFacebook;
+		this.loginWithTwitter = function(twitterObj, callbacks) {
+			
+			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
+			
+			var authRequest = {
+				"type": "twitter",
+				"oauthtoken": twitterObj.oAuthToken ,
+				"oauthtokensecret": twitterObj.oAuthTokenSecret,
+				"expiry": 86400000,
+				"createnew": true
+			};
 
-		this.validateCurrentUser = function(callback, avoidApiCall) {
+			if (twitterObj.consumerKey && twitterObj.consumerSecret) {
+				authRequest.consumersecret = twitterObj.consumerSecret;
+				authRequest.consumerkey = twitterObj.consumerKey;
+			}
 
-			if (callback && typeof callback !== 'function' && typeof callback === 'boolean') {
+			return this.authenticateUser(authRequest, callbacks, 'TWITTER');
+		};
+
+		this.validateCurrentUser = function(avoidApiCall, callback) {
+
+			var promise = global.Appacitive.Promise.buildPromise({ success: callback });
+
+			if (callback && _type.isBoolean(callback)) {
 				avoidApiCall = callback;
 				callback = function() {}; 
 			}
@@ -408,119 +397,115 @@
 			var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
 
 			if (!token) {
-				if (typeof(callback) === 'function') callback(false);
-				return false;
+				promise.fulfill(false);
+				return promise;
 			}
 
 			if (!avoidApiCall) {
 				try {
 					var that = this;
-					this.getUserByToken(token, function(user) {
+					this.getUserByToken(token).then(function(user) {
 						that.setCurrentUser(user, token);
-						if (typeof(callback) === 'function') callback(true);
+						promise.fulfill(true);
 					}, function() {
-						if (typeof(callback) === 'function') callback(false);
+						promise.fulfill(false);
 					});
-				} catch (e) { callback(false);}
+				} catch (e) { 
+					promise.fulfill(false);
+				}
 			} else {
-				if (typeof(callback) === 'function') callback(true);
-				return true;
+				promise.fulfill(true);
 			}
+
+			return promise;
 		};
 
-		this.sendResetPasswordEmail = function(username, subject, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		var _getUserByIdType = function(op, args, callbacks) {
+			var request = new global.Appacitive._Request({
+				method: 'GET',
+				type: 'user',
+				op: op,
+				callbacks: callbacks,
+				args: args,
+				onSuccess: function(data) {
+					if (data && data.user) request.promise.fulfill(new global.Appacitive.User(data.user));
+					else request.promise.reject(data.status);
+				}
+			});
+			return request.send();
+		};
 
-			if (!username || typeof username !== 'string' || username.length === 0) throw new Error("Please specify valid username");
-			if (subject && typeof subject === 'string' && subject.length === 0) throw new Error('Plase specify subject for email');
+		this.getUserByToken = function(token, callbacks) {
+			if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
+			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
+			return _getUserByIdType("getUserByTokenUrl", [token], callbacks);
+		};
+
+		this.getUserByUsername = function(username, callbacks) {
+			if (!username || !_type.isString(username) || username.length === 0) throw new Error("Please specify valid username");
+			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
+		};
+
+		this.logout = function(makeApiCall) {
+			_authenticatedUser = null;
+			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall);
+		};
+
+		this.sendResetPasswordEmail = function(username, subject, callbacks) {
+
+			if (!username || !_type.isString(username)  || username.length === 0) throw new Error("Please specify valid username");
+			if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
 
 			var passwordResetOptions = { username: username, subject: subject };
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getSendResetPasswordEmailUrl();
-			request.method = 'post';
-			request.data = passwordResetOptions;
-			request.onSuccess = function(a) {
-				if (a && a.code == '200') {
-				 	if (typeof onSuccess === 'function') onSuccess();
-				} else { onError(a); }
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request); 
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getSendResetPasswordEmailUrl',
+				callbacks: callbacks,
+				data: passwordResetOptions,
+				onSuccess: function() {
+					request.promise.fulfill();
+				}
+			});
+			return request.send();
 		};
 
-		var _getUserByIdType = function(url, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
-			var request = new global.Appacitive.HttpRequest();
-			request.url = url;
-			request.method = 'get';
-			request.onSuccess = function(data) {
-				if (data && data.user) { 
-					if (typeof onSuccess === 'function') onSuccess(new global.Appacitive.User(data.user));
-				} else if (typeof onError === 'function') onError(data.status);
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request);
-		};
-
-		this.getUserByToken = function(token, onSuccess, onError) {
-			if (!token || typeof token !== 'string' || token.length === 0) throw new Error("Please specify valid token");
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByTokenUrl(token);
-			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
-			_getUserByIdType(url, onSuccess, onError);
-		};
-
-		this.getUserByUsername = function(username, onSuccess, onError) {
-			if (!username || typeof username !== 'string' || username.length === 0) throw new Error("Please specify valid username");
-			var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getUserByUsernameUrl(username);
-			_getUserByIdType(url, onSuccess, onError);
-		};
-
-		this.logout = function(callback, avoidApiCall) {
-			callback = callback || function() {};
-			_authenticatedUser = null;
-			global.Appacitive.Session.removeUserAuthHeader(callback, avoidApiCall);
-		};
-
-		this.resetPassword = function(token, newPassword, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
+		this.resetPassword = function(token, newPassword, callbacks) {
 
 			if (!token) throw new Error("Please specify token");
 			if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
 
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getResetPasswordUrl(token);
-			request.method = 'post';
-			request.data = { newpassword: newPassword };
-			request.onSuccess = function(a) {
-				if (a && a.code == '200') {
-				 	if (typeof onSuccess === 'function') onSuccess();
-				} else { onError(a); }
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request); 
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getResetPasswordUrl',
+				callbacks: callbacks,
+				data: { newpassword: newPassword },
+				args: [token],
+				onSuccess: function() {
+					request.promise.fulfill();
+				}
+			});
+			return request.send();
 		};
 
-		this.validateResetPasswordToken = function(token, onSuccess, onError) {
-			onSuccess = onSuccess || function(){};
-			onError = onError || function(){};
-
+		this.validateResetPasswordToken = function(token, callbacks) {
+			
 			if (!token) throw new Error("Please specify token");
 
-			var request = new global.Appacitive.HttpRequest();
-			request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getValidateResetPasswordUrl(token);
-			request.method = 'post';
-			request.data = {};
-			request.onSuccess = function(a) {
-				if (a.status && a.status.code == '200') {
-				 	if (typeof onSuccess === 'function') onSuccess(a.user);
-				} else { onError(a.status); }
-			};
-			request.onError = onError;
-			global.Appacitive.http.send(request); 
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'user',
+				op: 'getValidateResetPasswordUrl',
+				callbacks: callbacks,
+				data: {},
+				args: [token],
+				onSuccess: function(a) {
+					request.promise.fulfill(a.user);
+				}
+			});
+			return request.send();
 		};
 	};
 

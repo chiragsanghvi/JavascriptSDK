@@ -26,36 +26,33 @@
 
 		this.onSessionCreated = function() {};
 
-		this.recreate = function() {
-			global.Appacitive.Session.create(_options);
+		this.recreate = function(callbacks) {
+			return global.Appacitive.Session.create(callbacks);
 		};
 
-		this.create = function(onSuccess, onError) {
+		this.create = function(callbacks) {
 
-			if (!this.initialized) throw new Error("Intialize Appacitvie SDK");
+			if (!this.initialized) throw new Error("Intialize Appacitive SDK");
 
 			// create the session
 			var _sRequest = new _sessionRequest();
 
 			_sRequest.apikey = _apikey;
-			
-			var _request = new global.Appacitive.HttpRequest();
-			_request.url = global.Appacitive.config.apiBaseUrl + 'application.svc/session';
-			_request.method = 'put';
-			_request.data = _sRequest;
-			_request.onSuccess = function(data) {
-				if (data && data.status && data.status.code == '200') {
+
+			var request = new global.Appacitive._Request({
+				method: 'PUT',
+				type: 'application',
+				op: 'getSessionCreateUrl',
+				callbacks: callbacks,
+				data: _sRequest,
+				onSuccess: function(data) {
 					_sessionKey = data.session.sessionkey;
 					global.Appacitive.Session.useApiKey = false;
-					if (onSuccess && typeof onSuccess == 'function') onSuccess(data);
+					request.promise.fulfill(data);
 					global.Appacitive.Session.onSessionCreated();
 				}
-				else {
-					if (onError && typeof onError == 'function') onError(data);
-				}
-			};
-			_request.onError = onError;
-			global.Appacitive.http.send(_request);
+			});
+			return request.send();
 		};
 
 		global.Appacitive.http.addProcessor({
@@ -113,34 +110,35 @@
 			} catch(e) {}*/
 		};
 
-		this.removeUserAuthHeader = function(callback, avoidApiCall) {
-			if (callback && typeof callback != 'function' && typeof callback == 'boolean') {
-				avoidApiCall = callback;
-				callback = function() {}; 
-			}
-
-			authEnabled = false;
-			callback = callback || function() {};
+		this.removeUserAuthHeader = function(makeApiCall) {
+			
 			global.Appacitive.localStorage.remove('Appacitive-User');
-		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-		 	global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
-			if (_authToken  && !avoidApiCall) {
+		 	if (_authToken && makeApiCall) {
 				try {
+					var promise = new global.Appacitive.Promise();
+
 					var _request = new global.Appacitive.HttpRequest();
-					_request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
-					_authToken = null;
-					_request.method = 'POST';
-					_request.data = {};
-					_request.onSuccess = function() {
-						if (typeof(callback) == 'function')
-							callback();
-					};
-					global.Appacitive.http.send(_request);
+		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
+		            _request.method = 'POST';
+		            _request.data = {};
+		            _request.onSuccess = _request.onError = function() {
+		            	authEnabled = false;
+		            	_authToken = null;
+		            	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+		 				global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+						promise.fulfill();  
+		            };
+
+		 	        global.Appacitive.http.send(_request);
+
+		 	        return promise;
 				} catch (e){}
 			} else {
+				authEnabled = false;
 				_authToken = null;
-				if (typeof(callback) == 'function')
-					callback();
+				global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
+		 		global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+				return global.Appacitive.Promise().fulfill();
 			}
 		};
 
@@ -221,10 +219,11 @@
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
   		
 		if (options.debug) global.Appacitive.config.debug = true;
+		if (options.log) global.Appacitive.log = [];
 
   		if (options.userToken) {
 
-			if (options.expiry == -1)  options.expiry = null 
+			if (options.expiry == -1)  options.expiry = null;
 			else if (!options.expiry)  options.expiry = 3600;
 
 			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);

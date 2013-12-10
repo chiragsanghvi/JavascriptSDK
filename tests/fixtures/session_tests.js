@@ -4,7 +4,7 @@ asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.Session.resetSession();
 	Appacitive.Session.removeUserAuthHeader();
 	Appacitive.initialize({apikey: testConstants.apiKey, env: testConstants.environment, appId: testConstants.appId });
-	Appacitive.Session.create(function() {
+	Appacitive.Session.create().then(function() {
 		ok(true, 'Session created successfully.');
 		start();
 	}, function() {
@@ -40,6 +40,7 @@ asyncTest('Verify user auth header can be removed', function() {
 		equal(userAuthHeader[0], guid, 'User auth header value correct: ' + guid);
 	};
 	Appacitive.http.send(req1);
+	
 	Appacitive.Session.removeUserAuthHeader();
 	req1 = new Appacitive.HttpRequest();
 	req1.method = 'get';

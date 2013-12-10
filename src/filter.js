@@ -6,11 +6,35 @@
 
     Appacitive.GeoCoord = function(lat, lng) {
         
-        _validateGeoCoord = function(lat, lng) {
+        var _validateGeoCoord = function(lat, lng) {
           if (isNaN(lat) || isNaN(lng)) throw new Error("Invalid Latitiude or longitiude provided");
           if (lat < -90.0 || lat > 90.0) throw new Error("Latitude " + lat + " should be in range of  -90.0 to 90.");
           if (lng < -180.0 || lng > 180.0) throw new Error("Latitude " + lng + " should be in range of  -180.0 to 180.");
         };
+
+        // Parses string geocode value and return Appacitive geocode object or false
+        var getGeocode = function(geoCode) {
+          // geoCode is not string or its length is 0, return false
+          if (typeof geoCode !== 'string' || geoCode.length == 0) return false;
+          
+          // Split geocode string by ,
+          var split = geoCode.split(',');
+
+          // split length is not equal to 2 so return false
+          if (split.length !== 2 ) return false;
+
+          // validate the geocode
+          try {
+            return new Appacitive.GeoCoord(split[0], split[1]);
+          } catch(e) {
+            return false;
+          }
+        };
+
+        if (_type.isString(lat) && !lng) {
+            var geoCode = getGeocode(lat);
+            if (geoCode) return geoCode;
+        }
 
         if (!lat || !lng) {
           this.lat = 0, this.lng = 0;
@@ -33,7 +57,21 @@
         this.toString = function() { return this.getValue(); };
     };
 
-    var _filter = function() { this.toString = function() { }; };
+    var _filter = function() { 
+        this.toString = function() { }; 
+
+        this.Or = function() {
+            var args = Array.prototype.slice.call(arguments, 0);
+            args.splice(0, 0, this);
+            return new _compoundFilter(_operators.or, args); 
+        };
+
+        this.And = function() {
+            var args = Array.prototype.slice.call(arguments, 0);
+            args.splice(0, 0, this);
+            return new _compoundFilter(_operators.and, args); 
+        };
+    };
 
     var _fieldFilter = function(options) {
 
@@ -72,13 +110,13 @@
         
         options = options || '';
 
-        if (!(typeof options.value === 'object') || !options.value.length) throw new Error("Specify field value as array");
+        if (!_type.isArray(options.value) || !options.value.length) throw new Error("Specify field value as array");
         
         _fieldFilter.call(this, options);
 
         var _getValue = function(value) {
-            if (typeof value === 'string') return "'" + value + "'";
-            else if (typeof value === 'number') return value;  
+            if (_type.isString(value)) return "'" + value + "'";
+            else if (_type.isNumber(value)) return value;  
             else return value.toString();
         };
 
@@ -194,7 +232,7 @@
         _filter.call(this);
 
         options = options || {};
-        if (!options.tags || typeof options.tags != 'object' || options.tags.length === 0) throw new Error("Specify valid tags");
+        if (!options.tags || _type.isArray(options.tags) || options.tags.length === 0) throw new Error("Specify valid tags");
 
         this.tags = options.tags;
         this.operator = options.operator;
@@ -243,6 +281,7 @@
         isLessThan: "<",
         isLessThanEqualTo: "<=",
         like: "like",
+        match: "match",
         between: "between",
         withinCircle: "within_circle",
         withinPolygon: "within_polygon",
@@ -261,9 +300,13 @@
         if (type) this.type = type;
         else this.type = typeof this.value; 
 
+        if (this.type === 'number') {
+          if (!_type.isNumeric(this.value)) throw new Error("Value should be numeric for filter expression");  
+        }
+
         this.getValue = function() {
-            if (this.type === 'string') return "'" + String.addSlashes(this.value) + "'";
-            else if (this.type === 'number' || typeof this.value === 'boolean') return this.value;  
+            if (this.type === 'string') return "'" + this.value + "'";
+            else if (this.type === 'number' || _type.isBoolean(this.value))return this.value;  
             else if (this.type === 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return this.value.toString();
         };
@@ -273,7 +316,7 @@
         this.value = value;
         
         this.getValue = function() {
-            if (typeof this.value === 'object' && this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
+            if (this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
             else return "date('" + this.value + "')";
         };
     };
@@ -282,7 +325,7 @@
         this.value = value;
         
         this.getValue = function() {
-            if (typeof this.value === 'object' && this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
+            if (this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
             else return "time('" + this.value + "')";
         };
     };
@@ -291,7 +334,7 @@
         this.value = value;
         
         this.getValue = function() {
-            if (typeof this.value === 'object' && this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            if (this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return "datetime('" + this.value + "')";
         };
     };
@@ -328,7 +371,7 @@
 
         /* Helper functions for GreaterThan */
         context.greaterThan = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThan });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isGreaterThan });
         };
 
         context.greaterThanDate = function(value) {
@@ -346,7 +389,7 @@
 
         /* Helper functions for GreaterThanEqualTo */
         context.greaterThanEqualTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThanEqualTo });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isGreaterThanEqualTo });
         };
 
         context.greaterThanEqualToDate = function(value) {
@@ -363,7 +406,7 @@
 
         /* Helper functions for LessThan */
         context.lessThan = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThan });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isLessThan });
         };
 
         context.lessThanDate = function(value) {
@@ -381,7 +424,7 @@
 
         /* Helper functions for LessThanEqualTo */
         context.lessThanEqualTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThanEqualTo });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isLessThanEqualTo });
         };
 
         context.lessThanEqualToDate = function(value) {
@@ -401,6 +444,10 @@
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.like });
         };
 
+        context.match = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.match });
+        };
+
         context.startsWith = function(value) {
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value + "*"), operator: _operators.like });
         };
@@ -415,7 +462,7 @@
 
         /* Helper functions for between */
         context.between = function(val1, val2) {
-            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1), val2: new _primitiveFieldValue(val2), operator: _operators.between });
+            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1, 'number'), val2: new _primitiveFieldValue(val2, 'number'), operator: _operators.between });
         };
 
         context.betweenDate = function(val1, val2) {
@@ -498,6 +545,10 @@
             return _fieldFilters.like(value);
         };
 
+        this.like = function(value) {
+            return _fieldFilters.match(value);
+        };
+
         this.startWith = function(value) {
             return _fieldFilters.startsWith(value);
         };
@@ -519,13 +570,13 @@
 
     Appacitive.Filter = {
         Property: function(name) {
-            return new _propertyExpression(name)
+            return new _propertyExpression(name);
         },
         Aggregate: function(name) {
-            return new _aggregateExpression(name)
+            return new _aggregateExpression(name);
         },
         Attribute: function(name) {
-            return new _attributeExpression(name)
+            return new _attributeExpression(name);
         },
         Or: function() {
             return new _compoundFilter(_operators.or, arguments); 
