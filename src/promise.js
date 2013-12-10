@@ -68,7 +68,8 @@
                         global.Appacitive.logs.exceptions.push(error);
                         console.log(JSON.stringify({name: error.name, message: error.message, stack: error.stack}, null, 2));
                     }   
-                    promise.reject(error); 
+                    if (promise.calls.length == 0) throw error;
+                    else promise.reject(error);
                 }
 
                 if (value instanceof Promise || Promise.is(value) )  {
