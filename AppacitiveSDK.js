@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Dec 10 19:29:03 IST 2013
+ * Build time 	: Wed Dec 11 12:15:29 IST 2013
  */
 "use strict";
 
@@ -1575,11 +1575,11 @@ Depends on  NOTHING
 	"use strict";
 
 	global.Appacitive.config = {
-		apiBaseUrl: 'https://apis.appacitive.com/'
+		apiBaseUrl: 'https://apis.appacitive.com/v1.0/'
 	};
 
 	if (typeof XDomainRequest != 'undefined') {
-		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/';
+		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/v1.0/';
 	}
 
 }(global));
@@ -4072,12 +4072,7 @@ Depends on  NOTHING
 			options = { __type : sName };
 		}
 
-		if (!options.__type && !options.type ) throw new Error("Cannot set object without __type or type");
-
-		if (options.type) {
-			options.__type = options.type;
-			delete options.type;
-		}
+		if (!options.__type) throw new Error("Cannot set object without __type");
 		
 		global.Appacitive.BaseObject.call(this, options, setSnapShot);
 
@@ -5361,9 +5356,11 @@ Depends on  NOTHING
 
       var _create = function(callbacks) {
           if (!that.fileData) throw new Error('Please specify filedata');
+          if(!that.contentType) {
+            try { that.contentType = that.fileData.type; } catch(e) {}
+          }
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
-          try { that.contentType = file.type; } catch(e) {}
-
+          
           var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
@@ -5386,8 +5383,10 @@ Depends on  NOTHING
 
       var _update = function(callbacks) {
           if (!that.fileData) throw new Error('Please specify filedata');
+          if(!that.contentType) {
+            try { that.contentType = that.fileData.type; } catch(e) {}
+          }
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
-          try { that.contentType = file.type; } catch(e) {}
           
           var promise = global.Appacitive.Promise.buildPromise(callbacks);
 

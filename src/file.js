@@ -43,9 +43,11 @@
 
       var _create = function(callbacks) {
           if (!that.fileData) throw new Error('Please specify filedata');
+          if(!that.contentType) {
+            try { that.contentType = that.fileData.type; } catch(e) {}
+          }
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
-          try { that.contentType = file.type; } catch(e) {}
-
+          
           var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
@@ -68,8 +70,10 @@
 
       var _update = function(callbacks) {
           if (!that.fileData) throw new Error('Please specify filedata');
+          if(!that.contentType) {
+            try { that.contentType = that.fileData.type; } catch(e) {}
+          }
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
-          try { that.contentType = file.type; } catch(e) {}
           
           var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
