@@ -10,7 +10,7 @@ asyncTest('Creating session with valid Apikey', function() {
 
 asyncTest('Verify created connection is fetched when fetching connected objects', function() {
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'profile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
@@ -75,7 +75,7 @@ asyncTest('Verify created connection is fetched when fetching connected objects'
 
 asyncTest('Verify created connection is fetched when fetching connections for an object', function() {
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'profile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
@@ -125,7 +125,7 @@ asyncTest('Verify created connection is fetched when fetching connections for an
 
 asyncTest('Verify created connection is fetched when fetching connection between two objects', function() {
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'profile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
@@ -175,7 +175,7 @@ asyncTest('Verify created connection is fetched when fetching connection between
 
 asyncTest('Verify object fetched via the collection returned via getConnectedObjects has correct id', function() {
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'profile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	var connectOptions = {
 		endpoints: [{
 			object: school,

@@ -17,7 +17,7 @@ var createUserProfileObjects = function() {
 	testConstants.populateDefaultUserFields(user);
 	
 	//create profile object
-	profile = new Appacitive.Object({ type: 'profile', name:'chirag sanghvi'});
+	profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	
 	var tasks = [user.save()];
 	tasks.push(profile.save());
@@ -67,7 +67,7 @@ asyncTest('Happy path for create two objects and connect them', function() {
 
 asyncTest('Happy path for create connection with two object objects passed in proper api endpoints', function() {
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		__endpointa: {
@@ -103,7 +103,7 @@ asyncTest('Happy path for create connection with two object objects passed in pr
 asyncTest('Happy path for create connection with two object objects passed in sdk endpoint objects', function() {
 	
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
@@ -136,7 +136,7 @@ asyncTest('Happy path for create connection with two object objects passed in sd
 asyncTest('Happy path to fetch connection using its id', function() {
 	
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
@@ -230,7 +230,7 @@ asyncTest('Verify connection update after it is created', function() {
 asyncTest('Verify connection update directly', function() {
 	
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
@@ -276,7 +276,7 @@ asyncTest('Verify connection update directly', function() {
 
 asyncTest('Verify happy path for connection delete', function() {
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'prodile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'prodile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
@@ -320,7 +320,7 @@ asyncTest('Verify happy path for connection delete', function() {
 asyncTest('Verify no changeset on object fetched from connectedobjects', function() {
 	
 	var school = new Appacitive.Object('school');
-	var profile = new Appacitive.Object({type: 'profile', name:'chirag sanghvi'});
+	var profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
