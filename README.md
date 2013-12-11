@@ -145,7 +145,7 @@ var player = new Appacitive.Object('player');
 ```
 Huh?
 
-An `Appacitive.Object` comprises of an entity (referred to as 'object' in Appacitive jargon). To initialize an object, we need to provide it some options. The mandatory argument is the `type` argument.
+An `Appacitive.Object` comprises of an entity (referred to as 'object' in Appacitive jargon). To initialize an object, we need to provide it some options. The mandatory argument is the `__type` argument.
 
 What is a type? In short, think of types as tables in a contemporary relational database. A type has properties which hold values just like columns in a table. A property has a data type and additional constraints are configured according to your application's need. Thus we are specifying that the player is supposed to contain an entity of the type 'player' (which should already be defined in your application).
 
@@ -155,7 +155,7 @@ The player object is an instance of `Appacitive.Object`. An `Appacitive.Object` 
 Now we need to name our player 'John Doe'. This can be done as follows
 ```javascript
  // values can be specified while creating the object
- var player = new Appacitive.Object({ name: 'John Doe' });
+ var player = new Appacitive.Object({ __type:'player', name: 'John Doe' });
 
  // or we could use the setters
  player.set('name', 'John Doe');
@@ -186,7 +186,7 @@ alert(player.get('age', 'integer'));
 //get a 'boolean' object from an 'isenabled' property.
 alert(player.get('isenabled', 'boolean'));
 ```
-Types supported are `date`, `datetime`, `time`, `integer`, `decimal`, `boolean` and `string` 
+Types supported are `date`, `datetime`, `time`, `integer`, `decimal`, `boolean`, `string` and `geocode`. `Geocode` will return an instance of `Appacitive.GeoCoord` type.
 
 #### Try-Get values
 
