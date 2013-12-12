@@ -382,7 +382,7 @@ Appacitive.Users.createUser(userDetails).then(function(obj) {
 var newUser = new Appacitive.User(userDetails);
 
 //and then call save on that object
-newUser.save(function(obj) {
+newUser.save().then(function(obj) {
   alert('Saved successfully, id: ' + newUser.get('__id'));
 });
 ```
@@ -607,7 +607,7 @@ Appacitive.Facebook.requestLogin().then(function(fbResponse) {
 You can ask your users to log in via Twitter. This'll require you to implement twitter login and provide the SDK with consumerkey, consumersecret, oauthtoken and oauthtokensecret
 ```javascript
 
-//Once you've logged-in with twitter, pass twitter credentials to SDK
+//For login with twitter, pass twitter credentials to SDK
 Appacitive.Users.loginWithTwitter({
   oauthtoken: {{twitterObj.oAuthToken}} ,
   oauthtokensecret: {{twitterObj.oAuthTokenSecret}},
@@ -664,7 +664,7 @@ var makeAPICall = true
 Appacitive.Users.logout(makeAPICall).then(function() {
   // user is looged out 
   // this will now be null
-  var cUser = Appacitive.Users.currentUser();  
+  var cUser = Appacitive.Users.current();  
 });
 
 ```
@@ -708,7 +708,7 @@ Appacitive.Users.validateCurrentUser(true).then(function(isValid) {
 If you want to associate an existing loggedin Appacitive.User to a Facebook account, you can link it like so
 
 ```javascript
-var user = Appacitive.User.currentUser();
+var user = Appacitive.User.current();
 user.linkFacebook(global.Appacitive.Facebook.accessToken()).then(function(obj) {
   //You can access linked accounts of a user, using this field
   console.dir(user.linkedAccounts()); 
@@ -746,7 +746,7 @@ user.save().then(function(obj) {
 If you want to associate an existing loggedin Appacitive.User to a Twitter account, you can link it like so
 
 ```javascript
-var user = Appacitive.User.currentUser();
+var user = Appacitive.User.current();
 user.linkTwitter({
   oauthtoken: {{twitterObj.oAuthToken}} ,
   oauthtokensecret: {{twitterObj.oAuthTokenSecret}},
@@ -791,15 +791,15 @@ user.save().then(function(obj) {
 
 #### Retreiving all linked accounts
 ```javascript
-Appacitive.Users.currentUser().getAllLinkedAccounts().then(function() {
-  console.dir(Appacitive.Users.currentUser.linkedAccounts());
+Appacitive.Users.current().getAllLinkedAccounts().then(function() {
+  console.dir(Appacitive.Users.current().linkedAccounts());
 });
 ```
 
 #### Delinking Facebook account
 ```javascript
 //specify account which needs to be delinked
-Appacitive.Users.currentUser().unlink('facebook').then(function() {
+Appacitive.Users.current().unlink('facebook').then(function() {
   alert("Facebook account delinked successfully");
 });
 ```
@@ -858,7 +858,7 @@ Appacitive.Users.current().updatePassword('{oldPassword}','{newPassword}').then(
 
 Users can check-in at a particular co-ordinate uing this call. Basically this call updates users location.
 ```javascript
-Appacitive.Users.currentUser().checkin(new Appacitive.GeoCoord(18.57, 75.55)).then(function() {
+Appacitive.Users.current().checkin(new Appacitive.GeoCoord(18.57, 75.55)).then(function() {
   alert("Checked in successfully");
 });
 ```
