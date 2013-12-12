@@ -213,7 +213,7 @@
             }
         };
         this.object = {
-            objectServiceUrl: 'data',
+            objectServiceUrl: 'object',
 
             getSearchAllUrl: function (typeName, queryParams, pageSize) {
                 var url = '';

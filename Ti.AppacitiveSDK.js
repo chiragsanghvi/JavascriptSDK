@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Dec 11 12:15:29 IST 2013
+ * Build time 	: Thu Dec 12 16:39:01 IST 2013
  */
 "use strict";
 
@@ -988,7 +988,7 @@ var global = {};
             }
         };
         this.object = {
-            objectServiceUrl: 'data',
+            objectServiceUrl: 'object',
 
             getSearchAllUrl: function (typeName, queryParams, pageSize) {
                 var url = '';
@@ -2534,8 +2534,7 @@ Depends on  NOTHING
 		var _sortQuery = new SortQuery(o);
 		var _entityType = options.type || options.relation;
 		var _etype = (options.relation) ? 'connection' : 'object';
-		var _apiType = (_etype == 'object') ? 'data' : 'connection';
-
+		
 		var self = this;
 
 		//define getter for type (object/connection)
@@ -2665,7 +2664,7 @@ Depends on  NOTHING
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + _apiType + '/' + _entityType + '/find/all?' + this.getQueryString();
+			return global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString();
 		};
 
 		this.toRequest = function() {

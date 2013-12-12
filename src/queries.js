@@ -93,8 +93,7 @@
 		var _sortQuery = new SortQuery(o);
 		var _entityType = options.type || options.relation;
 		var _etype = (options.relation) ? 'connection' : 'object';
-		var _apiType = (_etype == 'object') ? 'data' : 'connection';
-
+		
 		var self = this;
 
 		//define getter for type (object/connection)
@@ -224,7 +223,7 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + _apiType + '/' + _entityType + '/find/all?' + this.getQueryString();
+			return global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString();
 		};
 
 		this.toRequest = function() {

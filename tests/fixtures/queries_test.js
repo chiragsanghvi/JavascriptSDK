@@ -5,7 +5,7 @@ test('Basic search all query for objects', function() {
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'data/profile/find/all?psize=20&pnum=1';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=1';
 
 	equal(url, request.url, 'Request url generated is ok');
 	equal('get', request.method.toLowerCase(), 'Request method is ok');
@@ -19,7 +19,7 @@ test('Basic search all query for objects with sorting', function() {
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'data/profile/find/all?psize=20&pnum=1&orderBy=name&isAsc=true';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=1&orderBy=name&isAsc=true';
 	equal(url, request.url, 'Url generated has correct sort options - ascending');
 	
 	query = new Appacitive.Queries.FindAllQuery({
@@ -29,7 +29,7 @@ test('Basic search all query for objects with sorting', function() {
 	});
 	request = query.toRequest();
 
-	url = Appacitive.config.apiBaseUrl + 'data/profile/find/all?psize=20&pnum=1&orderBy=name2&isAsc=false';
+	url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=1&orderBy=name2&isAsc=false';
 	equal(url, request.url, 'Url generated has correct sort options - descending');	
 });
 
@@ -40,7 +40,7 @@ test('Basic search all query for objects with pagination', function() {
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'data/profile/find/all?psize=20&pnum=3';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=3';
 	equal(url, request.url, 'Url generated has correct pagination options - page number');
 	
 	query = new Appacitive.Queries.FindAllQuery({
@@ -49,7 +49,7 @@ test('Basic search all query for objects with pagination', function() {
 	});
 	request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'data/profile/find/all?psize=100&pnum=1';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=1';
 	equal(url, request.url, 'Url generated has correct pagination options - page size');
 
 	query = new Appacitive.Queries.FindAllQuery({
@@ -59,7 +59,9 @@ test('Basic search all query for objects with pagination', function() {
 	});
 	request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'data/profile/find/all?psize=100&pnum=10';
+	debugger;
+
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=10';
 	equal(url, request.url, 'Url generated has correct pagination options - page size & page number');
 });
 
@@ -73,7 +75,7 @@ test('Basic search all query with sorting and pagination', function() {
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'data/profile/find/all?psize=100&pnum=10&orderBy=name&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=10&orderBy=name&isAsc=false';
 	equal(url, request.url, 'Url generated has correct pagination and sorting options');
 });
 
@@ -86,7 +88,7 @@ test('Verify basic filtered search query', function() {
 		filter: 'some_field == "some_value"'
 	};
 	var filteredQuery = new Appacitive.Queries.FindAllQuery(options);
-	var url = Appacitive.config.apiBaseUrl + 'data/profile/find/all?psize=20&pnum=1'
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=1'
 	url += '&query=some_field == "some_value"';
 	equal(filteredQuery.toRequest().url, url, 'Url formation correct in basic filtered query');
 });
@@ -101,7 +103,7 @@ test('Verify customized filtered search query', function() {
 		filter: 'some_field2 == "some_value2"'
 	};
 	var filteredQuery = new Appacitive.Queries.FindAllQuery(options);
-	var url = Appacitive.config.apiBaseUrl + 'data/profile/find/all?psize=100&pnum=2&orderBy=name&isAsc=false'
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=2&orderBy=name&isAsc=false'
 	url += '&query=some_field2 == "some_value2"';
 	equal(filteredQuery.toRequest().url, url, 'Url formation correct in customized filtered query');
 });
