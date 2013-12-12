@@ -10,7 +10,7 @@
 			options = { __type : sName };
 		}
 
-		if (!options.__type) throw new Error("Cannot set object without __type or type");
+		if (!options.__type) throw new Error("Cannot set object without __type");
 		
 		global.Appacitive.BaseObject.call(this, options, setSnapShot);
 

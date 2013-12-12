@@ -2,7 +2,7 @@
 
 	"use strict";
 
-	//base object for articles and connections
+	//base object for objects and connections
 	/**
 	* @constructor
 	**/
@@ -63,27 +63,23 @@
 
 		var raw = {};
 		_copy(objectOptions, raw);
-		var article = raw;
+		var object = raw;
 
-		//will be used in case of creating an appacitive article for internal purpose
+		//will be used in case of creating an appacitive object for internal purpose
 		if (setSnapShot) {
-			_copy(article, _snapshot);
+			_copy(object, _snapshot);
 		}
 
 		if (!_snapshot.__id && raw.__id) _snapshot.__id = raw.__id;
 
-		//Check whether __schematype or __relationtype is mentioned and set type property
-		if (raw.__schematype) { 
-			raw.__schematype = raw.__schematype.toLowerCase();
-			this.entityType = raw.__schematype;
-			this.schema = this.entityType;
-			//if __schematype is user/device then set specific
-			if (raw.__schematype == 'user' || raw.__schematype == 'device') this.type = raw.__schematype;
-			else this.type = 'article';
+		//Check whether __type or __relationtype is mentioned and set type property
+		if (raw.__type) { 
+			raw.__type = raw.__type.toLowerCase();
+			this.entityType = 'type';
+			this.type = 'object';
 		} else if (raw.__relationtype) {
 			raw.__relationtype = raw.__relationtype.toLowerCase();
-			this.entityType = raw.__relationtype;
-			this.relation = this.entityType;
+			this.entityType = 'relation';
 			this.type = 'connection';
 		}
 
@@ -92,7 +88,7 @@
 		this.cid = __cid;
 
 		//attributes
-		if (!article.__attributes) article.__attributes = {};
+		if (!object.__attributes) object.__attributes = {};
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
 
 		//atomic properties
@@ -100,14 +96,14 @@
 
 		//tags
 		var _removeTags = []; 
-		if (!article.__tags) article.__tags = [];
+		if (!object.__tags) object.__tags = [];
 		if (!_snapshot.__tags) _snapshot.__tags = [];
 
 		//fields to be returned
 		var _fields = '';
 
 		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__schematype", "__relationtype", "__schemaid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
+		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
 		
 		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
 
@@ -120,7 +116,7 @@
 			return data;
 		};
 
-		this.attributes = this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(article)); };
+		this.attributes = this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
 
 		this.properties = function() {
 			var properties = this.attributes();
@@ -137,39 +133,39 @@
 			return this.get('__id');	
 		};
 
-		// accessor function for the article's attributes
+		// accessor function for the object's attributes
 		this.attr = function() {
 			if (arguments.length === 0) {
-				if (!article.__attributes) article.__attributes = {};
-				return article.__attributes;
+				if (!object.__attributes) object.__attributes = {};
+				return object.__attributes;
 			} else if (arguments.length === 1) {
-				if (!article.__attributes) article.__attributes = {};
-				return article.__attributes[arguments[0]];
+				if (!object.__attributes) object.__attributes = {};
+				return object.__attributes[arguments[0]];
 			} else if (arguments.length === 2) {
 				if (!_type.isString(arguments[1]) && arguments[1] !== null)
 					throw new Error('only string values can be stored in attributes.');
-				if (!article.__attributes) article.__attributes = {};
-				article.__attributes[arguments[0]] = arguments[1];
+				if (!object.__attributes) object.__attributes = {};
+				object.__attributes[arguments[0]] = arguments[1];
 			} else throw new Error('.attr() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 
-			return article.__attributes;
+			return object.__attributes;
 		};
 
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
-			if (!article.__attributes) return null;
-			if (!_snapshot.__attributes) return article.__attributes;
+			if (!object.__attributes) return null;
+			if (!_snapshot.__attributes) return object.__attributes;
 
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot.__attributes));
-			for (var property in article.__attributes) {
-				if (article.__attributes[property] == null || article.__attributes[property] == undefined) {
+			for (var property in object.__attributes) {
+				if (object.__attributes[property] == null || object.__attributes[property] == undefined) {
 					changeSet[property] = null;
 					isDirty = true;
-				} else if (article.__attributes[property] != _snapshot.__attributes[property]) {
-					changeSet[property] = article.__attributes[property];
+				} else if (object.__attributes[property] != _snapshot.__attributes[property]) {
+					changeSet[property] = object.__attributes[property];
 					isDirty = true;
-				} else if (article.__attributes[property] == _snapshot.__attributes[property]) {
+				} else if (object.__attributes[property] == _snapshot.__attributes[property]) {
 					delete changeSet[property];
 				}
 			}
@@ -179,13 +175,13 @@
 
 		this.getChangedAttributes = _getChangedAttributes;
 
-		// accessor function for the article's aggregates
+		// accessor function for the object's aggregates
 		this.aggregate = function() {
 			var aggregates = {};
-			for (var key in article) {
-				if (!article.hasOwnProperty(key)) return;
+			for (var key in object) {
+				if (!object.hasOwnProperty(key)) return;
 				if (key[0] == '$') {
-					aggregates[key.substring(1)] = article[key];
+					aggregates[key.substring(1)] = object[key];
 				}
 			}
 			if (arguments.length === 0) return aggregates;
@@ -194,17 +190,17 @@
 		};
 
 		this.tags = function()  {
-			if (!article.__tags) return [];
-			return article.__tags;
+			if (!object.__tags) return [];
+			return object.__tags;
 		};
 
 		this.addTag = function(tag) {
 			if (!tag || !_type.isString(tag) || !tag.length) return this;
 		    
-		    if (!article.__tags) article.__tags = [];
+		    if (!object.__tags) object.__tags = [];
 
-		    article.__tags.push(tag);
-		    article.__tags = Array.distinct(article.__tags);
+		    object.__tags.push(tag);
+		    object.__tags = Array.distinct(object.__tags);
 
 		    if (!_removeTags || !_removeTags.length) return this;
 			var index = _removeTags.indexOf(tag);
@@ -218,18 +214,18 @@
 			_removeTags.push(tag);
 			_removeTags = Array.distinct(_removeTags);
 
-			if (!article.__tags || !article.__tags.length) return this;
-			var index = article.__tags.indexOf(tag);
-			if (index != -1) article.__tags.splice(index, 1);
+			if (!object.__tags || !object.__tags.length) return this;
+			var index = object.__tags.indexOf(tag);
+			if (index != -1) object.__tags.splice(index, 1);
 			return this;
 		};
 
 		var _getChangedTags = function() {
-			if (!article.__tags) return [];
-			if (!_snapshot.__tags) return article.__tags;
+			if (!object.__tags) return [];
+			if (!_snapshot.__tags) return object.__tags;
 
 			var _tags = [];
-			article.__tags.forEach(function(a) {
+			object.__tags.forEach(function(a) {
 				if (_snapshot.__tags.indexOf(a) == -1)
 					_tags.push(a);
 			});
@@ -243,18 +239,18 @@
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
-			for (var property in article) {
-				if (article[property] == null || article[property] == undefined) {
+			for (var property in object) {
+				if (object[property] == null || object[property] == undefined) {
 					changeSet[property] = null;
 					isDirty = true;
-				} else if (article[property] != _snapshot[property]) {
+				} else if (object[property] != _snapshot[property]) {
 					if (property == '__tags' || property == '__attributes') {
 						delete changeSet[property];
 					} else {
-						changeSet[property] = article[property];
+						changeSet[property] = object[property];
 						isDirty = true;
 					}
-				} else if (article[property] == _snapshot[property]) {
+				} else if (object[property] == _snapshot[property]) {
 					delete changeSet[property];
 				}
 			}
@@ -404,13 +400,13 @@
 			if (key) { 
 				if (type && _types[type.toLowerCase()]) {
 					if (_types[type.toLowerCase()]) {
-						var res = _types[type.toLowerCase()](article[key]);
+						var res = _types[type.toLowerCase()](object[key]);
 						return res;
 					} else {
 						throw new Error('Invalid cast-type "' + type + '"" provided for get "' + key + '"');
 					}
 				}
-				return article[key];
+				return object[key];
 			}
 		};
 
@@ -424,32 +420,32 @@
 
 			if(!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
 		 	
-		 	if (value == undefined || value == null) { article[key] = null;}
-		 	else if (_type.isString(value)) { article[key] = value; }
-		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { article[key] = value + ''; }
-		 	else if (value instanceof Date) article[key] = global.Appacitive.Date.toISOString(value);
+		 	if (value == undefined || value == null) { object[key] = null;}
+		 	else if (_type.isString(value)) { object[key] = value; }
+		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
+		 	else if (value instanceof Date) object[key] = global.Appacitive.Date.toISOString(value);
 		 	else if (_type.isObject(value)) {
 		 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
-		 		 	article[key] = value;
+		 		 	object[key] = value;
 		 		} else {
 		 			if (value instanceof global.Appacitive.GeoCoord) {
-		 				article[key] = value.toString();
+		 				object[key] = value.toString();
 		 			} else {
 		 				throw new Error("Property cannot have value as an object");
 		 			}
 		 		}
 			} else if(_type.isArray(value)) {
-				article[key] = [];
+				object[key] = [];
 
 				value.forEach(function(v) {
-					if (_type.isString(v)) { article[key].push(v); }
-		 			else if (_type.isNumber(v) || _type.isBoolean(v)) { article[key].push(v + ''); }
-		 			else if (v instanceof Date) article[key].push(global.Appacitive.Date.toISOString(v));
+					if (_type.isString(v)) { object[key].push(v); }
+		 			else if (_type.isNumber(v) || _type.isBoolean(v)) { object[key].push(v + ''); }
+		 			else if (v instanceof Date) object[key].push(global.Appacitive.Date.toISOString(v));
 	 				else throw new Error("Multivalued property cannot have values of property as an object");
 				});
 
 				if (key !== 'tags' || key !== '__link') {
-					article[key].push = function(v) {
+					object[key].push = function(v) {
 					  	var len = this.length;
 					  	if (_type.isString(v)) { this[len] = v; }
 			 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
@@ -465,29 +461,29 @@
 
 		this.unset = function(key) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
-		 	try { delete article[key]; } catch(e) {}
+		 	try { delete object[key]; } catch(e) {}
 			return this;
 		};
 
 		this.has = function(key) {
 			if (!key || !_type.isString(key) ||  key.length === 0) return false; 
-			if (article[key] && !_type.isUndefined(article[key])) return true;
+			if (object[key] && !_type.isUndefined(object[key])) return true;
 			return false;
 		};
 
 		this.isNew = function() {
-			if (article.__id && article.__id.length) return false;
+			if (object.__id && object.__id.length) return false;
 			return true;
 		};
 
 		this.clone = function() {
-			if (this.type == 'article') return new global.Appacitive.Article(this.toJSON());
-			return new global.Appacitive.connection(article);
+			if (this.type == 'object') return new global.Appacitive.Object(this.toJSON());
+			return new global.Appacitive.connection(object);
 		};
 
 		this.copy = function(properties, setSnapShot) { 
 			if (properties) { 
-				_copy(properties, article);
+				_copy(properties, object);
 				if (setSnapShot) {
 					_copy(properties, _snapshot);
 				}
@@ -496,20 +492,20 @@
 		};
 
 		this.mergeWithPrevious = function() {
-			_copy(article, _snapshot);
+			_copy(object, _snapshot);
 			_removeTags = [];
 			_atomicProps.length = 0;
 			return this;
 		};
 
 		var _merge = function() {
-			_copy(_snapshot, article);
+			_copy(_snapshot, object);
 			_removeTags = [];
 			_atomicProps.length = 0;
 		};
 
 		this.rollback = function() {
-			article = raw = {};
+			object = raw = {};
 			_merge();
 			return this;
 		};
@@ -538,51 +534,51 @@
 		   if the object has an id, then it has been created -> update
 		   else create */
 		this.save = function() {
-			if (article.__id) return _update.apply(this, arguments);
+			if (object.__id) return _update.apply(this, arguments);
 			else return _create.apply(this, arguments);
 		};
 
-		// to create the article
+		// to create the object
 		var _create = function(callbacks) {
 
 			var type = that.type;
-			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
-				type = article.__schematype.toLowerCase()
+			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
+				type = object.__type.toLowerCase()
 			}
 
 			//remove __revision and aggregate poprerties
-			for (var p in article) {
-				if (p[0] == '$') delete article[p];
+			for (var p in object) {
+				if (p[0] == '$') delete object[p];
 			}
-			if (article["__revision"]) delete article["__revision"];
+			if (object["__revision"]) delete object["__revision"];
 			
 			var request = new global.Appacitive._Request({
 				method: 'PUT',
 				type: type,
 				op: 'getCreateUrl',
-				args: [article.__schematype || article.__relationtype, _fields],
-				data: article,
+				args: [object.__type || object.__relationtype, _fields],
+				data: object,
 				callbacks: callbacks,
 				entity: that,
 				onSuccess: function(data) {
 					var savedState = null;
-					if (data && (data.article || data.connection || data.user || data.device)) {
-						savedState = data.article || data.connection || data.user || data.device;
+					if (data && (data.object || data.connection || data.user || data.device)) {
+						savedState = data.object || data.connection || data.user || data.device;
 					}
 					if (data && savedState) {
 						_snapshot = savedState;
-						article.__id = savedState.__id;
+						object.__id = savedState.__id;
 						
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
-						global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.created', that, { object : that });
+						global.Appacitive.eventManager.fire(that.entityType + '.' + that.type + '.created', that, { object : that });
 
 						that.created = true;
 
 						request.promise.fulfill(that);
 					} else {
-						global.Appacitive.eventManager.fire((that.schema || that.relation) + '.' + that.type + '.createFailed', that, { error: data.status });
+						global.Appacitive.eventManager.fire(that.entityType + '.' + that.type + '.createFailed', that, { error: data.status });
 						request.promise.reject(data.status, that);
 					}
 				}
@@ -591,7 +587,7 @@
 			return request.send();
 		};
 
-		// to update the article
+		// to update the object
 		var _update = function(callbacks, promise) {
 
 			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(callbacks);
@@ -607,14 +603,14 @@
 					var fields = _fields;
 
 					var _updateRequest = new global.Appacitive.HttpRequest();
-					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(article.__schematype || article.__relationtype, (_snapshot.__id) ? _snapshot.__id : article.__id, fields, revision);
+					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(object.__type || object.__relationtype, (_snapshot.__id) ? _snapshot.__id : object.__id, fields, revision);
 					
 					var type = that.type;
 
-					// for User and Device articles
-					if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) { 
-						type = article.__schematype.toLowerCase();
-						url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[article.__schematype.toLowerCase()].getUpdateUrl(_snapshot.__id, fields, revision);
+					// for User and Device objects
+					if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
+						type = object.__type.toLowerCase();
+						url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[object.__type.toLowerCase()].getUpdateUrl(_snapshot.__id, fields, revision);
 					}
 					_updateRequest.url = url;
 					_updateRequest.method = 'post';
@@ -627,13 +623,13 @@
 							
 							delete that.created;
 							
-							global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updated', that, { object : that });
+							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
 							promise.fulfill(that);
 						} else {
 							if (data.status.code == '14008' && _atomicProps.length > 0) {
 								_update(callbacks, promise);
 							}  else {
-								global.Appacitive.eventManager.fire((that.schema || that.relation)  + '.' + type + "." + article.__id +  '.updateFailed', that, { object : data.status });
+								global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
 								promise.reject(data.status, that);
 							}
 						}
@@ -658,8 +654,13 @@
 					props.push(p.key); 
 				});
 
-				global.Appacitive.Article
-					.get({ schema: this.get('__schematype'), id: this.id(), fields: props })
+				var args = { id: this.id(), fields: props };
+				
+				if (this.type == 'object') args.type = this.get('__type');
+				else args.relation = this.get('__type');
+
+				global.Appacitive[this.type == 'object' ? 'Article' : 'Connection']
+					.get(args)
 					.then(function(obj) {
 
 						obj = obj.toJSON();
@@ -680,29 +681,29 @@
 
 		var _fetch = function (callbacks) {
 
-			if (!article.__id) throw new Error('Please specify id for get operation');
+			if (!object.__id) throw new Error('Please specify id for get operation');
 			
 			var type = this.type;
 
-			// for User and Device articles
-			if (article && article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) { 
-				type = article.__schematype.toLowerCase();
+			// for User and Device objects
+			if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
+				type = object.__type.toLowerCase();
 			}
 
 			var request = new global.Appacitive._Request({
 				method: 'GET',
 				type: type,
 				op: 'getGetUrl',
-				args: [article.__schematype || article.__relationtype, article.__id, _fields],
+				args: [object.__type || object.__relationtype, object.__id, _fields],
 				callbacks: callbacks,
 				entity: that,
 				onSuccess: function(data) {
 					if (data && data[type]) {
 						_snapshot = data[type];
-						_copy(_snapshot, article);
+						_copy(_snapshot, object);
 						if (data.connection) {
 							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
-								that.setupConnection(article.__endpointa, article.__endpointb);
+								that.setupConnection(object.__endpointa, object.__endpointb);
 							}
 						}
 						request.promise.fulfill(that);
@@ -722,7 +723,7 @@
 			return _fetch.apply(this ,[callbacks]);
 		};
 
-		// delete the article
+		// delete the object
 		this.destroy = function(callbacks, deleteConnections) {
           
 			if (_type.isBoolean(callbacks)) {
@@ -732,22 +733,22 @@
 				deleteConnections = false;
 			}
 
-			// if the article does not have __id set, 
+			// if the object does not have __id set, 
 	        // just call success
-	        // else delete the article
+	        // else delete the object
 
-	        if (!article['__id']) return new global.Appacitive.Promise.buildPromise(callbacks).fulfill();
+	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(callbacks).fulfill();
 
 	        var type = this.type;
-			if (article.__schematype &&  ( article.__schematype.toLowerCase() == 'user' ||  article.__schematype.toLowerCase() == 'device')) {
-				type = article.__schematype.toLowerCase()
+			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
+				type = object.__type.toLowerCase()
 			}
 
 			var request = new global.Appacitive._Request({
 				method: 'DELETE',
 				type: type,
 				op: 'getDeleteUrl',
-				args: [article.__schematype || article.__relationtype, article.__id, deleteConnections],
+				args: [object.__type || object.__relationtype, object.__id, deleteConnections],
 				callbacks: callbacks,
 				entity: this,
 				onSuccess: function(data) {
