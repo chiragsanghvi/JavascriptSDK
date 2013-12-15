@@ -259,7 +259,7 @@ var global = {};
 						} catch(e) {}
 			            promise.fulfill(response, this);
 			        } else {
-			        	promise.reject(this);
+			        	promise.reject(this.responseText, this);
 			        }
 		    	}
 		    };
