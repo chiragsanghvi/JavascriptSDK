@@ -77,10 +77,12 @@
 			raw.__type = raw.__type.toLowerCase();
 			this.entityType = 'type';
 			this.type = 'object';
+			this.className = raw.__type;
 		} else if (raw.__relationtype) {
 			raw.__relationtype = raw.__relationtype.toLowerCase();
 			this.entityType = 'relation';
 			this.type = 'connection';
+			this.className = raw.__relationtype;
 		}
 
 		var __cid = parseInt(Math.random() * 1000000, 10);
@@ -477,8 +479,8 @@
 		};
 
 		this.clone = function() {
-			if (this.type == 'object') return new global.Appacitive.Object(this.toJSON());
-			return new global.Appacitive.connection(object);
+			if (this.type == 'object') return global.Appacitive.Object._create(this.toJSON());
+			return new global.Appacitive.connection._create(this.toJSON());
 		};
 
 		this.copy = function(properties, setSnapShot) { 
@@ -556,7 +558,7 @@
 				method: 'PUT',
 				type: type,
 				op: 'getCreateUrl',
-				args: [object.__type || object.__relationtype, _fields],
+				args: [this.className, _fields],
 				data: object,
 				callbacks: callbacks,
 				entity: that,
@@ -694,7 +696,7 @@
 				method: 'GET',
 				type: type,
 				op: 'getGetUrl',
-				args: [object.__type || object.__relationtype, object.__id, _fields],
+				args: [this.className, object.__id, _fields],
 				callbacks: callbacks,
 				entity: that,
 				onSuccess: function(data) {
@@ -748,7 +750,7 @@
 				method: 'DELETE',
 				type: type,
 				op: 'getDeleteUrl',
-				args: [object.__type || object.__relationtype, object.__id, deleteConnections],
+				args: [this.className, object.__id, deleteConnections],
 				callbacks: callbacks,
 				entity: this,
 				onSuccess: function(data) {

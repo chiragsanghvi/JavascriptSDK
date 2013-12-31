@@ -95,19 +95,15 @@
 			return _authenticatedUser;
 		};
 		
-		global.Appacitive.User = function(options) {
+		var User = function(options, setSnapshot) {
 			options = options || {};
 			options.__type = 'user';
-			global.Appacitive.Object.call(this, options);
+			global.Appacitive.Object.call(this, options, setSnapshot);
 			return this;
 		};
 
-		global.Appacitive.User.prototype = new global.Appacitive.Object('user');
-
-		global.Appacitive.User.prototype.constructor = global.Appacitive.User;
-
 		//getter to get linkedaccounts
-		global.Appacitive.User.prototype.linkedAccounts = function() {
+		User.prototype.linkedAccounts = function() {
 			
 			var accounts = this.get('__link');
 			
@@ -118,7 +114,7 @@
 		};
 
 		//method for getting all linked accounts
-		global.Appacitive.User.prototype.getAllLinkedAccounts = function(callbacks) {
+		User.prototype.getAllLinkedAccounts = function(callbacks) {
 			var userId = this.get('__id');
 			
 			if (!userId || !_type.isString(userId) || userId.length === 0) {
@@ -145,7 +141,7 @@
 			return request.send();
 		};
 
-		global.Appacitive.User.prototype.checkin = function(coords, callbacks) {
+		User.prototype.checkin = function(coords, callbacks) {
 			var userId = this.get('__id');
 			if (!userId || !_type.isString(userId) || userId.length === 0) {
 				if (onSuccess && _type.isFunction(onSuccess)) onSuccess();
@@ -169,7 +165,7 @@
 		};
 
 		//method for linking facebook account to a user
-		global.Appacitive.User.prototype.linkFacebook = function(accessToken, callbacks) {
+		User.prototype.linkFacebook = function(accessToken, callbacks) {
 			
 			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
@@ -183,7 +179,7 @@
 		};
 
 		//method for linking twitter account to a user
-		global.Appacitive.User.prototype.linkTwitter = function(twitterObj, callbacks) {
+		User.prototype.linkTwitter = function(twitterObj, callbacks) {
 			
 			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
@@ -202,7 +198,7 @@
 		};
 
 		//method to unlink an oauth account
-		global.Appacitive.User.prototype.unlink = function(name, callbacks) {
+		User.prototype.unlink = function(name, callbacks) {
 			
 			if (!_.isString(name)) throw new Error("Specify aouth account type for unlinking");
 
@@ -249,9 +245,16 @@
 			return request.send();
 		};
 
-		global.Appacitive.User.prototype.clone = function() {
+		User.prototype.clone = function() {
 			return new global.Appacitive.User(this.getObject());
 		};
+
+		global.Appacitive.User = global.Appacitive.Object.extend('user', User.prototype);
+
+		//Remove article static properties
+		delete global.Appacitive.User._create;
+		delete global.Appacitive.User._parseResult;
+		delete global.Appacitive.User.multiDelete;
 
 		this.deleteUser = function(userId, callbacks) {
 			if (!userId) throw new Error('Specify userid for user delete');
@@ -292,6 +295,7 @@
 
 			return new global.Appacitive.User(user).save(callbacks);
 		};
+
 		this.createUser = this.createNewUser;
 
 		//method to allow user to signup and then login 

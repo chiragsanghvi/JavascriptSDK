@@ -59,8 +59,6 @@ test('Basic search all query for objects with pagination', function() {
 	});
 	request = query.toRequest();
 
-	debugger;
-
 	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=10';
 	equal(url, request.url, 'Url generated has correct pagination options - page size & page number');
 });

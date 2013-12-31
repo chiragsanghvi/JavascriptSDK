@@ -96,20 +96,23 @@
 		
 		var self = this;
 
-		//define getter for type (object/connection)
+		// 
+		if (options.entity) this.entity = options.entity;
+
+		// define getter for type (object/connection)
 		this.type = function() { return _etype; };
 
-		//define getter for basetype (type/relation)
+		// define getter for basetype (type/relation)
 		this.entityType = function() { return _entityType; };
 
-		//define getter for querytype (basic,connectedobjects etc)
+		// define getter for querytype (basic,connectedobjects etc)
 		this.queryType = function() { return _queryType; };
 
-		//define getter for pagequery 
+		// define getter for pagequery 
 		this.pageQuery = function() { return _pageQuery; };
 
 		
-		//define getter and setter for pageNumber
+		// define getter and setter for pageNumber
 		this.pageNumber =  function() { 
 			if (arguments.length === 1) {
 				_pageQuery.pageNumber(arguments[0]);
@@ -118,7 +121,7 @@
 			return _pageQuery.pageNumber(); 
 		};
 
-		//define getter and setter for pageSize
+		// define getter and setter for pageSize
 		this.pageSize =  function() { 
 			if (arguments.length === 1) {
 				_pageQuery.pageSize(arguments[0]);
@@ -127,10 +130,10 @@
 			return _pageQuery.pageSize(); 
 		};
 
-		//define getter for sortquery
+		// define getter for sortquery
 		this.sortQuery = function() { return _sortQuery; };
 
-		//define getter and setter for orderby
+		// define getter and setter for orderby
 		this.orderBy =  function() { 
 			if (arguments.length === 1) {
 				_sortQuery.orderBy(arguments[0]);
@@ -139,7 +142,7 @@
 			return _sortQuery.orderBy(); 
 		};
 
-		//define getter and setter for isAscending
+		// define getter and setter for isAscending
 		this.isAscending =  function() { 
 			if (arguments.length === 1) {
 				_sortQuery.isAscending(arguments[0]);
@@ -148,7 +151,7 @@
 			return _sortQuery.isAscending(); 
 		};
 
-		//define getter and setter for filter
+		// define getter and setter for filter
 		this.filter =  function() { 
 			if (arguments.length === 1) {
 				_filter = arguments[0];
@@ -157,7 +160,7 @@
 			return _filter; 
 		};		
 		
-		//define getter and setter for freetext
+		// define getter and setter for freetext
 		this.freeText =  function() { 
 			if (arguments.length === 1) {
 				var value = arguments[0];
@@ -168,7 +171,7 @@
 			return _freeText; 
 		};		
 		
-		
+		// define fields
 		this.fields = function() {
 			if (arguments.length === 1) {
 				var value = arguments[0];
@@ -180,7 +183,7 @@
 			}
 		};
 
-		//set filters , freetext and fields
+		// set filters , freetext and fields
 		this.filter(options.filter || '');
 		this.freeText(options.freeText || '');
 		this.fields(options.fields || '');
@@ -265,14 +268,8 @@
 			var entityObjects = [];
 			if (!entities) entities = [];
 			var eType = (_etype === 'object') ? 'Object' : 'Connection';
-			
-			if (_entityType && _entityType.toLowerCase() == 'user') eType = 'User';
-			
-			entities.forEach(function(e) {
-				entityObjects.push(new global.Appacitive[eType](e, true));
-			});
 
-			return entityObjects;
+			return global.Appacitive[eType]._parseResult(entities, options.entity);
 		};
 
 		this.fetch = function(callbacks) {
@@ -394,11 +391,12 @@
 		var parseNodes = function(nodes, endpointA) {
 			var objects = [];
 			nodes.forEach(function(o) {
-				var tmpObject = null;
-				if (o.__edge) {
-					var edge = o.__edge;
-					delete o.__edge;
+				var edge = o.__edge;
+				delete o.__edge;
 
+				var tmpObject = global.Appacitive.Object._create(o, true);
+
+				if (edge) {
 					edge.__endpointa = endpointA;
 					edge.__endpointb = {
 						objectid: o.__id,
@@ -406,12 +404,7 @@
 						type: o.__type
 					};
 					delete edge.label;
-
-					var connection = new global.Appacitive.Connection(edge, true);
-					tmpObject = new global.Appacitive.Object(o, true);
-					tmpObject.connection = connection;
-				} else {
-					tmpObject = new global.Appacitive.Object(o, true);
+					tmpObject.connection = global.Appacitive.Connection._create(edge, true);
 				}
 				objects.push(tmpObject);
 			});
@@ -427,8 +420,6 @@
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
 			    var _parse = parseNodes;
-			    if (self.prev) _parse = prevParseNodes;
-
 			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent });
 		   	    self._setPaging(d.paginginfo);
 
@@ -494,6 +485,8 @@
 
 		options = options || {};
 
+		delete options.entity;
+
 		if (!options.objectAId || !_type.isString(options.objectAId) || options.objectAId.length === 0) throw new Error('Specify valid objectAId for GetConnectionsBetweenObjectsQuery query');
 		if (!options.objectBId || !_type.isString(options.objectBId) || options.objectBId.length === 0) throw new Error('Specify objectBId for GetConnectionsBetweenObjectsQuery query');
 		if (options.type) delete options.type;
@@ -542,7 +535,7 @@
 
 			var request = this.toRequest();
 			request.onSuccess = function(d) {
-				promise.fulfill(d.connection ? new global.Appacitive.Connection(d.connection, true) :  null);
+				promise.fulfill(d.connection ? global.Appacitive.Connection._create(d.connection, true, options.entity) :  null);
 			};
 			request.promise = promise;
 			request.entity = this;
@@ -558,6 +551,8 @@
 	global.Appacitive.Queries.InterconnectsQuery = function(options) {
 
 		options = options || {};
+
+		delete options.entity;
 
 		if (!options.objectAId || !_type.isString(options.objectAId) || options.objectAId.length === 0) throw new Error('Specify valid objectAId for InterconnectsQuery query');
 		if (!options.objectBIds || !_type.isArray(options.objectBIds) || !(options.objectBIds.length > 0)) throw new Error('Specify list of objectBIds for InterconnectsQuery query');
@@ -597,7 +592,7 @@
 	* @constructor
 	**/
 	global.Appacitive.Queries.GraphFilterQuery = function(name, placeholders) {
-
+		
 		if (!name || name.length === 0) throw new Error("Specify name of filter query");
 		
 		this.name = name;
@@ -685,7 +680,7 @@
 					var edge = o.__edge;
 					delete o.__edge;
 
-					var tmpObject = new global.Appacitive.Object(o, true);
+					var tmpObject = global.Appacitive.Object._create(o, true);
 					tmpObject.children = {};
 					for (var key in children) {
 						tmpObject.children[key] = [];
@@ -702,7 +697,7 @@
 							label: edge.__label
 						};
 						delete edge.__label;
-						tmpObject.connection = new global.Appacitive.Connection(edge, true);
+						tmpObject.connection = global.Appacitive.Connection._create(edge, true);
 					}
 					props.push(tmpObject);
 				});
