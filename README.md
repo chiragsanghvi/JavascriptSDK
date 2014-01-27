@@ -412,7 +412,7 @@ Appacitive.Facebook.requestLogin().then(function(fbResponse) {
   console.log('Facebook login successfull with access token: ' + Appacitive.Facebook.accessToken());
   
   // signup with Appacitive
-  return Appacitive.Users.signupWithFacebook(Appacitive.Facebook.accessToken());
+  return Appacitive.Users.loginWithFacebook(Appacitive.Facebook.accessToken());
 
 }).then(function (authResult) {
   // user has been successfully signed up and set as current user
@@ -443,7 +443,7 @@ The success callback is given one argument: `authresult`
 * The `token` field is the user token. This is similar to the session token, but instead of authenticating the app with the server, it authenticates the logged in user with the app. More on this later, in the authentication section.
 * The `user` field is the Appacitive User object. The data that exists in the user field got pulled from facebook when he/she logged in. Note: <span style="font-weight: bold">The user must agree to share his/her  email address with your app to be able to use facebook to signup/login.</span>
 
-**Note :** For nodejs you just need to set the `Appacitive.Facebook.accessToken()` value, and call Appacitive.Users.signupWithFacebook with the token.
+**Note :** For nodejs you just need to set the `Appacitive.Facebook.accessToken()` value, and call Appacitive.Users.loginWithFacebook with the token.
 
 ### Retrieve
 
