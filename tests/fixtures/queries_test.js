@@ -59,8 +59,6 @@ test('Basic search all query for objects with pagination', function() {
 	});
 	request = query.toRequest();
 
-	debugger;
-
 	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=10';
 	equal(url, request.url, 'Url generated has correct pagination options - page size & page number');
 });
@@ -89,7 +87,7 @@ test('Verify basic filtered search query', function() {
 	};
 	var filteredQuery = new Appacitive.Queries.FindAllQuery(options);
 	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=1'
-	url += '&query=some_field == "some_value"';
+	url += '&query=' + encodeURIComponent('some_field == "some_value"');
 	equal(filteredQuery.toRequest().url, url, 'Url formation correct in basic filtered query');
 });
 
@@ -104,7 +102,7 @@ test('Verify customized filtered search query', function() {
 	};
 	var filteredQuery = new Appacitive.Queries.FindAllQuery(options);
 	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=2&orderBy=name&isAsc=false'
-	url += '&query=some_field2 == "some_value2"';
+	url += '&query=' + encodeURIComponent('some_field2 == "some_value2"');
 	equal(filteredQuery.toRequest().url, url, 'Url formation correct in customized filtered query');
 });
 
