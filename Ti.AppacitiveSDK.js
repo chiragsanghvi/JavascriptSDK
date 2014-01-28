@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Dec 31 15:01:01 IST 2013
+ * Build time 	: Tue Jan 28 11:55:20 IST 2014
  */
 "use strict";
 
@@ -2651,12 +2651,12 @@ Depends on  NOTHING
 			if (sortQuery) finalUrl += '&' + sortQuery;
 
 			if (this.filter()) {
-				var filter = this.filter().toString();
+				var filter = encodeURIComponent(this.filter().toString());
 			    if (filter.trim().length > 0) finalUrl += '&query=' + filter;
 			}
 
 			if (this.freeText() && this.freeText().trim().length > 0) {
-                finalUrl += "&freetext=" + this.freeText() + "&language=en";
+                finalUrl += "&freetext=" + encodeURIComponent(this.freeText()) + "&language=en";
             }
 
             if (this.fields() && this.fields().trim().length > 0) {
