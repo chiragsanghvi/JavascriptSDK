@@ -1,78 +1,71 @@
 module('Search All Query');
-test('Basic search all query for articles', function() {
+test('Basic search all query for objects', function() {
 	var query = new Appacitive.Queries.FindAllQuery({
-		type: 'article',
-		schema: 'profile'
+		type: 'profile'
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=1';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=1';
 
 	equal(url, request.url, 'Request url generated is ok');
 	equal('get', request.method.toLowerCase(), 'Request method is ok');
 });
 
-test('Basic search all query for articles with sorting', function() {
+test('Basic search all query for objects with sorting', function() {
 	var query = new Appacitive.Queries.FindAllQuery({
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		orderBy: 'name',
 		isAscending: true
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=1&orderBy=name&isAsc=true';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=1&orderBy=name&isAsc=true';
 	equal(url, request.url, 'Url generated has correct sort options - ascending');
 	
 	query = new Appacitive.Queries.FindAllQuery({
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		orderBy: 'name2',
 		isAscending: false
 	});
 	request = query.toRequest();
 
-	url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=1&orderBy=name2&isAsc=false';
+	url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=1&orderBy=name2&isAsc=false';
 	equal(url, request.url, 'Url generated has correct sort options - descending');	
 });
 
-test('Basic search all query for articles with pagination', function() {
+test('Basic search all query for objects with pagination', function() {
 	var query = new Appacitive.Queries.FindAllQuery({
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		pageNumber: 3
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=3';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=3';
 	equal(url, request.url, 'Url generated has correct pagination options - page number');
 	
 	query = new Appacitive.Queries.FindAllQuery({
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		pageSize: 100
 	});
 	request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=1';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=1';
 	equal(url, request.url, 'Url generated has correct pagination options - page size');
 
 	query = new Appacitive.Queries.FindAllQuery({
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		pageSize: 100,
 		pageNumber: 10
 	});
 	request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=10';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=10';
 	equal(url, request.url, 'Url generated has correct pagination options - page size & page number');
 });
 
 test('Basic search all query with sorting and pagination', function() {
 	var query = new Appacitive.Queries.FindAllQuery({
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		pageSize: 100,
 		pageNumber: 10,
 		orderBy: 'name',
@@ -80,7 +73,7 @@ test('Basic search all query with sorting and pagination', function() {
 	});
 	var request = query.toRequest();
 
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=10&orderBy=name&isAsc=false';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=10&orderBy=name&isAsc=false';
 	equal(url, request.url, 'Url generated has correct pagination and sorting options');
 });
 
@@ -89,20 +82,18 @@ module('Filtered Query');
 // basic properties search 
 test('Verify basic filtered search query', function() {
 	var options = {
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		filter: 'some_field == "some_value"'
 	};
 	var filteredQuery = new Appacitive.Queries.FindAllQuery(options);
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=20&pnum=1'
-	url += '&query=some_field == "some_value"';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=20&pnum=1'
+	url += '&query=' + encodeURIComponent('some_field == "some_value"');
 	equal(filteredQuery.toRequest().url, url, 'Url formation correct in basic filtered query');
 });
 
 test('Verify customized filtered search query', function() {
 	var options = {
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		pageNumber: 2,
 		pageSize: 100,
 		orderBy: 'name',
@@ -110,34 +101,31 @@ test('Verify customized filtered search query', function() {
 		filter: 'some_field2 == "some_value2"'
 	};
 	var filteredQuery = new Appacitive.Queries.FindAllQuery(options);
-	var url = Appacitive.config.apiBaseUrl + 'article/profile/find/all?psize=100&pnum=2&orderBy=name&isAsc=false'
-	url += '&query=some_field2 == "some_value2"';
+	var url = Appacitive.config.apiBaseUrl + 'object/profile/find/all?psize=100&pnum=2&orderBy=name&isAsc=false'
+	url += '&query=' + encodeURIComponent('some_field2 == "some_value2"');
 	equal(filteredQuery.toRequest().url, url, 'Url formation correct in customized filtered query');
 });
 
 test('Verify filter modification using setFilter in query', function() {
 	var options = {
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		filter: Appacitive.Filter.Property('q').withinCircle(new Appacitive.GeoCoord(1, 2), 3, 'km')
 	};
 	var query = new Appacitive.Queries.FindAllQuery(options);
 	
 	options = {
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		filter: Appacitive.Filter.Property('q').lessThan(1234567890)
 	};
 
 	var updatedQuery = new Appacitive.Queries.FindAllQuery(options);
 	query.filter(Appacitive.Filter.Property('q').lessThan(1234567890));
-	deepEqual(updatedQuery, query, 'Filtered query modification correctly done in articleCollection.');
+	deepEqual(updatedQuery, query, 'Filtered query modification correctly done in objectCollection.');
 });
 
-test('Verify filter and freetxt query modification using filter and freeText in articleCollection', function() {
+test('Verify filter and freetxt query modification using filter and freeText in objectCollection', function() {
 	var query = new Appacitive.Queries.FindAllQuery({
-		type: 'article',
-		schema: 'profile',
+		type: 'profile',
 		pageNumber: 3,
 		pageSize: 50,
 		orderBy: 'name',

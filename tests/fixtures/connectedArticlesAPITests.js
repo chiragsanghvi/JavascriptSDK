@@ -8,16 +8,16 @@ asyncTest('Creating session with valid Apikey', function() {
 	start();
 });
 
-asyncTest('Verify created connection is fetched when fetching connected articles', function() {
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+asyncTest('Verify created connection is fetched when fetching connected objects', function() {
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
-			article: school,
+			object: school,
 			label: 'school'
 		}, {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		}],
 		relation: 'myschool'
@@ -37,15 +37,15 @@ asyncTest('Verify created connection is fetched when fetching connected articles
 			ok(false, 'profile properties not reflected in object or not returned');
 		}
 
-		// fetch connected articles for profile
-		return profile.getConnectedArticles({ relation: 'myschool' }).fetch();
-	}).then(function(articles) {
+		// fetch connected objects for profile
+		return profile.getConnectedObjects({ relation: 'myschool' }).fetch();
+	}).then(function(objects) {
 		
-		//verify articles returned are not changed
-		if (articles[0].hasChanged()) {
-			ok(false, 'Article has not changed');
+		//verify objects returned are not changed
+		if (objects[0].hasChanged()) {
+			ok(false, 'Object has not changed');
 		} else {
-			ok(true, 'Article has not changed');
+			ok(true, 'Object has not changed');
 		}
 
 
@@ -56,33 +56,33 @@ asyncTest('Verify created connection is fetched when fetching connected articles
 			ok(true, 'Children property set in profile');
 		}
 
-		var existingConnections = articles.filter(function (_c) {
+		var existingConnections = objects.filter(function (_c) {
 			return _c.connection.id() == conn.id();
 		});
 
-		//Verify connection is returned via the getConnectedArticles
-		equal(existingConnections.length, 1, 'Connection fetched on calling get connected articles for profile');
+		//Verify connection is returned via the getConnectedObjects
+		equal(existingConnections.length, 1, 'Connection fetched on calling get connected objects for profile');
 		start();
 	}, function() {
 		if (conn.isNew()) {
 			ok(false, 'Could not save connection.');
 		} else {
-			ok(false, 'Could not fetch connected articles of relation type myschool');
+			ok(false, 'Could not fetch connected objects of relation type myschool');
 		}
 		start();
 	});
 });
 
-asyncTest('Verify created connection is fetched when fetching connections for an article', function() {
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+asyncTest('Verify created connection is fetched when fetching connections for an object', function() {
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
-			article: school,
+			object: school,
 			label: 'school'
 		}, {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		}],
 		relation: 'myschool'
@@ -117,22 +117,22 @@ asyncTest('Verify created connection is fetched when fetching connections for an
 		if (conn.isNew()) {
 			ok(false, 'Could not save connection.');
 		} else {
-			ok(false, 'Could not fetch connections for article of relation type myschool');
+			ok(false, 'Could not fetch connections for object of relation type myschool');
 		}
 		start();
 	});
 });
 
-asyncTest('Verify created connection is fetched when fetching connection between two articles', function() {
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+asyncTest('Verify created connection is fetched when fetching connection between two objects', function() {
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	
 	var connectOptions = {
 		endpoints: [{
-			article: school,
+			object: school,
 			label: 'school'
 		}, {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		}],
 		relation: 'myschool'
@@ -152,36 +152,36 @@ asyncTest('Verify created connection is fetched when fetching connection between
 		}
 
 		//fetch connection between profile and school
-		var btwArticleQuery = new Appacitive.Queries.GetConnectionsBetweenArticlesForRelationQuery({ 
+		var btwObjectQuery = new Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery({ 
 			relation: 'myschool',
-			articleAId: school.get('__id'), 
-			articleBId: profile.get('__id')
+			objectAId: school.get('__id'), 
+			objectBId: profile.get('__id')
 		});
-		return btwArticleQuery.fetch();
+		return btwObjectQuery.fetch();
 	}).then(function(connection) {
 		
-		//Verify connection is returned via the getBetweenArticles
-		equal(connection.id(), conn.id() , 'Connection fetched between 2 articles');
+		//Verify connection is returned via the getBetweenObjects
+		equal(connection.id(), conn.id() , 'Connection fetched between 2 objects');
 		start();
 	}, function() {
 		if (conn.isNew()) {
 			ok(false, 'Could not save connection.');
 		} else {
-			ok(false, 'Could not fetch connections between 2 articles of relation type myschool');
+			ok(false, 'Could not fetch connections between 2 objects of relation type myschool');
 		}
 		start();
 	});
 });
 
-asyncTest('Verify article fetched via the collection returned via getConnectedArticles has correct id', function() {
-	var school = new Appacitive.Article('school');
-	var profile = new Appacitive.Article({schema: 'profile', name:'chirag sanghvi'});
+asyncTest('Verify object fetched via the collection returned via getConnectedObjects has correct id', function() {
+	var school = new Appacitive.Object('school');
+	var profile = new Appacitive.Object({ __type: 'profile', name:'chirag sanghvi'});
 	var connectOptions = {
 		endpoints: [{
-			article: school,
+			object: school,
 			label: 'school'
 		}, {
-			article: profile,
+			object: profile,
 			label: 'profile'
 		}],
 		relation: 'myschool'
@@ -200,15 +200,15 @@ asyncTest('Verify article fetched via the collection returned via getConnectedAr
 			ok(false, 'profile properties not reflected in object or not returned');
 		}
 
-		// fetch connected articles for profile
-		return profile.getConnectedArticles({ relation: 'myschool' }).fetch();
-	}).then(function(articles) {
+		// fetch connected objects for profile
+		return profile.getConnectedObjects({ relation: 'myschool' }).fetch();
+	}).then(function(objects) {
 		
-		//verify articles returned are not changed
-		if (articles[0].hasChanged()) {
-			ok(false, 'Article has not changed');
+		//verify objects returned are not changed
+		if (objects[0].hasChanged()) {
+			ok(false, 'Object has not changed');
 		} else {
-			ok(true, 'Article has not changed');
+			ok(true, 'Object has not changed');
 		}
 
 		//verify children property
@@ -218,26 +218,26 @@ asyncTest('Verify article fetched via the collection returned via getConnectedAr
 			ok(true, 'Children property set in profile');
 		}
 
-		var existingArticles = articles.filter(function (_a) {
+		var existingObjects = objects.filter(function (_a) {
 			return _a.connection.id() == conn.id();
 		});
 
-		//Verify connection is returned via the getConnectedArticles
-		equal(existingArticles.length, 1, 'Connection fetched on calling get connected articles for profile');
+		//Verify connection is returned via the getConnectedObjects
+		equal(existingObjects.length, 1, 'Connection fetched on calling get connected objects for profile');
 
-		//Verify article fetched via the articles returned via getConnectedArticles has correct id
-		var connectedSchool = existingArticles[0];
-		equal(connectedSchool.get('__id'), school.get('__id'), 'Correct connected article returned');
+		//Verify object fetched via the objects returned via getConnectedObjects has correct id
+		var connectedSchool = existingObjects[0];
+		equal(connectedSchool.get('__id'), school.get('__id'), 'Correct connected object returned');
 
-		//Verify article fetched via the articles returned via getConnectedArticles is correct article
-		deepEqual(connectedSchool.toJSON(), school.toJSON(), 'Correct connected article returned: ' + JSON.stringify(connectedSchool.getArticle()));
+		//Verify object fetched via the objects returned via getConnectedObjects is correct object
+		deepEqual(connectedSchool.toJSON(), school.toJSON(), 'Correct connected object returned: ' + JSON.stringify(connectedSchool.getObject()));
 
 		start();
 	}, function() {
 		if (conn.isNew()) {
 			ok(false, 'Could not save connection.');
 		} else {
-			ok(false, 'Could not fetch connected articles of relation type myschool');
+			ok(false, 'Could not fetch connected objects of relation type myschool');
 		}
 		start();
 	});

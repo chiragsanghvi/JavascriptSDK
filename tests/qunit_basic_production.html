@@ -17,7 +17,7 @@
 <body>
   <!--<div id="fb-root"></div>-->
   <script>
-    Appacitive.config.apiBaseUrl = "http://apis.appacitive.com/";
+    Appacitive.config.apiBaseUrl = "http://apis.appacitive.com/v1.0/";
     Appacitive.initialize({apikey: testConstants.apiKey, env: testConstants.environment, appId: testConstants.appId, log:true });
     Appacitive.Session.resetSession();
     Appacitive.Session.removeUserAuthHeader();
@@ -48,6 +48,9 @@
      }(document, /*debug*/ false));
   </script>
   <div id="qunit"></div>
+  <input type='file' id="inpFile"></input> 
+  <span id="uploading" style="display:none;">Uploading</span>
+  <div style="clear:both;"><div>
   <div id="qunit-fixture"></div>
   <script src="qunit.js"></script>
   <script type="text/javascript">
@@ -74,4 +77,29 @@
 <script type="text/javascript" src="fixtures/userTests.js"></script>
 <script type="text/javascript" src="fixtures/email.js"></script>
 <script type="text/javascript" src="fixtures/facebook.js"></script>
+<script type="text/javascript">
+  
+  $('#inpFile').live('change', function() {
+    //in a handler or in a function you could get a reference to it, if you've selected a file
+    var fileData = $('#inpFile')[0].files[0];
+
+    //create file object
+    window.file = new Appacitive.File({
+      fileId: fileData.name,
+      fileData: fileData
+    });
+
+    $('#uploading').show();
+    $('#inpFile').hide();
+    file.save().then(function(url) {
+      alert('Download url is ' + url);
+      $('#inpFile').show();
+      $('#uploading').hide();
+    }, function(err) {
+      alert(err.message);
+      $('#inpFile').show();
+      $('#uploading').hide();
+    });
+  });
+</script>
 </html>

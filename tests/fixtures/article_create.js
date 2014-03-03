@@ -1,4 +1,4 @@
-module('Article Tests - Create');
+module('Object Tests - Create');
 
 asyncTest('Creating session with valid Apikey', function() {
 	Appacitive.Session.resetSession();
@@ -8,46 +8,46 @@ asyncTest('Creating session with valid Apikey', function() {
 	start();
 });
 
-asyncTest('Save article', function() {
-	var article = new Appacitive.Article('profile');
-	article.save().then(function() {
-		ok(true, 'Created article successfully, id: ' + JSON.stringify(article.getArticle()));
+asyncTest('Save object', function() {
+	var object = new Appacitive.Object('profile');
+	object.save().then(function() {
+		ok(true, 'Created object successfully, id: ' + JSON.stringify(object.getObject()));
 		start();
 	}, function() {
-		ok(false, 'Article create failed');
+		ok(false, 'Object create failed');
 		start();
 	});
 });
 
-asyncTest('Save article with properties', function() {
-	var article = new Appacitive.Article('profile');
+asyncTest('Save object with properties', function() {
+	var object = new Appacitive.Object('profile');
 	var name = 'Aragorn' + parseInt(Math.random() * 10000);
-	article.set('name', name);
-	article.save().then(function() {
-		equal(article.get('name'), name, 'Created article successfully ' + JSON.stringify(article.getArticle()));
+	object.set('name', name);
+	object.save().then(function() {
+		equal(object.get('name'), name, 'Created object successfully ' + JSON.stringify(object.getObject()));
 		start();
 	}, function() {
-		ok(false, 'Article create failed');
+		ok(false, 'Object create failed');
 		start();
 	});
 });
 
-asyncTest('Save article and verify', function() {
-	var article = new Appacitive.Article('profile');
-	article.save().then(function() {
-			var _id = article.get('__id');
-			Appacitive.Article.get({
-				schema: 'profile',
+asyncTest('Save object and verify', function() {
+	var object = new Appacitive.Object('profile');
+	object.save().then(function() {
+			var _id = object.get('__id');
+			Appacitive.Object.get({
+				type: 'profile',
 				id: _id
-			}).then(function(createdArticle) {
-				if (createdArticle && createdArticle instanceof Appacitive.Article) {
-					ok(true, 'Article with id (' + _id + ') saved and retrieved successfully.');
+			}).then(function(createdObject) {
+				if (createdObject && createdObject instanceof Appacitive.Object) {
+					ok(true, 'Object with id (' + _id + ') saved and retrieved successfully.');
 				} else {
-					ok(false, 'Article not found');
+					ok(false, 'Object not found');
 				}
 				start();
 			}, function() {
-				ok(false, 'Could not fetch article with id .' + _id);
+				ok(false, 'Could not fetch object with id .' + _id);
 				start();
 			});
 	});

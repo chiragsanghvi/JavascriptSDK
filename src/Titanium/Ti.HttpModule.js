@@ -340,7 +340,11 @@ var global = {};
 					}
 				},
 				onError: function(xhr) {
-					that.onError(request, xhr);
+					var data = {};
+					data.message = xhr.responseText || 'Bad Request';
+					data.code = xhr.status || '400';
+					
+					that.onError(request, { responseText: JSON.stringify(data) });
 				}
 			});
 		};
@@ -424,7 +428,7 @@ var global = {};
 		        try {
 		          var errorJSON = JSON.parse(response.responseText);
 		          if (errorJSON) {
-		            error = { code: errorJSON.code, error: errorJSON.message };
+		            error = { code: errorJSON.code, message: errorJSON.message };
 		          }
 		        } catch (e) {}
 		    }
