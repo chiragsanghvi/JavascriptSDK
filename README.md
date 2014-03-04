@@ -22,6 +22,7 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
   * [Retrieving](#retrieving)  
   * [Updating](#updating)  
   * [Deleting](#deleting)  
+  * [Extending](#extending)
 * [Connections](#connections)  
   * [Creating & Saving](#creating--saving)  
   * [Retrieving](#retrieving-1)  
@@ -351,6 +352,64 @@ Appacitive.Object.multiDelete({
   alert("code:" + err.code + "\nmessage:" + err.message);
 });
 ```                                                        
+
+### Extending
+
+Each `Appacitive.Object` is an instance of a specific subclass of a particular `type` by default. To create a subclass of particular type of your own, you extend `Appacitive.Object` with `typename` and provide instance properties, as well as optional classProperties to be attached directly to the constructor function. 
+
+```javascript
+// create a new subclass of Appacitive.Object.
+var Player = Appacitive.Object.extend('player');  //Name subclass using pascal casing
+
+// create an instance of that class 
+var tyson = new Player(); 
+```
+
+You can add additional methods and properties to your subclasses of `Appacitive.Object` as shown below
+
+```javascript
+// a subclass of Appacitive.Object
+var Player = Appacitive.Object.extend('player', {
+  
+  //override constructor, which allows you to replace the actual constructor function
+  constructor: function(attrs) { 
+
+    attrs.firstname = attrs.name.split(' ')[0];
+    attrs.lastname = attrs.name.split(' ')[1];
+
+    //Invoke internal constructor
+    Appacitive.Object.call(this, atts); 
+  },
+
+  //instance methods
+  isAdult: function() {
+    return this.tryGet('age',0 , 'integer') >= 18 ? true: false ;
+  }
+
+}, {
+  // Class methods
+  findAdultPlayers: function() {
+    
+    //create a query with filterring on age
+    var query = this.findAllQuery({
+      filter: Appacitive.Filter.Property('age').greaterThanEqualTo(18)
+    });
+
+    //call fetch and return promise 
+    return query.fetch();  
+  }
+});
+```
+When creating an instance of a subclass, you can pass in the initial values of the properties, which will be set on the `Appacitive.Object` instance.
+
+```javascript
+var tyson = new Player({ name 'Mike Tyson', age: '47' });
+alert(tyson.isAdult()); //displays true
+
+Player.findAdultPlayers().then(function(res) { 
+  console.log(res.length + ' players'); 
+});
+```
 
 ----------
 
