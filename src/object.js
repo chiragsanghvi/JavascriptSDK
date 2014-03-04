@@ -112,7 +112,7 @@
 
 	global.Appacitive.Object._parseResult = _parseObjects;
 
-	global.Appacitive.Object.prototype.multiDelete = global.Appacitive.Object.multiDelete = function(options, callbacks) {
+	global.Appacitive.Object.multiDelete = function(options, callbacks) {
 		options = options || {};
 		if (this.className) options.type = this.className;
 		if (!options.type || !_type.isString(options.type) || options.type.length === 0) throw new Error("Specify valid type");
@@ -136,7 +136,7 @@
 
 
 	//takes typename and array of objectids and returns an array of Appacitive object objects
-	global.Appacitive.Object.prototype.multiGet = global.Appacitive.Object.multiGet = function(options, callbacks) {
+	global.Appacitive.Object.multiGet = function(options, callbacks) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -160,7 +160,7 @@
 	};
 
 	//takes object id , type and fields and returns that object
-	global.Appacitive.Object.prototype.get = global.Appacitive.Object.get = function(options, callbacks) {
+	global.Appacitive.Object.get = function(options, callbacks) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -195,14 +195,13 @@
 	global.Appacitive.Object.prototype.fetchConnectedObjects = global.Appacitive.Object.prototype.getConnectedObjects;
 	
 	// takes type and return a query for it
-	global.Appacitive.Object.findAll = function(options) {
+	global.Appacitive.Object.findAll = global.Appacitive.Object.findAllQuery = function(options) {
 		options = options || {};
 		if (this.className) {
-			options.relation = this.className;
+			options.type = this.className;
 			options.entity = this;
 		}
 		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
-	global.Appacitive.Object.prototype.find = global.Appacitive.Object.prototype.findAll = global.Appacitive.Object.findAll; 
 
 })(global);
