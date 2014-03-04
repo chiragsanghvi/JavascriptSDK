@@ -209,6 +209,7 @@
 
 			if (sortQuery) finalUrl += '&' + sortQuery;
 
+			
 			if (this.filter()) {
 				var filter = encodeURIComponent(this.filter().toString());
 			    if (filter.trim().length > 0) finalUrl += '&query=' + filter;

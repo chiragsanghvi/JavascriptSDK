@@ -22,16 +22,6 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
   * [Retrieving](#retrieving)  
   * [Updating](#updating)  
   * [Deleting](#deleting)  
-* [User Management](#user-management)  
-  * [Create](#create)  
-  * [Retrieve](#retrieve)   
-  * [Update](#update)  
-  * [Delete](#delete)  
-  * [Authentication](#authentication)  
-  * [User Session Management](#user-session-management)  
-  * [Linking and Unlinking accounts](#linking-and-unlinking-accounts)  
-  * [Password Management](#password-management)  
-  * [Check-in](#check-in)  
 * [Connections](#connections)  
   * [Creating & Saving](#creating--saving)  
   * [Retrieving](#retrieving-1)  
@@ -43,20 +33,6 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
      * [Get Interconnections between one and multiple Object Ids](#get-interconnections-between-one-and-multiple-object-ids)
   * [Updating](#updating-1)  
   * [Deleting](#deleting-1)  
-* [Emails](#emails)  
-  * [Configuring](#configuring)  
-  * [Sending Raw Emails](#sending-raw-emails)
-  * [Sending Templated Emails](#sending-templated-emails)  
-* [Push Notifications](#push-notifications)  
-  * [Broadcast](#broadcast)  
-  * [Platform specific Devices](#platform-specific-devices)  
-  * [Specific List of Devices](#specific-list-of-devices)  
-  * [To List of Channels](#to-list-of-channels)  
-  * [Query](#query)  
-* [Files](#files)  
-  * [Creating Appacitive.File Object](#creating-appacitivefile-object)  
-  * [Uploading](#uploading)  
-  * [Downloading](#downloading)
 * [Queries](#queries)
   * [Modifiers](#modifiers)
     * [Paging](#pagination)
@@ -72,6 +48,34 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
     * [Composite Filters](#composite-filters)
     * [FreeText](#freetext)
   * [Counts](#counts)
+* [Graph Search](#graph-search)  
+  * [Creating graph queries](#creating-graph-queries)  
+  * [Executing Filter graph queries](#executing-filter-graph-queries)   
+  * [Executing projection graph queries](#executing-projection-graph-queries)  
+* [User Management](#user-management)  
+  * [Create](#create)  
+  * [Retrieve](#retrieve)   
+  * [Update](#update)  
+  * [Delete](#delete)  
+  * [Authentication](#authentication)  
+  * [User Session Management](#user-session-management)  
+  * [Linking and Unlinking accounts](#linking-and-unlinking-accounts)  
+  * [Password Management](#password-management)  
+  * [Check-in](#check-in)  
+* [Emails](#emails)  
+  * [Configuring](#configuring)  
+  * [Sending Raw Emails](#sending-raw-emails)
+  * [Sending Templated Emails](#sending-templated-emails)  
+* [Push Notifications](#push-notifications)  
+  * [Broadcast](#broadcast)  
+  * [Platform specific Devices](#platform-specific-devices)  
+  * [Specific List of Devices](#specific-list-of-devices)  
+  * [To List of Channels](#to-list-of-channels)  
+  * [Query](#query)  
+* [Files](#files)  
+  * [Creating Appacitive.File Object](#creating-appacitivefile-object)  
+  * [Uploading](#uploading)  
+  * [Downloading](#downloading)
 
 ## Setup
 
@@ -350,6 +354,818 @@ Appacitive.Object.multiDelete({
 
 ----------
 
+## Connections
+
+All data that resides in the Appacitive platform is relational, like in the real world. This means you can do operations like fetching all games that any particular player has played, adding a new player to a team or disbanding a team whilst still keeping the other teams and their `players` data perfectly intact.
+
+Two entities can be connected via a relation, for example two entites of type `person` might be connected via a relation `friend` or `enemy` and so on. An entity of type `person` might be connected to an entity of type `house` via a relation `owns`. Still here? OK, lets carry on.
+
+One more thing to grok is the concept of labels. Consider an entity of type `person`. This entity is connected to another `person` via relation `marriage`. Within the context of the relation `marriage`, one person is the `husband` and the other is the `wife`. Similarly the same entity can be connected to an entity of type `house` via the relation `owns_house`. In context of this relation, the entity of type `person` can be referred to as the `owner`. 
+
+`Wife`, `husband` and `owner` from the previous example are `labels`. Labels are used within the scope of a relation to give contextual meaning to the entities involved in that relation. They have no meaning or impact outside of the relation.
+
+As with entities (objects), relations are also contained in collections.
+
+Let's jump in!
+
+
+### Creating &amp; Saving
+
+#### New Connection between two existing Objects
+
+Before we go about creating connections, we need two entities. Consider the following
+
+```javascript
+var  tarzan = new Appacitive.Object({ __type:'person', name: 'Tarzan' })
+    , jane =  new Appacitive.Object({ __type:'person', name: 'Jane' });
+
+// save the entites tarzan and jane
+// ...
+// ...
+
+// initialize and set up a connection
+var marriage = new Appacitive.Connection({ 
+  relation: 'marriage',
+  endpoints: [{
+      object: tarzan,  //mandatory
+      label: 'husband'  //mandatory
+  }, {
+      object: jane,  //mandatory
+      label: 'wife' //mandatory
+  }],
+  date: '01-01-2010'
+});
+
+// call save
+marriage.save().then(function(obj) {
+    alert('saved successfully!');
+});
+
+```
+
+If you've read the previous guide, most of this should be familiar. What happens in the `Appacitive.Connection` class is that the relation is configured to actually connect the two entities. We initialize with the `__id`s of the two entities and specify which is which for example here, Tarzan is the husband and Jane is the wife. 
+
+In case you are wondering why this is necessary then here is the answer, it allows you to structure queries like 'who is tarzan's wife?' or 'which houses does tarzan own?' and much more. Queries are covered in later guides.
+
+`marriage` is an instance of `Appacitive.Connection`. Similar to an entity, you may call `toJSON` on a connection to get to the underlying object.
+
+#### New Connection between two new Objects
+
+There is another easier way to connect two new entities. You can pass the new entities themselves to the connection while creating it.
+
+```javascript
+var tarzan = new Appacitive.Object({ __type: 'person', name: 'Tarzan' })
+    , jane = new Appacitive.Object({ __type: 'person', name: 'Jane' });
+
+// initialize and sets up a connection
+// This is another way to initialize a connection object without collection
+// You can pass same options in the previous way of creating connection as well
+var marriage = new Appacitive.Connection({ 
+  relation: 'marriage',
+  endpoints: [{
+      object: tarzan,  //mandatory
+      label: 'husband'  //mandatory
+  }, {
+      object: jane,  //mandatory
+      label: 'wife' //mandatory
+  }],
+  date: '01-01-2010'
+});
+
+// call save
+marriage.save().then(function(obj) {
+    alert('saved successfully!');
+});
+
+```
+
+This is the recommended way to do it. In this case, the marriage relation will create the entities tarzan and jane first and then connect them using the relation `marriage`.
+
+Here's the kicker: it doesn't matter whether tarzan and jane have been saved to the server yet. If they've been saved, then they will get connected via the relation 'marriage'. And if both (or one) hasn't been saved yet, when you call `marriage.save()`, the required entities will get connected and stored on the server. So you could create the two entities and connect them via a single `.save()` call, and if you see the two entities will also get reflected with save changes, so your object is synced.
+
+#### Setting Values
+```javascript
+//This works exactly the same as in case of your standard entities.
+marriage.set('date', '01-10-2010');
+```
+
+#### Getting values
+```javascript
+//Again, this is similar to the entities.
+alert(marriage.get('date')) // returns 01-01-2010
+
+//You can also get typed values similar to standard entities.
+alert(marriage.get('date', 'date'));
+
+//and it also supports the tryget similar to standard entities
+alert(marriage.get('date', new Date(), 'date'));
+```
+
+### Retrieving
+
+#### Get Connection by Id
+
+```javascript
+Appacitive.Connection.get({
+  relation: 'marriage', //mandatory
+    id: '{{existing__id}}', //mandatory
+    fields: ["name"] //optional
+}).then(function(obj) {
+  alert('Fetched marriage which occured on: ' + obj.get('date'));
+});
+```
+Retrieving can also be done via the `fetch` method. Here's an example
+```javascript
+var marriage = new Appacitive.Connection('marriage');
+
+// set an (existing) id in the object
+marriage.set('__id', '{{existing_id}}');
+
+//set fields to return
+marriage.fields(["date"]);
+
+// retrieve the marriage connection
+marriage.fetch().then(function(obj) {
+    alert('Fetched marriage which occured on: ' + marriage.get('date'));
+});
+```
+The marriage object is similar to the object, except you get two new fields viz. endpointA and endpointB which contain the id and label of the two entities that this object connects.
+
+```javascript
+//marriage.endpointA
+{label: "husband", type: "person", objectid: "35097613532529604"}
+
+//marriage.endpointB
+{label: "wife", type: "person", objectid: "435097612324235325"}
+
+//marriage.enpoints()
+[
+  {label: "husband", type: "person", objectid: "35097613532529604"},
+  {label: "wife", type: "person", objectid: "435097612324235325"}
+]
+```
+
+#### Get Connected Objects
+
+Consider `Jane` has a lot of freinds whom she wants to invite to her marriage. She can simply get all her freinds who're of type `person` connected with `Jane` through a relation `freinds` with label for jane as `me` and freinds as `freind` using this search
+
+```javascript
+//Get an instance of person Object for Jane 
+var jane = new Appacitive.Object({ __id : '123345456', __type : 'person');
+
+//call fetchConnectedObjects with all options that're supported by queries syntax
+// we'll cover queries in next section
+var query = jane.fetchConnectedObjects({ 
+  relation : 'freinds', //mandatory
+  returnEdge: true, // set to false to stop returning connection
+    label: 'freind' //mandatory for a relation between same type and different labels
+});
+
+query.fetch().then(function(results) {
+  console.log(jane.children["freinds"]);
+});
+
+```
+On success, `jane` object is populated with a freind property in its `children`. So, `jane.children.freinds` will give you a list of all freinds of `Appacitive.Object` type.
+These objects also contain a connection property which consists of its link properties with `jane`.
+
+```javascript
+// list of all connected objects to jane
+jane.children.freinds
+
+//connection connecting jane to each object
+jane.children.freinds[0].connection
+```
+
+In this query, you provide a relation type (name) and a label if both endpoints are of same type and what is returned is a list of all the objects connected to above object. 
+
+Such queries come helpful in a situation where you want to know all the interactions of a specific kind for of a particular object in the system.
+
+#### Get all Connections for an Endpoint Object Id
+
+Scenarios where you may need to just get all connections of a particular relation for an objectId, this query comes to rescue.
+
+Consider `Jane` is connected to some objects of type `person` via `invite` relationship, that also contains a `bool` property viz. `attending`,  which is false by default and will be set to true if that person is attending marriage.
+
+Now she wants to know who all are attending her marriage without actually fetching their connected `person` object, this can be done as
+
+```javascript
+//set an instance of person Object for Jane 
+var jane = new Appacitive.Object({ __id : '123345456', __type : 'person');
+
+//call fetchConnectedObjects with all options that're supported by queries syntax
+// we'll cover queries in dept in next section
+var query = jane.getConnections({
+  relation: 'invite', //mandatory
+  label: 'invitee', //mandatory
+  filter: Appacitive.Filter.Property('attending').equalTo(true)
+});
+
+query.fetch().then(function(invites) {
+  //invites is an array of connections
+  console.log(invites);
+});
+```
+
+In this query, you provide a relation type (name) and a label of opposite side whose conenction you want to fetch and what is returned is a list of all the connections for above object. 
+
+#### Get Connection by Endpoint Object Ids
+
+Appacitive also provides a reverse way to fetch a connection  between two objects.
+If you provide two object ids of same or different type types, all connections between those two objects are returned.
+
+Consider you want to check whether `Tarzan` and `Jane` are married, you can do it as
+```javascript
+//'marriage' is the relation between person type
+//and 'husband' and 'wife' are the endpoint labels
+var query = Appacitive.Connection.getBetweenObjectsForRelation({ 
+    relation: "marriage", //mandatory
+    objectAId : "22322", //mandatory 
+    objectBId : "33422", //mandatory
+    label : "wife" //madatory for a relation between same type and differenct labels
+});
+
+query.fetch().then(function(marriage){
+  if(marriage != null) {
+      // connection obj is returned as argument to onsuccess
+      alert('Tarzan and jane are married at location ', marriage.get('location'));
+    } else {
+      alert('Tarzan and jane are not married');
+    }
+});
+
+//For a relation between same type type and differenct endpoint labels
+//'label' parameter becomes mandatory for the get call
+
+```
+
+Conside you want to check that a particular `house` is owned by `Jane`, you can do it by fetching connection for relation `owns_house` between `person` and `house`.
+```javascript
+var query = Appacitive.Connection.getBetweenObjectsForRelation({ 
+    relation: "owns_house", 
+    objectAId : "22322", // person type entity id
+    objectBId : "33422" //house type entity id
+});
+
+query.fetch().then(function(obj) {
+    if(obj != null) {
+      alert('Jane owns this house');
+    } else {
+      alert("Jane doesn't owns this house");
+    }
+});
+```
+
+#### Get all connections between two Object Ids
+
+Consider `jane` is connected to `tarzan` via a `marriage` and a `freind` relationship. If we want to fetch al connections between them we could do this as
+
+```javascript
+var query = Appacitive.Connection.getBetweenObjects({
+  objectAId : "22322", // id of jane
+    objectBId : "33422" // id of tarzan
+});
+
+query.fetch().then(function(connections) {
+  console.log(connections);
+});
+```
+On success, we get a list of all connections that connects `jane` and `tarzan`.
+
+#### Get Interconnections between one and multiple Object Ids
+
+Consider, `jane` wants to what type of connections exists between her and a group of persons and houses , she could do this as
+```javascript
+var query = Appacitive.Connection.getInterconnects({
+  objectAId: '13432',
+    objectBIds: ['32423423', '2342342', '63453425', '345345342']
+});
+
+query.fetch().then(function(connections) {
+  console.log(connections);
+}, function(err) {
+  alert("code:" + err.code + "\nmessage:" + err.message);
+});
+```
+
+This would return all connections with object id 13432 on one side and '32423423', '2342342', '63453425' or '345345342' on the other side, if they exist.
+
+### Updating
+
+
+Updating is done exactly in the same way as entities, i.e. via the `save()` method. 
+
+*Important*: Updating the endpoints (the `__endpointa` and the `__endpointb` property) will not have any effect and will fail the call. In case you need to change the connected entities, you need to delete the connection and create a new one. 
+```javascript
+marriage.set('location', 'Las Vegas');
+
+marriage.save().then(function(obj) {
+    alert('saved successfully!');
+});
+```
+As before, do not modify the `__id` property.
+
+ 
+### Deleting
+
+Deleting is provided via the `del` method.
+```javascript
+marriage.destroy().then(function() {
+  alert('Tarzan and Jane are no longer married.');
+});
+
+
+// Multiple coonection can also be deleted at a time. Here's an example
+Appacitive.Object.multiDelete({   
+  relation: 'freinds', //name of relation
+  ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of connection ids to delete
+}).then(function() { 
+  //successfully deleted all connections
+});
+```
+
+----------
+
+## Queries
+
+All searching in SDK is done via `Appacitive.Queries` object. You can retrieve many objects at once, put conditions on the objects you wish to retrieve, and more.
+
+```javascript
+
+var filter = Appacitive.Filter.Property("firstname").equalTo("John");
+
+var query = new Appacitive.Queries.FindAllQuery(
+  type: 'player', //mandatory 
+  //or relation: 'freinds'
+  fields: [*],      //optional: returns all user fields only
+  filter: filter,   //optional  
+  pageNumber: 1 ,   //optional: default is 1
+  pageSize: 20,     //optional: default is 50
+  orderBy: '__id',  //optional: default is by relevance
+  isAscending: false  //optional: default is false
+}); 
+
+// success callback
+var successHandler = function(players) {
+  //`players` is `PagedList` of `Object`
+
+  console.log(players.total); //total records for query
+  console.log(players.pageNumber); //pageNumber for this set of records
+  console.log(players.pageSize); //pageSize for this set of records
+
+  // fetching other left players
+  if (!players.isLastPage) {
+    // if this is not the last page then fetch further records 
+    query.fetchNext(successHandler);
+  }
+};
+
+// make a call
+query.fetch().then(successHandler);
+
+```
+
+Go ahead and explore the query returned. The query contains a private object which is an instance of the `Appacitive.HttpRequest` class which we'll disccus ahead . This request gets transformed into an actual ajax request and does the fetching. In case you are interested in the actual rest endpoints, fire the `toRequest` method on the query. This will return a representation of the http request.
+
+### Modifiers
+
+Notice the `pageSize`, `pageNumber`, `orderBy`, `isAscending`, `filter`, `fields`  and `freeText` in the query? These're the options that you can specify in a query. Lets get to those.
+
+#### Pagination
+
+All queries on the Appacitive platform support pagination and sorting. To specify pagination and sorting on your queries, you need to access the query from within the collection and set these parameters.
+
+```javascript
+var query = new Appacitive.Queries.FindAllQuery({ 
+  type: 'person' // or relation: 'freinds'
+});
+
+//set pageSize
+query.pageSize(30);
+//get pageSize
+alert(query.pageSize()); // will print 30
+
+//set pageNumber
+query.pageNumber(2);
+//get pageNumber
+alert(query.pageNumber()); // will print 2
+
+
+people.fetch().then(function() {
+    // this is the 2nd page of results
+    // where each page is 10 results long
+});
+```
+**Note**: By default, pageNumber is 1 and pageSize is 50
+
+#### Sorting
+
+Queries can be sorted similarly. Lets take the same example from above:
+```javascript
+var query = people.query();
+
+//set orderBy to specify the field on which you want to sort
+query.orderBy('name');
+//get orderBy
+alert(query.orderBy()); //will print name
+
+//set whether sortOrder is ascending or not 
+query.isAscending(true);
+//get orderBy
+alert(query.isAscending()); // will print true
+```
+
+#### Fields
+
+You can also mention exactly which all fields you want returned in query results. 
+
+Fields `__id` and `__type`/`__relationtype`  are the fields which will always be returned. 
+```javascript
+//set fields
+query.fields(["name", "age", "__createby"]); //will set fields to return __id, __type, name, age and __createdby
+
+query.fields([]); //will set fields to return only __id and __type
+query.fields([*]); //will set fields to return all user-defined properties and __id and __type
+```
+**Note**: By default fields is set as empty, so it returns all fields.
+
+#### Filter
+
+Filters are useful for limiting or funneling your results. They can be added on properties, attributes, aggregates and tags.
+
+Adding filters in a query is done using the `Appacitive.Filter` object, which has following functions to initialize a new filter.
+
+```javascript
+Appacitive.Filter.Property
+Appacitive.Filter.Attribute
+Appacitive.Filter.Aggregate
+Appacitive.Filter.TaggedWithOneOrMore
+Appacitive.Filter.TaggedWithAll
+Appacitive.Filter.Or
+Appacitive.Filter.And
+```
+
+Lets first discuss how to use **Appacitive.Filter.Property**, **Appacitive.Filter.Attribute** and **Appacitive.Filter.Aggregate**. 
+
+All of these take one argument, which is either the property or the attribute or the aggregate name on which you want to filter
+
+```javascript
+var name = new Appacitive.Filter.Property('name');
+var nickName = new Appacitive.Filter.Attribute('nickname');
+var count = new Appacitive.Filter.Aggregate('count');
+```
+
+In response it returns you an expression object, which has all the conditional methods that can be applied for respective property/ attribute/aggregate. 
+
+Most of these methods other than
+
+```javascript
+var nameFilter = name.equalTo('jane'); // exact match
+var nickNameFilter = nickName.like('an'); // like match
+var countFilter = count.lessThan(20); // less than search
+```
+
+This returns you a filter object, which can be directly assigned to query
+```javascript
+query.filter(nameFilter);
+query.filter(nickNameFilter);
+query.filter(countFilter);
+
+//you can also set it as
+query.filter(new Appacitive.Filter.Property('name').equalTo('name'));
+```
+
+**List of all filters and their support**
+
+| Filter        | Property         | Attribute  | Aggregate |
+| ------------- |:-----:| :-----:|:-----:|
+| equalTo      | Y | Y | Y |
+| equalToDate      | Y | - | - |
+| equalToTime      | Y | - | - |
+| equalToDateTime      | Y | - | - |
+| greaterThan      | Y | - | Y |
+| greaterThanDate      | Y | - | - |
+| greaterThanTime      | Y | - | - |
+| greaterThanDateTime      | Y | - | - |
+| greaterThanEqualTo      | Y | - | Y |
+| greaterThanEqualToDate      | Y | - | - |
+| greaterThanEqualToTime      | Y | - | - |
+| greaterThanEqualToDateTime      | Y | - | N |
+| lessThan      | Y | N | Y |
+| lessThanDate      | Y | N | N |
+| lessThanTime      | Y | N | N |
+| lessThanDateTime      | Y | N | N |
+| lessThanEqualTo      | Y | N | Y |
+| lessThanEqualToDate      | Y | N | N |
+| lessThanEqualToTime      | Y | N | N |
+| lessThanEqualToDateTime      | Y | N | N |
+| between      | Y | Y | Y |
+| betweenDate      | Y | - | - |
+| betweenTime      | Y | - | - |
+| betweenDateTime      | Y | - | - |
+| like      | Y | Y | N |
+| startsWith      | Y | Y | N |
+| endsWith      | Y | Y | N |
+| contains      | Y | Y | N |
+
+```javascript
+//First name like "oh"
+var likeFilter = Appacitive.Filter.Property("firstname").like("oh");
+
+//First name starts with "jo"
+var startsWithFilter = Appacitive.Filter.Property("firstname").startsWith("jo");
+
+//First name ends with "oe"
+var endsWithFilter = Appacitive.Filter.Property("firstname").endsWith("oe");
+
+//First name matching several different values
+var containsFilter = Appacitive.Filter.Property("firstname").contains(["John", "Jane", "Tarzan"]);
+
+//Between two dates
+var start = new Date("12 Dec 1975");
+var end = new Date("12 Jun 1995");
+var betweenDatesFilter = Appacitive.Filter.Property("birthdate").betweenDate(start, end);
+
+//Between two datetime objects
+var betweenDateTimeFilter = Appacitive.Filter.Property("__utclastupdateddate").betweenDateTime(start, end);
+
+//Between some time
+var betweenTimeFilter = Appacitive.Filter.Property("birthtime").betweenTime(start, end);
+
+//Between some two numbers
+var betweenFilter = Appacitive.Filter.Property("age").between(23, 70);
+
+//Greater than a date
+var date = new Date("12 Dec 1975");
+var greaterThanDateFilter = Appacitive.Filter.Property("birthdate").greaterThanDate(date);
+
+//Greater than a datetime
+var greaterThanDateTimeFilter = Appacitive.Filter.Property("birthdate").greaterThanDateTime(date);
+
+//Greater than a time
+var greaterThanTimeFilter = Appacitive.Filter.Property("birthtime").greaterThanTime(date);
+
+//greater then some number 
+var greaterThanFilter = Appacitive.Filter.Property("age").greaterThan(25);
+
+//Same works for greaterThanEqualTo, greaterThanEqualToDate, greaterThanEqualToDateTime and greaterThanEqualToTime
+//and for lessThan, lessThanDate, lessThanDateTime and lessThanTime
+//and for lessThanEqualTo, lessThanEqualToDate, lessThanEqualToDateTime and lessThanEqualToTime
+// and for equalTo, equalToDate, equalToDateTime, equalToTime
+```
+
+#### Geolocation
+
+You can specify a property type as a geography type for a given type or relation. These properties are essential latitude-longitude pairs. Such properties support geo queries based on a user defined radial or polygonal region on the map. These are extremely useful for making map based or location based searches. E.g., searching for a list of all restaurants within 20 miles of a given users locations.
+
+##### Radial Search
+
+A radial search allows you to search for all records of a specific type which contain a geocode which lies within a predefined distance from a point on the map. A radial search requires the following parameters.
+
+```javascript
+//create Appacitive.GeoCoord object
+var center = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
+
+//create filter
+var radialFilter = Appacitive.Filter.Property('location').withinCircle(center, 10, 'km');
+
+//create query object
+var query = new Appacitive.Queries.FindAllQuery({
+  type: 'hotel',
+  filter: radialFilter
+});
+
+//or set it in an existing query
+query.filter(radialFilter);
+
+query.fetch();
+```
+
+##### Polygon Search
+
+A polygon search is a more generic form of geographcal search. It allows you to specify a polygonal region on the map via a set of geocodes indicating the vertices of the polygon. The search will allow you to query for all data of a specific type that lies within the given polygon. This is typically useful when you want finer grained control on the shape of the region to search.
+
+```javascript
+//create Appacitive.GeoCoord objects
+var pt1 = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
+var pt2 = new Appacitive.GeoCoord(34.1749687195, -116.1372222900);
+var pt3 = new Appacitive.GeoCoord(35.1749687195, -114.1372222900);
+var pt4 = new Appacitive.GeoCoord(36.1749687195, -114.1372222900);
+var geocodes = [ pt1, pt2, pt3, pt4 ];
+
+//create polygon filter
+var polygonFilter = Appacitive.Filter.Property("location")
+                                         .withinPolygon(geocodes);
+
+
+//create query object
+var query = new Appacitive.Queries.FindAllQuery({
+  type: 'hotel',
+  filter: polygonFilter
+});
+
+//or set it in an existing query
+query.filter(polygonFilter);
+
+//call fetch
+query.fetch();
+```
+
+#### Tag Based Searches
+
+The Appacitive platform provides inbuilt support for tagging on all data (objects, connections, users and devices). You can use this tag information to query for a specific data set. The different options available for searching based on tags is detailed in the sections below.
+
+##### Query data tagged with one or more of the given tags
+
+For data of a given type, you can query for all records that are tagged with one or more tags from a given list. For example - querying for all objects of type message that are tagged as personal or private.
+
+```javascript
+//create the filter 
+//accepts an array of tags
+var tagFilter = Appacitive.Filter
+                      .taggedWithOneOrMore(["personal", "private"]);
+
+//create the query
+var query = new Appacitvie.Filter.FindAllQuery({
+  type: 'message',
+  filter: tagFilter
+});
+
+//or set it in an existing query
+query.filter(tagFilter);
+
+//call fetch
+query.fetch();
+```
+
+##### Query data tagged with all of the given tags
+
+An alternative variation of the above tag based search allows you to query for all records that are tagged with all the tags from a given list. For example, querying for all objects of type message that are tagged as personal AND private.
+
+```javascript
+//create the filter 
+//accepts an array of tags
+var tagFilter = Appacitive.Filter
+                          .taggedWithAll(["personal", "test"]);
+
+//create the query
+var query = new Appacitvie.Filter.FindAllQuery({
+  type: 'message',
+  filter: tagFilter
+});
+
+//or set it in an existing query
+query.filter(tagFilter);
+
+//call fetch
+query.fetch();
+```
+
+#### Composite Filters
+
+Compound queries allow you to combine multiple queries into one single query. The multiple queries can be combined using `Appacitive.Filter.Or` and `Appacitive.Filter.And` operators. NOTE: All types of queries with the exception of free text queries can be combined into a compound query.
+
+```javascript
+//Use of `And` and `Or` operators
+var center = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
+
+//AND query
+var complexFilter = 
+      Appacitive.Filter.And(
+          //OR query
+          Appacitive.Filter.Or( 
+             Appacitive.Filter.Property("firstname").startsWith("jo"),
+             Appacitive.Filter.Property("lastname").like("oe")
+          ),
+          Appacitive.Filter.Property("location")
+              .withinCircle(center, 
+                      10, 
+                      'mi') // can be set to 'km' or 'mi'
+      );
+
+//Or you can do it as
+
+var complexFilter = Appacitive.Filter.Property("firstname").startsWith("jo")
+          .Or(Appacitive.Filter.Property("lastname").like("oe"))
+          .And(Appacitive.Filter.Property("location")
+                      .withinCircle(center, 10, 'mi')) // can be set to 'km' or 'mi'
+          
+
+//create query object
+var query = new Appacitive.Queries.FindAllQuery({
+  type: 'player'
+});
+
+//set filter in query
+query.filter(complexFilter);
+
+//add more filters
+query.filter(query.filter.And( Appacitive.Filter.Property('gender').equalTo('male')));
+
+//fire the query
+query.fetch();
+
+```
+
+#### FreeText
+
+There are situations when you would want the ability to search across all text content inside your data. Free text queries are ideal for implementing this kind of functionality. As an example, consider a free text lookup for users which searches across the username, firstname, lastname, profile description etc.You can pass multiple values inside a free text search. It also supports passing certain modifiers that allow you to control how each search term should be used. This is detailed below.
+
+```javascript
+//create the query
+var query = new Appacitvie.Filter.FindAllQuery({
+  type: 'message',
+  freeText: 'champs palais'
+});
+
+//or set it in the query
+query.freeText('champs palais');
+
+//call fetch
+query.fetch();
+```
+
+### Counts
+
+You can always count the number of records for a search, instead of retreiving all records
+
+```javascript
+var query = new Appacitvie.Filter.FindAllQuery({
+  type: 'message',
+  freeText: 'champs palais'
+});
+
+query.count().then(function(noOfRecords) {
+  //There're noOfRecords for above query
+});
+```
+
+----------
+
+## Graph Search
+
+Graph queries offer immense potential when it comes to traversing and mining for connected data. There are two kinds of graph queries, filter and projection.
+
+### Creating graph queries
+
+You can create filter and projection graph queries from the management portal. When you create such queries from the portal, you are required to assign a unique name with every saved search query. You can then use this name to execute the query from your app by making the appropriate api call to Appacitive.
+
+### Executing Filter graph queries
+
+You can execute a saved graph query (filter or projection) by using it’s name that you assigned to it while creating it from the management portal. You will need to send any placeholders you might have set up while creating the query as a list of key-value pairs in the body of the request. Note that graph queries are HTTP POST calls.
+
+```javascript
+
+// Name of graph filter query
+var filterQueryName = "sample_filter";  
+
+// any placeholders if provided : optional
+var placeholderFillers = { key1: "value1", key2: "value2" };
+
+// create a query of filter type and provide it with name and placeholders
+var query = new Appacitive.Queries.GraphFilterQuery(filterQueryName, placeholderFillers);
+
+// call fetch
+query.fetch().then(function(ids) {
+  console.log(ids.length + " found");
+}, function(status) {
+  console.log("Error running filter query");
+});
+```
+
+### Executing projection graph queries
+
+Executing saved projection queries works the same way as executing saved filter queries. The only difference is that you also need to pass the initial ids as an array of strings to feed the projection query. The response to a projection query will depend on how you design your projection query. Do test them out using the query builder from the query tab on the management portal and from the test harness.
+
+```javascript
+
+// Name of graph projection query
+var projectQueryName = "sample_filter";
+
+//an array of ids of root article : mandatory
+var rootIds = ["34912447775245454", "34322447235528474", "34943243891025029"];
+
+// any placeholders if provided : optional
+var placeholderFillers = { key1: "value1", key2: "value2" };
+
+var query = new Appacitive.Queries.GraphProjectQuery(projectQueryName, rootIds, placeholderFillers);
+
+query.fetch().then(function(results) {
+  /* results object contains list of objects for provided ids
+     Each object contains a children property
+     Children contains array of objects 
+     of specified child elements in query
+     eg: */ 
+
+  console.log("This id '" + results[0].id() + "' has " 
+       + results[0].children["freinds"].length) + " freinds and owns "
+       + results[0].children["owns"].length) + " houses");
+}, function(status) {
+  console.log("Error running project query");
+});
+```
+-----------
+
 ## User Management
 
 Users represent your app's users. There is a host of different functions/features available in the SDK to make managing users easier. The `Appacitive.Users` module deals with user management.
@@ -412,7 +1228,7 @@ Appacitive.Facebook.requestLogin().then(function(fbResponse) {
   console.log('Facebook login successfull with access token: ' + Appacitive.Facebook.accessToken());
   
   // signup with Appacitive
-  return Appacitive.Users.loginWithFacebook(Appacitive.Facebook.accessToken());
+  return Appacitive.Users.signupWithFacebook(Appacitive.Facebook.accessToken());
 
 }).then(function (authResult) {
   // user has been successfully signed up and set as current user
@@ -443,7 +1259,7 @@ The success callback is given one argument: `authresult`
 * The `token` field is the user token. This is similar to the session token, but instead of authenticating the app with the server, it authenticates the logged in user with the app. More on this later, in the authentication section.
 * The `user` field is the Appacitive User object. The data that exists in the user field got pulled from facebook when he/she logged in. Note: <span style="font-weight: bold">The user must agree to share his/her  email address with your app to be able to use facebook to signup/login.</span>
 
-**Note :** For nodejs you just need to set the `Appacitive.Facebook.accessToken()` value, and call Appacitive.Users.loginWithFacebook with the token.
+**Note :** For nodejs you just need to set the `Appacitive.Facebook.accessToken()` value, and call Appacitive.Users.signupWithFacebook with the token.
 
 ### Retrieve
 
@@ -865,338 +1681,6 @@ Appacitive.Users.current().checkin(new Appacitive.GeoCoord(18.57, 75.55)).then(f
 
 ----------
 
-## Connections
-
-All data that resides in the Appacitive platform is relational, like in the real world. This means you can do operations like fetching all games that any particular player has played, adding a new player to a team or disbanding a team whilst still keeping the other teams and their `players` data perfectly intact.
-
-Two entities can be connected via a relation, for example two entites of type `person` might be connected via a relation `friend` or `enemy` and so on. An entity of type `person` might be connected to an entity of type `house` via a relation `owns`. Still here? OK, lets carry on.
-
-One more thing to grok is the concept of labels. Consider an entity of type `person`. This entity is connected to another `person` via relation `marriage`. Within the context of the relation `marriage`, one person is the `husband` and the other is the `wife`. Similarly the same entity can be connected to an entity of type `house` via the relation `owns_house`. In context of this relation, the entity of type `person` can be referred to as the `owner`. 
-
-`Wife`, `husband` and `owner` from the previous example are `labels`. Labels are used within the scope of a relation to give contextual meaning to the entities involved in that relation. They have no meaning or impact outside of the relation.
-
-As with entities (objects), relations are also contained in collections.
-
-Let's jump in!
-
-
-### Creating &amp; Saving
-
-#### New Connection between two existing Objects
-
-Before we go about creating connections, we need two entities. Consider the following
-
-```javascript
-var  tarzan = new Appacitive.Object({ __type:'person', name: 'Tarzan' })
-    , jane =  new Appacitive.Object({ __type:'person', name: 'Jane' });
-
-// save the entites tarzan and jane
-// ...
-// ...
-
-// initialize and set up a connection
-var marriage = new Appacitive.Connection({ 
-  relation: 'marriage',
-  endpoints: [{
-      object: tarzan,  //mandatory
-      label: 'husband'  //mandatory
-  }, {
-      object: jane,  //mandatory
-      label: 'wife' //mandatory
-  }],
-  date: '01-01-2010'
-});
-
-// call save
-marriage.save().then(function(obj) {
-    alert('saved successfully!');
-});
-
-```
-
-If you've read the previous guide, most of this should be familiar. What happens in the `Appacitive.Connection` class is that the relation is configured to actually connect the two entities. We initialize with the `__id`s of the two entities and specify which is which for example here, Tarzan is the husband and Jane is the wife. 
-
-In case you are wondering why this is necessary then here is the answer, it allows you to structure queries like 'who is tarzan's wife?' or 'which houses does tarzan own?' and much more. Queries are covered in later guides.
-
-`marriage` is an instance of `Appacitive.Connection`. Similar to an entity, you may call `toJSON` on a connection to get to the underlying object.
-
-#### New Connection between two new Objects
-
-There is another easier way to connect two new entities. You can pass the new entities themselves to the connection while creating it.
-
-```javascript
-var tarzan = new Appacitive.Object({ __type: 'person', name: 'Tarzan' })
-    , jane = new Appacitive.Object({ __type: 'person', name: 'Jane' });
-
-// initialize and sets up a connection
-// This is another way to initialize a connection object without collection
-// You can pass same options in the previous way of creating connection as well
-var marriage = new Appacitive.Connection({ 
-  relation: 'marriage',
-  endpoints: [{
-      object: tarzan,  //mandatory
-      label: 'husband'  //mandatory
-  }, {
-      object: jane,  //mandatory
-      label: 'wife' //mandatory
-  }],
-  date: '01-01-2010'
-});
-
-// call save
-marriage.save().then(function(obj) {
-    alert('saved successfully!');
-});
-
-```
-
-This is the recommended way to do it. In this case, the marriage relation will create the entities tarzan and jane first and then connect them using the relation `marriage`.
-
-Here's the kicker: it doesn't matter whether tarzan and jane have been saved to the server yet. If they've been saved, then they will get connected via the relation 'marriage'. And if both (or one) hasn't been saved yet, when you call `marriage.save()`, the required entities will get connected and stored on the server. So you could create the two entities and connect them via a single `.save()` call, and if you see the two entities will also get reflected with save changes, so your object is synced.
-
-#### Setting Values
-```javascript
-//This works exactly the same as in case of your standard entities.
-marriage.set('date', '01-10-2010');
-```
-
-#### Getting values
-```javascript
-//Again, this is similar to the entities.
-alert(marriage.get('date')) // returns 01-01-2010
-
-//You can also get typed values similar to standard entities.
-alert(marriage.get('date', 'date'));
-
-//and it also supports the tryget similar to standard entities
-alert(marriage.get('date', new Date(), 'date'));
-```
-
-### Retrieving
-
-#### Get Connection by Id
-
-```javascript
-Appacitive.Connection.get({
-  relation: 'marriage', //mandatory
-    id: '{{existing__id}}', //mandatory
-    fields: ["name"] //optional
-}).then(function(obj) {
-  alert('Fetched marriage which occured on: ' + obj.get('date'));
-});
-```
-Retrieving can also be done via the `fetch` method. Here's an example
-```javascript
-var marriage = new Appacitive.Connection('marriage');
-
-// set an (existing) id in the object
-marriage.set('__id', '{{existing_id}}');
-
-//set fields to return
-marriage.fields(["date"]);
-
-// retrieve the marriage connection
-marriage.fetch().then(function(obj) {
-    alert('Fetched marriage which occured on: ' + marriage.get('date'));
-});
-```
-The marriage object is similar to the object, except you get two new fields viz. endpointA and endpointB which contain the id and label of the two entities that this object connects.
-
-```javascript
-//marriage.endpointA
-{label: "husband", type: "person", objectid: "35097613532529604"}
-
-//marriage.endpointB
-{label: "wife", type: "person", objectid: "435097612324235325"}
-
-//marriage.enpoints()
-[
-  {label: "husband", type: "person", objectid: "35097613532529604"},
-  {label: "wife", type: "person", objectid: "435097612324235325"}
-]
-```
-
-#### Get Connected Objects
-
-Consider `Jane` has a lot of freinds whom she wants to invite to her marriage. She can simply get all her freinds who're of type `person` connected with `Jane` through a relation `freinds` with label for jane as `me` and freinds as `freind` using this search
-
-```javascript
-//Get an instance of person Object for Jane 
-var jane = new Appacitive.Object({ __id : '123345456', __type : 'person');
-
-//call fetchConnectedObjects with all options that're supported by queries syntax
-// we'll cover queries in next section
-var query = jane.fetchConnectedObjects({ 
-  relation : 'freinds', //mandatory
-  returnEdge: true, // set to false to stop returning connection
-    label: 'freind' //mandatory for a relation between same type and different labels
-});
-
-query.fetch().then(function(results) {
-  console.log(jane.children["freinds"]);
-});
-
-```
-On success, `jane` object is populated with a freind property in its `children`. So, `jane.children.freinds` will give you a list of all freinds of `Appacitive.Object` type.
-These objects also contain a connection property which consists of its link properties with `jane`.
-
-```javascript
-// list of all connected objects to jane
-jane.children.freinds
-
-//connection connecting jane to each object
-jane.children.freinds[0].connection
-```
-
-In this query, you provide a relation type (name) and a label if both endpoints are of same type and what is returned is a list of all the objects connected to above object. 
-
-Such queries come helpful in a situation where you want to know all the interactions of a specific kind for of a particular object in the system.
-
-#### Get all Connections for an Endpoint Object Id
-
-Scenarios where you may need to just get all connections of a particular relation for an objectId, this query comes to rescue.
-
-Consider `Jane` is connected to some objects of type `person` via `invite` relationship, that also contains a `bool` property viz. `attending`,  which is false by default and will be set to true if that person is attending marriage.
-
-Now she wants to know who all are attending her marriage without actually fetching their connected `person` object, this can be done as
-
-```javascript
-//set an instance of person Object for Jane 
-var jane = new Appacitive.Object({ __id : '123345456', __type : 'person');
-
-//call fetchConnectedObjects with all options that're supported by queries syntax
-// we'll cover queries in dept in next section
-var query = jane.getConnections({
-  relation: 'invite', //mandatory
-  label: 'invitee', //mandatory
-  filter: Appacitive.Filter.Property('attending').equalTo(true)
-});
-
-query.fetch().then(function(invites) {
-  //invites is an array of connections
-  console.log(invites);
-});
-```
-
-In this query, you provide a relation type (name) and a label of opposite side whose conenction you want to fetch and what is returned is a list of all the connections for above object. 
-
-#### Get Connection by Endpoint Object Ids
-
-Appacitive also provides a reverse way to fetch a connection  between two objects.
-If you provide two object ids of same or different type types, all connections between those two objects are returned.
-
-Consider you want to check whether `Tarzan` and `Jane` are married, you can do it as
-```javascript
-//'marriage' is the relation between person type
-//and 'husband' and 'wife' are the endpoint labels
-var query = Appacitive.Connection.getBetweenObjectsForRelation({ 
-    relation: "marriage", //mandatory
-    objectAId : "22322", //mandatory 
-    objectBId : "33422", //mandatory
-    label : "wife" //madatory for a relation between same type and differenct labels
-});
-
-query.fetch().then(function(marriage){
-  if(marriage != null) {
-      // connection obj is returned as argument to onsuccess
-      alert('Tarzan and jane are married at location ', marriage.get('location'));
-    } else {
-      alert('Tarzan and jane are not married');
-    }
-});
-
-//For a relation between same type type and differenct endpoint labels
-//'label' parameter becomes mandatory for the get call
-
-```
-
-Conside you want to check that a particular `house` is owned by `Jane`, you can do it by fetching connection for relation `owns_house` between `person` and `house`.
-```javascript
-var query = Appacitive.Connection.getBetweenObjectsForRelation({ 
-    relation: "owns_house", 
-    objectAId : "22322", // person type entity id
-    objectBId : "33422" //house type entity id
-});
-
-query.fetch().then(function(obj) {
-    if(obj != null) {
-      alert('Jane owns this house');
-    } else {
-      alert("Jane doesn't owns this house");
-    }
-});
-```
-
-#### Get all connections between two Object Ids
-
-Consider `jane` is connected to `tarzan` via a `marriage` and a `freind` relationship. If we want to fetch al connections between them we could do this as
-
-```javascript
-var query = Appacitive.Connection.getBetweenObjects({
-  objectAId : "22322", // id of jane
-    objectBId : "33422" // id of tarzan
-});
-
-query.fetch().then(function(connections) {
-  console.log(connections);
-});
-```
-On success, we get a list of all connections that connects `jane` and `tarzan`.
-
-#### Get Interconnections between one and multiple Object Ids
-
-Consider, `jane` wants to what type of connections exists between her and a group of persons and houses , she could do this as
-```javascript
-var query = Appacitive.Connection.getInterconnects({
-  objectAId: '13432',
-    objectBIds: ['32423423', '2342342', '63453425', '345345342']
-});
-
-query.fetch().then(function(connections) {
-  console.log(connections);
-}, function(err) {
-  alert("code:" + err.code + "\nmessage:" + err.message);
-});
-```
-
-This would return all connections with object id 13432 on one side and '32423423', '2342342', '63453425' or '345345342' on the other side, if they exist.
-
-### Updating
-
-
-Updating is done exactly in the same way as entities, i.e. via the `save()` method. 
-
-*Important*: Updating the endpoints (the `__endpointa` and the `__endpointb` property) will not have any effect and will fail the call. In case you need to change the connected entities, you need to delete the connection and create a new one. 
-```javascript
-marriage.set('location', 'Las Vegas');
-
-marriage.save().then(function(obj) {
-    alert('saved successfully!');
-});
-```
-As before, do not modify the `__id` property.
-
- 
-### Deleting
-
-Deleting is provided via the `del` method.
-```javascript
-marriage.destroy().then(function() {
-  alert('Tarzan and Jane are no longer married.');
-});
-
-
-// Multiple coonection can also be deleted at a time. Here's an example
-Appacitive.Object.multiDelete({   
-  relation: 'freinds', //name of relation
-  ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of connection ids to delete
-}).then(function() { 
-  //successfully deleted all connections
-});
-```
-
-----------
-
 ## Emails
 
 ### Configuring
@@ -1572,421 +2056,5 @@ var file = new Appacitive.File({
 file.getDownloadUrl().then(function(url) {
     alert("Download url:" + url);
     $("#imgUpload").attr('src',file.url);
-});
-```
-
-----------
-
-## Queries
-
-All searching in SDK is done via `Appacitive.Queries` object. You can retrieve many objects at once, put conditions on the objects you wish to retrieve, and more.
-
-```javascript
-
-var filter = Appacitive.Filter.Property("firstname").equalTo("John");
-
-var query = new Appacitive.Queries.FindAllQuery(
-  type: 'player', //mandatory 
-  //or relation: 'freinds'
-  fields: [*],      //optional: returns all user fields only
-  filter: filter,   //optional  
-  pageNumber: 1 ,   //optional: default is 1
-  pageSize: 20,     //optional: default is 50
-  orderBy: '__id',  //optional: default is by relevance
-  isAscending: false  //optional: default is false
-}); 
-
-// success callback
-var successHandler = function(players) {
-  //`players` is `PagedList` of `Object`
-
-  console.log(players.total); //total records for query
-  console.log(players.pageNumber); //pageNumber for this set of records
-  console.log(players.pageSize); //pageSize for this set of records
-
-  // fetching other left players
-  if (!players.isLastPage) {
-    // if this is not the last page then fetch further records 
-    query.fetchNext(successHandler);
-  }
-};
-
-// make a call
-query.fetch().then(successHandler);
-
-```
-
-Go ahead and explore the query returned. The query contains a private object which is an instance of the `Appacitive.HttpRequest` class which we'll disccus ahead . This request gets transformed into an actual ajax request and does the fetching. In case you are interested in the actual rest endpoints, fire the `toRequest` method on the query. This will return a representation of the http request.
-
-### Modifiers
-
-Notice the `pageSize`, `pageNumber`, `orderBy`, `isAscending`, `filter`, `fields`  and `freeText` in the query? These're the options that you can specify in a query. Lets get to those.
-
-#### Pagination
-
-All queries on the Appacitive platform support pagination and sorting. To specify pagination and sorting on your queries, you need to access the query from within the collection and set these parameters.
-
-```javascript
-var query = new Appacitive.Queries.FindAllQuery({ 
-  type: 'person' // or relation: 'freinds'
-});
-
-//set pageSize
-query.pageSize(30);
-//get pageSize
-alert(query.pageSize()); // will print 30
-
-//set pageNumber
-query.pageNumber(2);
-//get pageNumber
-alert(query.pageNumber()); // will print 2
-
-
-people.fetch().then(function() {
-    // this is the 2nd page of results
-    // where each page is 10 results long
-});
-```
-**Note**: By default, pageNumber is 1 and pageSize is 50
-
-#### Sorting
-
-Queries can be sorted similarly. Lets take the same example from above:
-```javascript
-var query = people.query();
-
-//set orderBy to specify the field on which you want to sort
-query.orderBy('name');
-//get orderBy
-alert(query.orderBy()); //will print name
-
-//set whether sortOrder is ascending or not 
-query.isAscending(true);
-//get orderBy
-alert(query.isAscending()); // will print true
-```
-
-#### Fields
-
-You can also mention exactly which all fields you want returned in query results. 
-
-Fields `__id` and `__type`/`__relationtype`  are the fields which will always be returned. 
-```javascript
-//set fields
-query.fields(["name", "age", "__createby"]); //will set fields to return __id, __type, name, age and __createdby
-
-query.fields([]); //will set fields to return only __id and __type
-query.fields([*]); //will set fields to return all user-defined properties and __id and __type
-```
-**Note**: By default fields is set as empty, so it returns all fields.
-
-#### Filter
-
-Filters are useful for limiting or funneling your results. They can be added on properties, attributes, aggregates and tags.
-
-Adding filters in a query is done using the `Appacitive.Filter` object, which has following functions to initialize a new filter.
-
-```javascript
-Appacitive.Filter.Property
-Appacitive.Filter.Attribute
-Appacitive.Filter.Aggregate
-Appacitive.Filter.TaggedWithOneOrMore
-Appacitive.Filter.TaggedWithAll
-Appacitive.Filter.Or
-Appacitive.Filter.And
-```
-
-Lets first discuss how to use **Appacitive.Filter.Property**, **Appacitive.Filter.Attribute** and **Appacitive.Filter.Aggregate**. 
-
-All of these take one argument, which is either the property or the attribute or the aggregate name on which you want to filter
-
-```javascript
-var name = new Appacitive.Filter.Property('name');
-var nickName = new Appacitive.Filter.Attribute('nickname');
-var count = new Appacitive.Filter.Aggregate('count');
-```
-
-In response it returns you an expression object, which has all the conditional methods that can be applied for respective property/ attribute/aggregate. 
-
-Most of these methods other than
-
-```javascript
-var nameFilter = name.equalTo('jane'); // exact match
-var nickNameFilter = nickName.like('an'); // like match
-var countFilter = count.lessThan(20); // less than search
-```
-
-This returns you a filter object, which can be directly assigned to query
-```javascript
-query.filter(nameFilter);
-query.filter(nickNameFilter);
-query.filter(countFilter);
-
-//you can also set it as
-query.filter(new Appacitive.Filter.Property('name').equalTo('name'));
-```
-
-**List of all filters and their support**
-
-| Filter        | Property         | Attribute  | Aggregate |
-| ------------- |:-----:| :-----:|:-----:|
-| equalTo      | Y | Y | Y |
-| equalToDate      | Y | - | - |
-| equalToTime      | Y | - | - |
-| equalToDateTime      | Y | - | - |
-| greaterThan      | Y | - | Y |
-| greaterThanDate      | Y | - | - |
-| greaterThanTime      | Y | - | - |
-| greaterThanDateTime      | Y | - | - |
-| greaterThanEqualTo      | Y | - | Y |
-| greaterThanEqualToDate      | Y | - | - |
-| greaterThanEqualToTime      | Y | - | - |
-| greaterThanEqualToDateTime      | Y | - | N |
-| lessThan      | Y | N | Y |
-| lessThanDate      | Y | N | N |
-| lessThanTime      | Y | N | N |
-| lessThanDateTime      | Y | N | N |
-| lessThanEqualTo      | Y | N | Y |
-| lessThanEqualToDate      | Y | N | N |
-| lessThanEqualToTime      | Y | N | N |
-| lessThanEqualToDateTime      | Y | N | N |
-| between      | Y | Y | Y |
-| betweenDate      | Y | - | - |
-| betweenTime      | Y | - | - |
-| betweenDateTime      | Y | - | - |
-| like      | Y | Y | N |
-| startsWith      | Y | Y | N |
-| endsWith      | Y | Y | N |
-| contains      | Y | Y | N |
-
-```javascript
-//First name like "oh"
-var likeFilter = Appacitive.Filter.Property("firstname").like("oh");
-
-//First name starts with "jo"
-var startsWithFilter = Appacitive.Filter.Property("firstname").startsWith("jo");
-
-//First name ends with "oe"
-var endsWithFilter = Appacitive.Filter.Property("firstname").endsWith("oe");
-
-//First name matching several different values
-var containsFilter = Appacitive.Filter.Property("firstname").contains(["John", "Jane", "Tarzan"]);
-
-//Between two dates
-var start = new Date("12 Dec 1975");
-var end = new Date("12 Jun 1995");
-var betweenDatesFilter = Appacitive.Filter.Property("birthdate").betweenDate(start, end);
-
-//Between two datetime objects
-var betweenDateTimeFilter = Appacitive.Filter.Property("__utclastupdateddate").betweenDateTime(start, end);
-
-//Between some time
-var betweenTimeFilter = Appacitive.Filter.Property("birthtime").betweenTime(start, end);
-
-//Between some two numbers
-var betweenFilter = Appacitive.Filter.Property("age").between(23, 70);
-
-//Greater than a date
-var date = new Date("12 Dec 1975");
-var greaterThanDateFilter = Appacitive.Filter.Property("birthdate").greaterThanDate(date);
-
-//Greater than a datetime
-var greaterThanDateTimeFilter = Appacitive.Filter.Property("birthdate").greaterThanDateTime(date);
-
-//Greater than a time
-var greaterThanTimeFilter = Appacitive.Filter.Property("birthtime").greaterThanTime(date);
-
-//greater then some number 
-var greaterThanFilter = Appacitive.Filter.Property("age").greaterThan(25);
-
-//Same works for greaterThanEqualTo, greaterThanEqualToDate, greaterThanEqualToDateTime and greaterThanEqualToTime
-//and for lessThan, lessThanDate, lessThanDateTime and lessThanTime
-//and for lessThanEqualTo, lessThanEqualToDate, lessThanEqualToDateTime and lessThanEqualToTime
-// and for equalTo, equalToDate, equalToDateTime, equalToTime
-```
-
-#### Geolocation
-
-You can specify a property type as a geography type for a given type or relation. These properties are essential latitude-longitude pairs. Such properties support geo queries based on a user defined radial or polygonal region on the map. These are extremely useful for making map based or location based searches. E.g., searching for a list of all restaurants within 20 miles of a given users locations.
-
-##### Radial Search
-
-A radial search allows you to search for all records of a specific type which contain a geocode which lies within a predefined distance from a point on the map. A radial search requires the following parameters.
-
-```javascript
-//create Appacitive.GeoCoord object
-var center = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
-
-//create filter
-var radialFilter = Appacitive.Filter.Property('location').withinCircle(center, 10, 'km');
-
-//create query object
-var query = new Appacitive.Queries.FindAllQuery({
-  type: 'hotel',
-  filter: radialFilter
-});
-
-//or set it in an existing query
-query.filter(radialFilter);
-
-query.fetch();
-```
-
-##### Polygon Search
-
-A polygon search is a more generic form of geographcal search. It allows you to specify a polygonal region on the map via a set of geocodes indicating the vertices of the polygon. The search will allow you to query for all data of a specific type that lies within the given polygon. This is typically useful when you want finer grained control on the shape of the region to search.
-
-```javascript
-//create Appacitive.GeoCoord objects
-var pt1 = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
-var pt2 = new Appacitive.GeoCoord(34.1749687195, -116.1372222900);
-var pt3 = new Appacitive.GeoCoord(35.1749687195, -114.1372222900);
-var pt4 = new Appacitive.GeoCoord(36.1749687195, -114.1372222900);
-var geocodes = [ pt1, pt2, pt3, pt4 ];
-
-//create polygon filter
-var polygonFilter = Appacitive.Filter.Property("location")
-                                         .withinPolygon(geocodes);
-
-
-//create query object
-var query = new Appacitive.Queries.FindAllQuery({
-  type: 'hotel',
-  filter: polygonFilter
-});
-
-//or set it in an existing query
-query.filter(polygonFilter);
-
-//call fetch
-query.fetch();
-```
-
-#### Tag Based Searches
-
-The Appacitive platform provides inbuilt support for tagging on all data (objects, connections, users and devices). You can use this tag information to query for a specific data set. The different options available for searching based on tags is detailed in the sections below.
-
-##### Query data tagged with one or more of the given tags
-
-For data of a given type, you can query for all records that are tagged with one or more tags from a given list. For example - querying for all objects of type message that are tagged as personal or private.
-
-```javascript
-//create the filter 
-//accepts an array of tags
-var tagFilter = Appacitive.Filter
-                      .taggedWithOneOrMore(["personal", "private"]);
-
-//create the query
-var query = new Appacitvie.Filter.FindAllQuery({
-  type: 'message',
-  filter: tagFilter
-});
-
-//or set it in an existing query
-query.filter(tagFilter);
-
-//call fetch
-query.fetch();
-```
-
-##### Query data tagged with all of the given tags
-
-An alternative variation of the above tag based search allows you to query for all records that are tagged with all the tags from a given list. For example, querying for all objects of type message that are tagged as personal AND private.
-
-```javascript
-//create the filter 
-//accepts an array of tags
-var tagFilter = Appacitive.Filter
-                          .taggedWithAll(["personal", "test"]);
-
-//create the query
-var query = new Appacitvie.Filter.FindAllQuery({
-  type: 'message',
-  filter: tagFilter
-});
-
-//or set it in an existing query
-query.filter(tagFilter);
-
-//call fetch
-query.fetch();
-```
-
-#### Composite Filters
-
-Compound queries allow you to combine multiple queries into one single query. The multiple queries can be combined using `Appacitive.Filter.Or` and `Appacitive.Filter.And` operators. NOTE: All types of queries with the exception of free text queries can be combined into a compound query.
-
-```javascript
-//Use of `And` and `Or` operators
-var center = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
-
-//AND query
-var complexFilter = 
-      Appacitive.Filter.And(
-          //OR query
-          Appacitive.Filter.Or( 
-             Appacitive.Filter.Property("firstname").startsWith("jo"),
-             Appacitive.Filter.Property("lastname").like("oe")
-          ),
-          Appacitive.Filter.Property("location")
-              .withinCircle(center, 
-                      10, 
-                      'mi') // can be set to 'km' or 'mi'
-      );
-
-//Or you can do it as
-
-var complexFilter = Appacitive.Filter.Property("firstname").startsWith("jo")
-          .Or(Appacitive.Filter.Property("lastname").like("oe"))
-          .And(Appacitive.Filter.Property("location")
-                      .withinCircle(center, 10, 'mi')) // can be set to 'km' or 'mi'
-          
-
-//create query object
-var query = new Appacitive.Queries.FindAllQuery({
-  type: 'player'
-});
-
-//set filter in query
-query.filter(complexFilter);
-
-//add more filters
-query.filter(query.filter.And( Appacitive.Filter.Property('gender').equalTo('male')));
-
-//fire the query
-query.fetch();
-
-```
-
-#### FreeText
-
-There are situations when you would want the ability to search across all text content inside your data. Free text queries are ideal for implementing this kind of functionality. As an example, consider a free text lookup for users which searches across the username, firstname, lastname, profile description etc.You can pass multiple values inside a free text search. It also supports passing certain modifiers that allow you to control how each search term should be used. This is detailed below.
-
-```javascript
-//create the query
-var query = new Appacitvie.Filter.FindAllQuery({
-  type: 'message',
-  freeText: 'champs palais'
-});
-
-//or set it in the query
-query.freeText('champs palais');
-
-//call fetch
-query.fetch();
-```
-
-### Counts
-
-You can always count the number of records for a search, instead of retreiving all records
-
-```javascript
-var query = new Appacitvie.Filter.FindAllQuery({
-  type: 'message',
-  freeText: 'champs palais'
-});
-
-query.count().then(function(noOfRecords) {
-  //There're noOfRecords for above query
 });
 ```

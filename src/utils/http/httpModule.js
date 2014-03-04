@@ -255,6 +255,10 @@ var global = {};
 		if (!request.headers) request.headers = [];
 		var data = {};
 
+		if (!request.onSuccess || !_type.isFunction(request.onSuccess)) request.onSuccess = function() {};
+	    if (!request.onError || !_type.isFunction(request.onError)) request.onError = function() {};
+	    
+
 		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
 		
 		var doNotStringify = true;
@@ -278,9 +282,7 @@ var global = {};
 			}
 		}
 
-		if (!request.onSuccess || !_type.isFunction(request.onSuccess)) request.onSuccess = function() {};
-	    if (!request.onError || !_type.isFunction(request.onError)) request.onError = function() {};
-	    
+		
 	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
@@ -305,7 +307,7 @@ var global = {};
 						} catch(e) {}
 			            promise.fulfill(response, this);
 			        } else {
-			        	promise.reject(this.responseText, this);
+			        	promise.reject(this);
 			        }
 		    	}
 		    };
@@ -390,7 +392,11 @@ var global = {};
 					}
 				},
 				onError: function(xhr) {
-					that.onError(request, xhr);
+					var data = {};
+					data.message = xhr.responseText || 'Bad Request';
+					data.code = xhr.status || '400';
+					
+					that.onError(request, { responseText: JSON.stringify(data) });
 				}
 			});
 		};
@@ -474,7 +480,7 @@ var global = {};
 		        try {
 		          var errorJSON = JSON.parse(response.responseText);
 		          if (errorJSON) {
-		            error = { code: errorJSON.code, error: errorJSON.message };
+		            error = { code: errorJSON.code, message: errorJSON.message };
 		          }
 		        } catch (e) {}
 		    }
