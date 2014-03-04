@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Mar  4 14:50:40 IST 2014
+ * Build time 	: Tue Mar  4 15:15:08 IST 2014
  */
 "use strict";
 
@@ -4256,7 +4256,7 @@ var extend = function(protoProps, staticProps) {
 
 	global.Appacitive.Object._parseResult = _parseObjects;
 
-	global.Appacitive.Object.multiDelete = function(options, callbacks) {
+	global.Appacitive.Object.prototype.multiDelete = global.Appacitive.Object.multiDelete = function(options, callbacks) {
 		options = options || {};
 		if (this.className) options.type = this.className;
 		if (!options.type || !_type.isString(options.type) || options.type.length === 0) throw new Error("Specify valid type");
@@ -4279,8 +4279,8 @@ var extend = function(protoProps, staticProps) {
 	};
 
 
-	//takes relationaname and array of objectids and returns an array of Appacitive object objects
-	global.Appacitive.Object.multiGet = function(options, callbacks) {
+	//takes typename and array of objectids and returns an array of Appacitive object objects
+	global.Appacitive.Object.prototype.multiGet = global.Appacitive.Object.multiGet = function(options, callbacks) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -4304,7 +4304,7 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes object id , type and fields and returns that object
-	global.Appacitive.Object.get = function(options, callbacks) {
+	global.Appacitive.Object.prototype.get = global.Appacitive.Object.get = function(options, callbacks) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -4347,7 +4347,7 @@ var extend = function(protoProps, staticProps) {
 		}
 		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
-	global.Appacitive.Object.find = global.Appacitive.Object.findAll; 
+	global.Appacitive.Object.prototype.find = global.Appacitive.Object.prototype.findAll = global.Appacitive.Object.findAll; 
 
 })(global);
 (function (global) {
@@ -4564,7 +4564,7 @@ var extend = function(protoProps, staticProps) {
 
 	};
 
-	global.Appacitive.Connection.get = function(options, callbacks) {
+	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(options, callbacks) {
 		options = options || {};
 		if (this.className) options.relation = this.className;
 		if (!options.relation) throw new Error("Specify relation");
@@ -4575,7 +4575,7 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
-	global.Appacitive.Connection.multiGet = function(options, callbacks) {
+	global.Appacitive.Connection.prototype.multiGet = global.Appacitive.Connection.multiGet = function(options, callbacks) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -4599,7 +4599,7 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes relationame, and array of connections ids
-	global.Appacitive.Connection.multiDelete = function(options, callbacks) {
+	global.Appacitive.Connection.prototype.multiDelete = global.Appacitive.Connection.multiDelete = function(options, callbacks) {
 		options = options || {};
 		if (this.className) options.relation = this.className;
 		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
@@ -4629,7 +4629,7 @@ var extend = function(protoProps, staticProps) {
 		}
 		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
-	global.Appacitive.Connection.find = global.Appacitive.Connection.findAll;
+	global.Appacitive.Connection.prototype.find = global.Appacitive.Connection.prototype.findAll = global.Appacitive.Connection.findAll;
 
 	//takes 1 objectid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options) {
@@ -4642,7 +4642,7 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes 2 objects and returns connections between them of particluar relationtype
-	global.Appacitive.Connection.getBetweenObjectsForRelation = function(options) {
+	global.Appacitive.Connection.prototype.getBetweenObjectsForRelation = global.Appacitive.Connection.getBetweenObjectsForRelation = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;

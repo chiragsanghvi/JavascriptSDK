@@ -212,7 +212,7 @@
 
 	};
 
-	global.Appacitive.Connection.get = function(options, callbacks) {
+	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(options, callbacks) {
 		options = options || {};
 		if (this.className) options.relation = this.className;
 		if (!options.relation) throw new Error("Specify relation");
@@ -223,7 +223,7 @@
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
-	global.Appacitive.Connection.multiGet = function(options, callbacks) {
+	global.Appacitive.Connection.prototype.multiGet = global.Appacitive.Connection.multiGet = function(options, callbacks) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -247,7 +247,7 @@
 	};
 
 	//takes relationame, and array of connections ids
-	global.Appacitive.Connection.multiDelete = function(options, callbacks) {
+	global.Appacitive.Connection.prototype.multiDelete = global.Appacitive.Connection.multiDelete = function(options, callbacks) {
 		options = options || {};
 		if (this.className) options.relation = this.className;
 		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
@@ -277,7 +277,7 @@
 		}
 		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
-	global.Appacitive.Connection.find = global.Appacitive.Connection.findAll;
+	global.Appacitive.Connection.prototype.find = global.Appacitive.Connection.prototype.findAll = global.Appacitive.Connection.findAll;
 
 	//takes 1 objectid and multiple aricleids and returns connections between both 
 	global.Appacitive.Connection.getInterconnects = function(options) {
@@ -290,7 +290,7 @@
 	};
 
 	//takes 2 objects and returns connections between them of particluar relationtype
-	global.Appacitive.Connection.getBetweenObjectsForRelation = function(options) {
+	global.Appacitive.Connection.prototype.getBetweenObjectsForRelation = global.Appacitive.Connection.getBetweenObjectsForRelation = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
