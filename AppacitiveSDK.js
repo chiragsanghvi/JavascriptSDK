@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Mar  3 13:55:35 IST 2014
+ * Build time 	: Tue Mar  4 12:10:25 IST 2014
  */
 "use strict";
 
@@ -4070,31 +4070,26 @@ Depends on  NOTHING
 
 	"use strict";
 
-	global.Appacitive.Article = function(options, setSnapShot) {
+	global.Appacitive.Object = function(options, setSnapShot) {
 		options = options || {};
 
 		if (_type.isString(options)) {
 			var sName = options;
-			options = { __schematype : sName };
+			options = { __type : sName };
 		}
 
-		if (!options.__schematype && !options.schema ) throw new Error("Cannot set article without __schematype");
-
-		if (options.schema) {
-			options.__schematype = options.schema;
-			delete options.schema;
-		}
+		if (!options.__type) throw new Error("Cannot set object without __type");
 		
 		global.Appacitive.BaseObject.call(this, options, setSnapShot);
 
-		this.type = 'article';
-		this.getArticle = this.getObject;
+		this.type = 'object';
+		this.getObject = this.getObject;
 		this.children = {};
 
 		this.toJSON = function(recursive) {
 			if (recursive) {
 				var parseChildren = function(root) {
-					var articles = [];
+					var objects = [];
 					root.forEach(function(obj) {
 						var tmp = obj.getObject();
 						if (obj.children && !Object.isEmpty(obj.children)) {
@@ -4104,9 +4099,9 @@ Depends on  NOTHING
 							}
 						}
 						if (obj.connection) tmp.__connection = obj.connection.toJSON();
-						articles.push(tmp);
+						objects.push(tmp);
 					});
-					return articles;
+					return objects;
 				};
 				return parseChildren([this])[0];
 			} else {
@@ -4116,33 +4111,33 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Article.prototype = new global.Appacitive.BaseObject();
+	global.Appacitive.Object.prototype = new global.Appacitive.BaseObject();
 
-	global.Appacitive.Article.prototype.constructor = global.Appacitive.Article;
+	global.Appacitive.Object.prototype.constructor = global.Appacitive.Object;
 
-	//private function for parsing articles
-	var _parseArticles = function(articles) {
-		var articleObjects = [];
-		articles.forEach(function(a) {
-			articleObjects.push(new global.Appacitive.Article(a, true));
+	//private function for parsing objects
+	var _parseObjects = function(objects) {
+		var tmpObjects = [];
+		objects.forEach(function(a) {
+			tmpObjects.push(new global.Appacitive.Object(a, true));
 		});
-		return articleObjects;
+		return tmpObjects;
 	};
 
-	global.Appacitive._parseArticles = _parseArticles;
+	global.Appacitive._parseObjects = _parseObjects;
 
-	global.Appacitive.Article.multiDelete = function(options, callbacks) {
+	global.Appacitive.Object.multiDelete = function(options, callbacks) {
 		options = options || {};
-		if (!options.schema || !_type.isString(options.schema) || options.schema.length === 0) throw new Error("Specify valid schema");
-		if (options.schema.toLowerCase() === 'user' || options.schema.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
+		if (!options.type || !_type.isString(options.type) || options.type.length === 0) throw new Error("Specify valid type");
+		if (options.type.toLowerCase() === 'user' || options.type.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
 
 		var request = new global.Appacitive._Request({
 			method: 'POST',
 			data: { idlist : options.ids },
-			type: 'article',
+			type: 'object',
 			op: 'getMultiDeleteUrl',
-			args: [options.schema],
+			args: [options.type],
 			callbacks: callbacks,
 			onSuccess: function(d) {
 				request.promise.fulfill();
@@ -4153,35 +4148,35 @@ Depends on  NOTHING
 	};
 
 
-	//takes relationaname and array of articleids and returns an array of Appacitive article objects
-	global.Appacitive.Article.multiGet = function(options, callbacks) {
+	//takes relationaname and array of objectids and returns an array of Appacitive object objects
+	global.Appacitive.Object.multiGet = function(options, callbacks) {
 		options = options || {};
-		if (!options.schema || !_type.isString(options.schema) || options.schema.length === 0) throw new Error("Specify valid schema");
+		if (!options.type || !_type.isString(options.type) || options.type.length === 0) throw new Error("Specify valid type");
 		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
 
 		var request = new global.Appacitive._Request({
 			method: 'GET',
-			type: 'article',
+			type: 'object',
 			op: 'getMultiGetUrl',
-			args: [options.schema, options.ids.join(','), options.fields],
+			args: [options.type, options.ids.join(','), options.fields],
 			callbacks: callbacks,
 			onSuccess: function(d) {
-				request.promise.fulfill(_parseArticles(d.articles));
+				request.promise.fulfill(_parseObjects(d.objects));
 			}
 		});
 			
 		return request.send();
 	};
 
-	//takes article id , type and fields and returns that article
-	global.Appacitive.Article.get = function(options, callbacks) {
+	//takes object id , type and fields and returns that object
+	global.Appacitive.Object.get = function(options, callbacks) {
 		options = options || {};
-		if (!options.schema) throw new Error("Specify schema");
+		if (!options.type) throw new Error("Specify type");
 		if (!options.id) throw new Error("Specify id to fetch");
 
 		var obj = {};
-		if (options.schema.toLowerCase() === 'user') obj = new global.Appacitive.User({ __id: options.id });
-		else obj = new global.Appacitive.Article({ __schematype: options.schema, __id: options.id });
+		if (options.type.toLowerCase() === 'user') obj = new global.Appacitive.User({ __id: options.id });
+		else obj = new global.Appacitive.Object({ __type: options.type, __id: options.id });
 		
 		obj.fields = options.fields;
 
@@ -4189,26 +4184,26 @@ Depends on  NOTHING
 	};
 
     //takes relation type and returns query for it
-	global.Appacitive.Article.prototype.getConnections = function(options) {
-		if (this.isNew()) throw new Error("Cannot fetch connections for new article");
-		options.articleId = this.get('__id');
+	global.Appacitive.Object.prototype.getConnections = function(options) {
+		if (this.isNew()) throw new Error("Cannot fetch connections for new object");
+		options.objectId = this.get('__id');
 		return new global.Appacitive.Queries.GetConnectionsQuery(options);
 	};
 
 	//takes relation type and returns a query for it
-	global.Appacitive.Article.prototype.getConnectedArticles = function(options) {
-		if (this.isNew()) throw new Error("Cannot fetch connections for new article");
+	global.Appacitive.Object.prototype.getConnectedObjects = function(options) {
+		if (this.isNew()) throw new Error("Cannot fetch connections for new object");
 		options = options || {};
 		if (_type.isString(options)) options = { relation: options };
-		options.schema = this.entityType;
-		options.articleId = this.get('__id');
-		options.article = this;
-		return new global.Appacitive.Queries.ConnectedArticlesQuery(options);
+		options.type = this.get('__type');
+		options.objectId = this.get('__id');
+		options.object = this;
+		return new global.Appacitive.Queries.ConnectedObjectsQuery(options);
 	};
-	global.Appacitive.Article.prototype.fetchConnectedArticles = global.Appacitive.Article.prototype.getConnectedArticles;
+	global.Appacitive.Object.prototype.fetchConnectedObjects = global.Appacitive.Object.prototype.getConnectedObjects;
 	
-	// takes schea type and return a query for it
-	global.Appacitive.Article.findAll = function(options) {
+	// takes type and return a query for it
+	global.Appacitive.Object.findAll = function(options) {
 		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
@@ -5761,7 +5756,7 @@ if (global.Appacitive.runtime.isBrowser) {
 			if (arguments.length < 2 || typeof arguments[0] !== 'string' || typeof arguments[1] !== 'object')
 				throw new "Error: Invalid list of arguments passed to cloud api" ;
 
-			var name = arguments[0];
+			var name = arguments[0].toLowerCase();
 
 			var request = arguments[1].request;
 			var response = arguments[1].response;
