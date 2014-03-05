@@ -28,7 +28,6 @@
           request.method = 'PUT';
           request.data = file;
           request.headers.push({ key:'content-type', value: type });
-          request.onSuccess = onSuccess;
           request.send().then(onSuccess, function() {
             promise.reject(d, that);
           });

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Mar  5 12:02:47 IST 2014
+ * Build time 	: Wed Mar  5 13:25:53 IST 2014
  */
 "use strict";
 
@@ -5557,7 +5557,6 @@ var extend = function(protoProps, staticProps) {
           request.method = 'PUT';
           request.data = file;
           request.headers.push({ key:'content-type', value: type });
-          request.onSuccess = onSuccess;
           request.send().then(onSuccess, function() {
             promise.reject(d, that);
           });
