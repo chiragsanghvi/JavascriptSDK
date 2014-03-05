@@ -56,7 +56,7 @@
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.fileId = response.id;
                     
-                    that.getDownloadUrl(function(res) {
+                    that.getDownloadUrl().then(function(res) {
                       return promise.fulfill(res, that);
                     }, function(e) {
                       return promise.reject(e);
@@ -111,9 +111,13 @@
           return global.Appacitive.http.send(request); 
       };
 
-      this.getDownloadUrl = function(callbacks) {
+      this.getDownloadUrl = function(expiry, callbacks) {
           if (!this.fileId) throw new Error('Please specify fileId to download');
-          var expiry = 5560000;
+
+          if (typeof expiry !== 'number') {
+            callbacks = expiry;
+            expiry = -1;
+          }
           
           var promise = global.Appacitive.Promise.buildPromise(callbacks);
 

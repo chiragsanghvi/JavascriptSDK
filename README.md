@@ -22,7 +22,7 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
   * [Retrieving](#retrieving)  
   * [Updating](#updating)  
   * [Deleting](#deleting)  
-  * [Extending](#extending)
+  * [Extending](#extending-object)
 * [Connections](#connections)  
   * [Creating & Saving](#creating--saving)  
   * [Retrieving](#retrieving-1)  
@@ -33,7 +33,8 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
      * [Get all connections between two Object Ids](#get-all-connections-between-two-object-ids)  
      * [Get Interconnections between one and multiple Object Ids](#get-interconnections-between-one-and-multiple-object-ids)
   * [Updating](#updating-1)  
-  * [Deleting](#deleting-1)  
+  * [Deleting](#deleting-1)
+  * [Extending](#extending-connection)  
 * [Queries](#queries)
   * [Modifiers](#modifiers)
     * [Paging](#pagination)
@@ -177,6 +178,11 @@ alert(player.toJSON().name);  // John Doe
 //getting stringified respresentation of object
 alert(player.toString());
 ```
+To delete a single field from an object use the unset method
+```javascript
+player.unset('name');
+```
+
 #### Getting typed values
 Appacitive returns all properties as string.Thus, there may be chances where we may need to cast them into native datatypes. 
 SDK supports this, by allowing you to get values cast into a specific type.
@@ -353,7 +359,7 @@ Appacitive.Object.multiDelete({
 });
 ```                                                        
 
-### Extending
+### Extending Object
 
 Each `Appacitive.Object` is an instance of a specific subclass of a particular `type` by default. To create a subclass of particular type of your own, you extend `Appacitive.Object` with `typename` and provide instance properties, as well as optional classProperties to be attached directly to the constructor function. 
 
