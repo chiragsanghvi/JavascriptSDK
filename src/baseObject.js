@@ -651,7 +651,7 @@
 					object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
 
 					if (!that.isNew()) {
-						_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key] : 0) + amount };
+						_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
 					}
 
 					return that;

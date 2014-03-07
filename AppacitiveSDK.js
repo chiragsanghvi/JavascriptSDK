@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Mar  7 10:26:36 IST 2014
+ * Build time 	: Fri Mar  7 11:10:25 IST 2014
  */
 "use strict";
 
@@ -4024,7 +4024,7 @@ var extend = function(protoProps, staticProps) {
 					object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
 
 					if (!that.isNew()) {
-						_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key] : 0) + amount };
+						_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
 					}
 
 					return that;
