@@ -28,7 +28,7 @@ asyncTest('Updating object and save it', function() {
 	});
 });
 
-asyncTest('Update object, save and verify value and verify value', function() {
+asyncTest('Update object, save and verify value', function() {
 	var object = new Appacitive.Object('profile');
 	var name = 'Arathorn' + parseInt(Math.random() * 10000);
 	object.set('name', name);
@@ -92,7 +92,8 @@ asyncTest('Fetch object using search and then update it and verify its value', f
 		
 		//search object
 		return Appacitive.Object.findAll({
-			type: 'profile'
+			type: 'profile',
+			orderBy: '__utclastupdateddate'
 		}).fetch();
 	}).then(function(fetchedObjects) {
 		var fetchedObjects = fetchedObjects.filter(function (a) {
@@ -125,7 +126,7 @@ asyncTest('Fetch object using search and then update it and verify its value', f
 });
 
 
-asyncTest('Update object using new appacitive object object', function() {
+asyncTest('Update object using new appacitive object', function() {
 	var object = new Appacitive.Object('profile');
 	var prevName = 'Arathorn' + parseInt(Math.random() * 10000);
 	var name = 'Arathorn' + parseInt(Math.random() * 10000);
@@ -150,4 +151,267 @@ asyncTest('Update object using new appacitive object object', function() {
 		}
 		start();
 	});
+});
+
+asyncTest('Update multivalued property with just adding items', function() {
+	var Profile = Appacitive.Object.extend('profile');
+	var x = new Profile();
+
+	x.add('docvisits',[10 , 20]);
+
+	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as added');
+
+	x.save().then(function() {
+		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated after create');
+
+		x.add('docvisits', 30);
+
+		ok(x.get('docvisits').equals(["10","20","30"]), 'Multivalued property updated with add');
+		
+		x.save().then(function() {
+			ok(x.get('docvisits').equals(["10","20","30"]), 'Multivalued property updated after adding item');
+			start();
+		}, function() {
+			ok(false, 'Could not update object, onError called');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not create object, onError called');
+		start();
+	});
+});
+
+asyncTest('Update multivalued property with first setting value and then adding items', function() {
+	var Profile = Appacitive.Object.extend('profile');
+	var x = new Profile();
+
+	x.set('docvisits', [20]);
+	x.add('docvisits',[10]);
+
+	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as set and add');
+
+	x.save().then(function() {
+		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated after create');
+
+		x.set('docvisits', [30]);
+		x.add('docvisits', 30);
+
+		ok(x.get('docvisits').equals(["30","30"]), 'Multivalued property updated with set and add');
+		
+		x.save().then(function() {
+			ok(x.get('docvisits').equals(["30","30"]), 'Multivalued property updated after setting and adding item');
+			start();
+		}, function() {
+			ok(false, 'Could not update object, onError called');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not create object, onError called');
+		start();
+	});
+});
+
+asyncTest('Update multivalued property with just adding unique items', function() {
+	var Profile = Appacitive.Object.extend('profile');
+	var x = new Profile();
+
+	x.addUnique('docvisits',[10 , 20]);
+
+	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as added unqiuely');
+
+	x.save().then(function() {
+		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated unqiuely after create');
+
+		x.addUnique('docvisits', 20);
+
+		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated unqiuely with add');
+		
+		x.save().then(function() {
+			ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated unqiuely after adding item');
+			start();
+		}, function() {
+			ok(false, 'Could not update object, onError called');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not create object, onError called');
+		start();
+	});
+});
+
+asyncTest('Update multivalued property with first adding item, saving it and then removing them', function() {
+	var Profile = Appacitive.Object.extend('profile');
+	var x = new Profile();
+
+	x.add('docvisits',[10 , 20]);
+
+	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as added');
+
+	x.save().then(function() {
+		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated after create');
+
+		x.remove('docvisits', 20);
+		x.remove('docvisits', 30);
+
+		ok(x.get('docvisits').equals(["10"]), 'Multivalued property updated with remove');
+		
+		x.save().then(function() {
+			ok(x.get('docvisits').equals(["10"]), 'Multivalued property updated after removing item');
+			start();
+		}, function() {
+			ok(false, 'Could not update object, onError called');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not create object, onError called');
+		start();
+	});
+});
+
+
+asyncTest('Update multivalued property with adding normal and unique items and removing items', function() {
+	var Profile = Appacitive.Object.extend('profile');
+	var x = new Profile();
+
+	x.add('docvisits', 10);
+
+	x.addUnique('docvisits', 20);
+
+	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as added unqiuely');
+
+	x.save().then(function() {
+		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated unqiuely after create');
+
+		x.add('docvisits', 10);
+
+		x.remove('docvisits', 20);
+		x.remove('docvisits', 30);
+
+		ok(x.get('docvisits').equals(["10","10"]), 'Multivalued property updated with remove');
+		
+		x.save().then(function() {
+			ok(x.get('docvisits').equals(["10","10"]), 'Multivalued property updated after removing item');
+			start();
+		}, function() {
+			ok(false, 'Could not update object, onError called');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not create object, onError called');
+		start();
+	});
+});
+
+asyncTest('Update atomic property by first creating and then incrementing it', function() {
+	var Profile = Appacitive.Object.extend('profile');
+	var x = new Profile();
+
+	x.set('score', 10)
+	 .increment('score')
+
+	equal(x.get('score'), '11', 'Atomic property set properly after incrementing');
+
+	x.save().then(function() {	
+
+		equal(x.get('score'), '11', 'Atomic property set properly after create');
+
+		x.increment('score', 11);
+
+		equal(x.get('score'), "22", 'Atomic property incremenented properly');
+
+		x.save().then(function() {
+			equal(x.get('score'), "22", 'Atomic property incremenented properly after update');
+			start();
+		}, function() {
+			ok(false, 'Could not update object, onError called');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not create object, onError called');
+		start();
+	});
+
+});
+
+asyncTest('Update atomic property by first incrementing it and then setting it, and then again incrementing it', function() {
+	var Profile = Appacitive.Object.extend('profile');
+	var x = new Profile();
+
+	x.increment('score')
+
+	equal(x.get('score'), '1', 'Atomic property set properly after incrementing');
+
+	x.save().then(function() {	
+
+		equal(x.get('score'), '1', 'Atomic property set properly after create');
+
+		x.set('score', 11)
+		  .increment('score', 20);
+
+		equal(x.get('score'), "31", 'Atomic property incremenented properly');
+
+		x.decrement('score', 6);
+
+		equal(x.get('score'), "25", 'Atomic property decremenented properly');
+
+		x.save().then(function() {
+			equal(x.get('score'), "25", 'Atomic property decremenented properly after update');
+			start();
+		}, function() {
+			ok(false, 'Could not update object, onError called');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not create object, onError called');
+		start();
+	});
+
+});
+
+asyncTest('Update atomic property by first incrementing it and then setting it and save, and then again incrementing it', function() {
+	var Profile = Appacitive.Object.extend('profile');
+	var x = new Profile();
+
+	x.increment('score')
+
+	equal(x.get('score'), '1', 'Atomic property set properly after incrementing');
+
+	x.save().then(function() {	
+
+		equal(x.get('score'), '1', 'Atomic property set properly after create');
+
+		x.set('score', 11)
+		  .increment('score', 20);
+
+		equal(x.get('score'), "31", 'Atomic property incremenented properly');
+
+		x.decrement('score', 6);
+
+		equal(x.get('score'), "25", 'Atomic property decremenented properly');
+
+		x.save().then(function() {
+			equal(x.get('score'), "25", 'Atomic property decremenented properly after update');
+
+			var d = x.clone();
+			
+			d.increment('score', 5);
+
+			equal(d.get('score'), "30", 'Atomic property incremenented properly in other object');
+
+			d.save().then(function() {
+				equal(d.get('score'), "30", 'Atomic property incremenented properly in other object after save');
+				start();
+			}, function() {
+				ok(false, 'Could not update other object, onError called');
+				start();
+			})
+		}, function() {
+			ok(false, 'Could not update object, onError called');
+			start();
+		});
+	}, function() {
+		ok(false, 'Could not create object, onError called');
+		start();
+	});
+
 });
