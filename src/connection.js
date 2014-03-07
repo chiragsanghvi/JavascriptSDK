@@ -107,6 +107,8 @@
 			if (options.__endpointa && options.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));
 		} 
 
+		this.relationName = options.__relationtype;
+
 		return this;
 	};
 

@@ -199,4 +199,76 @@ _type['isNullOrUndefined'] = function(o) {
 
 _type['isNumeric'] = function(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
-}
+};
+
+Array.prototype.removeAll = function(obj){
+    // Return null if no objects were found and removed
+    var destroyed = null;
+
+    for(var i = 0; i < this.length; i++){
+
+        // Use while-loop to find adjacent equal objects
+        while(this[i] === obj){
+
+            // Remove this[i] and store it within destroyed
+            destroyed = this.splice(i, 1)[0];
+        }
+    }
+
+    return destroyed;
+};
+
+// attach the .compare method to Array's prototype to call it on any array
+Array.prototype.compare = function (array) {
+    // if the other array is a falsy value, return
+    if (!array)
+        return false;
+
+    // compare lengths - can save a lot of time
+    if (this.length != array.length)
+        return false;
+
+    for (var i = 0, l=this.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (this[i] instanceof Array && array[i] instanceof Array) {
+            // recurse into the nested arrays
+            if (!this[i].compare(array[i]))
+                return false;
+        }
+        else if (this[i] != array[i]) {
+            // Warning - two different object instances will never be equal: {x:20} != {x:20}
+            return false;
+        }
+    }
+    return true;
+};
+// attach the .equals method to Array's prototype to call it on any array
+Array.prototype.equals = function (array, strict) {
+    // if the other array is a falsy value, return
+    if (!array)
+        return false;
+
+    // set strict mode as false 
+    if (arguments.length == 1)
+        strict = false;
+
+    // compare lengths - can save a lot of time
+    if (this.length != array.length)
+        return false;
+
+    for (var i = 0; i < this.length; i++) {
+        // Check if we have nested arrays
+        if (this[i] instanceof Array && array[i] instanceof Array) {
+            if (!this[i].equals(array[i], strict))
+                return false;
+        }
+        else if (strict && this[i] != array[i]) {
+            // Warning - two different object instances will never be equal: {x:20} != {x:20}
+            return false;
+        }
+        else if (!strict) {
+            return this.sort().equals(array.sort(), true);
+        }
+    }
+    return true;
+};

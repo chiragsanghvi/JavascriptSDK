@@ -10,9 +10,21 @@
 
 		var _snapshot = {};
 
+		//atomic properties
+		var _atomicProps = {};
+
+		//mutlivalued properties
+		var _multivaluedProps = {};
+
+	    var _setOps = {};
+
 		//Copy properties to current object
 		var _copy = function(src, des) {
 			for (var property in src) {
+				if (_atomicProps[property]) delete _atomicProps[property];
+				if (_multivaluedProps[property]) delete _multivaluedProps[property];
+				if (_setOps[property]) delete _setOps[property];
+
 				if (_type.isString(src[property])) {
 					des[property] = src[property];
 				} else if(src[property] instanceof Date){
@@ -92,9 +104,6 @@
 		//attributes
 		if (!object.__attributes) object.__attributes = {};
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
-
-		//atomic properties
-		var _atomicProps = [];
 
 		//tags
 		var _removeTags = []; 
@@ -238,6 +247,64 @@
 
 		this.getRemovedTags = function() { return _removetags; };
 
+		var setMutliItems = function(key, value, op) {
+			if (!key || !_type.isString(key) ||  key.length === 0  || key.trim().indexOf('__') == 0 || key.trim().indexOf('$') === 0 || value == undefined || value == null) return this; 
+			
+			key = key.toLowerCase();
+
+			try {
+
+				var addItem = function(item) {
+					var val;
+					if (_type.isString(item)) { val = item; }
+		 			else if (_type.isNumber(item) || _type.isBoolean(item)) { val = item + ''; }
+		 			else throw new Error("Multivalued property cannot have values of property as an object");
+
+	 				if (object[key] && _type.isArray(object[key])) {
+
+	 					var index = object[key].indexOf(val);
+	 					if (op == 'additems') {
+	 						object[key].push(val);
+	 					} else if (index == -1 && op == 'adduniqueitems') {
+	 						object[key].push(val);
+	 					} else if (op == 'removeitems') {
+	 						object[key].removeAll(val);
+	 					}
+	 				} else {
+	 					if (op != 'removeitems') object[key] = [val];
+	 				}
+
+	 				if (!_multivaluedProps[key]) _multivaluedProps[key] = { additems: [], adduniqueitems: [], removeitems: [] };
+
+	 				_multivaluedProps[key][op].push(val);
+				};
+
+				if (_type.isArray(value)) {
+					value.forEach(function(v) {
+						addItem(v);
+					});
+				} else {
+					addItem(value);
+				}
+
+				return that;
+			} catch(e) {
+		 		throw new Error("Unable to add item to " + key);
+		 	}
+		};
+
+		this.add = function(key, value) {
+			return setMutliItems.apply(this, [key, value, 'additems']);
+		};
+
+		this.addUnique = function(key, value) {
+			return setMutliItems.apply(this, [key, value, 'adduniqueitems']);
+		};
+
+		this.remove = function(key, value) {
+			return setMutliItems.apply(this, [key, value, 'removeitems']);
+		};
+
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
@@ -249,8 +316,23 @@
 					if (property == '__tags' || property == '__attributes') {
 						delete changeSet[property];
 					} else {
-						changeSet[property] = object[property];
-						isDirty = true;
+						if (_type.isArray(object[property])) {
+							if (_multivaluedProps[property] && !_setOps[property]) {
+								changeSet[property] = _multivaluedProps[property];
+								isDirty = true;
+							} else if (!object[property].equals(_snapshot[property])) {
+								changeSet[property] = object[property];
+								isDirty = true;
+							} else {
+								delete changeSet[property];
+							}
+						} else if (_atomicProps[property] && !_setOps[property]) {
+							changeSet[property] = { incrementby : _atomicProps[property].value };
+							isDirty = true;
+						} else {
+							changeSet[property] = object[property];
+							isDirty = true;
+						}
 					}
 				} else if (object[property] == _snapshot[property]) {
 					delete changeSet[property];
@@ -296,10 +378,14 @@
 		};
 
 		this.changed = function() {
+			if (this.isNew()) return this.toJSON();
+			
 			return _getChanged();
 		};
 
 		this.hasChanged = function() {
+			if (this.isNew()) return true;
+
 			var changeSet = _getChanged(true);
 			if (arguments.length === 0) {
 				return Object.isEmpty(changeSet) ? false : true;
@@ -312,6 +398,8 @@
 		};
 
 		this.changedAttributes  = function() {
+			if (this.isNew()) return this.toJSON();
+
 			var changeSet = _getChanged(true);
 			
 			if (arguments.length === 0) {
@@ -327,13 +415,18 @@
 		};
 
 		this.previous = function() {
+			if (this.isNew()) return null;
+
 			if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length) {
 				return _snapshot[arguments[0]];	
 			}
 			return null;
 		};
 
-		this.previousAttributes = function() { return _snapshot; };
+		this.previousAttributes = function() { 
+			if (this.isNew()) return null; 
+			return _snapshot; 
+		};
 
 		this.fields = function() {
 			if (arguments.length == 1) {
@@ -418,47 +511,73 @@
 			return value;
 		};
 
-		this.set = function(key, value) {
+		var getDateValue = function(type, value) {
+			if (type == 'date') {
+	 			return global.Appacitive.Date.toISODate(value);
+	 		} else if (type == 'time') {
+	 			return global.Appacitive.Date.toISOTime(value);
+	 		} 
+	 		return global.Appacitive.Date.toISOString(value);
+		};
 
-			if(!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
-		 	
-		 	if (value == undefined || value == null) { object[key] = null;}
-		 	else if (_type.isString(value)) { object[key] = value; }
-		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
-		 	else if (value instanceof Date) object[key] = global.Appacitive.Date.toISOString(value);
-		 	else if (_type.isObject(value)) {
-		 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
-		 		 	object[key] = value;
-		 		} else {
-		 			if (value instanceof global.Appacitive.GeoCoord) {
-		 				object[key] = value.toString();
-		 			} else {
-		 				throw new Error("Property cannot have value as an object");
-		 			}
-		 		}
-			} else if(_type.isArray(value)) {
-				object[key] = [];
+		this.set = function(key, value, type) {
 
-				value.forEach(function(v) {
-					if (_type.isString(v)) { object[key].push(v); }
-		 			else if (_type.isNumber(v) || _type.isBoolean(v)) { object[key].push(v + ''); }
-		 			else if (v instanceof Date) object[key].push(global.Appacitive.Date.toISOString(v));
-	 				else throw new Error("Multivalued property cannot have values of property as an object");
-				});
+			if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
+			
+			key = key.toLowerCase();
 
-				if (key !== 'tags' || key !== '__link') {
-					object[key].push = function(v) {
-					  	var len = this.length;
-					  	if (_type.isString(v)) { this[len] = v; }
-			 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
-			 			else if (v instanceof Date) this[len] = global.Appacitive.Date.toISOString(v);
-		 				else throw new Error("Multivalued property cannot have values of property as an object");
-		 				return this; 
+			try {
+
+
+			 	if (value == undefined || value == null) { object[key] = null;}
+			 	else if (_type.isString(value)) { object[key] = value; }
+			 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
+			 	else if (value instanceof Date) {
+			 		object[key] = getDateValue(type, value);
+			 	} else if (_type.isObject(value)) {
+			 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
+			 		 	object[key] = value;
+			 		} else {
+			 			if (value instanceof global.Appacitive.GeoCoord) {
+			 				object[key] = value.toString();
+			 			} else {
+			 				throw new Error("Property cannot have value as an object");
+			 			}
+			 		}
+				} else if (_type.isArray(value)) {
+					object[key] = [];
+
+					value.forEach(function(v) {
+						if (_type.isString(v)) { object[key].push(v); }
+			 			else if (_type.isNumber(v) || _type.isBoolean(v)) { object[key].push(v + ''); }
+			 			else if (value instanceof Date) throw new Error("Multivalued property cannot have values of property as date");
+			 			else throw new Error("Multivalued property cannot have values of property as an object");
+					});
+
+					if (key !== 'tags' || key !== '__link') {
+						object[key].push = function(v) {
+						  	var len = this.length;
+						  	if (_type.isString(v)) { this[len] = v; }
+				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
+				 			else throw new Error("Multivalued property cannot have values of property as an object");
+			 				return this; 
+						}
 					}
 				}
-			}
-		 	
-		 	return this;
+
+				delete _atomicProps[key];
+				delete _multivaluedProps[key];
+				delete _setOps[key];
+
+				if (object[key] !== _snapshot[key]) {
+					if ((_type.isArray(object[key]) && !object[key].equals(_snapshot[key])) || _type.isString(object[key]) || _type.isObject(object[key])) {
+						_setOps[key] = true;
+					}
+				}
+			 	return this;
+			} catch(e) {
+			 	throw new Error("Unable to set " + key);
+			} 
 		};
 
 		this.unset = function(key) {
@@ -496,14 +615,18 @@
 		this.mergeWithPrevious = function() {
 			_copy(object, _snapshot);
 			_removeTags = [];
-			_atomicProps.length = 0;
+			_atomicProps = {};
+			_multivaluedProps = {};
+			_setOps = {};
 			return this;
 		};
 
 		var _merge = function() {
 			_copy(_snapshot, object);
 			_removeTags = [];
-			_atomicProps.length = 0;
+			_atomicProps = {};
+			_multivaluedProps = {};
+			_setOps = {};
 		};
 
 		this.rollback = function() {
@@ -515,11 +638,26 @@
 		var _atomic = function(key, amount, multiplier) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
-			if (!amount || isNaN(parseInt(amount))) amount = multiplier;
-			else amount = parseInt(amount) * multiplier;
+				key = key.toLowerCase();
 
-			_atomicProps.push({ key: key.toLowerCase(), amount: amount });
-			return that;
+				if (_type.isObject(object[key]) ||  _type.isArray(object[key])) {
+					throw new Error("Cannot increment/decrement array/object");
+				}
+
+				try {
+					if (!amount || isNaN(Number(amount))) amount = multiplier;
+					else amount = Number(amount) * multiplier;
+
+					object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
+
+					if (!that.isNew()) {
+						_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key] : 0) + amount };
+					}
+
+					return that;
+				} catch(e) {
+					throw new Error('Cannot perform increment/decrement operation');
+				}
 		};
 
 		this.increment = function(key, amount) {
@@ -529,6 +667,7 @@
 		this.decrement = function(key, amount) {
 			return _atomic(key, amount, -1);
 		};
+
 
 		/* crud operations  */
 
@@ -574,13 +713,13 @@
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
-						global.Appacitive.eventManager.fire(that.entityType + '.' + that.type + '.created', that, { object : that });
+						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
 
 						request.promise.fulfill(that);
 					} else {
-						global.Appacitive.eventManager.fire(that.entityType + '.' + that.type + '.createFailed', that, { error: data.status });
+						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, { error: data.status });
 						request.promise.reject(data.status, that);
 					}
 				}
@@ -628,21 +767,13 @@
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
 							promise.fulfill(that);
 						} else {
-							if (data.status.code == '14008' && _atomicProps.length > 0) {
-								_update(callbacks, promise);
-							}  else {
-								global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
-								promise.reject(data.status, that);
-							}
+							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
+							promise.reject(data.status, that);	
 						}
 					};
 					_updateRequest.onError = function(err) {
 						err = _getOutpuStatus(err);
-						if (err.code == '14008' && _atomicProps.length > 0) {
-							_update(callbacks, promise);
-						} else {
-							promise.reject(err, that);
-						}
+						promise.reject(err, that);
 					};
 					global.Appacitive.http.send(_updateRequest);
 				} else {
@@ -650,33 +781,7 @@
 				}
 			};
 
-			if (_atomicProps.length > 0) {
-				var props = ['__revision'];
-				_atomicProps.forEach(function(p) { 
-					props.push(p.key); 
-				});
-
-				var args = { id: this.id(), fields: props };
-				
-				if (this.type == 'object') args.type = this.get('__type');
-				else args.relation = this.get('__type');
-
-				global.Appacitive[this.type == 'object' ? 'Article' : 'Connection']
-					.get(args)
-					.then(function(obj) {
-
-						obj = obj.toJSON();
-						_atomicProps.forEach(function(p) {
-							var value = _types['integer'](obj[p.key]);
-							if (!value) value = 0;
-							that.set(p.key, value + p.amount);
-						});
-
-						cb(obj.__revision);
-					}, function(err) {
-						promise.reject(err);
-					}); 
-			} else cb();
+			cb();
 
 			return promise;
 		};

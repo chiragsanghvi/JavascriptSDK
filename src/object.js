@@ -44,6 +44,9 @@
 				return this.getObject();
 			}
 		};
+
+		this.typeName = options.__type;
+
 		return this;
 	};
 
