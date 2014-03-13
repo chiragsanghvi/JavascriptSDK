@@ -22,7 +22,9 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
   * [Retrieving](#retrieving)  
   * [Updating](#updating)  
   * [Deleting](#deleting)  
-  * [Extending](#extending-object)
+* [Extending](#extending-object)
+* [Arrays](#arrays)
+* [Counters](#counters)
 * [Connections](#connections)  
   * [Creating & Saving](#creating--saving)  
   * [Retrieving](#retrieving-1)  
@@ -34,7 +36,7 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
      * [Get Interconnections between one and multiple Object Ids](#get-interconnections-between-one-and-multiple-object-ids)
   * [Updating](#updating-1)  
   * [Deleting](#deleting-1)
-  * [Extending](#extending-connection)  
+* [Extending](#extending-connection)  
 * [Queries](#queries)
   * [Modifiers](#modifiers)
     * [Paging](#pagination)
@@ -310,23 +312,37 @@ var player = new Appacitive.Object({
     __type: 'player'
 });
 
+// set hobbies as an array property
+player.set('hobbies', ['swimming', 'trekking']);
+
+// set score of player
+player.set('score', 220);
+
 // isNew determines that an object is created or not
 // this'll be true for now
 if (player.isNew()) console.log("Creating player");
 
 // save it
 player.save().then(function() {
-    // player has been saved successfully
-    // this will be false
-    if (!player.isNew()) console.log("Updating player");
+  // player has been saved successfully
+  // this will be false
+  if (!player.isNew()) console.log("Updating player");
 
-    // now lets update the player's name
+  // now lets update the player's name
   player.set('name', 'Jane Doe');
+
+  // add a new hobby
+  player.add('hobbies', 'rappelling');
+
+  // increment the score of player by 20
+  player.increment('score', 20);
 
   // returns a promise
   return player.save();
 }).then(function() {
-    alert(player.get('name')); // Jane Doe
+  console.log(player.get('name')); // Jane Doe
+  console.log(player.get('bobbies')) // ['swimming', 'trekking', 'rappelling'];
+  console.log(player.get('score')) // 240
 }, function(err, obj) {
   if (player.isNew())  alert('create failed');
   else  alert('update failed');
@@ -334,6 +350,48 @@ player.save().then(function() {
 ```
 As you might notice, update is done via the save method as well. The SDK combines the create operation and the update operation under the hood and provides a unified interface. This is done be detecting the presence of the property `__id` to decide whether the object has been created and needs updating or whether the object needs to be created. 
 This also means that you should never delete/modify the `__id`/ id property on an entity.
+
+Appacitive automatically figures out which data has changed so only "dirty" fields will be sent. Thus, you don't end up overriding data that you didn't intend to update.
+
+#### Arrays
+
+Appacitive allows to set `string`, 'integer' and `decimal` type of properties as *multivalued* i.e. allow storing array data in them.
+
+These operations allow you to atomically change the array value for a particular property :
+
+*add* add the given value to the multivalued property.
+*addUnique* add the given value to the multivalued property, only if it is unique.
+*remove* remove all occurances of the given value from the multivalued property.
+
+```javascript
+//add items to multivalued property 'hobbies' of player
+player.add('hobbies', 'hiking');
+player.addUnique('hobbies', 'rappelling');
+
+//remove item from 'hobbies'
+player.remove('hobbies', 'swimming');
+
+//call save to persist the changes
+player.save();
+```
+Value will be updated after calling `save`.
+
+#### Counters
+
+Appacitive allows to atomically increment/decrement a numeric property which will be used as a counter. 
+
+Calling increment method will ensure that the current value of the counter will be incremented by the value provided, even if another call updates the value before this call can execute. Value will be updated once a call to save() is made.
+
+The example below walks you through how to increment a field, and how to make sure that increment gets executed.
+
+```javascript
+//increment score by 1
+player.increment('score') 
+      //or 
+//increment score by 10
+player.increment('score', 10); 
+```
+You can also increment the amount by passing in a second argument to increment. When no amount is specified, 1 is used by default.
 
 ### Deleting
 
@@ -572,7 +630,7 @@ The marriage object is similar to the object, except you get two new fields viz.
 
 #### Get Connected Objects
 
-Consider `Jane` has a lot of freinds whom she wants to invite to her marriage. She can simply get all her freinds who're of type `person` connected with `Jane` through a relation `freinds` with label for jane as `me` and freinds as `freind` using this search
+Consider `Jane` has a lot of friends whom she wants to invite to her marriage. She can simply get all her friends who're of type `person` connected with `Jane` through a relation `friends` with label for jane as `me` and friends as `friend` using this search
 
 ```javascript
 //Get an instance of person Object for Jane 
@@ -581,25 +639,25 @@ var jane = new Appacitive.Object({ __id : '123345456', __type : 'person');
 //call fetchConnectedObjects with all options that're supported by queries syntax
 // we'll cover queries in next section
 var query = jane.fetchConnectedObjects({ 
-  relation : 'freinds', //mandatory
+  relation : 'friends', //mandatory
   returnEdge: true, // set to false to stop returning connection
-    label: 'freind' //mandatory for a relation between same type and different labels
+  label: 'friend' //mandatory for a relation between same type and different labels
 });
 
 query.fetch().then(function(results) {
-  console.log(jane.children["freinds"]);
+  console.log(jane.children["friends"]);
 });
 
 ```
-On success, `jane` object is populated with a freind property in its `children`. So, `jane.children.freinds` will give you a list of all freinds of `Appacitive.Object` type.
+On success, `jane` object is populated with a friend property in its `children`. So, `jane.children.friends` will give you a list of all friends of `Appacitive.Object` type.
 These objects also contain a connection property which consists of its link properties with `jane`.
 
 ```javascript
 // list of all connected objects to jane
-jane.children.freinds
+jane.children.friends
 
 //connection connecting jane to each object
-jane.children.freinds[0].connection
+jane.children.friends[0].connection
 ```
 
 In this query, you provide a relation type (name) and a label if both endpoints are of same type and what is returned is a list of all the objects connected to above object. 
@@ -683,12 +741,12 @@ query.fetch().then(function(obj) {
 
 #### Get all connections between two Object Ids
 
-Consider `jane` is connected to `tarzan` via a `marriage` and a `freind` relationship. If we want to fetch al connections between them we could do this as
+Consider `jane` is connected to `tarzan` via a `marriage` and a `friend` relationship. If we want to fetch al connections between them we could do this as
 
 ```javascript
 var query = Appacitive.Connection.getBetweenObjects({
   objectAId : "22322", // id of jane
-    objectBId : "33422" // id of tarzan
+  objectBId : "33422" // id of tarzan
 });
 
 query.fetch().then(function(connections) {
@@ -741,11 +799,98 @@ marriage.destroy().then(function() {
 
 
 // Multiple coonection can also be deleted at a time. Here's an example
-Appacitive.Object.multiDelete({   
-  relation: 'freinds', //name of relation
+Appacitive.Connection.multiDelete({   
+  relation: 'friends', //name of relation
   ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of connection ids to delete
 }).then(function() { 
   //successfully deleted all connections
+});
+```
+
+### Extending Connection
+
+Each `Appacitive.Connection` is an instance of a specific subclass of a particular `relation` by default. To create a subclass of particular relation of your own, you extend `Appacitive.Connection` with `relationName` and provide instance properties, as well as optional classProperties to be attached directly to the constructor function. 
+
+```javascript
+// create a new subclass of Appacitive.Connection.
+var Friend = Appacitive.Connection.extend('friends');  //Name subclass using pascal casing
+
+
+// create an instance of that class 
+var frnd = new Friend({
+  endpoints: [{
+    label: 'me',
+    endpoint: jane //instance of Appacitive.Object person type
+  }, {
+    label: 'friend',
+    endpint: joe   //instance of Appacitive.Object person type
+  }]
+}); 
+```
+
+You can add additional methods and properties to your subclasses of `Appacitive.Connection` as shown below
+
+```javascript
+// a subclass of Appacitive.Connection
+var Friend = Appacitive.Connection.extend('friends', {
+  
+  //override constructor, which allows you to replace the actual constructor function
+  constructor: function(attrs) { 
+
+    // set friend type in numbers
+    switch(attrs.type) {
+      case 'close'  : attrs.type = 0;
+                      break;
+      case 'mutual' : attrs.type = 1;
+                      break;
+      default : attrs.type = 3;
+    }
+
+    //Invoke internal constructor
+    Appacitive.Connection.call(this, atts); 
+  },
+
+  //instance methods
+  getFriendType: function() {
+    switch (this.get('type')) {
+      case '0': return 'close';
+      case '1': return 'mutual';
+      default : return 'known';
+    }
+  }
+
+}, {
+  // Class methods
+  findAllCloseFriends: function() {
+    
+    //create a query with filterring on age
+    var query = this.findAllQuery({
+      filter: Appacitive.Filter.Property('type').equalTo(0)
+    });
+
+    //call fetch and return promise 
+    return query.fetch();  
+  }
+});
+```
+When creating an instance of a subclass, you're required to pass the endpoints and you can also pass in the initial values of the properties, which will be set on the `Appacitive.Connection` instance.
+
+```javascript
+var frnd = new Friend({ 
+  endpoints: [{
+      label: 'me',
+      endpoint: jane //instance of Appacitive.Object person type
+    }, {
+      label: 'friend',
+      endpint: joe   //instance of Appacitive.Object person type
+    }],
+  type: 'close'  
+});
+
+alert(frnd.getFriendType()); //displays close
+
+Friend.findAllCloseFriends().then(function(res) { 
+  console.log(res.length + ' close friends'); 
 });
 ```
 
@@ -761,7 +906,7 @@ var filter = Appacitive.Filter.Property("firstname").equalTo("John");
 
 var query = new Appacitive.Queries.FindAllQuery(
   type: 'player', //mandatory 
-  //or relation: 'freinds'
+  //or relation: 'friends'
   fields: [*],      //optional: returns all user fields only
   filter: filter,   //optional  
   pageNumber: 1 ,   //optional: default is 1
@@ -802,7 +947,7 @@ All queries on the Appacitive platform support pagination and sorting. To specif
 
 ```javascript
 var query = new Appacitive.Queries.FindAllQuery({ 
-  type: 'person' // or relation: 'freinds'
+  type: 'person' // or relation: 'friends'
 });
 
 //set pageSize
@@ -1223,7 +1368,7 @@ query.fetch().then(function(results) {
      eg: */ 
 
   console.log("This id '" + results[0].id() + "' has " 
-       + results[0].children["freinds"].length) + " freinds and owns "
+       + results[0].children["friends"].length) + " friends and owns "
        + results[0].children["owns"].length) + " houses");
 }, function(status) {
   console.log("Error running project query");

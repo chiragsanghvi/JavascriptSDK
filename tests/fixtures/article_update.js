@@ -268,7 +268,6 @@ asyncTest('Update multivalued property with first adding item, saving it and the
 	});
 });
 
-
 asyncTest('Update multivalued property with adding normal and unique items and removing items', function() {
 	var Profile = Appacitive.Object.extend('profile');
 	var x = new Profile();
@@ -330,7 +329,6 @@ asyncTest('Update atomic property by first creating and then incrementing it', f
 		ok(false, 'Could not create object, onError called');
 		start();
 	});
-
 });
 
 asyncTest('Update atomic property by first incrementing it and then setting it, and then again incrementing it', function() {
@@ -365,7 +363,6 @@ asyncTest('Update atomic property by first incrementing it and then setting it, 
 		ok(false, 'Could not create object, onError called');
 		start();
 	});
-
 });
 
 asyncTest('Update atomic property by first incrementing it and then setting it and save, and then again incrementing it', function() {
@@ -413,5 +410,4 @@ asyncTest('Update atomic property by first incrementing it and then setting it a
 		ok(false, 'Could not create object, onError called');
 		start();
 	});
-
 });
