@@ -51,6 +51,10 @@
 	global.Appacitive.Connection = function(options, doNotSetup) {
 		options = options || {};
 		
+		if (this.className) {
+			options.__relationtype = this.className;
+		}
+
 		if (_type.isString(options)) {
 			var rName = options;
 			options = { __relationtype : rName };

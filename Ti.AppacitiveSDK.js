@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Mar  7 11:10:25 IST 2014
+ * Build time 	: Thu Mar 13 10:41:09 IST 2014
  */
 "use strict";
 
@@ -4528,6 +4528,10 @@ var extend = function(protoProps, staticProps) {
 	global.Appacitive.Connection = function(options, doNotSetup) {
 		options = options || {};
 		
+		if (this.className) {
+			options.__relationtype = this.className;
+		}
+
 		if (_type.isString(options)) {
 			var rName = options;
 			options = { __relationtype : rName };
