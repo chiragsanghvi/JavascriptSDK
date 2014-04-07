@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v1.0 - Javascript SDK to integrate applictions using Appacitive
+ * AppacitiveSDK.js v1.0 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Mar 13 10:41:09 IST 2014
+ * Build time 	: Mon Apr  7 13:04:27 IST 2014
  */
 "use strict";
 
