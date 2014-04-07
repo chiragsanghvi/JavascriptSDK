@@ -114,7 +114,7 @@
 		var _fields = '';
 
 		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
+		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link", "__acls"];
 		
 		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
 
@@ -247,7 +247,7 @@
 
 		this.getRemovedTags = function() { return _removetags; };
 
-		var setMutliItems = function(key, value, op) {
+		var _setMutliItems = function(key, value, op) {
 			if (!key || !_type.isString(key) ||  key.length === 0  || key.trim().indexOf('__') == 0 || key.trim().indexOf('$') === 0 || value == undefined || value == null) return this; 
 			
 			key = key.toLowerCase();
@@ -294,20 +294,25 @@
 		};
 
 		this.add = function(key, value) {
-			return setMutliItems.apply(this, [key, value, 'additems']);
+			return _setMutliItems.apply(this, [key, value, 'additems']);
 		};
 
 		this.addUnique = function(key, value) {
-			return setMutliItems.apply(this, [key, value, 'adduniqueitems']);
+			return _setMutliItems.apply(this, [key, value, 'adduniqueitems']);
 		};
 
 		this.remove = function(key, value) {
-			return setMutliItems.apply(this, [key, value, 'removeitems']);
+			return _setMutliItems.apply(this, [key, value, 'removeitems']);
 		};
 
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
+
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
 			for (var property in object) {
 				if (object[property] == null || object[property] == undefined) {
 					changeSet[property] = null;
@@ -369,8 +374,9 @@
 			}
 			else delete changeSet["__attributes"];
 
-			for (var p in changeSet) {
-				if (p[0] == '$') delete changeSet[p];
+			if (that.type == 'object') {
+				var acls = that._aclFactory.getChanged();
+				if (acls) changeSet['__acls'] = acls;
 			}
 
 			if (isDirty && !Object.isEmpty(changeSet)) return changeSet;
@@ -683,7 +689,7 @@
 		var _create = function(callbacks) {
 
 			var type = that.type;
-			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
+			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
 				type = object.__type.toLowerCase()
 			}
 
@@ -693,6 +699,12 @@
 			}
 			if (object["__revision"]) delete object["__revision"];
 			
+			if (type == 'object') {
+				var acls = that._aclFactory.getChanged();
+				if (acls) object.__acls = acls;
+			}
+
+
 			var request = new global.Appacitive._Request({
 				method: 'PUT',
 				type: type,
@@ -707,9 +719,10 @@
 						savedState = data.object || data.connection || data.user || data.device;
 					}
 					if (data && savedState) {
+						
 						_snapshot = savedState;
 						object.__id = savedState.__id;
-						
+
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();

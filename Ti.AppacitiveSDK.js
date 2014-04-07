@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Apr  7 13:04:27 IST 2014
+ * Build time 	: Mon Apr  7 19:36:36 IST 2014
  */
 "use strict";
 
@@ -3433,7 +3433,7 @@ var extend = function(protoProps, staticProps) {
 		var _fields = '';
 
 		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
+		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link", "__acls"];
 		
 		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
 
@@ -3566,7 +3566,7 @@ var extend = function(protoProps, staticProps) {
 
 		this.getRemovedTags = function() { return _removetags; };
 
-		var setMutliItems = function(key, value, op) {
+		var _setMutliItems = function(key, value, op) {
 			if (!key || !_type.isString(key) ||  key.length === 0  || key.trim().indexOf('__') == 0 || key.trim().indexOf('$') === 0 || value == undefined || value == null) return this; 
 			
 			key = key.toLowerCase();
@@ -3613,20 +3613,25 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.add = function(key, value) {
-			return setMutliItems.apply(this, [key, value, 'additems']);
+			return _setMutliItems.apply(this, [key, value, 'additems']);
 		};
 
 		this.addUnique = function(key, value) {
-			return setMutliItems.apply(this, [key, value, 'adduniqueitems']);
+			return _setMutliItems.apply(this, [key, value, 'adduniqueitems']);
 		};
 
 		this.remove = function(key, value) {
-			return setMutliItems.apply(this, [key, value, 'removeitems']);
+			return _setMutliItems.apply(this, [key, value, 'removeitems']);
 		};
 
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
+
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
 			for (var property in object) {
 				if (object[property] == null || object[property] == undefined) {
 					changeSet[property] = null;
@@ -3688,8 +3693,9 @@ var extend = function(protoProps, staticProps) {
 			}
 			else delete changeSet["__attributes"];
 
-			for (var p in changeSet) {
-				if (p[0] == '$') delete changeSet[p];
+			if (that.type == 'object') {
+				var acls = that._aclFactory.getChanged();
+				if (acls) changeSet['__acls'] = acls;
 			}
 
 			if (isDirty && !Object.isEmpty(changeSet)) return changeSet;
@@ -4002,7 +4008,7 @@ var extend = function(protoProps, staticProps) {
 		var _create = function(callbacks) {
 
 			var type = that.type;
-			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
+			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
 				type = object.__type.toLowerCase()
 			}
 
@@ -4012,6 +4018,12 @@ var extend = function(protoProps, staticProps) {
 			}
 			if (object["__revision"]) delete object["__revision"];
 			
+			if (type == 'object') {
+				var acls = that._aclFactory.getChanged();
+				if (acls) object.__acls = acls;
+			}
+
+
 			var request = new global.Appacitive._Request({
 				method: 'PUT',
 				type: type,
@@ -4026,9 +4038,10 @@ var extend = function(protoProps, staticProps) {
 						savedState = data.object || data.connection || data.user || data.device;
 					}
 					if (data && savedState) {
+						
 						_snapshot = savedState;
 						object.__id = savedState.__id;
-						
+
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
@@ -4269,6 +4282,189 @@ var extend = function(protoProps, staticProps) {
 
 	"use strict";
 
+	var accessTypes = ['allow', 'deny'];
+
+	var states = ['create', 'read', 'update', 'delete', 'manageaccess'];
+
+	var validatePermission = function(permissions) {
+		var res = [];
+		permissions.forEach(function(p) {
+			if (_type.isString(p) && states.indexOf(p.toLowerCase()) != -1) {
+				res.push(p.toLowerCase());
+			}
+		});
+
+		return res;
+	};
+
+	global.Appacitive._Acl = function(o, setSnapshot) {
+
+		var acls = o || [];		
+
+		if (!_type.isArray(acls)) acls = [];
+
+		var _snapshot = {} ;
+
+		if (setSnapshot) {
+			_snapshot = JSON.parse(JSON.stringify(acls));
+		}
+
+		acls = JSON.parse(JSON.stringify(acls));
+
+		this.acls = acls;
+
+		var changed = [];
+
+		var setPermission = function(access, type, sid, permissions) {
+			if (!sid) throw new Error("Specify valid user or usergroup");
+
+			var acl = acls.filter(function(a) { return  (a.sid == sid && a.type == type ); }), exists = false;
+
+			if (!acl || acl.length == 0) {
+			 	acl = { sid: sid, type: type, deny: [], allow: [] };
+			 	acls.push(acl);
+			}
+			else acl = acl[0];
+			
+			if (!acl.allow) acl.allow = [];
+			if (!acl.deny) acl.deny = [];
+
+			permissions = validatePermission(permissions);
+
+			var chAcl = changed.filter(function(a) { return (a.sid == sid && a.type == type); });
+			if (!chAcl || chAcl.length == 0) {
+			  	chAcl = { sid: sid, type: type };
+				changed.push(chAcl);
+			} else chAcl = chAcl[0];
+			
+			permissions.forEach(function(p) {
+				for (var i = 0; i < accessTypes.length; i = i + 1) {
+					var ind = acl[accessTypes[i]].indexOf(p);
+					if (ind != -1) {
+						acl[accessTypes[i]].splice(ind, 1);
+						break;
+					}
+				}
+
+				if (access != 'inherit') {
+					acl[access].push(p);
+				}
+
+				chAcl[p] = access;
+			});
+
+			return this;
+		};
+
+		var setPermissions = function(access, type, sids, permissions) {
+			if (!sids) throw new Error("Please provide valid id or name for setting acls");
+			if (!permissions) throw new Error("Please provide valid access permissions for setting acls");
+
+			if (!_type.isArray('permissions')) permissions = [permissions];
+
+			if (_type.isArray(sids)) {
+				sids.forEach(function(sid) {
+					setPermission(access, type, sid, permissions);
+				});
+			} else {
+				setPermission(access, type, sids, permissions);	
+			}
+
+			return this;
+		};
+
+		var setUpOps = function() {
+
+			acls.allowUser = function(sids, permissions) {
+				return setPermissions.apply(this, ['allow', 'user', sids, permissions]);
+			};
+
+			acls.allowGroup = function(sids, permissions) {
+				return setPermissions.apply(this, ['allow', 'usergroup', sids, permissions]);
+			};
+
+			acls.denyUser = function(sids, permissions) {
+				return setPermissions.apply(this, ['deny', 'user', sids, permissions]);
+			};
+
+			acls.denyGroup = function(sids, permissions) {
+				return setPermissions.apply(this, ['deny', 'usergroup', sids, permissions]);
+			};
+
+			acls.resetUser = function(sids, permissions) {
+				return setPermissions.apply(this, ['inherit', 'user', sids, permissions]);
+			};
+
+			acls.resetGroup = function(sids, permissions) {
+				return setPermissions.apply(this, ['inherit', 'usergroup', sids, permissions]);
+			};
+
+			acls.allowAnonymous = function(permissions) {
+				return setPermissions.apply(this, ['allow', 'usergroup', ['anonymous'], permissions]);
+			};
+
+			acls.denyAnonymous = function(permissions) {
+				return setPermissions.apply(this, ['deny', 'usergroup', ['anonymous'], permissions]);
+			};
+
+			acls.resetAnonymous = function(permissions) {
+				return setPermissions.apply(this, ['inherit', 'usergroup', ['anonymous'], permissions]);
+			};
+
+			acls.allowLoggedIn = function(permissions) {
+				return setPermissions.apply(this, ['allow', 'usergroup', ['anonymous'], permissions]);
+			};
+
+			acls.denyLoggedIn = function(permissions) {
+				return setPermissions.apply(this, ['deny', 'usergroup', ['anonymous'], permissions]);
+			};
+
+			acls.resetLoggedIn = function(permissions) {
+				return setPermissions.apply(this, ['inherit', 'usergroup', ['anonymous'], permissions]);
+			};
+		};
+
+		this._rollback = function() {
+			changed = [];
+			acls = JSON.parse(JSON.stringify(_snapshot));
+			setUpOps();
+		};
+
+		this.getChanged = function() {
+			var chAcls = [];
+			changed.forEach(function(a) {
+				var acl = { sid: a.sid, type: a.type, allow: [], deny: [], inherit: [] };
+				states.forEach(function(s) {
+					if (a[s]) {
+						acl[a[s]].push(s);
+					}
+				});
+
+				accessTypes.forEach(function(at) {
+					if (acl[at].length == 0) delete acl[at];
+				});
+
+				if (acls['inherit'].length == 0) delete acls['inherit'];
+
+				chAcls.push(acl);
+			});
+
+			if (chAcls.length == 0) return null;
+
+			return chAcls;
+		};
+
+
+		setUpOps();
+
+		return this;
+	};
+
+})(global);
+	(function (global) {
+
+	"use strict";
+
 	global.Appacitive.Object = function(options, setSnapShot) {
 		options = options || {};
 
@@ -4313,6 +4509,10 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.typeName = options.__type;
+
+		this._aclFactory = new Appacitive._Acl(options.__acls, setSnapShot);
+
+		this.acls = this._aclFactory.acls;
 
 		return this;
 	};

@@ -47,6 +47,10 @@
 
 		this.typeName = options.__type;
 
+		this._aclFactory = new Appacitive._Acl(options.__acls, setSnapShot);
+
+		this.acls = this._aclFactory.acls;
+
 		return this;
 	};
 
