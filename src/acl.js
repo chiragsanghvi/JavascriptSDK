@@ -80,7 +80,7 @@
 			if (!sids) throw new Error("Please provide valid id or name for setting acls");
 			if (!permissions) throw new Error("Please provide valid access permissions for setting acls");
 
-			if (!_type.isArray('permissions')) permissions = [permissions];
+			if (!_type.isArray(permissions)) permissions = [permissions];
 
 			if (_type.isArray(sids)) {
 				sids.forEach(function(sid) {
@@ -164,7 +164,7 @@
 					if (acl[at].length == 0) delete acl[at];
 				});
 
-				if (acls['inherit'].length == 0) delete acls['inherit'];
+				if (acl['inherit'].length == 0) delete acl['inherit'];
 
 				chAcls.push(acl);
 			});

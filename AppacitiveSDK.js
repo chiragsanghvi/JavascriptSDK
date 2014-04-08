@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Apr  7 19:36:36 IST 2014
+ * Build time 	: Tue Apr  8 16:18:12 IST 2014
  */
 "use strict";
 
@@ -4414,7 +4414,7 @@ var extend = function(protoProps, staticProps) {
 			if (!sids) throw new Error("Please provide valid id or name for setting acls");
 			if (!permissions) throw new Error("Please provide valid access permissions for setting acls");
 
-			if (!_type.isArray('permissions')) permissions = [permissions];
+			if (!_type.isArray(permissions)) permissions = [permissions];
 
 			if (_type.isArray(sids)) {
 				sids.forEach(function(sid) {
@@ -4498,7 +4498,7 @@ var extend = function(protoProps, staticProps) {
 					if (acl[at].length == 0) delete acl[at];
 				});
 
-				if (acls['inherit'].length == 0) delete acls['inherit'];
+				if (acl['inherit'].length == 0) delete acl['inherit'];
 
 				chAcls.push(acl);
 			});

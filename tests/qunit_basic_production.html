@@ -8,7 +8,7 @@
   <!-- External dependencies -->
   <script type="text/javascript" src="dependencies/jquery.js"></script>
   <script type="text/javascript" src="dependencies/jquery.cookies.js"></script>
-   <script src="fixtures/testConstants.js"></script>
+  <script src="fixtures/testConstants.js"></script>
   <!-- External dependencities -->
 
   <!-- SDK Files -->
@@ -17,7 +17,12 @@
 <body>
   <!--<div id="fb-root"></div>-->
   <script>
-    Appacitive.config.apiBaseUrl = "http://apis.appacitive.com/v1.0/";
+    //Appacitive.config.apiBaseUrl = "https://apis.appacitive.com/v1.0/";
+     
+    Appacitive.config.apiBaseUrl = "http://appacitivenext.cloudapp.net:1877/v1.0/";
+
+    //var url = prompt("Please enter api url", "http://appacitivenext.cloudapp.net:1877/v1.0/");
+
     Appacitive.initialize({apikey: testConstants.apiKey, env: testConstants.environment, appId: testConstants.appId, log:true });
     Appacitive.Session.resetSession();
     Appacitive.Session.removeUserAuthHeader();
