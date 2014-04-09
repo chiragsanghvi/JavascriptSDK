@@ -41,6 +41,10 @@ asyncTest('Verify created connection is fetched when fetching connected objects'
 		return profile.getConnectedObjects({ relation: 'myschool' }).fetch();
 	}).then(function(objects) {
 		
+		if (objects.length == 0) {
+			return new Appacitive.Promise().reject();
+		}
+
 		//verify objects returned are not changed
 		if (objects[0].hasChanged()) {
 			ok(false, 'Object has not changed');
@@ -203,6 +207,10 @@ asyncTest('Verify object fetched via the collection returned via getConnectedObj
 		// fetch connected objects for profile
 		return profile.getConnectedObjects({ relation: 'myschool' }).fetch();
 	}).then(function(objects) {
+		
+		if (objects.length == 0) {
+			return new Appacitive.Promise().reject();
+		}
 		
 		//verify objects returned are not changed
 		if (objects[0].hasChanged()) {
