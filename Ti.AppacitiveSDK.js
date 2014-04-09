@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Apr  9 11:49:46 IST 2014
+ * Build time 	: Wed Apr  9 14:33:32 IST 2014
  */
 "use strict";
 
@@ -758,7 +758,7 @@ var global = {};
 							global.Appacitive.http.send(request);
 						}
 					} else {
-						if (response && ((response.status && response.status.code && response.status.code == '19036') || (response.code &&response.code == '19036'))) {
+						if (response && ((response.status && response.status.code && response.status.code == '421') || (response.code &&response.code == '421'))) {
 							global.Appacitive.Users.logout(function(){}, true);
 						} else {
 							global.Appacitive.Session.incrementExpiry();
@@ -1245,6 +1245,13 @@ var global = {};
                 }
             }
         };
+        this.usergroup = {
+            usergroupServiceUrl: 'usergroup',
+
+            getUpdateUrl: function(groupId) {
+                return String.Format('{0}/{1}/members', this.usergroupServiceUrl, groupId);
+            }
+        }
 
     };
 
@@ -1794,13 +1801,13 @@ Depends on  NOTHING
 			if (!response) return true;
 			if (response.status) {
 				if (response.status.code) {
-					if (response.status.code == '19027' || response.status.code == '19002') {
-						return { status: false, isSession: (response.status.code == '19027') ? true : false };
+					if (response.status.code == '420' || response.status.code == '400') {
+						return { status: false, isSession: (response.status.code == '420') ? true : false };
 					}
 				}
 			} else if (response.code) {
-				if (response.code == '19027' || response.code == '19002') {
-					return { status: false, isSession: (response.code == '19027') ? true : false };
+				if (response.code == '420' || response.code == '400') {
+					return { status: false, isSession: (response.code == '420') ? true : false };
 				}
 			}
 			return { status: true };
@@ -4322,6 +4329,10 @@ var extend = function(protoProps, staticProps) {
 		var setPermission = function(access, type, sid, permissions) {
 			if (!sid) throw new Error("Specify valid user or usergroup");
 
+			if ((sid instanceof global.Appacitive.Object) && sid.typeName == 'user' && !sid.isNew()) {
+				sid = sid.id();
+			} 
+
 			var acl = acls.filter(function(a) { return  (a.sid == sid && a.type == type ); }), exists = false;
 
 			if (!acl || acl.length == 0) {
@@ -4469,6 +4480,57 @@ var extend = function(protoProps, staticProps) {
 
 		return this;
 	};
+
+	var _groupManager = function() {
+		
+		var _addRemoveMembers = function(op, groupName, members) {
+
+			if (!groupName || !_type.isString(groupName) ||  groupName.length === 0) throw new Error("Please specify valid groupname"); 
+
+			if (!_type.isArray(members)) members = [members];
+
+			var cmd = {};
+
+			cmd[op] = [];
+
+			members.forEach(function(m) {
+				if (!m) return;
+
+				if ((m instanceof global.Appacitive.Object)  && m.typeName == 'user' && !m.isNew()) {
+					cmd[op].push(m.id());
+				} else {
+					cmd[op].push(m);
+				}
+			})
+
+
+			if (cmd[op].length == 0) throw new Error("Please specify valid members as second argument");
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'usergroup',
+				op: 'getUpdateUrl',
+				args: [groupName],
+				data: cmd,
+				entity: this,
+				onSuccess: function(data) {
+					request.promise.fulfill(data);
+				}
+			});
+
+			return request.send();
+		};
+
+		this.addMembers = function(groupName, members) {
+			return _addRemoveMembers('add', groupName, members);
+		};
+
+		this.removeMembers = function(groupName, members) {
+			return _addRemoveMembers('remove', groupName, members);
+		};
+	};
+
+	global.Appacitive.Group = new _groupManager();
 
 })(global);
 	(function (global) {

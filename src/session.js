@@ -146,13 +146,13 @@
 			if (!response) return true;
 			if (response.status) {
 				if (response.status.code) {
-					if (response.status.code == '19027' || response.status.code == '19002') {
-						return { status: false, isSession: (response.status.code == '19027') ? true : false };
+					if (response.status.code == '420' || response.status.code == '400') {
+						return { status: false, isSession: (response.status.code == '420') ? true : false };
 					}
 				}
 			} else if (response.code) {
-				if (response.code == '19027' || response.code == '19002') {
-					return { status: false, isSession: (response.code == '19027') ? true : false };
+				if (response.code == '420' || response.code == '400') {
+					return { status: false, isSession: (response.code == '420') ? true : false };
 				}
 			}
 			return { status: true };

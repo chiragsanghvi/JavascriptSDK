@@ -395,6 +395,13 @@
                 }
             }
         };
+        this.usergroup = {
+            usergroupServiceUrl: 'usergroup',
+
+            getUpdateUrl: function(groupId) {
+                return String.format('{0}/{1}/members', this.usergroupServiceUrl, groupId);
+            }
+        }
 
     };
 

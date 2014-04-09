@@ -530,7 +530,7 @@ var global = {};
 							global.Appacitive.http.send(request);
 						}
 					} else {
-						if (response && ((response.status && response.status.code && response.status.code == '19036') || (response.code &&response.code == '19036'))) {
+						if (response && ((response.status && response.status.code && response.status.code == '421') || (response.code &&response.code == '421'))) {
 							global.Appacitive.Users.logout();
 						} else {
 							global.Appacitive.Session.incrementExpiry();

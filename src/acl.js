@@ -38,6 +38,10 @@
 		var setPermission = function(access, type, sid, permissions) {
 			if (!sid) throw new Error("Specify valid user or usergroup");
 
+			if ((sid instanceof global.Appacitive.Object) && sid.typeName == 'user' && !sid.isNew()) {
+				sid = sid.id();
+			} 
+
 			var acl = acls.filter(function(a) { return  (a.sid == sid && a.type == type ); }), exists = false;
 
 			if (!acl || acl.length == 0) {
@@ -185,6 +189,57 @@
 
 		return this;
 	};
+
+	var _groupManager = function() {
+		
+		var _addRemoveMembers = function(op, groupName, members) {
+
+			if (!groupName || !_type.isString(groupName) ||  groupName.length === 0) throw new Error("Please specify valid groupname"); 
+
+			if (!_type.isArray(members)) members = [members];
+
+			var cmd = {};
+
+			cmd[op] = [];
+
+			members.forEach(function(m) {
+				if (!m) return;
+
+				if ((m instanceof global.Appacitive.Object)  && m.typeName == 'user' && !m.isNew()) {
+					cmd[op].push(m.id());
+				} else {
+					cmd[op].push(m);
+				}
+			})
+
+
+			if (cmd[op].length == 0) throw new Error("Please specify valid members as second argument");
+
+			var request = new global.Appacitive._Request({
+				method: 'POST',
+				type: 'usergroup',
+				op: 'getUpdateUrl',
+				args: [groupName],
+				data: cmd,
+				entity: this,
+				onSuccess: function(data) {
+					request.promise.fulfill(data);
+				}
+			});
+
+			return request.send();
+		};
+
+		this.addMembers = function(groupName, members) {
+			return _addRemoveMembers('add', groupName, members);
+		};
+
+		this.removeMembers = function(groupName, members) {
+			return _addRemoveMembers('remove', groupName, members);
+		};
+	};
+
+	global.Appacitive.Group = new _groupManager();
 
 })(global);
 	
