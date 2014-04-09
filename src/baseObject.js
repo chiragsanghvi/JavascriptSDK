@@ -726,6 +726,8 @@
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
+						else that._aclFactory.merge();
+
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
@@ -771,8 +773,11 @@
 					_updateRequest.data = changeSet;
 					_updateRequest.onSuccess = function(data) {
 						if (data && data[type]) {
+							
 							_snapshot = data[type];
 							
+							that._aclFactory.merge();
+
 							_merge();
 							
 							delete that.created;

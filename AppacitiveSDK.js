@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Apr  8 16:18:12 IST 2014
+ * Build time 	: Wed Apr  9 11:49:46 IST 2014
  */
 "use strict";
 
@@ -759,15 +759,12 @@ var global = {};
 			var error;
 		    if (response && response.responseText) {
 		        try {
-		          var errorJSON = JSON.parse(response.responseText);
-		          if (errorJSON) {
-		            error = { code: errorJSON.code, message: errorJSON.message };
-		          }
+		          error = JSON.parse(response.responseText);
 		        } catch (e) {}
 		    }
 
-		    error = error || { code: response.status, message: response.responseText };
-		    global.Appacitive.logs.logRequest(request, error, error, 'error');
+		    error = error || { code: response.status, message: response.responseText, referenceid: response.headers["TransactionId"] };
+		    global.Appacitive.logs.logRequest(request, response, error, 'error');
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
@@ -862,7 +859,7 @@ var global = {};
 	    		responseTime : request.timeTakenInMilliseconds,
 	    		headers: {},
 	    		request: null,
-	    		response: response
+	    		response: response.responseText
 			};
 
 			if (request.headers) {
@@ -4099,6 +4096,8 @@ var extend = function(protoProps, staticProps) {
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
+						else that._aclFactory.merge();
+
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
@@ -4144,8 +4143,11 @@ var extend = function(protoProps, staticProps) {
 					_updateRequest.data = changeSet;
 					_updateRequest.onSuccess = function(data) {
 						if (data && data[type]) {
+							
 							_snapshot = data[type];
 							
+							that._aclFactory.merge();
+
 							_merge();
 							
 							delete that.created;
@@ -4482,6 +4484,7 @@ var extend = function(protoProps, staticProps) {
 			changed = [];
 			acls = JSON.parse(JSON.stringify(_snapshot));
 			setUpOps();
+			return this;
 		};
 
 		this.getChanged = function() {
@@ -4508,6 +4511,11 @@ var extend = function(protoProps, staticProps) {
 			return chAcls;
 		};
 
+
+		this.merge = function() {
+			changed = [];
+			return this;
+		};
 
 		setUpOps();
 

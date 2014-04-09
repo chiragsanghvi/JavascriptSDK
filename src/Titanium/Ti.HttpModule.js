@@ -426,13 +426,12 @@ var global = {};
 			var error;
 		    if (response && response.responseText) {
 		        try {
-		          var errorJSON = JSON.parse(response.responseText);
-		          if (errorJSON) {
-		            error = { code: errorJSON.code, message: errorJSON.message };
-		          }
+		          error = JSON.parse(response.responseText);
 		        } catch (e) {}
 		    }
-		    error = error || { code: response.status, message: response.responseText };
+
+		    error = error || { code: response.status, message: response.responseText, referenceid: response.headers["TransactionId"] };
+		    global.Appacitive.logs.logRequest(request, response, error, 'error');
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;

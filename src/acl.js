@@ -148,6 +148,7 @@
 			changed = [];
 			acls = JSON.parse(JSON.stringify(_snapshot));
 			setUpOps();
+			return this;
 		};
 
 		this.getChanged = function() {
@@ -174,6 +175,11 @@
 			return chAcls;
 		};
 
+
+		this.merge = function() {
+			changed = [];
+			return this;
+		};
 
 		setUpOps();
 

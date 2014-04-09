@@ -64,6 +64,7 @@ asyncTest('Save object with properties and acls', function() {
 	object.acls.allowGroup("aclusergroup1",["create", "read"]);
 	object.acls.denyGroup(["aclusergroup1", "aclusergroup2"],"update");
 	object.acls.denyAnonymous(["delete","update","manageaccess","create"]);
+	object.acls.denyUser("acluser1","delete");
 
 	object.save().then(function() {
 		equal(object.get('name'), name, 'Created object successfully ' + JSON.stringify(object.getObject()));

@@ -351,6 +351,12 @@ asyncTest('Verify no changeset on object fetched from connectedobjects', functio
 		return profile.getConnectedObjects({ relation: 'myschool' }).fetch();
 	}).then(function(objects) {
 		
+		if (objects.length == 0) {
+			ok(false, 'Could not fetch connected objects.');
+			start();
+			return;
+		}
+
 		//verify objects returned are not changed
 		if (objects[0].hasChanged()) {
 			ok(false, 'Object has not changed');
