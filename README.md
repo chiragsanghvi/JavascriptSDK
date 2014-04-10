@@ -231,8 +231,8 @@ Player.findAdultPlayers().then(function(res) {
 Above example depicts use of (queries)[#queries], which we'll discuss in coming sections. By default whenever you extend `Appacitive.Object` class you also extend some of the static methods used for querying and fetching data viz. 
 
  * [get](#getting-object) 
- * [multiGet](#multiget-object) 
- * [multiDelete](#multidelete-object) 
+ * [multiGet](#multiget-objects) 
+ * [multiDelete](#multidelete-objects) 
  * [findAllQuery](#queries)
 
 *Note :* For all these operations you won't need to pass the `type`, it'll be implicitly picked up from the extended class.
