@@ -19,12 +19,13 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
 * [Conventions](#conventions)  
 * [Data storage and retrieval](#data-storage-and-retrieval)  
   * [Creating](#creating)  
+  * [Extending Object](#extending-object)
   * [Retrieving](#retrieving)  
   * [Updating](#updating)  
   * [Deleting](#deleting)  
-* [Extending Object](#extending-object)
 * [Arrays](#arrays)
 * [Counters](#counters)
+* [GeoPoint](#geopoint)
 * [Connections](#connections)  
   * [Creating & Saving](#creating--saving)  
   * [Retrieving](#retrieving-1)  
@@ -44,6 +45,7 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
     * [Fields](#fields)
     * [Filter](#filter)
     * [Geolocation](#geolocation)
+      * [GeoPoint](#geopoint)
       * [Radial Search](#radial-search)
       * [Polygon Search](#polygon-search)
     * [Tag Based Searches](#tag-based-searches)
@@ -65,7 +67,7 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
   * [User Session Management](#user-session-management)  
   * [Linking and Unlinking accounts](#linking-and-unlinking-accounts)  
   * [Password Management](#password-management)  
-  * [Check-in](#check-in)  
+  * [Check-in](#check-in)
 * [Emails](#emails)  
   * [Configuring](#configuring)  
   * [Sending Raw Emails](#sending-raw-emails)
@@ -159,11 +161,80 @@ What is a type? In short, think of types as tables in a contemporary relational 
 
 The player object is an instance of `Appacitive.Object`. An `Appacitive.Object` is a class which encapsulates the data (the actual entity or the object) and methods that provide ways to update it, delete it etc. To see the raw entity that is stored within the `Appacitive.Object`, fire `player.toJSON()`.
 
+
+#### Extending Object
+
+Each `Appacitive.Object` is an instance of a specific subclass of a particular `type` by default. To create a subclass of particular type of your own, you extend `Appacitive.Object` with `typename` and provide instance properties, as well as optional classProperties to be attached directly to the constructor function. 
+
+```javascript
+// create a new subclass of Appacitive.Object.
+var Player = Appacitive.Object.extend('player');  //Name subclass using pascal casing
+
+// create an instance of that class 
+var tyson = new Player(); 
+```
+
+You can add additional methods and properties to your subclasses of `Appacitive.Object` as shown below
+
+```javascript
+// a subclass of Appacitive.Object
+var Player = Appacitive.Object.extend('player', {
+  
+  //override constructor, which allows you to replace the actual constructor function
+  constructor: function(attrs) { 
+
+    attrs.firstname = attrs.name.split(' ')[0];
+    attrs.lastname = attrs.name.split(' ')[1];
+
+    //Invoke internal constructor
+    Appacitive.Object.call(this, atts); 
+  },
+
+  //instance methods
+  isAdult: function() {
+    return this.tryGet('age',0 , 'integer') >= 18 ? true: false ;
+  }
+
+}, {
+  // Class methods
+  findAdultPlayers: function() {
+    
+    //create a query with filterring on age
+    var query = this.findAllQuery({
+      filter: Appacitive.Filter.Property('age').greaterThanEqualTo(18)
+    });
+
+    //call fetch and return promise 
+    return query.fetch();  
+  }
+});
+```
+When creating an instance of a subclass, you can pass in the initial values of the properties, which will be set on the `Appacitive.Object` instance.
+
+```javascript
+var tyson = new Player({ name 'Mike Tyson', age: '47' });
+alert(tyson.isAdult()); //displays true
+
+Player.findAdultPlayers().then(function(res) { 
+  console.log(res.length + ' players'); 
+});
+```
+
+Above example depicts use of (queries)[#queries], which we'll discuss in coming sections. By deault whenever you extend `Appacitive.Object` class you also extend some of the static methods used for querying and fetching data viz. 
+
+ * (get)[]
+ * (multiGet)[]
+ * (multiDelete)[]
+ * (findAllQuery)[]
+
+*Note :* For all these operations you won't need to pass the `type`, it'll be implicitly picked up from the extended class.
+
 #### Setting Values
 Now we need to name our player 'John Doe'. This can be done as follows
 ```javascript
  // values can be specified while creating the object
- var player = new Appacitive.Object({ __type:'player', name: 'John Doe' });
+ var Player = Appacitive.Object.extend('player');
+ var player = new Player({ name: 'John Doe' });
 
  // or we could use the setters
  player.set('name', 'John Doe');
@@ -219,9 +290,24 @@ alert(player.tryGet('age', 12, 'integer'))
 Saving a player to the server is easy.
 ```javascript
 player.set('age','22');
+
+//saving using (promise)[#promise]
 player.save().then(function() {
   alert('saved successfully!');
 });
+
+// or using callbacks
+
+player.save({
+  success : function() {
+    alert('saved successfully!');
+  },
+  error: function(status) {
+    alert("save failed due to " + status.message);
+  }
+});
+
+
 ```
 When you call save, the entity is taken and stored on Appacitive's servers. A unique identifier called `__id` is generated and is stored along with the player object. This identifier is also returned to the object on the client-side. You can access it directly using `id`.
 This is what is available in the `player` object after a successful save.
@@ -259,6 +345,7 @@ You'll see a bunch of fields that were created automatically by the server. They
 ### Retrieving
 
 ```javascript
+
 // retrieve the player
 Appacitive.Object.get({ 
   type: 'player', //mandatory
@@ -267,12 +354,25 @@ Appacitive.Object.get({
 }).then(function(obj) {
   alert('Fetched player with name: ' + obj.get('name')); // artice obj is returned as argument to onsuccess
 });
+
+// or via extended class
+var Player = Appacitive.Object.extend('player');
+Player.get({ 
+  id: '{{existing__id}}', //mandatory
+  fields: ["name"] //optional
+}).then(function(obj) {
+  alert('Fetched player with name: ' + obj.get('name')); // artice obj is returned as argument to onsuccess
+});
+
 ```
 
 Retrieving can also be done via the `fetch` method. Here's an example
 ```javascript
+//extend class
+var Player = Appacitive.Object.extend('player');
+
 // create a new object
-var player = new Appacitive.Object('player'); //You can initialize object in this way too.
+var player = new Player(); //You can initialize object in this way too.
 
 // set an (existing) id in the object
 player.id({{existing_id}});
@@ -301,16 +401,27 @@ Appacitive.Object.multiGet({
 }).then(function(objects) { 
   // objects is an array of object objects
 });
+
+
+//or via extended class 
+var Player = Appacitive.Object.extend('player');
+Player.multiGet({ 
+  ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of object ids to get : mandatory
+  fields: ["name"]// this denotes the fields to be returned in the object object, to avoid increasing the payload : optional
+}).then(function(objects) { 
+  // objects is an array of object objects
+});
+
 ```
 ### Updating
 
 Updating is also done via the `save` method. To illustrate: 
 ```javascript
+// extend class
+var Player = Appacitive.Object.extend('player');
+
 // create a blank object
-var player = new Appacitive.Object({
-    name: 'John Doe',
-    __type: 'player'
-});
+var player = new Player({ name: 'john Doe'});
 
 // set hobbies as an array property
 player.set('hobbies', ['swimming', 'trekking']);
@@ -415,65 +526,19 @@ Appacitive.Object.multiDelete({
 }, function(err) {
   alert("code:" + err.code + "\nmessage:" + err.message);
 });
+
+// or via extended class
+var Player = Appacitive.Object.extend('player');
+
+Player.multiDelete({   
+  ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of object ids to delete
+}, function() { 
+  //successfully deleted all objects
+}, function(err) {
+  alert("code:" + err.code + "\nmessage:" + err.message);
+});
+
 ```                                                        
-
-### Extending Object
-
-Each `Appacitive.Object` is an instance of a specific subclass of a particular `type` by default. To create a subclass of particular type of your own, you extend `Appacitive.Object` with `typename` and provide instance properties, as well as optional classProperties to be attached directly to the constructor function. 
-
-```javascript
-// create a new subclass of Appacitive.Object.
-var Player = Appacitive.Object.extend('player');  //Name subclass using pascal casing
-
-// create an instance of that class 
-var tyson = new Player(); 
-```
-
-You can add additional methods and properties to your subclasses of `Appacitive.Object` as shown below
-
-```javascript
-// a subclass of Appacitive.Object
-var Player = Appacitive.Object.extend('player', {
-  
-  //override constructor, which allows you to replace the actual constructor function
-  constructor: function(attrs) { 
-
-    attrs.firstname = attrs.name.split(' ')[0];
-    attrs.lastname = attrs.name.split(' ')[1];
-
-    //Invoke internal constructor
-    Appacitive.Object.call(this, atts); 
-  },
-
-  //instance methods
-  isAdult: function() {
-    return this.tryGet('age',0 , 'integer') >= 18 ? true: false ;
-  }
-
-}, {
-  // Class methods
-  findAdultPlayers: function() {
-    
-    //create a query with filterring on age
-    var query = this.findAllQuery({
-      filter: Appacitive.Filter.Property('age').greaterThanEqualTo(18)
-    });
-
-    //call fetch and return promise 
-    return query.fetch();  
-  }
-});
-```
-When creating an instance of a subclass, you can pass in the initial values of the properties, which will be set on the `Appacitive.Object` instance.
-
-```javascript
-var tyson = new Player({ name 'Mike Tyson', age: '47' });
-alert(tyson.isAdult()); //displays true
-
-Player.findAdultPlayers().then(function(res) { 
-  console.log(res.length + ' players'); 
-});
-```
 
 ----------
 
@@ -1126,7 +1191,55 @@ var greaterThanFilter = Appacitive.Filter.Property("age").greaterThan(25);
 
 #### Geolocation
 
-You can specify a property type as a geography type for a given type or relation. These properties are essential latitude-longitude pairs. Such properties support geo queries based on a user defined radial or polygonal region on the map. These are extremely useful for making map based or location based searches. E.g., searching for a list of all restaurants within 20 miles of a given users locations.
+Appacitive supports geolocations, allowing you to save and search geo data. You can specify a property type as a `geography` type for a given type or relation. 
+
+##### GeoPoint
+
+`Appacitive.GeoCoord` is a simple wrapper around lat and lon coordinates. It's used in geolocation queries and in setting property values.
+
+```javascript
+var geopoint = new Appacitive.GeoCoords(lat, lon);
+ 
+lat: the latitude coordinates. Range: -90, 90 
+lon: the longitude coordinates. Range: -180, 180
+```
+
+Let's create a geography property and save it as `location` in type `hotel`. We'll use the `Appacitive.GeoCoord` object to help with creating the property. It's a helper object that will convert the geopoint data to the string format we need via toString.
+
+```javascript
+//for example
+
+var Hotel = Appacitive.Object.extend('hotel'); 
+  
+var location = new Appacitive.GeoCoord(16.734, 80.3423); //lat, lon
+var hilton = new Hotel({ name: 'Hotel Hilton', location: location }); // you can assign geocoord objects directly to properties
+
+//or set it in object
+hilton.set('location', location);
+
+// or set it as raw in object
+hilton.set('location', '16.734, 80.3423');
+
+hilton.save().then(function(obj) {
+    alert(hilton.get('location')); // will display 16.734, 80.3423
+
+    var loc = hilton.get('location', 'geocode')); // will return you an instance of Appacitive.GeoCoord type
+
+    alert("Latitude: " + loc.lat() + ', longitude: ' + loc.lng());
+});
+  
+location.toJSON();
+ 
+Returns a JSON representation of the lat long coordinates:
+
+{
+  latitude: 16.734,
+  longitude: 80.3423
+}
+
+```
+
+These properties are essential latitude-longitude pairs. Such properties support geo queries based on a user defined radial or polygonal region on the map. These are extremely useful for making map based or location based searches. E.g., searching for a list of all restaurants within 20 miles of a given users locations.
 
 ##### Radial Search
 
