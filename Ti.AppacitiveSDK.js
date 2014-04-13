@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Apr  7 13:04:27 IST 2014
+ * Build time 	: Sun Apr 13 23:01:05 IST 2014
  */
 "use strict";
 
@@ -808,7 +808,7 @@ var global = {};
 	    		responseTime : request.timeTakenInMilliseconds,
 	    		headers: {},
 	    		request: null,
-	    		response: response
+	    		response: response.responseText
 			};
 
 			if (request.headers) {

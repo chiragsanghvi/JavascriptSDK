@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Apr  7 13:04:27 IST 2014
+ * Build time 	: Sun Apr 13 23:01:05 IST 2014
  */
 "use strict";
 
@@ -759,15 +759,12 @@ var global = {};
 			var error;
 		    if (response && response.responseText) {
 		        try {
-		          var errorJSON = JSON.parse(response.responseText);
-		          if (errorJSON) {
-		            error = { code: errorJSON.code, message: errorJSON.message };
-		          }
+		          error = JSON.parse(response.responseText);
 		        } catch (e) {}
 		    }
 
-		    error = error || { code: response.status, message: response.responseText };
-		    global.Appacitive.logs.logRequest(request, error, error, 'error');
+		    error = error || { code: response.status, message: response.responseText, referenceid: response.headers["TransactionId"] };
+		    global.Appacitive.logs.logRequest(request, response, error, 'error');
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
@@ -862,7 +859,7 @@ var global = {};
 	    		responseTime : request.timeTakenInMilliseconds,
 	    		headers: {},
 	    		request: null,
-	    		response: response
+	    		response: response.responseText
 			};
 
 			if (request.headers) {

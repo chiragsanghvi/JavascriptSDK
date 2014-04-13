@@ -22,7 +22,7 @@
 	    		responseTime : request.timeTakenInMilliseconds,
 	    		headers: {},
 	    		request: null,
-	    		response: response
+	    		response: response.responseText
 			};
 
 			if (request.headers) {
