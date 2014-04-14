@@ -219,7 +219,15 @@
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
   		
 		if (options.debug) global.Appacitive.config.debug = true;
-		if (options.log) global.Appacitive.log = [];
+		if (options.log) {
+			global.Appacitive.log = true;
+			if (!global.Appacitive.runtime.isBrowser) {  
+				global.Appacitive.log = {};
+				global.Appacitive.log.logPath = './api.log';
+				global.Appacitive.log.exceptionPath = './exception.log';
+				global.Appacitive.log.errotPath = './apierror.log';
+			}
+		}
 
   		if (options.userToken) {
 

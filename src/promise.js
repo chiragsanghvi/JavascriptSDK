@@ -65,10 +65,10 @@
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
                     if (global.Appacitive.log) {
-                        global.Appacitive.logs.exceptions.push(error);
-                        console.log(JSON.stringify({name: error.name, message: error.message, stack: error.stack}, null, 2));
+                        var err = {name: error.name, message: error.message, stack: error.stack};
+                        global.Appacitive.logs.logException(err);
                     }   
-                    if (promise.calls.length == 0) throw error;
+                    if (promise.calls.length == 0) throw new Error({ name: error.name, message: error.message, stack: error.stack });
                     else promise.reject(error);
                 }
 
