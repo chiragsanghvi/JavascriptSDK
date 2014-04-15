@@ -16,6 +16,13 @@
 
 		if (!options.__type) throw new Error("Cannot set object without __type");
 		
+
+		if (_type.isObject(this.defaults) && !setSnapShot) {
+			for (var o in this.defaults) {
+				if (!options[o]) options[o] = this.defaults[o];
+			}
+		}
+
 		global.Appacitive.BaseObject.call(this, options, setSnapShot);
 
 		this.type = 'object';

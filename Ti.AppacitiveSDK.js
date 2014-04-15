@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Apr 15 16:05:28 IST 2014
+ * Build time 	: Tue Apr 15 17:00:18 IST 2014
  */
 "use strict";
 
@@ -4639,6 +4639,13 @@ var extend = function(protoProps, staticProps) {
 
 		if (!options.__type) throw new Error("Cannot set object without __type");
 		
+
+		if (_type.isObject(this.defaults) && !setSnapShot) {
+			for (var o in this.defaults) {
+				if (!options[o]) options[o] = this.defaults[o];
+			}
+		}
+
 		global.Appacitive.BaseObject.call(this, options, setSnapShot);
 
 		this.type = 'object';
@@ -4908,6 +4915,12 @@ var extend = function(protoProps, staticProps) {
 			options.__endpointa = options.endpoints[0];
 			options.__endpointb = options.endpoints[1];
 			delete options.endpoints;
+		}
+
+		if (_type.isObject(this.defaults) && !doNotSetup) {
+			for (var o in this.defaults) {
+				if (!options[o]) options[o] = this.defaults[o];
+			}
 		}
 
 		global.Appacitive.BaseObject.call(this, options, doNotSetup);

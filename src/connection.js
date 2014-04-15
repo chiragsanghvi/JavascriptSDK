@@ -73,6 +73,12 @@
 			delete options.endpoints;
 		}
 
+		if (_type.isObject(this.defaults) && !doNotSetup) {
+			for (var o in this.defaults) {
+				if (!options[o]) options[o] = this.defaults[o];
+			}
+		}
+
 		global.Appacitive.BaseObject.call(this, options, doNotSetup);
 		this.type = 'connection';
 		this.getConnection = this.getObject;
