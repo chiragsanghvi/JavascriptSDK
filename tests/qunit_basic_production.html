@@ -18,7 +18,25 @@
   <!--<div id="fb-root"></div>-->
   <script>
     Appacitive.config.apiBaseUrl = "http://apis.appacitive.com/v1.0/";
-    Appacitive.initialize({apikey: testConstants.apiKey, env: testConstants.environment, appId: testConstants.appId, log:true });
+
+    var sdkLogs = [];
+    sdkLogs.errors = [];
+    sdkLogs.exceptions = [];
+
+    Appacitive.initialize({
+      apikey: testConstants.apiKey, 
+      env: testConstants.environment, 
+      appId: testConstants.appId, 
+      apiLog: function(log) {
+        sdkLogs.push(log);
+      }, apiErrorLog: function(log) {
+        sdkLogs.errors.push(log);
+        //console.dir(log);
+      }, exceptionLog: function(log) {
+        sdkLogs.exceptions.push(log);
+        console.dir(log);
+      } 
+    });
     Appacitive.Session.resetSession();
     Appacitive.Session.removeUserAuthHeader();
 

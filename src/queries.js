@@ -227,12 +227,17 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString();
+			return {
+				url: global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString(),
+				description: 'FindAll ' + _entityType + ' ' + _etype + 's'
+			}
 		};
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
             r.method = 'get';
 			return r;
 		};
@@ -378,14 +383,19 @@
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'get';
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
-				this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge;
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
+						this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge,
+				description: 'GetConnectedObjects for relation ' + this.relation + ' of type ' + this.type + ' for object ' + this.objectId
+			}; 
 		};
 
 
@@ -460,16 +470,21 @@
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'get';
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
 				this.getQueryString() + 
 				'&objectid=' + this.objectId +
-				'&label=' + this.label;
+				'&label=' + this.label,
+				description: 'FindAllConnections for relation ' + this.relation + ' from object id '  + this.objectId
+			};
 		};
 
 		return this;
@@ -503,14 +518,19 @@
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'get';
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
-				+ this.getQueryString() + this.label;
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
+							+ this.getQueryString() + this.label,
+				description: 'FindConnectionBetween for relation ' + this.relation + ' between object ids '  + this.objectAId + ' and ' + this.objectBId
+			};
 		};
 
 		return this;
@@ -568,7 +588,9 @@
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = {
 				object1id: this.objectAId,
@@ -578,7 +600,10 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString();
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString(),
+				description: 'GetInterConnections between objects'
+			};
 		};
 
 		return this;
@@ -609,14 +634,19 @@
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter';
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter',
+				description: 'Filter Query with name ' + this.name
+			};
 		};
 
 		this.fetch = function(callbacks) {
@@ -654,14 +684,19 @@
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project';
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project',
+				description: 'Project Query with name ' + this.name
+			};
 		};
 
 		var _parseResult = function(result) {

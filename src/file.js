@@ -10,10 +10,11 @@
       this.fileData = options.fileData;
       var that = this;
 
-      var _getUrls = function(url, onSuccess, promise) {
+      var _getUrls = function(url, onSuccess, promise, description) {
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'GET';
+          request.description = description;
           request.onSuccess = onSuccess;
           request.promise = promise;
           request.entity = that;
@@ -26,6 +27,8 @@
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'PUT';
+          request.log = false;
+          request.description = 'Upload file';
           request.data = file;
           request.headers.push({ key:'content-type', value: type });
           request.send().then(onSuccess, function() {
@@ -62,7 +65,7 @@
                     });
 
                 }, promise);
-          }, promise);
+          }, promise, ' Get upload url for file ');
 
           return promise;
       };
@@ -88,7 +91,7 @@
                   });
 
               }, promise);
-          }, promise);
+          }, promise, ' Get update url for file ' + that.fileId);
 
           return promise;
       };
@@ -101,7 +104,7 @@
           var request = new global.Appacitive.HttpRequest();
           request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);
           request.method = 'DELETE';
-
+          request.description = 'Delete file with id ' + this.fileId;
           request.onSuccess = function(response) {
               promise.fulfill();
           };
@@ -125,7 +128,7 @@
           _getUrls(url, function(response) {
               that.url = response.uri;
               promise.fulfill(response.uri);
-          }, promise);
+          }, promise,  ' Get download url for file ' + this.fileId);
 
           return promise;
       };
@@ -140,7 +143,7 @@
           _getUrls(url, function(response) {
               that.url = response.url;
               promise.fulfill(response.url, that);
-          }, promise);
+          }, promise, ' Get upload url for file ' + this.fileId);
 
           return promise;
       };

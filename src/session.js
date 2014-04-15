@@ -121,6 +121,8 @@
 		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
+		            _request.type = 'user';
+		            _request.description = 'InvalidateToken user';
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
@@ -219,15 +221,10 @@
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
   		
 		if (options.debug) global.Appacitive.config.debug = true;
-		if (options.log) {
-			global.Appacitive.log = true;
-			if (!global.Appacitive.runtime.isBrowser) {  
-				global.Appacitive.log = {};
-				global.Appacitive.log.logPath = './api.log';
-				global.Appacitive.log.exceptionPath = './exception.log';
-				global.Appacitive.log.errotPath = './apierror.log';
-			}
-		}
+
+		if (_type.isFunction(options.apiLog)) global.Appacitive.logs.apiLog = options.apiLog;
+		if (_type.isFunction(options.apiErrorLog)) global.Appacitive.logs.apiErrorLog = options.apiErrorLog;
+		if (_type.isFunction(options.exceptionLog)) global.Appacitive.logs.exceptionLog = options.exceptionLog;
 
   		if (options.userToken) {
 

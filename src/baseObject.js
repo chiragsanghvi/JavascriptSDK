@@ -770,30 +770,32 @@
 
 			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(callbacks);
 
-			var cb = function(revision) {
-				var changeSet = _getChanged(true);
-				for (var p in changeSet) {
-					if (p[0] == '$') delete changeSet[p];
+			var changeSet = _getChanged(true);
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
+			if (!Object.isEmpty(changeSet)) {
+
+				var type = that.type;
+				
+				var args = [that.className, (_snapshot.__id) ? _snapshot.__id : object.__id, _fields];
+
+				// for User and Device objects
+				if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
+					type = object.__type.toLowerCase();
+					args.splice(0, 1);
 				}
 
-				if (!Object.isEmpty(changeSet)) {
-
-					var fields = _fields;
-
-					var _updateRequest = new global.Appacitive.HttpRequest();
-					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(object.__type || object.__relationtype, (_snapshot.__id) ? _snapshot.__id : object.__id, fields, revision);
-					
-					var type = that.type;
-
-					// for User and Device objects
-					if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
-						type = object.__type.toLowerCase();
-						url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[object.__type.toLowerCase()].getUpdateUrl(_snapshot.__id, fields, revision);
-					}
-					_updateRequest.url = url;
-					_updateRequest.method = 'post';
-					_updateRequest.data = changeSet;
-					_updateRequest.onSuccess = function(data) {
+				var request = new global.Appacitive._Request({
+					method: 'POST',
+					type: type,
+					op: 'getUpdateUrl',
+					args: args,
+					data: changeSet,
+					callbacks: callbacks,
+					entity: that,
+					onSuccess: function(data) {
 						if (data && data[type]) {
 							_snapshot = data[type];
 							
@@ -802,24 +804,22 @@
 							delete that.created;
 							
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
-							promise.fulfill(that);
+							request.promise.fulfill(that);
 						} else {
+							data = data || {};
+							data.status =  data.status || {};
+							data.status = _getOutpuStatus(data.status);
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
-							promise.reject(data.status, that);	
+							request.promise.reject(data.status, that);
 						}
-					};
-					_updateRequest.onError = function(err) {
-						err = _getOutpuStatus(err);
-						promise.reject(err, that);
-					};
-					global.Appacitive.http.send(_updateRequest);
-				} else {
-					promise.fulfill(that);
-				}
-			};
-
-			cb();
-
+					}
+				});
+				
+				return request.send();
+			} else {
+				promise.fulfill(that);
+			}
+			
 			return promise;
 		};
 
@@ -897,6 +897,15 @@
 				entity: this,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);
+
+					if (data && data.status) {
+						request.promise.fulfill(data.status);
+					} else {
+						data = data || {};
+						data.status =  data.status || {};
+						data.status = _getOutpuStatus(data.status);
+						request.promise.reject(data.status, that);
+					}
 				}
 			});
 			return request.send();

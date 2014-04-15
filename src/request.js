@@ -5,7 +5,13 @@
 	
     var getUrl = function(options) {
     	var ctx = global.Appacitive.storage.urlFactory[options.type];
-    	return global.Appacitive.config.apiBaseUrl + ctx[options.op].apply(ctx, options.args || []);
+
+    	var description =  options.op.replace('get','').replace('Url', '') + ' ' + options.type;
+
+    	return { 
+    		url:  global.Appacitive.config.apiBaseUrl + ctx[options.op].apply(ctx, options.args || []),
+    		description: description
+    	};
     };
 
     var _request = function(options) {
@@ -16,13 +22,18 @@
 
 		var request = this.request = new global.Appacitive.HttpRequest();
 		
-		request.url = getUrl(options);
+		var tmp = getUrl(options);
+
+		request.url = tmp.url;
+
+		request.description = tmp.description;
 
 		request.method = options.method || 'get';
 		
 		request.data = options.data || {} ;
 
 		request.onSuccess = options.onSuccess;
+		
 		request.onError = options.onError;
 
 		request.promise = this.promise;

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Apr 15 11:05:26 IST 2014
+ * Build time 	: Tue Apr 15 16:05:28 IST 2014
  */
 "use strict";
 
@@ -839,121 +839,70 @@ var global = {};
 
     "use strict";
 
-    global.Appacitive.logs = [];
+    global.Appacitive.logs = {};
 
-    global.Appacitive.logs.exceptions = []; 
-
-    global.Appacitive.logs.errors = []; 
-
-    var quicklog = function(logs, pathName) {
-
-    	if (logs.length > 25) {
-
-			if (_type.isObject(global.Appacitive.log) && _type.isString(global.Appacitive.log[pathName])) {    	
-
-				var domain = require('domain').create();
-
-			    domain.run(function() {
-
-			    	try {
-				    	var log = '';
-
-						logs.forEach(function(l) {
-							log += JSON.stringify(l, undefined, 2) + '\n';
-						});
-
-						global.Appacitive.logs.length = 0;
-
-						var logpath = global.Appacitive.log[pathName];
-						var fs = require('fs');
-						log = log.replace(/\r\n|\r/g, '\n'); // hack
-						var fd = fs.openSync(logpath, 'a');
-						var buf = new Buffer(log);
-						fs.writeSync(fd, log);
-						fs.closeSync(fd);
-					} catch(e) {
-						console.log(e);
-					}
-				});
-
-			    domain.on("error", function() {
-			    	domain.dispose();
-			    });
-			} else {
-				logs.splice(0, 1);
-			}
-		}
+    var invoke = function(callback, log) {
+    	setTimeout(function() {
+	    	try { callback.call({}, log); } catch(e) {}
+	    }, 0);
 	};
 
 	global.Appacitive.logs.logRequest = function(request, response, status, type) {
-		if (global.Appacitive.log) {
-			response = response || {};
-			status = status || {};
-			var body = JSON.parse(request.data);
-	    	var log = {
-	    		status: type,
-	    		referenceId: status.referenceid,
-	    		date: new Date().toISOString(),
-	    		method: body['m'],
-	    		url: decodeURIComponent(request.url),
-	    		responseTime : request.timeTakenInMilliseconds,
-	    		headers: {},
-	    		request: null,
-	    		response: response.responseText
-			};
+		response = response || {};
+		status = status || {};
+		var body = {};
+		try {
+			body = JSON.parse(request.data) ;
+			if (!_type.isObject(body)) body = {};
+		} catch(e) {}
 
-			if (request.headers) {
-				request.headers.forEach(function(h) {
-					log.headers[h.key] = h.value;
-				});
-			}
+    	var log = {
+    		status: type,
+    		referenceId: status.referenceid,
+    		date: new Date().toISOString(),
+    		method: body['m'],
+    		url: decodeURIComponent(request.url),
+    		responseTime : request.timeTakenInMilliseconds,
+    		headers: {},
+    		request: null,
+    		response: response.responseText,
+    		description: request.description
+		};
 
-			if (request.prevHeaders) {
-				request.prevHeaders.forEach(function(h) {
-					log.headers[h.key] = h.value;
-				});
-			}
+		if (request.headers) {
+			request.headers.forEach(function(h) {
+				log.headers[h.key] = h.value;
+			});
+		}
 
-			if (log.method !== 'GET') {
-		    	log.request = body['b'];
+		if (request.prevHeaders) {
+			request.prevHeaders.forEach(function(h) {
+				log.headers[h.key] = h.value;
+			});
+		}
+
+		if (log.method !== 'GET') {
+	    	log.request = body['b'];
+	    }
+
+    	if (type == 'error') {
+    		if (global.Appacitive.runtime.isBrowser) console.dir(log);
+
+		    if (_type.isFunction(global.Appacitive.logs.apiErrorLog)) {
+		    	invoke(global.Appacitive.logs.apiErrorLog, log);
 		    }
-	    	
-	    	if (type == 'error') {
-	    		if (global.Appacitive.runtime.isBrowser) console.dir(log);
-	    		this.errors.push(log);
-	    		quicklog(this.errors, 'errorPath');
-		    }
+	    }
 
-		    this.push(log);
-
-		    quicklog(this, 'logPath');
+	    if (_type.isFunction(global.Appacitive.logs.apiLog)) {
+	    	invoke(global.Appacitive.logs.apiLog, log);
 	    }
 	};    
 
-	var getLogs = function(log, method) {
-		var logs = [];
-		log.forEach(function(l) { if (l.method == method) logs.push(l); });
-		return logs;
-	};
-
-	global.Appacitive.logs.getErrorLogs = function() {
-		var logs = [];
-		this.forEach(function(l) { if (l.type == 'error') logs.push(l); });
-		return logs;
-	};
-
 	global.Appacitive.logs.logException = function(error) {  
-		this.exceptions.push(error);
-		quicklog(this.exceptions, 'exceptionPath');
+		if (_type.isFunction(global.Appacitive.logs.exceptionLog)) {
+			invoke(global.Appacitive.logs.exceptionLog, error);
+		}
 	};
-
-	global.Appacitive.logs.getPutLogs = function() { return getLogs(this, 'PUT'); };
-
-	global.Appacitive.logs.getGetLogs = function() { return getLogs(this, 'GET'); };
-
-	global.Appacitive.logs.getPostLogs = function() { return getLogs(this, 'POST'); };
-
-	global.Appacitive.logs.getDeleteLogs = function() { return getLogs(this, 'DELETE'); };
 
 })(global);(function (global) {
 
@@ -1425,10 +1374,9 @@ var global = {};
                 try {
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
-                    if (global.Appacitive.log) {
-                        var err = {name: error.name, message: error.message, stack: error.stack};
-                        global.Appacitive.logs.logException(err);
-                    }   
+                    var err = {name: error.name, message: error.message, stack: error.stack};
+                    global.Appacitive.logs.logException(err);
+                    
                     if (promise.calls.length == 0) throw new Error({ name: error.name, message: error.message, stack: error.stack });
                     else promise.reject(error);
                 }
@@ -1720,7 +1668,13 @@ Depends on  NOTHING
 	
     var getUrl = function(options) {
     	var ctx = global.Appacitive.storage.urlFactory[options.type];
-    	return global.Appacitive.config.apiBaseUrl + ctx[options.op].apply(ctx, options.args || []);
+
+    	var description =  options.op.replace('get','').replace('Url', '') + ' ' + options.type;
+
+    	return { 
+    		url:  global.Appacitive.config.apiBaseUrl + ctx[options.op].apply(ctx, options.args || []),
+    		description: description
+    	};
     };
 
     var _request = function(options) {
@@ -1731,13 +1685,18 @@ Depends on  NOTHING
 
 		var request = this.request = new global.Appacitive.HttpRequest();
 		
-		request.url = getUrl(options);
+		var tmp = getUrl(options);
+
+		request.url = tmp.url;
+
+		request.description = tmp.description;
 
 		request.method = options.method || 'get';
 		
 		request.data = options.data || {} ;
 
 		request.onSuccess = options.onSuccess;
+		
 		request.onError = options.onError;
 
 		request.promise = this.promise;
@@ -1876,6 +1835,8 @@ Depends on  NOTHING
 		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
+		            _request.type = 'user';
+		            _request.description = 'InvalidateToken user';
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
@@ -1974,15 +1935,10 @@ Depends on  NOTHING
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
   		
 		if (options.debug) global.Appacitive.config.debug = true;
-		if (options.log) {
-			global.Appacitive.log = true;
-			if (!global.Appacitive.runtime.isBrowser) {  
-				global.Appacitive.log = {};
-				global.Appacitive.log.logPath = './api.log';
-				global.Appacitive.log.exceptionPath = './exception.log';
-				global.Appacitive.log.errotPath = './apierror.log';
-			}
-		}
+
+		if (_type.isFunction(options.apiLog)) global.Appacitive.logs.apiLog = options.apiLog;
+		if (_type.isFunction(options.apiErrorLog)) global.Appacitive.logs.apiErrorLog = options.apiErrorLog;
+		if (_type.isFunction(options.exceptionLog)) global.Appacitive.logs.exceptionLog = options.exceptionLog;
 
   		if (options.userToken) {
 
@@ -2858,12 +2814,17 @@ Depends on  NOTHING
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString();
+			return {
+				url: global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString(),
+				description: 'FindAll ' + _entityType + ' ' + _etype + 's'
+			}
 		};
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
             r.method = 'get';
 			return r;
 		};
@@ -3009,14 +2970,19 @@ Depends on  NOTHING
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'get';
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
-				this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge;
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
+						this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge,
+				description: 'GetConnectedObjects for relation ' + this.relation + ' of type ' + this.type + ' for object ' + this.objectId
+			}; 
 		};
 
 
@@ -3091,16 +3057,21 @@ Depends on  NOTHING
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'get';
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
 				this.getQueryString() + 
 				'&objectid=' + this.objectId +
-				'&label=' + this.label;
+				'&label=' + this.label,
+				description: 'FindAllConnections for relation ' + this.relation + ' from object id '  + this.objectId
+			};
 		};
 
 		return this;
@@ -3134,14 +3105,19 @@ Depends on  NOTHING
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'get';
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
-				+ this.getQueryString() + this.label;
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
+							+ this.getQueryString() + this.label,
+				description: 'FindConnectionBetween for relation ' + this.relation + ' between object ids '  + this.objectAId + ' and ' + this.objectBId
+			};
 		};
 
 		return this;
@@ -3199,7 +3175,9 @@ Depends on  NOTHING
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = {
 				object1id: this.objectAId,
@@ -3209,7 +3187,10 @@ Depends on  NOTHING
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString();
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString(),
+				description: 'GetInterConnections between objects'
+			};
 		};
 
 		return this;
@@ -3240,14 +3221,19 @@ Depends on  NOTHING
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter';
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter',
+				description: 'Filter Query with name ' + this.name
+			};
 		};
 
 		this.fetch = function(callbacks) {
@@ -3285,14 +3271,19 @@ Depends on  NOTHING
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project';
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project',
+				description: 'Project Query with name ' + this.name
+			};
 		};
 
 		var _parseResult = function(result) {
@@ -3902,7 +3893,11 @@ var extend = function(protoProps, staticProps) {
 		    object.__tags.push(tag);
 		    object.__tags = Array.distinct(object.__tags);
 
-		    if (!_removeTags || !_removeTags.length) return this;
+		    if (!_removeTags || !_removeTags.length) {
+		    	triggerEvent('__tags');
+		     	return this;
+			} 
+
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
 
@@ -3917,7 +3912,11 @@ var extend = function(protoProps, staticProps) {
 			_removeTags.push(tag);
 			_removeTags = Array.distinct(_removeTags);
 
-			if (!object.__tags || !object.__tags.length) return this;
+			if (!object.__tags || !object.__tags.length) {
+				triggerEvent('__tags');
+				return this;
+			}
+
 			var index = object.__tags.indexOf(tag);
 			if (index != -1) object.__tags.splice(index, 1);
 
@@ -4449,30 +4448,32 @@ var extend = function(protoProps, staticProps) {
 
 			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(callbacks);
 
-			var cb = function(revision) {
-				var changeSet = _getChanged(true);
-				for (var p in changeSet) {
-					if (p[0] == '$') delete changeSet[p];
+			var changeSet = _getChanged(true);
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
+			if (!Object.isEmpty(changeSet)) {
+
+				var type = that.type;
+				
+				var args = [that.className, (_snapshot.__id) ? _snapshot.__id : object.__id, _fields];
+
+				// for User and Device objects
+				if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
+					type = object.__type.toLowerCase();
+					args.splice(0, 1);
 				}
 
-				if (!Object.isEmpty(changeSet)) {
-
-					var fields = _fields;
-
-					var _updateRequest = new global.Appacitive.HttpRequest();
-					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(object.__type || object.__relationtype, (_snapshot.__id) ? _snapshot.__id : object.__id, fields, revision);
-					
-					var type = that.type;
-
-					// for User and Device objects
-					if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
-						type = object.__type.toLowerCase();
-						url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[object.__type.toLowerCase()].getUpdateUrl(_snapshot.__id, fields, revision);
-					}
-					_updateRequest.url = url;
-					_updateRequest.method = 'post';
-					_updateRequest.data = changeSet;
-					_updateRequest.onSuccess = function(data) {
+				var request = new global.Appacitive._Request({
+					method: 'POST',
+					type: type,
+					op: 'getUpdateUrl',
+					args: args,
+					data: changeSet,
+					callbacks: callbacks,
+					entity: that,
+					onSuccess: function(data) {
 						if (data && data[type]) {
 							_snapshot = data[type];
 							
@@ -4481,24 +4482,22 @@ var extend = function(protoProps, staticProps) {
 							delete that.created;
 							
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
-							promise.fulfill(that);
+							request.promise.fulfill(that);
 						} else {
+							data = data || {};
+							data.status =  data.status || {};
+							data.status = _getOutpuStatus(data.status);
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
-							promise.reject(data.status, that);	
+							request.promise.reject(data.status, that);
 						}
-					};
-					_updateRequest.onError = function(err) {
-						err = _getOutpuStatus(err);
-						promise.reject(err, that);
-					};
-					global.Appacitive.http.send(_updateRequest);
-				} else {
-					promise.fulfill(that);
-				}
-			};
-
-			cb();
-
+					}
+				});
+				
+				return request.send();
+			} else {
+				promise.fulfill(that);
+			}
+			
 			return promise;
 		};
 
@@ -4576,6 +4575,15 @@ var extend = function(protoProps, staticProps) {
 				entity: this,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);
+
+					if (data && data.status) {
+						request.promise.fulfill(data.status);
+					} else {
+						data = data || {};
+						data.status =  data.status || {};
+						data.status = _getOutpuStatus(data.status);
+						request.promise.reject(data.status, that);
+					}
 				}
 			});
 			return request.send();
@@ -6078,10 +6086,11 @@ var extend = function(protoProps, staticProps) {
       this.fileData = options.fileData;
       var that = this;
 
-      var _getUrls = function(url, onSuccess, promise) {
+      var _getUrls = function(url, onSuccess, promise, description) {
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'GET';
+          request.description = description;
           request.onSuccess = onSuccess;
           request.promise = promise;
           request.entity = that;
@@ -6094,6 +6103,8 @@ var extend = function(protoProps, staticProps) {
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'PUT';
+          request.log = false;
+          request.description = 'Upload file';
           request.data = file;
           request.headers.push({ key:'content-type', value: type });
           request.send().then(onSuccess, function() {
@@ -6130,7 +6141,7 @@ var extend = function(protoProps, staticProps) {
                     });
 
                 }, promise);
-          }, promise);
+          }, promise, ' Get upload url for file ');
 
           return promise;
       };
@@ -6156,7 +6167,7 @@ var extend = function(protoProps, staticProps) {
                   });
 
               }, promise);
-          }, promise);
+          }, promise, ' Get update url for file ' + that.fileId);
 
           return promise;
       };
@@ -6169,7 +6180,7 @@ var extend = function(protoProps, staticProps) {
           var request = new global.Appacitive.HttpRequest();
           request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);
           request.method = 'DELETE';
-
+          request.description = 'Delete file with id ' + this.fileId;
           request.onSuccess = function(response) {
               promise.fulfill();
           };
@@ -6193,7 +6204,7 @@ var extend = function(protoProps, staticProps) {
           _getUrls(url, function(response) {
               that.url = response.uri;
               promise.fulfill(response.uri);
-          }, promise);
+          }, promise,  ' Get download url for file ' + this.fileId);
 
           return promise;
       };
@@ -6208,7 +6219,7 @@ var extend = function(protoProps, staticProps) {
           _getUrls(url, function(response) {
               that.url = response.url;
               promise.fulfill(response.url, that);
-          }, promise);
+          }, promise, ' Get upload url for file ' + this.fileId);
 
           return promise;
       };
