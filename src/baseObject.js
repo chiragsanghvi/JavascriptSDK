@@ -159,6 +159,8 @@
 				object.__attributes[arguments[0]] = arguments[1];
 			} else throw new Error('.attr() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 
+			triggerEvent('__attributes');
+
 			return object.__attributes;
 		};
 
@@ -213,9 +215,16 @@
 		    object.__tags.push(tag);
 		    object.__tags = Array.distinct(object.__tags);
 
-		    if (!_removeTags || !_removeTags.length) return this;
+		    if (!_removeTags || !_removeTags.length) {
+		    	triggerEvent('__tags');
+		     	return this;
+			} 
+
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
+
+			triggerEvent('__tags');
+
 			return this;
 		};
 
@@ -225,9 +234,16 @@
 			_removeTags.push(tag);
 			_removeTags = Array.distinct(_removeTags);
 
-			if (!object.__tags || !object.__tags.length) return this;
+			if (!object.__tags || !object.__tags.length) {
+				triggerEvent('__tags');
+				return this;
+			}
+
 			var index = object.__tags.indexOf(tag);
 			if (index != -1) object.__tags.splice(index, 1);
+
+			triggerEvent('__tags');
+
 			return this;
 		};
 
@@ -287,10 +303,13 @@
 					addItem(value);
 				}
 
-				return that;
+			 	triggerEvent(key);
+
 			} catch(e) {
 		 		throw new Error("Unable to add item to " + key);
 		 	}
+
+		 	return that; 
 		};
 
 		this.add = function(key, value) {
@@ -362,7 +381,7 @@
 				}
 			} else {
 				if (changedTags) { 
-					changeSet["__addtags"] = changedTags; 
+					changeSet["__tags"] = changedTags; 
 					isDirty = true;
 				}
 			}
@@ -526,6 +545,16 @@
 	 		return global.Appacitive.Date.toISOString(value);
 		};
 
+		var triggerEvent = function(key) {
+			var changed = _getChanged();
+
+			if (changed[key]) {
+				// Trigger all relevant attribute changes.
+			    that.trigger('change:' + key, that, changed[key], {});
+			    that.trigger('change', that, {});
+			}
+		};
+
 		this.set = function(key, value, type) {
 
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
@@ -533,7 +562,6 @@
 			key = key.toLowerCase();
 
 			try {
-
 
 			 	if (value == undefined || value == null) { object[key] = null;}
 			 	else if (_type.isString(value)) { object[key] = value; }
@@ -566,6 +594,9 @@
 						  	if (_type.isString(v)) { this[len] = v; }
 				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
 				 			else throw new Error("Multivalued property cannot have values of property as an object");
+			 				
+				 			triggerEvent(key);
+
 			 				return this; 
 						}
 					}
@@ -580,6 +611,9 @@
 						_setOps[key] = true;
 					}
 				}
+
+				triggerEvent(key);
+
 			 	return this;
 			} catch(e) {
 			 	throw new Error("Unable to set " + key);
@@ -588,8 +622,8 @@
 
 		this.unset = function(key) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
-		 	try { delete object[key]; } catch(e) {}
-			return this;
+			key = key.toLowerCase();
+		 	return this.set(key, null);
 		};
 
 		this.has = function(key) {
@@ -644,26 +678,29 @@
 		var _atomic = function(key, amount, multiplier) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
-				key = key.toLowerCase();
+			key = key.toLowerCase();
 
-				if (_type.isObject(object[key]) ||  _type.isArray(object[key])) {
-					throw new Error("Cannot increment/decrement array/object");
+			if (_type.isObject(object[key]) ||  _type.isArray(object[key])) {
+				throw new Error("Cannot increment/decrement array/object");
+			}
+
+			try {
+				if (!amount || isNaN(Number(amount))) amount = multiplier;
+				else amount = Number(amount) * multiplier;
+
+				object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
+
+				if (!that.isNew()) {
+					_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
 				}
 
-				try {
-					if (!amount || isNaN(Number(amount))) amount = multiplier;
-					else amount = Number(amount) * multiplier;
+			} catch(e) {
+				throw new Error('Cannot perform increment/decrement operation');
+			}
 
-					object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
+			triggerEvent(key);
 
-					if (!that.isNew()) {
-						_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
-					}
-
-					return that;
-				} catch(e) {
-					throw new Error('Cannot perform increment/decrement operation');
-				}
+			return that;
 		};
 
 		this.increment = function(key, amount) {
@@ -748,30 +785,32 @@
 
 			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(callbacks);
 
-			var cb = function(revision) {
-				var changeSet = _getChanged(true);
-				for (var p in changeSet) {
-					if (p[0] == '$') delete changeSet[p];
+			var changeSet = _getChanged(true);
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
+			if (!Object.isEmpty(changeSet)) {
+
+				var type = that.type;
+				
+				var args = [that.className, (_snapshot.__id) ? _snapshot.__id : object.__id, _fields];
+
+				// for User and Device objects
+				if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
+					type = object.__type.toLowerCase();
+					args.splice(0, 1);
 				}
 
-				if (!Object.isEmpty(changeSet)) {
-
-					var fields = _fields;
-
-					var _updateRequest = new global.Appacitive.HttpRequest();
-					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(object.__type || object.__relationtype, (_snapshot.__id) ? _snapshot.__id : object.__id, fields, revision);
-					
-					var type = that.type;
-
-					// for User and Device objects
-					if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
-						type = object.__type.toLowerCase();
-						url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[object.__type.toLowerCase()].getUpdateUrl(_snapshot.__id, fields, revision);
-					}
-					_updateRequest.url = url;
-					_updateRequest.method = 'post';
-					_updateRequest.data = changeSet;
-					_updateRequest.onSuccess = function(data) {
+				var request = new global.Appacitive._Request({
+					method: 'POST',
+					type: type,
+					op: 'getUpdateUrl',
+					args: args,
+					data: changeSet,
+					callbacks: callbacks,
+					entity: that,
+					onSuccess: function(data) {
 						if (data && data[type]) {
 							
 							_snapshot = data[type];
@@ -783,24 +822,22 @@
 							delete that.created;
 							
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
-							promise.fulfill(that);
+							request.promise.fulfill(that);
 						} else {
+							data = data || {};
+							data.status =  data.status || {};
+							data.status = _getOutpuStatus(data.status);
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
-							promise.reject(data.status, that);	
+							request.promise.reject(data.status, that);
 						}
-					};
-					_updateRequest.onError = function(err) {
-						err = _getOutpuStatus(err);
-						promise.reject(err, that);
-					};
-					global.Appacitive.http.send(_updateRequest);
-				} else {
-					promise.fulfill(that);
-				}
-			};
-
-			cb();
-
+					}
+				});
+				
+				return request.send();
+			} else {
+				promise.fulfill(that);
+			}
+			
 			return promise;
 		};
 
@@ -878,6 +915,15 @@
 				entity: this,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);
+
+					if (data && data.status) {
+						request.promise.fulfill(data.status);
+					} else {
+						data = data || {};
+						data.status =  data.status || {};
+						data.status = _getOutpuStatus(data.status);
+						request.promise.reject(data.status, that);
+					}
 				}
 			});
 			return request.send();
@@ -890,5 +936,7 @@
 	global.Appacitive.BaseObject.prototype.toString = function() {
 		return JSON.stringify(this.getObject());
 	};
+
+	global.Appacitive.Events.mixin(global.Appacitive.BaseObject.prototype);
 
 })(global);

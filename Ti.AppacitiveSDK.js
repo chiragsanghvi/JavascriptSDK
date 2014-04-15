@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Apr 15 09:18:42 IST 2014
+ * Build time 	: Tue Apr 15 16:18:03 IST 2014
  */
 "use strict";
 
@@ -787,120 +787,70 @@ var global = {};
 
     "use strict";
 
-    global.Appacitive.logs = [];
+    global.Appacitive.logs = {};
 
-    global.Appacitive.logs.exceptions = []; 
-
-    global.Appacitive.logs.errors = []; 
-
-    var quicklog = function(logs, pathName) {
-
-    	if (logs.length > 25) {
-
-			if (_type.isObject(global.Appacitive.log) && _type.isString(global.Appacitive.log[pathName])) {    	
-
-				var domain = require('domain').create();
-
-			    domain.run(function() {
-
-			    	try {
-				    	var log = '';
-
-						logs.forEach(function(l) {
-							log += JSON.stringify(l, undefined, 2) + '\n';
-						});
-
-						global.Appacitive.logs.length = 0;
-
-						var logpath = global.Appacitive.log[pathName];
-						var fs = require('fs');
-						log = log.replace(/\r\n|\r/g, '\n'); // hack
-						var fd = fs.openSync(logpath, 'a');
-						var buf = new Buffer(log);
-						fs.writeSync(fd, log);
-						fs.closeSync(fd);
-					} catch(e) {
-						console.log(e);
-					}
-				});
-
-			    domain.on("error", function() {
-			    	domain.dispose();
-			    });
-			} else {
-				logs.splice(0, 1);
-			}
-		}
+    var invoke = function(callback, log) {
+    	setTimeout(function() {
+	    	try { callback.call({}, log); } catch(e) {}
+	    }, 0);
 	};
 
 	global.Appacitive.logs.logRequest = function(request, response, status, type) {
-		if (global.Appacitive.log) {
-			response = response || {};
-			status = status || {};
-			var body = JSON.parse(request.data);
-	    	var log = {
-	    		status: type,
-	    		referenceId: status.referenceid,
-	    		date: new Date().toISOString(),
-	    		method: body['m'],
-	    		url: decodeURIComponent(request.url),
-	    		responseTime : request.timeTakenInMilliseconds,
-	    		headers: {},
-	    		request: null,
-	    		response: response.responseText
-			};
+		response = response || {};
+		status = status || {};
+		var body = {};
+		try {
+			body = JSON.parse(request.data) ;
+			if (!_type.isObject(body)) body = {};
+		} catch(e) {}
 
-			if (request.headers) {
-				request.headers.forEach(function(h) {
-					log.headers[h.key] = h.value;
-				});
-			}
+    	var log = {
+    		status: type,
+    		referenceId: status.referenceid,
+    		date: new Date().toISOString(),
+    		method: body['m'],
+    		url: decodeURIComponent(request.url),
+    		responseTime : request.timeTakenInMilliseconds,
+    		headers: {},
+    		request: null,
+    		response: response.responseText,
+    		description: request.description
+		};
 
-			if (request.prevHeaders) {
-				request.prevHeaders.forEach(function(h) {
-					log.headers[h.key] = h.value;
-				});
-			}
+		if (request.headers) {
+			request.headers.forEach(function(h) {
+				log.headers[h.key] = h.value;
+			});
+		}
 
-			if (log.method !== 'GET') {
-		    	log.request = body['b'];
+		if (request.prevHeaders) {
+			request.prevHeaders.forEach(function(h) {
+				log.headers[h.key] = h.value;
+			});
+		}
+
+		if (log.method !== 'GET') {
+	    	log.request = body['b'];
+	    }
+
+    	if (type == 'error') {
+    		if (global.Appacitive.runtime.isBrowser) console.dir(log);
+
+		    if (_type.isFunction(global.Appacitive.logs.apiErrorLog)) {
+		    	invoke(global.Appacitive.logs.apiErrorLog, log);
 		    }
-	    	
-	    	if (type == 'error') {
-	    		if (global.Appacitive.runtime.isBrowser) console.dir(log);
-	    		this.errors.push(log);
-	    		quicklog(this.errors, 'errorPath');
-		    }
+	    }
 
-		    this.push(log);
-
-		    quicklog(this, 'logPath');
+	    if (_type.isFunction(global.Appacitive.logs.apiLog)) {
+	    	invoke(global.Appacitive.logs.apiLog, log);
 	    }
 	};    
 
-	var getLogs = function(log, method) {
-		var logs = [];
-		log.forEach(function(l) { if (l.method == method) logs.push(l); });
-		return logs;
-	};
-
-	global.Appacitive.logs.getErrorLogs = function() {
-		var logs = [];
-		this.forEach(function(l) { if (l.type == 'error') logs.push(l); });
-		return logs;
-	};
-
 	global.Appacitive.logs.logException = function(error) {  
-		quicklog(this.exceptions, 'exceptionPath');
+		if (_type.isFunction(global.Appacitive.logs.exceptionLog)) {
+			invoke(global.Appacitive.logs.exceptionLog, error);
+		}
 	};
-
-	global.Appacitive.logs.getPutLogs = function() { return getLogs(this, 'PUT'); };
-
-	global.Appacitive.logs.getGetLogs = function() { return getLogs(this, 'GET'); };
-
-	global.Appacitive.logs.getPostLogs = function() { return getLogs(this, 'POST'); };
-
-	global.Appacitive.logs.getDeleteLogs = function() { return getLogs(this, 'DELETE'); };
 
 })(global);(function (global) {
 
@@ -1379,10 +1329,9 @@ var global = {};
                 try {
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
-                    if (global.Appacitive.log) {
-                        var err = {name: error.name, message: error.message, stack: error.stack};
-                        global.Appacitive.logs.logException(err);
-                    }   
+                    var err = {name: error.name, message: error.message, stack: error.stack};
+                    global.Appacitive.logs.logException(err);
+                    
                     if (promise.calls.length == 0) throw new Error({ name: error.name, message: error.message, stack: error.stack });
                     else promise.reject(error);
                 }
@@ -1674,7 +1623,13 @@ Depends on  NOTHING
 	
     var getUrl = function(options) {
     	var ctx = global.Appacitive.storage.urlFactory[options.type];
-    	return global.Appacitive.config.apiBaseUrl + ctx[options.op].apply(ctx, options.args || []);
+
+    	var description =  options.op.replace('get','').replace('Url', '') + ' ' + options.type;
+
+    	return { 
+    		url:  global.Appacitive.config.apiBaseUrl + ctx[options.op].apply(ctx, options.args || []),
+    		description: description
+    	};
     };
 
     var _request = function(options) {
@@ -1685,13 +1640,18 @@ Depends on  NOTHING
 
 		var request = this.request = new global.Appacitive.HttpRequest();
 		
-		request.url = getUrl(options);
+		var tmp = getUrl(options);
+
+		request.url = tmp.url;
+
+		request.description = tmp.description;
 
 		request.method = options.method || 'get';
 		
 		request.data = options.data || {} ;
 
 		request.onSuccess = options.onSuccess;
+		
 		request.onError = options.onError;
 
 		request.promise = this.promise;
@@ -1830,6 +1790,8 @@ Depends on  NOTHING
 		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
+		            _request.type = 'user';
+		            _request.description = 'InvalidateToken user';
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
@@ -1928,15 +1890,10 @@ Depends on  NOTHING
   		global.Appacitive.Session.persistUserToken = options.persistUserToken;
   		
 		if (options.debug) global.Appacitive.config.debug = true;
-		if (options.log) {
-			global.Appacitive.log = true;
-			if (!global.Appacitive.runtime.isBrowser) {  
-				global.Appacitive.log = {};
-				global.Appacitive.log.logPath = './api.log';
-				global.Appacitive.log.exceptionPath = './exception.log';
-				global.Appacitive.log.errotPath = './apierror.log';
-			}
-		}
+
+		if (_type.isFunction(options.apiLog)) global.Appacitive.logs.apiLog = options.apiLog;
+		if (_type.isFunction(options.apiErrorLog)) global.Appacitive.logs.apiErrorLog = options.apiErrorLog;
+		if (_type.isFunction(options.exceptionLog)) global.Appacitive.logs.exceptionLog = options.exceptionLog;
 
   		if (options.userToken) {
 
@@ -2812,12 +2769,17 @@ Depends on  NOTHING
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString();
+			return {
+				url: global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString(),
+				description: 'FindAll ' + _entityType + ' ' + _etype + 's'
+			}
 		};
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
             r.method = 'get';
 			return r;
 		};
@@ -2963,14 +2925,19 @@ Depends on  NOTHING
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'get';
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
-				this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge;
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
+						this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge,
+				description: 'GetConnectedObjects for relation ' + this.relation + ' of type ' + this.type + ' for object ' + this.objectId
+			}; 
 		};
 
 
@@ -3045,16 +3012,21 @@ Depends on  NOTHING
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'get';
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
 				this.getQueryString() + 
 				'&objectid=' + this.objectId +
-				'&label=' + this.label;
+				'&label=' + this.label,
+				description: 'FindAllConnections for relation ' + this.relation + ' from object id '  + this.objectId
+			};
 		};
 
 		return this;
@@ -3088,14 +3060,19 @@ Depends on  NOTHING
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'get';
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
-				+ this.getQueryString() + this.label;
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
+							+ this.getQueryString() + this.label,
+				description: 'FindConnectionBetween for relation ' + this.relation + ' between object ids '  + this.objectAId + ' and ' + this.objectBId
+			};
 		};
 
 		return this;
@@ -3153,7 +3130,9 @@ Depends on  NOTHING
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = {
 				object1id: this.objectAId,
@@ -3163,7 +3142,10 @@ Depends on  NOTHING
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString();
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString(),
+				description: 'GetInterConnections between objects'
+			};
 		};
 
 		return this;
@@ -3194,14 +3176,19 @@ Depends on  NOTHING
 		
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter';
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter',
+				description: 'Filter Query with name ' + this.name
+			};
 		};
 
 		this.fetch = function(callbacks) {
@@ -3239,14 +3226,19 @@ Depends on  NOTHING
 
 		this.toRequest = function() {
 			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project';
+			return {
+				url: global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project',
+				description: 'Project Query with name ' + this.name
+			};
 		};
 
 		var _parseResult = function(result) {
@@ -3306,6 +3298,260 @@ Depends on  NOTHING
 		};
 	};
 
+})(global);/**
+ * Standalone extraction of Backbone.Events, no external dependency required.
+ * Degrades nicely when Backone/underscore are already available in the current
+ * global context.
+ *
+ * Note that docs suggest to use underscore's `_.extend()` method to add Events
+ * support to some given object. A `mixin()` method has been added to the Events
+ * prototype to avoid using underscore for that sole purpose:
+ *
+ *     var myEventEmitter = BackboneEvents.mixin({});
+ *
+ * Or for a function constructor:
+ *
+ *     function MyConstructor(){}
+ *     MyConstructor.prototype.foo = function(){}
+ *     BackboneEvents.mixin(MyConstructor.prototype);
+ *
+ * (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
+ * (c) 2013 Nicolas Perriault
+ */
+/* global exports:true, define, module */
+(function(global) {
+  var root = global,
+      breaker = {},
+      nativeForEach = Array.prototype.forEach,
+      hasOwnProperty = Object.prototype.hasOwnProperty,
+      slice = Array.prototype.slice,
+      idCounter = 0;
+
+  // Returns a partial implementation matching the minimal API subset required
+  // by Backbone.Events
+  function miniscore() {
+    return {
+      keys: Object.keys,
+
+      uniqueId: function(prefix) {
+        var id = ++idCounter + '';
+        return prefix ? prefix + id : id;
+      },
+
+      has: function(obj, key) {
+        return hasOwnProperty.call(obj, key);
+      },
+
+      each: function(obj, iterator, context) {
+        if (obj == null) return;
+        if (nativeForEach && obj.forEach === nativeForEach) {
+          obj.forEach(iterator, context);
+        } else if (obj.length === +obj.length) {
+          for (var i = 0, l = obj.length; i < l; i++) {
+            if (iterator.call(context, obj[i], i, obj) === breaker) return;
+          }
+        } else {
+          for (var key in obj) {
+            if (this.has(obj, key)) {
+              if (iterator.call(context, obj[key], key, obj) === breaker) return;
+            }
+          }
+        }
+      },
+
+      once: function(func) {
+        var ran = false, memo;
+        return function() {
+          if (ran) return memo;
+          ran = true;
+          memo = func.apply(this, arguments);
+          func = null;
+          return memo;
+        };
+      }
+    };
+  }
+
+  var _ = miniscore(), Events;
+
+  // Backbone.Events
+  // ---------------
+
+  // A module that can be mixed in to *any object* in order to provide it with
+  // custom events. You may bind with `on` or remove with `off` callback
+  // functions to an event; `trigger`-ing an event fires all callbacks in
+  // succession.
+  //
+  //     var object = {};
+  //     _.extend(object, Backbone.Events);
+  //     object.on('expand', function(){ alert('expanded'); });
+  //     object.trigger('expand');
+  //
+  Events = {
+
+    // Bind an event to a `callback` function. Passing `"all"` will bind
+    // the callback to all events fired.
+    on: function(name, callback, context) {
+      if (!eventsApi(this, 'on', name, [callback, context]) || !callback) return this;
+      this._events || (this._events = {});
+      var events = this._events[name] || (this._events[name] = []);
+      events.push({callback: callback, context: context, ctx: context || this});
+      return this;
+    },
+
+    // Bind an event to only be triggered a single time. After the first time
+    // the callback is invoked, it will be removed.
+    once: function(name, callback, context) {
+      if (!eventsApi(this, 'once', name, [callback, context]) || !callback) return this;
+      var self = this;
+      var once = _.once(function() {
+        self.off(name, once);
+        callback.apply(this, arguments);
+      });
+      once._callback = callback;
+      return this.on(name, once, context);
+    },
+
+    // Remove one or many callbacks. If `context` is null, removes all
+    // callbacks with that function. If `callback` is null, removes all
+    // callbacks for the event. If `name` is null, removes all bound
+    // callbacks for all events.
+    off: function(name, callback, context) {
+      var retain, ev, events, names, i, l, j, k;
+      if (!this._events || !eventsApi(this, 'off', name, [callback, context])) return this;
+      if (!name && !callback && !context) {
+        this._events = {};
+        return this;
+      }
+
+      names = name ? [name] : _.keys(this._events);
+      for (i = 0, l = names.length; i < l; i++) {
+        name = names[i];
+        if (events = this._events[name]) {
+          this._events[name] = retain = [];
+          if (callback || context) {
+            for (j = 0, k = events.length; j < k; j++) {
+              ev = events[j];
+              if ((callback && callback !== ev.callback && callback !== ev.callback._callback) ||
+                  (context && context !== ev.context)) {
+                retain.push(ev);
+              }
+            }
+          }
+          if (!retain.length) delete this._events[name];
+        }
+      }
+
+      return this;
+    },
+
+    // Trigger one or many events, firing all bound callbacks. Callbacks are
+    // passed the same arguments as `trigger` is, apart from the event name
+    // (unless you're listening on `"all"`, which will cause your callback to
+    // receive the true name of the event as the first argument).
+    trigger: function(name) {
+      if (!this._events) return this;
+      var args = slice.call(arguments, 1);
+      if (!eventsApi(this, 'trigger', name, args)) return this;
+      var events = this._events[name];
+      var allEvents = this._events.all;
+      if (events) triggerEvents(events, args);
+      if (allEvents) triggerEvents(allEvents, arguments);
+      return this;
+    },
+
+    // Tell this object to stop listening to either specific events ... or
+    // to every object it's currently listening to.
+    stopListening: function(obj, name, callback) {
+      var listeners = this._listeners;
+      if (!listeners) return this;
+      var deleteListener = !name && !callback;
+      if (typeof name === 'object') callback = this;
+      if (obj) (listeners = {})[obj._listenerId] = obj;
+      for (var id in listeners) {
+        listeners[id].off(name, callback, this);
+        if (deleteListener) delete this._listeners[id];
+      }
+      return this;
+    }
+
+  };
+
+  // Regular expression used to split event strings.
+  var eventSplitter = /\s+/;
+
+  // Implement fancy features of the Events API such as multiple event
+  // names `"change blur"` and jQuery-style event maps `{change: action}`
+  // in terms of the existing API.
+  var eventsApi = function(obj, action, name, rest) {
+    if (!name) return true;
+
+    // Handle event maps.
+    if (typeof name === 'object') {
+      for (var key in name) {
+        obj[action].apply(obj, [key, name[key]].concat(rest));
+      }
+      return false;
+    }
+
+    // Handle space separated event names.
+    if (eventSplitter.test(name)) {
+      var names = name.split(eventSplitter);
+      for (var i = 0, l = names.length; i < l; i++) {
+        obj[action].apply(obj, [names[i]].concat(rest));
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  // A difficult-to-believe, but optimized internal dispatch function for
+  // triggering events. Tries to keep the usual cases speedy (most internal
+  // Backbone events have 3 arguments).
+  var triggerEvents = function(events, args) {
+    var ev, i = -1, l = events.length, a1 = args[0], a2 = args[1], a3 = args[2];
+    switch (args.length) {
+      case 0: while (++i < l) (ev = events[i]).callback.call(ev.ctx); return;
+      case 1: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1); return;
+      case 2: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2); return;
+      case 3: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2, a3); return;
+      default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args);
+    }
+  };
+
+  var listenMethods = {listenTo: 'on', listenToOnce: 'once'};
+
+  // Inversion-of-control versions of `on` and `once`. Tell *this* object to
+  // listen to an event in another object ... keeping track of what it's
+  // listening to.
+  _.each(listenMethods, function(implementation, method) {
+    Events[method] = function(obj, name, callback) {
+      var listeners = this._listeners || (this._listeners = {});
+      var id = obj._listenerId || (obj._listenerId = _.uniqueId('l'));
+      listeners[id] = obj;
+      if (typeof name === 'object') callback = this;
+      obj[implementation](name, callback, this);
+      return this;
+    };
+  });
+
+  // Aliases for backwards compatibility.
+  Events.bind   = Events.on;
+  Events.unbind = Events.off;
+
+  // Mixin utility
+  Events.mixin = function(proto) {
+    var exports = ['on', 'once', 'off', 'trigger', 'stopListening', 'listenTo', 'listenToOnce', 'bind', 'unbind'];
+    _.each(exports, function(name) {
+      proto[name] = this[name];
+    }, this);
+    return proto;
+  };
+
+  //changed to match with Appacitive
+  root.Appacitive.Events = Events;
+ 
 })(global);var ArrayProto = Array.prototype;
 var ObjectProto = Object.prototype;
 
@@ -3546,6 +3792,8 @@ var extend = function(protoProps, staticProps) {
 				object.__attributes[arguments[0]] = arguments[1];
 			} else throw new Error('.attr() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 
+			triggerEvent('__attributes');
+
 			return object.__attributes;
 		};
 
@@ -3600,9 +3848,16 @@ var extend = function(protoProps, staticProps) {
 		    object.__tags.push(tag);
 		    object.__tags = Array.distinct(object.__tags);
 
-		    if (!_removeTags || !_removeTags.length) return this;
+		    if (!_removeTags || !_removeTags.length) {
+		    	triggerEvent('__tags');
+		     	return this;
+			} 
+
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
+
+			triggerEvent('__tags');
+
 			return this;
 		};
 
@@ -3612,9 +3867,16 @@ var extend = function(protoProps, staticProps) {
 			_removeTags.push(tag);
 			_removeTags = Array.distinct(_removeTags);
 
-			if (!object.__tags || !object.__tags.length) return this;
+			if (!object.__tags || !object.__tags.length) {
+				triggerEvent('__tags');
+				return this;
+			}
+
 			var index = object.__tags.indexOf(tag);
 			if (index != -1) object.__tags.splice(index, 1);
+
+			triggerEvent('__tags');
+
 			return this;
 		};
 
@@ -3674,10 +3936,13 @@ var extend = function(protoProps, staticProps) {
 					addItem(value);
 				}
 
-				return that;
+			 	triggerEvent(key);
+
 			} catch(e) {
 		 		throw new Error("Unable to add item to " + key);
 		 	}
+
+		 	return that; 
 		};
 
 		this.add = function(key, value) {
@@ -3749,7 +4014,7 @@ var extend = function(protoProps, staticProps) {
 				}
 			} else {
 				if (changedTags) { 
-					changeSet["__addtags"] = changedTags; 
+					changeSet["__tags"] = changedTags; 
 					isDirty = true;
 				}
 			}
@@ -3913,6 +4178,16 @@ var extend = function(protoProps, staticProps) {
 	 		return global.Appacitive.Date.toISOString(value);
 		};
 
+		var triggerEvent = function(key) {
+			var changed = _getChanged();
+
+			if (changed[key]) {
+				// Trigger all relevant attribute changes.
+			    that.trigger('change:' + key, that, changed[key], {});
+			    that.trigger('change', that, {});
+			}
+		};
+
 		this.set = function(key, value, type) {
 
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
@@ -3920,7 +4195,6 @@ var extend = function(protoProps, staticProps) {
 			key = key.toLowerCase();
 
 			try {
-
 
 			 	if (value == undefined || value == null) { object[key] = null;}
 			 	else if (_type.isString(value)) { object[key] = value; }
@@ -3953,6 +4227,9 @@ var extend = function(protoProps, staticProps) {
 						  	if (_type.isString(v)) { this[len] = v; }
 				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
 				 			else throw new Error("Multivalued property cannot have values of property as an object");
+			 				
+				 			triggerEvent(key);
+
 			 				return this; 
 						}
 					}
@@ -3967,6 +4244,9 @@ var extend = function(protoProps, staticProps) {
 						_setOps[key] = true;
 					}
 				}
+
+				triggerEvent(key);
+
 			 	return this;
 			} catch(e) {
 			 	throw new Error("Unable to set " + key);
@@ -3975,8 +4255,8 @@ var extend = function(protoProps, staticProps) {
 
 		this.unset = function(key) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
-		 	try { delete object[key]; } catch(e) {}
-			return this;
+			key = key.toLowerCase();
+		 	return this.set(key, null);
 		};
 
 		this.has = function(key) {
@@ -4031,26 +4311,29 @@ var extend = function(protoProps, staticProps) {
 		var _atomic = function(key, amount, multiplier) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
-				key = key.toLowerCase();
+			key = key.toLowerCase();
 
-				if (_type.isObject(object[key]) ||  _type.isArray(object[key])) {
-					throw new Error("Cannot increment/decrement array/object");
+			if (_type.isObject(object[key]) ||  _type.isArray(object[key])) {
+				throw new Error("Cannot increment/decrement array/object");
+			}
+
+			try {
+				if (!amount || isNaN(Number(amount))) amount = multiplier;
+				else amount = Number(amount) * multiplier;
+
+				object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
+
+				if (!that.isNew()) {
+					_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
 				}
 
-				try {
-					if (!amount || isNaN(Number(amount))) amount = multiplier;
-					else amount = Number(amount) * multiplier;
+			} catch(e) {
+				throw new Error('Cannot perform increment/decrement operation');
+			}
 
-					object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
+			triggerEvent(key);
 
-					if (!that.isNew()) {
-						_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
-					}
-
-					return that;
-				} catch(e) {
-					throw new Error('Cannot perform increment/decrement operation');
-				}
+			return that;
 		};
 
 		this.increment = function(key, amount) {
@@ -4135,30 +4418,32 @@ var extend = function(protoProps, staticProps) {
 
 			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(callbacks);
 
-			var cb = function(revision) {
-				var changeSet = _getChanged(true);
-				for (var p in changeSet) {
-					if (p[0] == '$') delete changeSet[p];
+			var changeSet = _getChanged(true);
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
+			if (!Object.isEmpty(changeSet)) {
+
+				var type = that.type;
+				
+				var args = [that.className, (_snapshot.__id) ? _snapshot.__id : object.__id, _fields];
+
+				// for User and Device objects
+				if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
+					type = object.__type.toLowerCase();
+					args.splice(0, 1);
 				}
 
-				if (!Object.isEmpty(changeSet)) {
-
-					var fields = _fields;
-
-					var _updateRequest = new global.Appacitive.HttpRequest();
-					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(object.__type || object.__relationtype, (_snapshot.__id) ? _snapshot.__id : object.__id, fields, revision);
-					
-					var type = that.type;
-
-					// for User and Device objects
-					if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
-						type = object.__type.toLowerCase();
-						url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[object.__type.toLowerCase()].getUpdateUrl(_snapshot.__id, fields, revision);
-					}
-					_updateRequest.url = url;
-					_updateRequest.method = 'post';
-					_updateRequest.data = changeSet;
-					_updateRequest.onSuccess = function(data) {
+				var request = new global.Appacitive._Request({
+					method: 'POST',
+					type: type,
+					op: 'getUpdateUrl',
+					args: args,
+					data: changeSet,
+					callbacks: callbacks,
+					entity: that,
+					onSuccess: function(data) {
 						if (data && data[type]) {
 							
 							_snapshot = data[type];
@@ -4170,24 +4455,22 @@ var extend = function(protoProps, staticProps) {
 							delete that.created;
 							
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
-							promise.fulfill(that);
+							request.promise.fulfill(that);
 						} else {
+							data = data || {};
+							data.status =  data.status || {};
+							data.status = _getOutpuStatus(data.status);
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
-							promise.reject(data.status, that);	
+							request.promise.reject(data.status, that);
 						}
-					};
-					_updateRequest.onError = function(err) {
-						err = _getOutpuStatus(err);
-						promise.reject(err, that);
-					};
-					global.Appacitive.http.send(_updateRequest);
-				} else {
-					promise.fulfill(that);
-				}
-			};
-
-			cb();
-
+					}
+				});
+				
+				return request.send();
+			} else {
+				promise.fulfill(that);
+			}
+			
 			return promise;
 		};
 
@@ -4265,6 +4548,15 @@ var extend = function(protoProps, staticProps) {
 				entity: this,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);
+
+					if (data && data.status) {
+						request.promise.fulfill(data.status);
+					} else {
+						data = data || {};
+						data.status =  data.status || {};
+						data.status = _getOutpuStatus(data.status);
+						request.promise.reject(data.status, that);
+					}
 				}
 			});
 			return request.send();
@@ -4277,6 +4569,8 @@ var extend = function(protoProps, staticProps) {
 	global.Appacitive.BaseObject.prototype.toString = function() {
 		return JSON.stringify(this.getObject());
 	};
+
+	global.Appacitive.Events.mixin(global.Appacitive.BaseObject.prototype);
 
 })(global);
 (function (global) {
@@ -5951,10 +6245,11 @@ var extend = function(protoProps, staticProps) {
       this.fileData = options.fileData;
       var that = this;
 
-      var _getUrls = function(url, onSuccess, promise) {
+      var _getUrls = function(url, onSuccess, promise, description) {
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'GET';
+          request.description = description;
           request.onSuccess = onSuccess;
           request.promise = promise;
           request.entity = that;
@@ -5967,6 +6262,8 @@ var extend = function(protoProps, staticProps) {
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'PUT';
+          request.log = false;
+          request.description = 'Upload file';
           request.data = file;
           request.headers.push({ key:'content-type', value: type });
           request.send().then(onSuccess, function() {
@@ -6003,7 +6300,7 @@ var extend = function(protoProps, staticProps) {
                     });
 
                 }, promise);
-          }, promise);
+          }, promise, ' Get upload url for file ');
 
           return promise;
       };
@@ -6029,7 +6326,7 @@ var extend = function(protoProps, staticProps) {
                   });
 
               }, promise);
-          }, promise);
+          }, promise, ' Get update url for file ' + that.fileId);
 
           return promise;
       };
@@ -6042,7 +6339,7 @@ var extend = function(protoProps, staticProps) {
           var request = new global.Appacitive.HttpRequest();
           request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);
           request.method = 'DELETE';
-
+          request.description = 'Delete file with id ' + this.fileId;
           request.onSuccess = function(response) {
               promise.fulfill();
           };
@@ -6066,7 +6363,7 @@ var extend = function(protoProps, staticProps) {
           _getUrls(url, function(response) {
               that.url = response.uri;
               promise.fulfill(response.uri);
-          }, promise);
+          }, promise,  ' Get download url for file ' + this.fileId);
 
           return promise;
       };
@@ -6081,7 +6378,7 @@ var extend = function(protoProps, staticProps) {
           _getUrls(url, function(response) {
               that.url = response.url;
               promise.fulfill(response.url, that);
-          }, promise);
+          }, promise, ' Get upload url for file ' + this.fileId);
 
           return promise;
       };
