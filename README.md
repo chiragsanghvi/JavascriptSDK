@@ -18,17 +18,25 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
 * [Initialize](#initialize)  
 * [Conventions](#conventions)  
 * [Data storage and retrieval](#data-storage-and-retrieval)  
-  * [Creating](#creating)  
-  * [Retrieving](#retrieving)  
+  * [Creating](#creating)
+    * [Setting Values](setting-values)  
+    * [Getting Values](Getting-values)  
+    * [Getting Typed Values](getting-typed-values)  
+  * [Extending Object](#extending-object)
+  * [Retrieving](#retrieving)
+    * [Get Object](#getting-object)  
+    * [Multiget Objects](#multiget-objects)  
   * [Updating](#updating)  
-  * [Deleting](#deleting)  
-* [Extending Object](#extending-object)
+  * [Deleting](#deleting)
+  * [Multidelete](#multidelete-objects)  
 * [Arrays](#arrays)
 * [Counters](#counters)
+* [GeoPoint](#geopoint)
 * [Connections](#connections)  
   * [Creating & Saving](#creating--saving)  
   * [Retrieving](#retrieving-1)  
-     * [Get Connection by Id](#get-connection-by-id)  
+     * [Get Connection by Id](#get-connection-by-id)
+     * [Multiget Connections](#multiget-connections)  
      * [Get all Connections for an Endpoint Object Id](#get-all-connections-for-an-endpoint-object-id)
      * [Get Connected Objects](#get-connected-objects)  
      * [Get Connection by Endpoint Object Ids](#get-connection-by-endpoint-object-ids)  
@@ -36,6 +44,7 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
      * [Get Interconnections between one and multiple Object Ids](#get-interconnections-between-one-and-multiple-object-ids)
   * [Updating](#updating-1)  
   * [Deleting](#deleting-1)
+  * [Multidelete](#multidelete-connections)
 * [Extending Connection](#extending-connection)  
 * [Queries](#queries)
   * [Modifiers](#modifiers)
@@ -44,6 +53,7 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
     * [Fields](#fields)
     * [Filter](#filter)
     * [Geolocation](#geolocation)
+      * [GeoPoint](#geopoint)
       * [Radial Search](#radial-search)
       * [Polygon Search](#polygon-search)
     * [Tag Based Searches](#tag-based-searches)
@@ -65,7 +75,7 @@ For v0.9 API Version, refer [here](https://github.com/chiragsanghvi/JavascriptSD
   * [User Session Management](#user-session-management)  
   * [Linking and Unlinking accounts](#linking-and-unlinking-accounts)  
   * [Password Management](#password-management)  
-  * [Check-in](#check-in)  
+  * [Check-in](#check-in)
 * [Emails](#emails)  
   * [Configuring](#configuring)  
   * [Sending Raw Emails](#sending-raw-emails)
@@ -159,11 +169,81 @@ What is a type? In short, think of types as tables in a contemporary relational 
 
 The player object is an instance of `Appacitive.Object`. An `Appacitive.Object` is a class which encapsulates the data (the actual entity or the object) and methods that provide ways to update it, delete it etc. To see the raw entity that is stored within the `Appacitive.Object`, fire `player.toJSON()`.
 
+
+#### Extending Object
+
+Each `Appacitive.Object` is an instance of a specific subclass of a particular `type` by default. To create a subclass of particular type of your own, you extend `Appacitive.Object` with `typename` and provide instance properties, as well as optional classProperties to be attached directly to the constructor function. 
+
+```javascript
+// create a new subclass of Appacitive.Object.
+var Player = Appacitive.Object.extend('player');  //Name subclass using pascal casing
+
+// create an instance of that class 
+var tyson = new Player(); 
+```
+
+You can add additional methods and properties to your subclasses of `Appacitive.Object` as shown below
+
+```javascript
+// a subclass of Appacitive.Object
+var Player = Appacitive.Object.extend('player', {
+  
+  //override constructor, which allows you to replace the actual constructor function
+  constructor: function(attrs) { 
+
+    attrs.firstname = attrs.name.split(' ')[0];
+    attrs.lastname = attrs.name.split(' ')[1];
+
+    //Invoke internal constructor
+    Appacitive.Object.call(this, atts); 
+  },
+
+  //instance methods
+  isAdult: function() {
+    return this.tryGet('age',0 , 'integer') >= 18 ? true: false ;
+  }
+
+}, {
+  // Class methods
+  findAdultPlayers: function() {
+    
+    //create a query with filterring on age
+    var query = this.findAllQuery({
+      filter: Appacitive.Filter.Property('age').greaterThanEqualTo(18)
+    });
+
+    //call fetch and return promise 
+    return query.fetch();  
+  }
+});
+```
+When creating an instance of a subclass, you can pass in the initial values of the properties, which will be set on the `Appacitive.Object` instance.
+
+```javascript
+var tyson = new Player({ name 'Mike Tyson', age: '47' });
+alert(tyson.isAdult()); //displays true
+
+Player.findAdultPlayers().then(function(res) { 
+  console.log(res.length + ' players'); 
+});
+```
+
+Above example depicts use of (queries)[#queries], which we'll discuss in coming sections. By default whenever you extend `Appacitive.Object` class you also extend some of the static methods used for querying and fetching data viz. 
+
+ * [get](#getting-object) 
+ * [multiGet](#multiget-objects) 
+ * [multiDelete](#multidelete-objects) 
+ * [findAllQuery](#queries)
+
+*Note :* For all these operations you won't need to pass the `type`, it'll be implicitly picked up from the extended class.
+
 #### Setting Values
+
 Now we need to name our player 'John Doe'. This can be done as follows
 ```javascript
  // values can be specified while creating the object
- var player = new Appacitive.Object({ __type:'player', name: 'John Doe' });
+ var Player = Appacitive.Object.extend('player');
+ var player = new Player({ name: 'John Doe' });
 
  // or we could use the setters
  player.set('name', 'John Doe');
@@ -219,9 +299,24 @@ alert(player.tryGet('age', 12, 'integer'))
 Saving a player to the server is easy.
 ```javascript
 player.set('age','22');
+
+//saving using (promise)[#promise]
 player.save().then(function() {
   alert('saved successfully!');
 });
+
+// or using callbacks
+
+player.save({
+  success : function() {
+    alert('saved successfully!');
+  },
+  error: function(status) {
+    alert("save failed due to " + status.message);
+  }
+});
+
+
 ```
 When you call save, the entity is taken and stored on Appacitive's servers. A unique identifier called `__id` is generated and is stored along with the player object. This identifier is also returned to the object on the client-side. You can access it directly using `id`.
 This is what is available in the `player` object after a successful save.
@@ -258,7 +353,12 @@ You'll see a bunch of fields that were created automatically by the server. They
 
 ### Retrieving
 
+Appacitive allows to retrieve one object using `Appacitive.Object.get` and multiple objects using `Appacitive.Object.multiGet` method.
+
+#### Getting Object
+
 ```javascript
+
 // retrieve the player
 Appacitive.Object.get({ 
   type: 'player', //mandatory
@@ -267,12 +367,25 @@ Appacitive.Object.get({
 }).then(function(obj) {
   alert('Fetched player with name: ' + obj.get('name')); // artice obj is returned as argument to onsuccess
 });
+
+// or via extended class
+var Player = Appacitive.Object.extend('player');
+Player.get({ 
+  id: '{{existing__id}}', //mandatory
+  fields: ["name"] //optional
+}).then(function(obj) {
+  alert('Fetched player with name: ' + obj.get('name')); // artice obj is returned as argument to onsuccess
+});
+
 ```
 
 Retrieving can also be done via the `fetch` method. Here's an example
 ```javascript
+//extend class
+var Player = Appacitive.Object.extend('player');
+
 // create a new object
-var player = new Appacitive.Object('player'); //You can initialize object in this way too.
+var player = new Player(); //You can initialize object in this way too.
 
 // set an (existing) id in the object
 player.id({{existing_id}});
@@ -292,7 +405,11 @@ player.fetch().then(function(obj) {
 [] //will set fields to return only __id and __type
 [*] //will set fields to return all user-defined properties and __id and __type
 ```
+
+#### Multiget Objects
+
 You can also retrieve multiple objects at a time, which will return an array of `Appacitive.Object` objects in its onSuccess callback. Here's an example
+
 ```javascript
 Appacitive.Object.multiGet({ 
   type: 'players', //name of type : mandatory
@@ -301,16 +418,27 @@ Appacitive.Object.multiGet({
 }).then(function(objects) { 
   // objects is an array of object objects
 });
+
+
+//or via extended class 
+var Player = Appacitive.Object.extend('player');
+Player.multiGet({ 
+  ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of object ids to get : mandatory
+  fields: ["name"]// this denotes the fields to be returned in the object object, to avoid increasing the payload : optional
+}).then(function(objects) { 
+  // objects is an array of object objects
+});
+
 ```
 ### Updating
 
 Updating is also done via the `save` method. To illustrate: 
 ```javascript
+// extend class
+var Player = Appacitive.Object.extend('player');
+
 // create a blank object
-var player = new Appacitive.Object({
-    name: 'John Doe',
-    __type: 'player'
-});
+var player = new Player({ name: 'john Doe'});
 
 // set hobbies as an array property
 player.set('hobbies', ['swimming', 'trekking']);
@@ -405,8 +533,13 @@ player.destroy().then(function(obj) {
 player.destroy(true).then(function(obj) {
   alert('Deleted successfully');
 }); // setting the first argument to true will delete its connections if they exist
+```
 
-// Multiple objects can also be deleted at a time. Here's an example
+### Multidelete Objects
+
+Multiple objects can also be deleted at a time. Here's an example
+
+```
 Appacitive.Object.multiDelete({   
   type: 'players', //name of type
   ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of object ids to delete
@@ -415,65 +548,19 @@ Appacitive.Object.multiDelete({
 }, function(err) {
   alert("code:" + err.code + "\nmessage:" + err.message);
 });
+
+// or via extended class
+var Player = Appacitive.Object.extend('player');
+
+Player.multiDelete({   
+  ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of object ids to delete
+}, function() { 
+  //successfully deleted all objects
+}, function(err) {
+  alert("code:" + err.code + "\nmessage:" + err.message);
+});
+
 ```                                                        
-
-### Extending Object
-
-Each `Appacitive.Object` is an instance of a specific subclass of a particular `type` by default. To create a subclass of particular type of your own, you extend `Appacitive.Object` with `typename` and provide instance properties, as well as optional classProperties to be attached directly to the constructor function. 
-
-```javascript
-// create a new subclass of Appacitive.Object.
-var Player = Appacitive.Object.extend('player');  //Name subclass using pascal casing
-
-// create an instance of that class 
-var tyson = new Player(); 
-```
-
-You can add additional methods and properties to your subclasses of `Appacitive.Object` as shown below
-
-```javascript
-// a subclass of Appacitive.Object
-var Player = Appacitive.Object.extend('player', {
-  
-  //override constructor, which allows you to replace the actual constructor function
-  constructor: function(attrs) { 
-
-    attrs.firstname = attrs.name.split(' ')[0];
-    attrs.lastname = attrs.name.split(' ')[1];
-
-    //Invoke internal constructor
-    Appacitive.Object.call(this, atts); 
-  },
-
-  //instance methods
-  isAdult: function() {
-    return this.tryGet('age',0 , 'integer') >= 18 ? true: false ;
-  }
-
-}, {
-  // Class methods
-  findAdultPlayers: function() {
-    
-    //create a query with filterring on age
-    var query = this.findAllQuery({
-      filter: Appacitive.Filter.Property('age').greaterThanEqualTo(18)
-    });
-
-    //call fetch and return promise 
-    return query.fetch();  
-  }
-});
-```
-When creating an instance of a subclass, you can pass in the initial values of the properties, which will be set on the `Appacitive.Object` instance.
-
-```javascript
-var tyson = new Player({ name 'Mike Tyson', age: '47' });
-alert(tyson.isAdult()); //displays true
-
-Player.findAdultPlayers().then(function(res) { 
-  console.log(res.length + ' players'); 
-});
-```
 
 ----------
 
@@ -491,24 +578,123 @@ As with entities (objects), relations are also contained in collections.
 
 Let's jump in!
 
-
 ### Creating &amp; Saving
+
+#### Extending Connection
+
+Each `Appacitive.Connection` is an instance of a specific subclass of a particular `relation` by default. To create a subclass of particular relation of your own, you extend `Appacitive.Connection` with `relationName` and provide instance properties, as well as optional classProperties to be attached directly to the constructor function. 
+
+```javascript
+// create a new subclass of Appacitive.Connection.
+var Friend = Appacitive.Connection.extend('friends');  //Name subclass using pascal casing
+
+
+// create an instance of that class 
+var frnd = new Friend({
+  endpoints: [{
+    label: 'me',
+    endpoint: jane //instance of Appacitive.Object person type
+  }, {
+    label: 'friend',
+    endpint: joe   //instance of Appacitive.Object person type
+  }]
+}); 
+```
+
+You can add additional methods and properties to your subclass of `Appacitive.Connection` as shown below
+
+```javascript
+// a subclass of Appacitive.Connection
+var Friend = Appacitive.Connection.extend('friends', {
+  
+  //override constructor, which allows you to replace the actual constructor function
+  constructor: function(attrs) { 
+
+    // set friend type in numbers
+    switch(attrs.type) {
+      case 'close'  : attrs.type = 0;
+                      break;
+      case 'mutual' : attrs.type = 1;
+                      break;
+      default : attrs.type = 3;
+    }
+
+    //Invoke internal constructor
+    Appacitive.Connection.call(this, atts); 
+  },
+
+  //instance methods
+  getFriendType: function() {
+    switch (this.get('type')) {
+      case '0': return 'close';
+      case '1': return 'mutual';
+      default : return 'known';
+    }
+  }
+
+}, {
+  // Class methods
+  findAllCloseFriends: function() {
+    
+    //create a query with filterring on age
+    var query = this.findAllQuery({
+      filter: Appacitive.Filter.Property('type').equalTo(0)
+    });
+
+    //call fetch and return promise 
+    return query.fetch();  
+  }
+});
+```
+When creating an instance of a subclass, you're required to pass the endpoints and you can also pass in the initial values of the properties, which will be set on the `Appacitive.Connection` instance.
+
+```javascript
+var frnd = new Friend({ 
+  endpoints: [{
+      label: 'me',
+      endpoint: jane //instance of Appacitive.Object person type
+    }, {
+      label: 'friend',
+      endpint: joe   //instance of Appacitive.Object person type
+    }],
+  type: 'close'  
+});
+
+alert(frnd.getFriendType()); //displays close
+
+Friend.findAllCloseFriends().then(function(res) { 
+  console.log(res.length + ' close friends'); 
+});
+```
+
+Above example depicts use of (queries)[#queries], which we'll discuss in coming sections. By default whenever you extend `Appacitive.Object` class you also extend some of the static methods used for querying and fetching data viz. 
+
+ * [get](#get-connection-by-id) 
+ * [multiGet](#multiget-connections) 
+ * [multiDelete](#multidelete-connections) 
+ * [findAllQuery](#queries) 
+ * [betweenObjectsForRelationQuery](#get-connection-by-endpoint-object-ids) 
+
+*Note :* For all these operations you won't need to pass the `relation`, it'll be implicitly picked up from the extended class.
 
 #### New Connection between two existing Objects
 
 Before we go about creating connections, we need two entities. Consider the following
 
 ```javascript
-var  tarzan = new Appacitive.Object({ __type:'person', name: 'Tarzan' })
-    , jane =  new Appacitive.Object({ __type:'person', name: 'Jane' });
+var Person = Appacitive.Object('person');
+
+var  tarzan = new Person({ name: 'Tarzan' })
+    , jane =  new Person({ name: 'Jane' });
 
 // save the entites tarzan and jane
 // ...
 // ...
 
 // initialize and set up a connection
-var marriage = new Appacitive.Connection({ 
-  relation: 'marriage',
+var Marriage = Appcitive.Connection.extend('marriage');
+
+var marriage = new Marriage({ 
   endpoints: [{
       object: tarzan,  //mandatory
       label: 'husband'  //mandatory
@@ -530,21 +716,25 @@ If you've read the previous guide, most of this should be familiar. What happens
 
 In case you are wondering why this is necessary then here is the answer, it allows you to structure queries like 'who is tarzan's wife?' or 'which houses does tarzan own?' and much more. Queries are covered in later guides.
 
-`marriage` is an instance of `Appacitive.Connection`. Similar to an entity, you may call `toJSON` on a connection to get to the underlying object.
+`marriage` is an instance of an extended class `Marriage` of `Appacitive.Connection`. Similar to an entity, you may call `toJSON` on a connection to get to the underlying object.
 
 #### New Connection between two new Objects
 
 There is another easier way to connect two new entities. You can pass the new entities themselves to the connection while creating it.
 
 ```javascript
-var tarzan = new Appacitive.Object({ __type: 'person', name: 'Tarzan' })
-    , jane = new Appacitive.Object({ __type: 'person', name: 'Jane' });
+var Person = Appacitive.Object('person');
+
+var  tarzan = new Person({ name: 'Tarzan' })
+    , jane =  new Person({ name: 'Jane' });
 
 // initialize and sets up a connection
 // This is another way to initialize a connection object without collection
 // You can pass same options in the previous way of creating connection as well
-var marriage = new Appacitive.Connection({ 
-  relation: 'marriage',
+
+var Marriage = Appcitive.Connection.extend('marriage');
+
+var marriage = new Marriage({ 
   endpoints: [{
       object: tarzan,  //mandatory
       label: 'husband'  //mandatory
@@ -591,15 +781,31 @@ alert(marriage.get('date', new Date(), 'date'));
 ```javascript
 Appacitive.Connection.get({
   relation: 'marriage', //mandatory
-    id: '{{existing__id}}', //mandatory
-    fields: ["name"] //optional
+  id: '{{existing__id}}', //mandatory
+  fields: ["name"] //optional
+}).then(function(obj) {
+  alert('Fetched marriage which occured on: ' + obj.get('date'));
+});
+
+//or via extended class
+
+var Marriage = Appacitive.Connection.extend('marriage');
+
+Marriage.get({
+  relation: 'marriage', //mandatory
+  id: '{{existing__id}}', //mandatory
+  fields: ["name"] //optional
 }).then(function(obj) {
   alert('Fetched marriage which occured on: ' + obj.get('date'));
 });
 ```
 Retrieving can also be done via the `fetch` method. Here's an example
+
 ```javascript
-var marriage = new Appacitive.Connection('marriage');
+
+var Marriage = Appacitive.Connection.extend('marriage');
+
+var marriage = new Marriage();
 
 // set an (existing) id in the object
 marriage.set('__id', '{{existing_id}}');
@@ -628,13 +834,41 @@ The marriage object is similar to the object, except you get two new fields viz.
 ]
 ```
 
+#### Multiget Connections
+
+You can also retrieve multiple connection at a time, which will return an array of `Appacitive.Connection` objects in its onSuccess callback. Here's an example
+
+```javascript
+Appacitive.Connection.multiGet({ 
+  type: 'marriage', //name of type : mandatory
+  ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of connection ids to get : mandatory
+  fields: ["name"]// this denotes the fields to be returned in the object connection, to avoid increasing the payload : optional
+}).then(function(objects) { 
+  // connections is an array of connection objects
+});
+
+
+//or via extended class 
+
+var Marriage = Appacitive.Connection.extend('marriage');
+
+Marriage.multiGet({ 
+  type: 'marriage', //name of type : mandatory
+  ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of connection ids to get : mandatory
+  fields: ["name"]// this denotes the fields to be returned in the object connection, to avoid increasing the payload : optional
+}).then(function(objects) { 
+  // connections is an array of connection objects
+});
+
 #### Get Connected Objects
 
 Consider `Jane` has a lot of friends whom she wants to invite to her marriage. She can simply get all her friends who're of type `person` connected with `Jane` through a relation `friends` with label for jane as `me` and friends as `friend` using this search
 
 ```javascript
 //Get an instance of person Object for Jane 
-var jane = new Appacitive.Object({ __id : '123345456', __type : 'person');
+var Person = new Appacitive.Object('person');
+
+var jane = new Person({ __id : '123345456');
 
 //call fetchConnectedObjects with all options that're supported by queries syntax
 // we'll cover queries in next section
@@ -661,7 +895,6 @@ jane.children.friends[0].connection
 ```
 
 In this query, you provide a relation type (name) and a label if both endpoints are of same type and what is returned is a list of all the objects connected to above object. 
-
 Such queries come helpful in a situation where you want to know all the interactions of a specific kind for of a particular object in the system.
 
 #### Get all Connections for an Endpoint Object Id
@@ -674,7 +907,9 @@ Now she wants to know who all are attending her marriage without actually fetchi
 
 ```javascript
 //set an instance of person Object for Jane 
-var jane = new Appacitive.Object({ __id : '123345456', __type : 'person');
+var Person = new Appacitive.Object('person');
+
+var jane = new Person({ __id : '123345456');
 
 //call fetchConnectedObjects with all options that're supported by queries syntax
 // we'll cover queries in dept in next section
@@ -701,15 +936,27 @@ Consider you want to check whether `Tarzan` and `Jane` are married, you can do i
 ```javascript
 //'marriage' is the relation between person type
 //and 'husband' and 'wife' are the endpoint labels
+
 var query = Appacitive.Connection.getBetweenObjectsForRelation({ 
-    relation: "marriage", //mandatory
+    relation: "marriage",
     objectAId : "22322", //mandatory 
     objectBId : "33422", //mandatory
     label : "wife" //madatory for a relation between same type and differenct labels
 });
 
+//construct query by extending class
+var Marriage = Appacitive.Connection.extend('marriage');
+
+var query = Marriage.getBetweenObjectsForRelation({ 
+    objectAId : "22322", //mandatory 
+    objectBId : "33422", //mandatory
+    label : "wife" //madatory for a relation between same type and differenct labels
+});
+
+//fire the query to fetch
+
 query.fetch().then(function(marriage){
-  if(marriage != null) {
+    if (marriage != null) {
       // connection obj is returned as argument to onsuccess
       alert('Tarzan and jane are married at location ', marriage.get('location'));
     } else {
@@ -724,8 +971,9 @@ query.fetch().then(function(marriage){
 
 Conside you want to check that a particular `house` is owned by `Jane`, you can do it by fetching connection for relation `owns_house` between `person` and `house`.
 ```javascript
-var query = Appacitive.Connection.getBetweenObjectsForRelation({ 
-    relation: "owns_house", 
+var Owns_house = Appacitive.Connection.extend('owns_house');
+
+var query = Owns_house.getBetweenObjectsForRelation({ 
     objectAId : "22322", // person type entity id
     objectBId : "33422" //house type entity id
 });
@@ -796,102 +1044,28 @@ Deleting is provided via the `del` method.
 marriage.destroy().then(function() {
   alert('Tarzan and Jane are no longer married.');
 });
+```
 
+### Multidelete Connections
 
-// Multiple coonection can also be deleted at a time. Here's an example
+Multiple coonection can also be deleted at a time. Here's an example
+```
 Appacitive.Connection.multiDelete({   
   relation: 'friends', //name of relation
   ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of connection ids to delete
 }).then(function() { 
   //successfully deleted all connections
 });
-```
 
-### Extending Connection
+//by extending class
+var Friends = Appacitive.Connection.extend('friends');
 
-Each `Appacitive.Connection` is an instance of a specific subclass of a particular `relation` by default. To create a subclass of particular relation of your own, you extend `Appacitive.Connection` with `relationName` and provide instance properties, as well as optional classProperties to be attached directly to the constructor function. 
-
-```javascript
-// create a new subclass of Appacitive.Connection.
-var Friend = Appacitive.Connection.extend('friends');  //Name subclass using pascal casing
-
-
-// create an instance of that class 
-var frnd = new Friend({
-  endpoints: [{
-    label: 'me',
-    endpoint: jane //instance of Appacitive.Object person type
-  }, {
-    label: 'friend',
-    endpint: joe   //instance of Appacitive.Object person type
-  }]
-}); 
-```
-
-You can add additional methods and properties to your subclasses of `Appacitive.Connection` as shown below
-
-```javascript
-// a subclass of Appacitive.Connection
-var Friend = Appacitive.Connection.extend('friends', {
-  
-  //override constructor, which allows you to replace the actual constructor function
-  constructor: function(attrs) { 
-
-    // set friend type in numbers
-    switch(attrs.type) {
-      case 'close'  : attrs.type = 0;
-                      break;
-      case 'mutual' : attrs.type = 1;
-                      break;
-      default : attrs.type = 3;
-    }
-
-    //Invoke internal constructor
-    Appacitive.Connection.call(this, atts); 
-  },
-
-  //instance methods
-  getFriendType: function() {
-    switch (this.get('type')) {
-      case '0': return 'close';
-      case '1': return 'mutual';
-      default : return 'known';
-    }
-  }
-
-}, {
-  // Class methods
-  findAllCloseFriends: function() {
-    
-    //create a query with filterring on age
-    var query = this.findAllQuery({
-      filter: Appacitive.Filter.Property('type').equalTo(0)
-    });
-
-    //call fetch and return promise 
-    return query.fetch();  
-  }
-});
-```
-When creating an instance of a subclass, you're required to pass the endpoints and you can also pass in the initial values of the properties, which will be set on the `Appacitive.Connection` instance.
-
-```javascript
-var frnd = new Friend({ 
-  endpoints: [{
-      label: 'me',
-      endpoint: jane //instance of Appacitive.Object person type
-    }, {
-      label: 'friend',
-      endpint: joe   //instance of Appacitive.Object person type
-    }],
-  type: 'close'  
+Friends.multiDelete({   
+  ids: ["14696753262625025", "14696753262625026", "14696753262625027"], //array of connection ids to delete
+}).then(function() { 
+  //successfully deleted all connections
 });
 
-alert(frnd.getFriendType()); //displays close
-
-Friend.findAllCloseFriends().then(function(res) { 
-  console.log(res.length + ' close friends'); 
-});
 ```
 
 ----------
@@ -934,6 +1108,39 @@ var successHandler = function(players) {
 query.fetch().then(successHandler);
 
 ```
+
+You can also use these queries directly from your extended classes for relations and types, which also return a query.
+
+```javascript
+//for type
+var Player = Appacitive.Object.extend('player');
+
+var query = Player.findAllQuery(
+  type: 'player', //mandatory 
+  fields: [*],      //optional: returns all user fields only
+  filter: filter,   //optional  
+  pageNumber: 1 ,   //optional: default is 1
+  pageSize: 20,     //optional: default is 50
+  orderBy: '__id',  //optional: default is by relevance
+  isAscending: false  //optional: default is false
+}); 
+
+// for relation
+
+var Player = Appacitive.Connection.extend('friends');
+
+var query = Player.findAllQuery(
+  relation: 'friends', //mandatory 
+  fields: [*],      //optional: returns all user fields only
+  filter: filter,   //optional  
+  pageNumber: 1 ,   //optional: default is 1
+  pageSize: 20,     //optional: default is 50
+  orderBy: '__id',  //optional: default is by relevance
+  isAscending: false  //optional: default is false
+}); 
+
+```
+
 
 Go ahead and explore the query returned. The query contains a private object which is an instance of the `Appacitive.HttpRequest` class which we'll disccus ahead . This request gets transformed into an actual ajax request and does the fetching. In case you are interested in the actual rest endpoints, fire the `toRequest` method on the query. This will return a representation of the http request.
 
@@ -1126,7 +1333,55 @@ var greaterThanFilter = Appacitive.Filter.Property("age").greaterThan(25);
 
 #### Geolocation
 
-You can specify a property type as a geography type for a given type or relation. These properties are essential latitude-longitude pairs. Such properties support geo queries based on a user defined radial or polygonal region on the map. These are extremely useful for making map based or location based searches. E.g., searching for a list of all restaurants within 20 miles of a given users locations.
+Appacitive supports geolocations, allowing you to save and search geo data. You can specify a property type as a `geography` type for a given type or relation. 
+
+##### GeoPoint
+
+`Appacitive.GeoCoord` is a simple wrapper around lat and lon coordinates. It's used in geolocation queries and in setting property values.
+
+```javascript
+var geopoint = new Appacitive.GeoCoords(lat, lon);
+ 
+lat: the latitude coordinates. Range: -90, 90 
+lon: the longitude coordinates. Range: -180, 180
+```
+
+Let's create a geography property and save it as `location` in type `hotel`. We'll use the `Appacitive.GeoCoord` object to help with creating the property. It's a helper object that will convert the geopoint data to the string format we need via toString.
+
+```javascript
+//for example
+
+var Hotel = Appacitive.Object.extend('hotel'); 
+  
+var location = new Appacitive.GeoCoord(16.734, 80.3423); //lat, lon
+var hilton = new Hotel({ name: 'Hotel Hilton', location: location }); // you can assign geocoord objects directly to properties
+
+//or set it in object
+hilton.set('location', location);
+
+// or set it as raw in object
+hilton.set('location', '16.734, 80.3423');
+
+hilton.save().then(function(obj) {
+    alert(hilton.get('location')); // will display 16.734, 80.3423
+
+    var loc = hilton.get('location', 'geocode')); // will return you an instance of Appacitive.GeoCoord type
+
+    alert("Latitude: " + loc.lat() + ', longitude: ' + loc.lng());
+});
+  
+location.toJSON();
+ 
+Returns a JSON representation of the lat long coordinates:
+
+{
+  latitude: 16.734,
+  longitude: 80.3423
+}
+
+```
+
+These properties are essential latitude-longitude pairs. Such properties support geo queries based on a user defined radial or polygonal region on the map. These are extremely useful for making map based or location based searches. E.g., searching for a list of all restaurants within 20 miles of a given users locations.
 
 ##### Radial Search
 
@@ -1140,7 +1395,15 @@ var center = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
 var radialFilter = Appacitive.Filter.Property('location').withinCircle(center, 10, 'km');
 
 //create query object
-var query = new Appacitive.Queries.FindAllQuery({
+var Hotel = Appacitive.Object.extend('hotel');
+
+var query = Hotel.FindAllQuery({
+  filter: radialFilter
+});
+
+
+// or without extending
+var query = new Appacitive.Object.FindAllQuery({
   type: 'hotel',
   filter: radialFilter
 });
@@ -1169,9 +1432,12 @@ var polygonFilter = Appacitive.Filter.Property("location")
 
 
 //create query object
-var query = new Appacitive.Queries.FindAllQuery({
-  type: 'hotel',
-  filter: polygonFilter
+var Hotel = Appacitive.Object.extend('hotel');
+var query = Hotel.FindAllQuery();
+
+// or without extending
+var query = new Appacitive.Object.FindAllQuery({
+  type: 'hotel'
 });
 
 //or set it in an existing query
@@ -1196,6 +1462,12 @@ var tagFilter = Appacitive.Filter
                       .taggedWithOneOrMore(["personal", "private"]);
 
 //create the query
+var Message = Appacitive.Object('message');
+var query = Message.FindAllQuery({
+  filter: tagFilter
+});
+
+//or withour extending
 var query = new Appacitvie.Filter.FindAllQuery({
   type: 'message',
   filter: tagFilter
@@ -1219,6 +1491,12 @@ var tagFilter = Appacitive.Filter
                           .taggedWithAll(["personal", "test"]);
 
 //create the query
+var Message = Appacitive.Object('message');
+var query = Message.FindAllQuery({
+  filter: tagFilter
+});
+
+//or withour extending
 var query = new Appacitvie.Filter.FindAllQuery({
   type: 'message',
   filter: tagFilter
@@ -1233,16 +1511,16 @@ query.fetch();
 
 #### Composite Filters
 
-Compound queries allow you to combine multiple queries into one single query. The multiple queries can be combined using `Appacitive.Filter.Or` and `Appacitive.Filter.And` operators. NOTE: All types of queries with the exception of free text queries can be combined into a compound query.
+Compound filters allow you to combine multiple filters into one single query. Multiple filters can be combined using `Appacitive.Filter.Or` and `Appacitive.Filter.And` operators. NOTE: All types of filters with the exception of free text filters can be combined into a compound query.
 
 ```javascript
 //Use of `And` and `Or` operators
 var center = new Appacitive.GeoCoord(36.1749687195, -115.1372222900);
 
-//AND query
+//AND filter
 var complexFilter = 
       Appacitive.Filter.And(
-          //OR query
+          //OR filter
           Appacitive.Filter.Or( 
              Appacitive.Filter.Property("firstname").startsWith("jo"),
              Appacitive.Filter.Property("lastname").like("oe")
@@ -1262,6 +1540,10 @@ var complexFilter = Appacitive.Filter.Property("firstname").startsWith("jo")
           
 
 //create query object
+var Player = Appacitive.Object.extend('player');
+var query = Player.findAllQuery();
+
+//or without extending
 var query = new Appacitive.Queries.FindAllQuery({
   type: 'player'
 });
@@ -1283,6 +1565,12 @@ There are situations when you would want the ability to search across all text c
 
 ```javascript
 //create the query
+var Message = Appacitive.Object.extend('message');
+var query = Message.findAllQuery({
+  freeText: 'champs palais'
+});
+
+//or without extending
 var query = new Appacitvie.Filter.FindAllQuery({
   type: 'message',
   freeText: 'champs palais'
@@ -1300,7 +1588,7 @@ query.fetch();
 You can always count the number of records for a search, instead of retreiving all records
 
 ```javascript
-var query = new Appacitvie.Filter.FindAllQuery({
+var query = new Appacitive.Filter.FindAllQuery({
   type: 'message',
   freeText: 'champs palais'
 });

@@ -51,6 +51,10 @@
 
 		this.acls = this._aclFactory.acls;
 
+		if (_type.isFunction(this.initialize)) {
+			this.initialize.apply(this, [options]);
+		}
+
 		return this;
 	};
 
