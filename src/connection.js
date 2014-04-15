@@ -113,6 +113,10 @@
 
 		this.relationName = options.__relationtype;
 
+		if (_type.isFunction(this.initialize)) {
+			this.initialize.apply(this, [options]);
+		}
+
 		return this;
 	};
 

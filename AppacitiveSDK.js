@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Apr 14 13:33:58 IST 2014
+ * Build time 	: Tue Apr 15 11:05:26 IST 2014
  */
 "use strict";
 
@@ -943,6 +943,7 @@ var global = {};
 	};
 
 	global.Appacitive.logs.logException = function(error) {  
+		this.exceptions.push(error);
 		quicklog(this.exceptions, 'exceptionPath');
 	};
 
@@ -3351,6 +3352,260 @@ Depends on  NOTHING
 		};
 	};
 
+})(global);/**
+ * Standalone extraction of Backbone.Events, no external dependency required.
+ * Degrades nicely when Backone/underscore are already available in the current
+ * global context.
+ *
+ * Note that docs suggest to use underscore's `_.extend()` method to add Events
+ * support to some given object. A `mixin()` method has been added to the Events
+ * prototype to avoid using underscore for that sole purpose:
+ *
+ *     var myEventEmitter = BackboneEvents.mixin({});
+ *
+ * Or for a function constructor:
+ *
+ *     function MyConstructor(){}
+ *     MyConstructor.prototype.foo = function(){}
+ *     BackboneEvents.mixin(MyConstructor.prototype);
+ *
+ * (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
+ * (c) 2013 Nicolas Perriault
+ */
+/* global exports:true, define, module */
+(function(global) {
+  var root = global,
+      breaker = {},
+      nativeForEach = Array.prototype.forEach,
+      hasOwnProperty = Object.prototype.hasOwnProperty,
+      slice = Array.prototype.slice,
+      idCounter = 0;
+
+  // Returns a partial implementation matching the minimal API subset required
+  // by Backbone.Events
+  function miniscore() {
+    return {
+      keys: Object.keys,
+
+      uniqueId: function(prefix) {
+        var id = ++idCounter + '';
+        return prefix ? prefix + id : id;
+      },
+
+      has: function(obj, key) {
+        return hasOwnProperty.call(obj, key);
+      },
+
+      each: function(obj, iterator, context) {
+        if (obj == null) return;
+        if (nativeForEach && obj.forEach === nativeForEach) {
+          obj.forEach(iterator, context);
+        } else if (obj.length === +obj.length) {
+          for (var i = 0, l = obj.length; i < l; i++) {
+            if (iterator.call(context, obj[i], i, obj) === breaker) return;
+          }
+        } else {
+          for (var key in obj) {
+            if (this.has(obj, key)) {
+              if (iterator.call(context, obj[key], key, obj) === breaker) return;
+            }
+          }
+        }
+      },
+
+      once: function(func) {
+        var ran = false, memo;
+        return function() {
+          if (ran) return memo;
+          ran = true;
+          memo = func.apply(this, arguments);
+          func = null;
+          return memo;
+        };
+      }
+    };
+  }
+
+  var _ = miniscore(), Events;
+
+  // Backbone.Events
+  // ---------------
+
+  // A module that can be mixed in to *any object* in order to provide it with
+  // custom events. You may bind with `on` or remove with `off` callback
+  // functions to an event; `trigger`-ing an event fires all callbacks in
+  // succession.
+  //
+  //     var object = {};
+  //     _.extend(object, Backbone.Events);
+  //     object.on('expand', function(){ alert('expanded'); });
+  //     object.trigger('expand');
+  //
+  Events = {
+
+    // Bind an event to a `callback` function. Passing `"all"` will bind
+    // the callback to all events fired.
+    on: function(name, callback, context) {
+      if (!eventsApi(this, 'on', name, [callback, context]) || !callback) return this;
+      this._events || (this._events = {});
+      var events = this._events[name] || (this._events[name] = []);
+      events.push({callback: callback, context: context, ctx: context || this});
+      return this;
+    },
+
+    // Bind an event to only be triggered a single time. After the first time
+    // the callback is invoked, it will be removed.
+    once: function(name, callback, context) {
+      if (!eventsApi(this, 'once', name, [callback, context]) || !callback) return this;
+      var self = this;
+      var once = _.once(function() {
+        self.off(name, once);
+        callback.apply(this, arguments);
+      });
+      once._callback = callback;
+      return this.on(name, once, context);
+    },
+
+    // Remove one or many callbacks. If `context` is null, removes all
+    // callbacks with that function. If `callback` is null, removes all
+    // callbacks for the event. If `name` is null, removes all bound
+    // callbacks for all events.
+    off: function(name, callback, context) {
+      var retain, ev, events, names, i, l, j, k;
+      if (!this._events || !eventsApi(this, 'off', name, [callback, context])) return this;
+      if (!name && !callback && !context) {
+        this._events = {};
+        return this;
+      }
+
+      names = name ? [name] : _.keys(this._events);
+      for (i = 0, l = names.length; i < l; i++) {
+        name = names[i];
+        if (events = this._events[name]) {
+          this._events[name] = retain = [];
+          if (callback || context) {
+            for (j = 0, k = events.length; j < k; j++) {
+              ev = events[j];
+              if ((callback && callback !== ev.callback && callback !== ev.callback._callback) ||
+                  (context && context !== ev.context)) {
+                retain.push(ev);
+              }
+            }
+          }
+          if (!retain.length) delete this._events[name];
+        }
+      }
+
+      return this;
+    },
+
+    // Trigger one or many events, firing all bound callbacks. Callbacks are
+    // passed the same arguments as `trigger` is, apart from the event name
+    // (unless you're listening on `"all"`, which will cause your callback to
+    // receive the true name of the event as the first argument).
+    trigger: function(name) {
+      if (!this._events) return this;
+      var args = slice.call(arguments, 1);
+      if (!eventsApi(this, 'trigger', name, args)) return this;
+      var events = this._events[name];
+      var allEvents = this._events.all;
+      if (events) triggerEvents(events, args);
+      if (allEvents) triggerEvents(allEvents, arguments);
+      return this;
+    },
+
+    // Tell this object to stop listening to either specific events ... or
+    // to every object it's currently listening to.
+    stopListening: function(obj, name, callback) {
+      var listeners = this._listeners;
+      if (!listeners) return this;
+      var deleteListener = !name && !callback;
+      if (typeof name === 'object') callback = this;
+      if (obj) (listeners = {})[obj._listenerId] = obj;
+      for (var id in listeners) {
+        listeners[id].off(name, callback, this);
+        if (deleteListener) delete this._listeners[id];
+      }
+      return this;
+    }
+
+  };
+
+  // Regular expression used to split event strings.
+  var eventSplitter = /\s+/;
+
+  // Implement fancy features of the Events API such as multiple event
+  // names `"change blur"` and jQuery-style event maps `{change: action}`
+  // in terms of the existing API.
+  var eventsApi = function(obj, action, name, rest) {
+    if (!name) return true;
+
+    // Handle event maps.
+    if (typeof name === 'object') {
+      for (var key in name) {
+        obj[action].apply(obj, [key, name[key]].concat(rest));
+      }
+      return false;
+    }
+
+    // Handle space separated event names.
+    if (eventSplitter.test(name)) {
+      var names = name.split(eventSplitter);
+      for (var i = 0, l = names.length; i < l; i++) {
+        obj[action].apply(obj, [names[i]].concat(rest));
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  // A difficult-to-believe, but optimized internal dispatch function for
+  // triggering events. Tries to keep the usual cases speedy (most internal
+  // Backbone events have 3 arguments).
+  var triggerEvents = function(events, args) {
+    var ev, i = -1, l = events.length, a1 = args[0], a2 = args[1], a3 = args[2];
+    switch (args.length) {
+      case 0: while (++i < l) (ev = events[i]).callback.call(ev.ctx); return;
+      case 1: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1); return;
+      case 2: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2); return;
+      case 3: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2, a3); return;
+      default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args);
+    }
+  };
+
+  var listenMethods = {listenTo: 'on', listenToOnce: 'once'};
+
+  // Inversion-of-control versions of `on` and `once`. Tell *this* object to
+  // listen to an event in another object ... keeping track of what it's
+  // listening to.
+  _.each(listenMethods, function(implementation, method) {
+    Events[method] = function(obj, name, callback) {
+      var listeners = this._listeners || (this._listeners = {});
+      var id = obj._listenerId || (obj._listenerId = _.uniqueId('l'));
+      listeners[id] = obj;
+      if (typeof name === 'object') callback = this;
+      obj[implementation](name, callback, this);
+      return this;
+    };
+  });
+
+  // Aliases for backwards compatibility.
+  Events.bind   = Events.on;
+  Events.unbind = Events.off;
+
+  // Mixin utility
+  Events.mixin = function(proto) {
+    var exports = ['on', 'once', 'off', 'trigger', 'stopListening', 'listenTo', 'listenToOnce', 'bind', 'unbind'];
+    _.each(exports, function(name) {
+      proto[name] = this[name];
+    }, this);
+    return proto;
+  };
+
+  //changed to match with Appacitive
+  root.Appacitive.Events = Events;
+ 
 })(global);var ArrayProto = Array.prototype;
 var ObjectProto = Object.prototype;
 
@@ -3591,6 +3846,8 @@ var extend = function(protoProps, staticProps) {
 				object.__attributes[arguments[0]] = arguments[1];
 			} else throw new Error('.attr() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 
+			triggerEvent('__attributes');
+
 			return object.__attributes;
 		};
 
@@ -3648,6 +3905,9 @@ var extend = function(protoProps, staticProps) {
 		    if (!_removeTags || !_removeTags.length) return this;
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
+
+			triggerEvent('__tags');
+
 			return this;
 		};
 
@@ -3660,6 +3920,9 @@ var extend = function(protoProps, staticProps) {
 			if (!object.__tags || !object.__tags.length) return this;
 			var index = object.__tags.indexOf(tag);
 			if (index != -1) object.__tags.splice(index, 1);
+
+			triggerEvent('__tags');
+
 			return this;
 		};
 
@@ -3719,10 +3982,13 @@ var extend = function(protoProps, staticProps) {
 					addItem(value);
 				}
 
-				return that;
+			 	triggerEvent(key);
+
 			} catch(e) {
 		 		throw new Error("Unable to add item to " + key);
 		 	}
+
+		 	return that; 
 		};
 
 		this.add = function(key, value) {
@@ -3789,7 +4055,7 @@ var extend = function(protoProps, staticProps) {
 				}
 			} else {
 				if (changedTags) { 
-					changeSet["__addtags"] = changedTags; 
+					changeSet["__tags"] = changedTags; 
 					isDirty = true;
 				}
 			}
@@ -3952,6 +4218,16 @@ var extend = function(protoProps, staticProps) {
 	 		return global.Appacitive.Date.toISOString(value);
 		};
 
+		var triggerEvent = function(key) {
+			var changed = _getChanged();
+
+			if (changed[key]) {
+				// Trigger all relevant attribute changes.
+			    that.trigger('change:' + key, that, changed[key], {});
+			    that.trigger('change', that, {});
+			}
+		};
+
 		this.set = function(key, value, type) {
 
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
@@ -3959,7 +4235,6 @@ var extend = function(protoProps, staticProps) {
 			key = key.toLowerCase();
 
 			try {
-
 
 			 	if (value == undefined || value == null) { object[key] = null;}
 			 	else if (_type.isString(value)) { object[key] = value; }
@@ -3992,6 +4267,9 @@ var extend = function(protoProps, staticProps) {
 						  	if (_type.isString(v)) { this[len] = v; }
 				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
 				 			else throw new Error("Multivalued property cannot have values of property as an object");
+			 				
+				 			triggerEvent(key);
+
 			 				return this; 
 						}
 					}
@@ -4006,6 +4284,9 @@ var extend = function(protoProps, staticProps) {
 						_setOps[key] = true;
 					}
 				}
+
+				triggerEvent(key);
+
 			 	return this;
 			} catch(e) {
 			 	throw new Error("Unable to set " + key);
@@ -4014,8 +4295,8 @@ var extend = function(protoProps, staticProps) {
 
 		this.unset = function(key) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
-		 	try { delete object[key]; } catch(e) {}
-			return this;
+			key = key.toLowerCase();
+		 	return this.set(key, null);
 		};
 
 		this.has = function(key) {
@@ -4070,26 +4351,29 @@ var extend = function(protoProps, staticProps) {
 		var _atomic = function(key, amount, multiplier) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
-				key = key.toLowerCase();
+			key = key.toLowerCase();
 
-				if (_type.isObject(object[key]) ||  _type.isArray(object[key])) {
-					throw new Error("Cannot increment/decrement array/object");
+			if (_type.isObject(object[key]) ||  _type.isArray(object[key])) {
+				throw new Error("Cannot increment/decrement array/object");
+			}
+
+			try {
+				if (!amount || isNaN(Number(amount))) amount = multiplier;
+				else amount = Number(amount) * multiplier;
+
+				object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
+
+				if (!that.isNew()) {
+					_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
 				}
 
-				try {
-					if (!amount || isNaN(Number(amount))) amount = multiplier;
-					else amount = Number(amount) * multiplier;
+			} catch(e) {
+				throw new Error('Cannot perform increment/decrement operation');
+			}
 
-					object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
+			triggerEvent(key);
 
-					if (!that.isNew()) {
-						_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
-					}
-
-					return that;
-				} catch(e) {
-					throw new Error('Cannot perform increment/decrement operation');
-				}
+			return that;
 		};
 
 		this.increment = function(key, amount) {
@@ -4305,6 +4589,8 @@ var extend = function(protoProps, staticProps) {
 		return JSON.stringify(this.getObject());
 	};
 
+	global.Appacitive.Events.mixin(global.Appacitive.BaseObject.prototype);
+
 })(global);
 (function (global) {
 
@@ -4426,6 +4712,10 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.typeName = options.__type;
+
+		if (_type.isFunction(this.initialize)) {
+			this.initialize.apply(this, [options]);
+		}
 
 		return this;
 	};
@@ -4702,6 +4992,10 @@ var extend = function(protoProps, staticProps) {
 		} 
 
 		this.relationName = options.__relationtype;
+
+		if (_type.isFunction(this.initialize)) {
+			this.initialize.apply(this, [options]);
+		}
 
 		return this;
 	};

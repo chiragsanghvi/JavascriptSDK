@@ -47,6 +47,10 @@
 
 		this.typeName = options.__type;
 
+		if (_type.isFunction(this.initialize)) {
+			this.initialize.apply(this, [options]);
+		}
+
 		return this;
 	};
 

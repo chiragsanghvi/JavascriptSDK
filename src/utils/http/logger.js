@@ -106,6 +106,7 @@
 	};
 
 	global.Appacitive.logs.logException = function(error) {  
+		this.exceptions.push(error);
 		quicklog(this.exceptions, 'exceptionPath');
 	};
 
