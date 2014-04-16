@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Apr 15 17:00:18 IST 2014
+ * Build time 	: Thu Apr 17 00:29:08 IST 2014
  */
 "use strict";
 
@@ -100,6 +100,45 @@ if (!('some' in Array.prototype)) {
         return false;
     };
 }
+if (!('find' in Array.prototype)) {
+    Array.prototype.find = function(mapper, that /*opt*/) {
+        var list = this;
+        var length = list.length;
+        if (length === 0) return undefined;
+        for (var i = 0, value; i < length && i in list; i++) {
+          value = list[i];
+          if (predicate.call(that, value, i, list)) return value;
+        }
+        return undefined;
+    }
+}
+if (!('each' in Array.prototype)) {
+    Array.prototype.each = function(callback){
+        for (var i =  0; i < this.length; i++){
+            callback(this[i]);
+        }
+    }
+}
+Array.prototype.pluck = function(property) {
+    var results = [];
+    this.each(function(value) {
+      results.push(value[property]);
+    });
+    return results;
+};
+Array.prototype.sortBy = function(iterator, context) {
+    return this.map(function(value, index) {
+      return {
+        value: value,
+        criteria: iterator.call(context, value, index, this)
+      };
+    }, this).sort(function(left, right) {
+      var a = left.criteria, b = right.criteria;
+      return a < b ? -1 : a > b ? 1 : 0;
+    }).pluck('value');
+};
+
+
 // Override only if native toISOString is not defined
 if ( !Date.prototype.toISOString ) {
     ( function() {
@@ -207,6 +246,11 @@ _type['isNullOrUndefined'] = function(o) {
 
 _type['isNumeric'] = function(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
+};
+
+var _clone = function(obj) {
+    if (!_type.isObject(obj)) return obj;
+    return _type.isArray(obj) ? obj.slice() : _extend({}, obj);
 };
 
 Array.prototype.removeAll = function(obj){
@@ -1377,7 +1421,7 @@ var global = {};
                     var err = {name: error.name, message: error.message, stack: error.stack};
                     global.Appacitive.logs.logException(err);
                     
-                    if (promise.calls.length == 0) throw new Error({ name: error.name, message: error.message, stack: error.stack });
+                    if (promise.calls.length == 0) throw error;
                     else promise.reject(error);
                 }
 
@@ -1701,6 +1745,8 @@ Depends on  NOTHING
 
 		request.promise = this.promise;
 
+		request.options = options.callbacks;
+
 		if (options.entity) request.entity = options.entity; 
 
 		return this;
@@ -1824,18 +1870,19 @@ Depends on  NOTHING
 			} catch(e) {}*/
 		};
 
-		this.removeUserAuthHeader = function(makeApiCall) {
+		this.removeUserAuthHeader = function(makeApiCall, options) {
 			
 			global.Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
 					var promise = new global.Appacitive.Promise();
 
-					var _request = new global.Appacitive.HttpRequest();
+					var _request = new global.Appacitive.HttpRequest(options);
 		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
 		            _request.type = 'user';
+		            _request.options = options;
 		            _request.description = 'InvalidateToken user';
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
@@ -2820,10 +2867,11 @@ Depends on  NOTHING
 			}
 		};
 
-		this.toRequest = function() {
+		this.toRequest = function(options) {
 			var r = new global.Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
+			r.options = options;
 			r.description = obj.description;
             r.method = 'get';
 			return r;
@@ -2865,10 +2913,10 @@ Depends on  NOTHING
 			return global.Appacitive[eType]._parseResult(entities, options.entity);
 		};
 
-		this.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.fetch = function(opts) {
+			var promise = global.Appacitive.Promise.buildPromise(opts);
 
-			var request = this.toRequest();
+			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
 			   self.results = _parse(d[_etype + 's']);
 			   self._setPaging(d.paginginfo);
@@ -2880,24 +2928,24 @@ Depends on  NOTHING
 			return global.Appacitive.http.send(request);
 		};
 
-		this.fetchNext = function(callbacks) {
+		this.fetchNext = function(options) {
 			var pNum = this.pageNumber();
 			this.pageNumber(++pNum);
-			return this.fetch(callbacks);
+			return this.fetch(options);
 		};
 
-		this.fetchPrev = function(callbacks) {
+		this.fetchPrev = function(options) {
 			var pNum = this.pageNumber();
 			pNum -= 1;
 			if (pNum <= 0) pNum = 1;
 			this.pageNumber(pNum);
-			return this.fetch(callbacks);
+			return this.fetch(options);
 		};
 
-		this.count = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.count = function(options) {
+			var promise = global.Appacitive.Promise.buildPromise(options);
 
-			var _queryRequest = this.toRequest();
+			var _queryRequest = this.toRequest(options);
 			_queryRequest.onSuccess = function(data) {
 				data = data || {};
 				var pagingInfo = data.paginginfo;
@@ -2919,14 +2967,16 @@ Depends on  NOTHING
 	/** 
 	* @constructor
 	**/
+	global.Appacitive.Query = BasicQuery;
+
+	/** 
+	* @constructor
+	**/
 	global.Appacitive.Queries.FindAllQuery = function(options) {
 
 		options = options || {};
 
-		if ((!options.type && !options.relation) || (options.type && options.relation)) 
-		    throw new Error('Specify either type or relation for basic filter query');
-
-		options.queryType = 'BasicFilterQuery';
+		if (!options.type && !options.relation) throw new Error('Specify either type or relation for basic filter query');
 
 		BasicQuery.call(this, options);
 
@@ -2936,6 +2986,8 @@ Depends on  NOTHING
 	global.Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.FindAllQuery.prototype.constructor = global.Appacitive.Queries.FindAllQuery;
+
+	global.Appacitive.Query = global.Appacitive.Queries.FindAllQuery;
 
 	/** 
 	* @constructor
@@ -2967,15 +3019,6 @@ Depends on  NOTHING
 		var self = this;
 
 		if (_type.isString(options.label) && options.label.length > 0) this.label = '&label=' + options.label;
-
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			var obj = this.toUrl();
-			r.url = obj.url;
-			r.description = obj.description;
-			r.method = 'get';
-			return r;
-		};
 
 		this.toUrl = function() {
 			return {
@@ -3012,10 +3055,10 @@ Depends on  NOTHING
 			return objects;
 		};
 
-		this.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.fetch = function(opts) {
+			var promise = global.Appacitive.Promise.buildPromise(opts);
 			
-			var request = this.toRequest();
+			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
 			    var _parse = parseNodes;
 			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent });
@@ -3055,15 +3098,6 @@ Depends on  NOTHING
 		this.relation = options.relation;
 		this.label = options.label;
 
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			var obj = this.toUrl();
-			r.url = obj.url;
-			r.description = obj.description;
-			r.method = 'get';
-			return r;
-		};
-
 		this.toUrl = function() {
 			return {
 				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
@@ -3102,15 +3136,6 @@ Depends on  NOTHING
 		this.objectBId = options.objectBId;
 		this.label = (this.queryType() === 'GetConnectionsBetweenObjectsForRelationQuery' && options.label && _type.isString(options.label) && options.label.length > 0) ? '&label=' + options.label : '';
 		this.relation = (options.relation && _type.isString(options.relation) && options.relation.length > 0) ? options.relation + '/' : '';
-		
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			var obj = this.toUrl();
-			r.url = obj.url;
-			r.description = obj.description;
-			r.method = 'get';
-			return r;
-		};
 
 		this.toUrl = function() {
 			return {
@@ -3138,10 +3163,10 @@ Depends on  NOTHING
 		
 		var inner = new global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options, 'GetConnectionsBetweenObjectsForRelationQuery');
 
-		inner.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		inner.fetch = function(opts) {
+			var promise = global.Appacitive.Promise.buildPromise(opts);
 
-			var request = this.toRequest();
+			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
 				promise.fulfill(d.connection ? global.Appacitive.Connection._create(d.connection, true, options.entity) :  null);
 			};
@@ -3173,10 +3198,11 @@ Depends on  NOTHING
 		this.objectAId = options.objectAId;
 		this.objectBIds = options.objectBIds;
 		
-		this.toRequest = function() {
+		this.toRequest = function(options) {
 			var r = new global.Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
+			r.options = options;
 			r.description = obj.description;
 			r.method = 'post';
 			r.data = {
@@ -3219,10 +3245,11 @@ Depends on  NOTHING
 			}
 		}
 		
-		this.toRequest = function() {
+		this.toRequest = function(options) {
 			var r = new global.Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
+			r.options = options;
 			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
@@ -3236,10 +3263,10 @@ Depends on  NOTHING
 			};
 		};
 
-		this.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.fetch = function(options) {
+			var promise = global.Appacitive.Promise.buildPromise(options);
 
-			var request = this.toRequest();
+			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
 		   		promise.fulfill(d.ids ? d.ids : []);
 			};
@@ -3269,13 +3296,14 @@ Depends on  NOTHING
 			}
 		}
 
-		this.toRequest = function() {
+		this.toRequest = function(options) {
 			var r = new global.Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
 			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
+			r.options = options;
 			return r;
 		};
 
@@ -3329,11 +3357,11 @@ Depends on  NOTHING
 			return parseChildren(root.values);
 		};
 
-		this.fetch = function(callbacks) {
+		this.fetch = function(options) {
 			
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+			var promise = global.Appacitive.Promise.buildPromise(options);
 
-			var request = this.toRequest();
+			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
 		   		promise.fulfill(_parseResult(d));
 			};
@@ -3775,7 +3803,7 @@ var extend = function(protoProps, staticProps) {
 			this.className = raw.__relationtype;
 		}
 
-		var __cid = parseInt(Math.random() * 1000000, 10);
+		var __cid = parseInt(Math.random() * 100000000, 10);
 
 		this.cid = __cid;
 
@@ -4758,6 +4786,8 @@ var extend = function(protoProps, staticProps) {
 	    // Set className in entity class
 	    entity.className = typeName;
 
+	    entity.type = typeName;
+
 	    __typeMap[typeName] = entity;
 
 	    return entity;
@@ -5043,6 +5073,8 @@ var extend = function(protoProps, staticProps) {
 
 	    // Set className in entity class
 	    entity.className = typeName;
+
+	    entity.relation = typeName;
 
 	    __relationMap[typeName] = entity;
 
@@ -5728,6 +5760,427 @@ var extend = function(protoProps, staticProps) {
 	global.Appacitive.Users = new UserManager();
 
 })(global);
+  (function(global) {
+
+  global.Appacitive.Collection = function(models, options) {
+    options || (options = {});
+    if (options.model) this.model = options.model;
+    if (!this.model) throw new Error("Please specify model for collection");
+    if (options.comparator !== void 0) this.comparator = options.comparator;
+    if (options.query) this.query(options.query);
+    this._reset();
+    this.initialize.apply(this, arguments);
+    if (models) this.reset(models, { silent: true });
+  };
+
+  global.Appacitive.Events.mixin(global.Appacitive.Collection.prototype);
+
+  // Define the Collection's inheritable methods.
+  _extend(global.Appacitive.Collection.prototype, {
+    
+    models: [],
+
+    /**
+     * Initialize is an empty function by default. Override it with your own
+     * initialization logic.
+     */
+    initialize: function(){},
+
+    _query: null,
+
+    /**
+     * The JSON representation of a Collection is an array of the
+     * models' attributes.
+     */
+    toJSON: function(options) {
+      return this.model.map(function(model) { return model.toJSON(options); });
+    },
+
+    add: function(models, options) {
+      options = options || {};
+      var i, index, length, model, cid, id, cids = {}, ids = {}, at = options.at, merge = options.merge, toAdd = [], sort = options.sort, existing;
+      models = _type.isArray(models) ? models.slice() : [models];
+
+      for (i = 0, length = models.length; i < length; i++) {
+        models[i] = this._prepareModel(models[i]);
+        model = models[i];
+        if (!model) throw new Error("Can't add an invalid model to a collection");
+
+        cid = model.cid;
+        if (cids[cid] || this._byCid[cid])  throw new Error("Duplicate cid: can't add the same model to a collection twice");
+        
+        id = model.id();
+        if (id && ((existing = ids[id]) || (existing = this._byId[id]))) {
+          existing.copy(model.toJSON(), true);
+          existing.children = model.children;
+        } else {
+          ids[id] = model;
+          cids[cid] = model;
+
+          toAdd.push(model);
+          
+          this._addReference(model, options);
+        }
+      }
+
+      // Insert models into the collection, re-sorting if needed, and triggering
+      // `add` events unless silenced.
+      
+      index = (options.at != null) ? options.at : this.models.length;
+      this.models.splice.apply(this.models, [index, 0].concat(toAdd));
+      if (sort && this.comparator) this.sort({silent: true});
+      this.length = this.models.length;
+
+      if (options.silent) return this;
+      
+      for (i = 0, length = toAdd.length; i < length; i++) {
+        model = toAdd[i];
+        options.index = i;
+        model.trigger('add', model, this, options);
+      }
+
+      for (var i = 0, length = toAdd.length; i < length; i++) {
+          (model = toAdd[i]).trigger('add', model, this, options);
+      }
+
+      return this;
+    },
+
+
+    /**
+     * Remove a model, or a list of models from the set. Pass silent to avoid
+     * firing the <code>remove</code> event for every model removed.
+     *
+     * @param {Array} models The model or list of models to remove from the
+     *   collection.
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are: <ul>
+     *   <li>silent: Set to true to avoid firing the `remove` event.
+     * </ul>
+     */
+    remove: function(models, options) {
+      var i, l, index, model;
+      options = options || {};
+      models = _type.isArray(models) ? models.slice() : [models];
+      for (i = 0, l = models.length; i < l; i++) {
+        model = this.getByCid(models[i]) || this.get(models[i]);
+        if (!model) continue; 
+        delete this._byId[model.id()];
+        delete this._byCid[model.cid];
+        index = this.models.indexOf(model);
+        this.models.splice(index, 1);
+        this.length--;
+        if (!options.silent) {
+          options.index = index;
+          model.trigger('remove', model, this, options);
+        }
+        this._removeReference(model);
+      }
+      return this;
+    },
+
+    // Add a model to the end of the collection.
+    push: function(model, options) {
+      return this.add(model, _extend({ at: this.length}, options));
+    },
+
+    // Remove a model from the end of the collection.
+    pop: function(options) {
+      var model = this.at(this.length - 1);
+      this.remove(model, options);
+      return model;
+    },
+
+    // Add a model to the beginning of the collection.
+    unshift: function(model, options) {
+      return this.add(model, _extend({ at: 0 }, options));
+    },
+
+    // Remove a model from the beginning of the collection.
+    shift: function(options) {
+      var model = this.at(0);
+      this.remove(model, options);
+      return model;
+    },
+
+    // Slice out a sub-array of models from the collection.
+    slice: function() {
+      return Array.prototype.slice.apply(this.models, arguments);
+    },
+
+    /**
+     * Gets a model from the set by id.
+     * @param {String} id The Appacitive objectId identifying the Appacitive.Object to
+     * fetch from this collection.
+     */
+    get: function(id) {
+      return id && this._byId[(id instanceof global.Appacitive.BaseObject) ? id.id() : id];
+    },
+
+    query: function(query) {
+      if ((query instanceof global.Appacitive.Query) 
+        || (query instanceof global.Appacitive.Queries.GraphProjectQuery)) { 
+        this._query = query;
+        return this;
+      }
+      else return this._query;
+    },
+
+    /**
+     * Gets a model from the set by client id.
+     * @param {} cid The Backbone collection id identifying the Appacitive.Object to
+     * fetch from this collection.
+     */
+    getByCid: function(cid) {
+      return cid && this._byCid[cid.cid || cid];
+    },
+
+    /**
+     * Gets the model at the given index.
+     *
+     * @param {Number} index The index of the model to return.
+     */
+    at: function(index) {
+      return this.models[index];
+    },
+
+    // Return models with matching attributes. Useful for simple cases of
+    // `filter`.
+    where: function(attrs, first) {
+      if (Object.isEmpty(attrs)) return first ? void 0 : [];
+      return this.models[first ? 'find' : 'filter'](function(model) {
+        for (var key in attrs) {
+          if (attrs[key] !== model.get(key)) return false;
+        }
+        return true;
+      });
+    },
+
+    // Return the first model with matching attributes. Useful for simple cases
+    // of `find`.
+    findWhere: function(attrs) {
+      return this.where(attrs, true);
+    },
+
+    /**
+     * Forces the collection to re-sort itself. You don't need to call this
+     * under normal circumstances, as the set will maintain sort order as each
+     * item is added.
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are: <ul>
+     *   <li>silent: Set to true to avoid firing the `reset` event.
+     * </ul>
+     */
+    sort: function(options) {
+      options = options || {};
+      if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
+      if (!_type.isFunction()) throw new Error('Comparator needs to be a function');
+      if (this.comparator.length === 1) {
+        this.models = this.models.sortBy(this.comparator);
+      } else {
+        this.models.sort(this.comparator.bind(this.models));
+      }
+      if (!options.silent) this.trigger('reset', this, options);
+      
+      return this;
+    },
+
+    /**
+     * Plucks an attribute from each model in the collection.
+     * @param {String} attr The attribute to return from each model in the
+     * collection.
+     */
+    pluck: function(attr) {
+      return this.models.map(function(model) { return model.get(attr); });
+    },
+
+    /**
+     * When you have more items than you want to add or remove individually,
+     * you can reset the entire set with a new list of models, without firing
+     * any `add` or `remove` events. Fires `reset` when finished.
+     *
+     * @param {Array} models The model or list of models to remove from the
+     *   collection.
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are: <ul>
+     *   <li>silent: Set to true to avoid firing the `reset` event.
+     * </ul>
+     */
+    reset: function(models, options) {
+      options || (options = {});
+      for (var i = 0, length = this.models.length; i < length; i++) {
+        this._removeReference(this.models[i], options);
+      }
+      this._reset();
+      this.add(models, { silent: true });
+      if (!options.silent) this.trigger('reset', this, options);
+      return this;
+    },
+
+    /**
+     * Fetches the default set of models for this collection, resetting the
+     * collection when they arrive. If `add: true` is passed, appends the
+     * models to the collection instead of resetting.
+     *
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are:<ul>
+     *   <li>silent: Set to true to avoid firing `add` or `reset` events for
+     *   models fetched by this fetch.
+     *   <li>success: A Backbone-style success callback.
+     *   <li>error: An Backbone-style error callback.
+     *   <li>useMasterKey: In Cloud Code and Node only, uses the Master Key for
+     *       this request.
+     * </ul>
+     */
+    fetch: function(options) {
+      options = _clone(options) || {};
+      
+      var collection = this;
+      var query = this.query() || new global.Appacitive.Query(this.model);
+      
+      var promise = global.Appacitive.Promise.buildPromise(options);
+
+      query.fetch(options).then(function(results) {
+        if (options.add) collection.add(results, options);
+        else collection.reset(results, options);
+        promise.fulfill(collection);
+      }, function() {
+        promise.reject.apply(promise, arguments);
+      });
+
+      return promise;
+    },
+
+    /**
+     * Creates a new instance of a model in this collection. Add the model to
+     * the collection immediately, unless `wait: true` is passed, in which case
+     * we wait for the server to agree.
+     *
+     * @param {Appacitive.Object} model The new model to create and add to the
+     *   collection.
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are:<ul>
+     *   <li>wait: Set to true to wait for the server to confirm creation of the
+     *       model before adding it to the collection.
+     *   <li>silent: Set to true to avoid firing an `add` event.
+     *   <li>success: A Backbone-style success callback.
+     *   <li>error: An Backbone-style error callback.
+     *   <li>useMasterKey: In Cloud Code and Node only, uses the Master Key for
+     *       this request.
+     * </ul>
+     */
+    create: function(model, options) {
+      var collection = this;
+      options = options ? _clone(options) : {};
+      if (!(model = this._prepareModel(model, options))) return false;
+      if (!options.wait) this.add(model, options);
+      var success = options.success;
+      options.success = function() {
+        if (options.wait) collection.add(nextModel, options);
+        if (success) success(model);
+      };
+      model.save(options);
+      return model;
+    },
+
+    /**
+     * Reset all internal state. Called when the collection is reset.
+     */
+    _reset: function(options) {
+      this.length = 0;
+      this.models = [];
+      this._byId  = {};
+      this._byCid = {};
+    },
+
+    /**
+     * Prepare a model or hash of attributes to be added to this collection.
+     */
+    _prepareModel: function(model) {
+      if (!(model instanceof global.Appacitive.BaseObject)) {
+        model = new this.model(model);
+      }
+
+      if (!model.collection) model.collection = this;
+
+      return model;
+    },
+
+
+    // Internal method to create a model's ties to a collection.
+    _addReference: function(model) {
+      this._byId[model.cid] = model;
+      if (model.id() != null) this._byId[model.id()] = model;
+      this._byCid[model.cid] = model;
+      model.on('all', this._onModelEvent, this);
+    },
+
+    /**
+     * Internal method to remove a model's ties to a collection.
+     */
+    _removeReference: function(model) {
+      if (this === model.collection) {
+        delete model.collection;
+      }
+      model.off('all', this._onModelEvent, this);
+    },
+
+    /**
+     * Internal method called every time a model in the set fires an event.
+     * Sets need to update their indexes when models change ids. All other
+     * events simply proxy through. "add" and "remove" events that originate
+     * in other collections are ignored.
+     */
+    _onModelEvent: function(ev, model, collection, options) {
+      if ((ev === 'add' || ev === 'remove') && collection !== this) return;
+      if (ev === 'destroy') this.remove(model, options);
+      if (model && ev === 'change:__id') {
+        delete this._byId[model.previous("__id")];
+        this._byId[model.id()] = model;
+      }
+      this.trigger.apply(this, arguments);
+    }
+  });
+
+  /**
+   * Creates a new subclass of <code>Appacitive.Collection</code>.  For example,<pre>
+   *   var MyCollection = Appacitive.Collection.extend({
+   *     // Instance properties
+   *
+   *     model: MyClass,
+   *     query: MyQuery,
+   *
+   *     getFirst: function() {
+   *       return this.at(0);
+   *     }
+   *   }, {
+   *     // Class properties
+   *
+   *     makeOne: function() {
+   *       return new MyCollection();
+   *     }
+   *   });
+   *
+   *   var collection = new MyCollection();
+   * </pre>
+   *
+   * @function
+   * @param {Object} instanceProps Instance properties for the collection.
+   * @param {Object} classProps Class properies for the collection.
+   * @return {Class} A new subclass of <code>Appacitive.Collection</code>.
+   */
+  global.Appacitive.Collection.extend = function(protoProps, classProps) {
+    if (protoProps && protoProps.query) {
+      protoProps._query = protoProps.query;
+      delete protoProps.query;
+    }
+    var child = global.Appacitive._extend(this, protoProps, classProps);
+    child.extend = this.extend;
+    return child;
+  };
+
+})(global);
+
 (function (global) {
 
  	"use strict";

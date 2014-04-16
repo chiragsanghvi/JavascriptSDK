@@ -38,6 +38,8 @@
 
 		request.promise = this.promise;
 
+		request.options = options.callbacks;
+
 		if (options.entity) request.entity = options.entity; 
 
 		return this;

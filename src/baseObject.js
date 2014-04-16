@@ -97,7 +97,7 @@
 			this.className = raw.__relationtype;
 		}
 
-		var __cid = parseInt(Math.random() * 1000000, 10);
+		var __cid = parseInt(Math.random() * 100000000, 10);
 
 		this.cid = __cid;
 

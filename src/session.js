@@ -110,18 +110,19 @@
 			} catch(e) {}*/
 		};
 
-		this.removeUserAuthHeader = function(makeApiCall) {
+		this.removeUserAuthHeader = function(makeApiCall, options) {
 			
 			global.Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
 					var promise = new global.Appacitive.Promise();
 
-					var _request = new global.Appacitive.HttpRequest();
+					var _request = new global.Appacitive.HttpRequest(options);
 		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
 		            _request.type = 'user';
+		            _request.options = options;
 		            _request.description = 'InvalidateToken user';
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;

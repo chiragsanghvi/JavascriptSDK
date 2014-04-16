@@ -149,6 +149,8 @@
 	    // Set className in entity class
 	    entity.className = typeName;
 
+	    entity.relation = typeName;
+
 	    __relationMap[typeName] = entity;
 
 	    return entity;

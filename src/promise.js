@@ -67,7 +67,7 @@
                     var err = {name: error.name, message: error.message, stack: error.stack};
                     global.Appacitive.logs.logException(err);
                     
-                    if (promise.calls.length == 0) throw new Error({ name: error.name, message: error.message, stack: error.stack });
+                    if (promise.calls.length == 0) throw error;
                     else promise.reject(error);
                 }
 

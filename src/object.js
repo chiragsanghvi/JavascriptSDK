@@ -84,6 +84,8 @@
 	    // Set className in entity class
 	    entity.className = typeName;
 
+	    entity.type = typeName;
+
 	    __typeMap[typeName] = entity;
 
 	    return entity;
