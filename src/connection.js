@@ -48,46 +48,38 @@
 		}
 	};
 
-	global.Appacitive.Connection = function(options, doNotSetup) {
+	global.Appacitive.Connection = function(attrs, options) {
+		attrs = attrs || {};
 		options = options || {};
+
+		if (this.className) attrs.__relationtype = this.className;
 		
-		if (this.className) {
-			options.__relationtype = this.className;
+		if (_type.isString(attrs)) attrs = { __relationtype : attrs };
+		
+		if (!attrs.__relationtype && !attrs.relation ) throw new Error("Cannot set connection without relation");
+
+		if (attrs.relation) {
+			attrs.__relationtype = attrs.relation;
+			delete attrs.relation;
 		}
 
-		if (_type.isString(options)) {
-			var rName = options;
-			options = { __relationtype : rName };
+		if (_type.isBoolean(options)) options = { setSnapShot: true };
+
+		if (attrs.endpoints && attrs.endpoints.length === 2) {
+			attrs.__endpointa = attrs.endpoints[0];
+			attrs.__endpointb = attrs.endpoints[1];
+			delete attrs.endpoints;
 		}
 
-		if (!options.__relationtype && !options.relation ) throw new Error("Cannot set connection without relation");
-
-		if (options.relation) {
-			options.__relationtype = options.relation;
-			delete options.relation;
-		}
-
-		if (options.endpoints && options.endpoints.length === 2) {
-			options.__endpointa = options.endpoints[0];
-			options.__endpointb = options.endpoints[1];
-			delete options.endpoints;
-		}
-
-		if (_type.isObject(this.defaults) && !doNotSetup) {
-			for (var o in this.defaults) {
-				if (!options[o]) options[o] = this.defaults[o];
-			}
-		}
-
-		global.Appacitive.BaseObject.call(this, options, doNotSetup);
+		global.Appacitive.BaseObject.call(this, attrs, options);
 		this.type = 'connection';
 		this.getConnection = this.getObject;
 
 		this.parseConnection = function() {
 			
 			var typeA = 'A', typeB ='B';
-			if ( options.__endpointa.label.toLowerCase() === this.get('__endpointb').label.toLowerCase() ) {
-				if ((options.__endpointa.label.toLowerCase() != options.__endpointb.label.toLowerCase()) && (options.__endpointa.objectid == this.get('__endpointb').objectid || !options.__endpointa.objectid)) {
+			if ( attrs.__endpointa.label.toLowerCase() === this.get('__endpointb').label.toLowerCase() ) {
+				if ((attrs.__endpointa.label.toLowerCase() != attrs.__endpointb.label.toLowerCase()) && (attrs.__endpointa.objectid == this.get('__endpointb').objectid || !attrs.__endpointa.objectid)) {
 				 	typeA = 'B';
 				 	typeB = 'A';
 				}
@@ -111,16 +103,16 @@
 			return this;
 		};
 
-		if (doNotSetup) {
-			this.parseConnection(options);
+		if (options.setSnapShot) {
+			this.parseConnection(attrs);
 		} else {
-			if (options.__endpointa && options.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));
+			if (attrs.__endpointa && attrs.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));
 		} 
 
-		this.relationName = options.__relationtype;
+		this.relationName = attrs.__relationtype;
 
 		if (_type.isFunction(this.initialize)) {
-			this.initialize.apply(this, [options]);
+			this.initialize.apply(this, [attrs]);
 		}
 
 		return this;
@@ -172,13 +164,9 @@
 
 	global.Appacitive.Connection._create = function(attributes, setSnapshot, relationClass) {
 	    var entity;
-		if (this.className) {
-			entity = this;
-		} else {
-			entity = (relationClass) ? relationClass : _getClass(attributes.__relationtype);
-		}
-	    if (setSnapshot == true) return new entity(attributes).copy(attributes, setSnapshot);
-		return new entity(attributes).copy(attributes);
+		if (this.className) entity = this;
+		else entity = (relationClass) ? relationClass : _getClass(attributes.__relationtype);
+		return new entity(attributes).copy(attributes, setSnapshot);
 	};
 
     //private function for parsing api connections in sdk connection object
@@ -208,10 +196,10 @@
 		// sigh
 		
 		// 1
-		this.set('__endpointa', _parseEndpoint(endpointA, 'A', this));
+		this.set('__endpointa', _parseEndpoint(endpointA, 'A', this), { silent: true });
 
 		// 2
-		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
+		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this), { silent: true });
 
 		// 3
 		this.endpoints = function() {
@@ -265,20 +253,35 @@
 	};
 
 	//takes relationame, and array of connections ids
-	global.Appacitive.Connection.multiDelete = function(options, callbacks) {
+	global.Appacitive.Connection.multiDelete = function(attrs, options) {
+		attrs = attrs || {};
 		options = options || {};
-		if (this.className) options.relation = this.className;
-		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
-		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to get");
-		
+		var models = [];
+		if (this.className) attrs.relation = this.className;
+
+		if (_type.isArray(attrs) && attrs.length > 0) {
+			models = attrs;
+			attrs = { 
+				relation:  models[0].className ,
+				ids : models.map(function(o) { return o.id(); }).filter(function(o) { return o; }) 
+			};
+		}
+		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
+		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
+
 		var request = new global.Appacitive._Request({
 			method: 'POST',
-			data: { idlist : options.ids },
+			data: { idlist : attrs.ids },
 			type: 'connection',
 			op: 'getMultiDeleteUrl',
-			args: [options.relation],
+			args: [attrs.relation],
 			callbacks: callbacks,
 			onSuccess: function(d) {
+				if (options && !options.silent) {
+					models.forEach(function(m) {
+						m.trigger('destroy', m, m.collection, options);
+					});
+			    }
 				request.promise.fulfill();
 			}
 		});
@@ -286,6 +289,7 @@
 		return request.send();
 	};
 
+	
 	//takes relation type and returns all connections for it
 	global.Appacitive.Connection.findAll = global.Appacitive.Connection.findAllQuery = function(options) {
 		options = options || {};

@@ -149,9 +149,9 @@
             if (numDone == total) {
                 if (!promise.state) {
                     if (reasons.length > 0) {
-                        promise.reject(reasons, values);
+                        promise.reject(reasons, values ? values : []);
                     } else {
-                        promise.fulfill(values);
+                        promise.fulfill(values ? values : []);
                     }
                 }
             }

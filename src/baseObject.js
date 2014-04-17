@@ -6,10 +6,18 @@
 	/**
 	* @constructor
 	**/
-	var _BaseObject = function(objectOptions, setSnapShot) {
+	var _BaseObject = function(objectOptions, optns) {
 
 		var _snapshot = {};
 
+		optns = optns || {};
+
+		if (optns && optns.parse) objectOptions = this.parse(objectOptions);
+		
+		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _extend({}, this.defaults, objectOptions);
+		
+	    if (optns && optns.collection) this.collection = optns.collection;
+	    
 		//atomic properties
 		var _atomicProps = {};
 
@@ -78,10 +86,8 @@
 		var object = raw;
 
 		//will be used in case of creating an appacitive object for internal purpose
-		if (setSnapShot) {
-			_copy(object, _snapshot);
-		}
-
+		if (optns.setSnapShot) _copy(object, _snapshot);
+		
 		if (!_snapshot.__id && raw.__id) _snapshot.__id = raw.__id;
 
 		//Check whether __type or __relationtype is mentioned and set type property
@@ -144,6 +150,10 @@
 			return this.get('__id');	
 		};
 
+	    this.parse = function(resp, options) {
+	      return resp;
+	    };
+
 		// accessor function for the object's attributes
 		this.attr = function() {
 			if (arguments.length === 0) {
@@ -159,7 +169,7 @@
 				object.__attributes[arguments[0]] = arguments[1];
 			} else throw new Error('.attr() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 
-			triggerEvent('__attributes');
+			triggerChangeEvent('__attributes');
 
 			return object.__attributes;
 		};
@@ -216,14 +226,14 @@
 		    object.__tags = Array.distinct(object.__tags);
 
 		    if (!_removeTags || !_removeTags.length) {
-		    	triggerEvent('__tags');
+		    	triggerChangeEvent('__tags');
 		     	return this;
 			} 
 
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
 
-			triggerEvent('__tags');
+			triggerChangeEvent('__tags');
 
 			return this;
 		};
@@ -235,14 +245,14 @@
 			_removeTags = Array.distinct(_removeTags);
 
 			if (!object.__tags || !object.__tags.length) {
-				triggerEvent('__tags');
+				triggerChangeEvent('__tags');
 				return this;
 			}
 
 			var index = object.__tags.indexOf(tag);
 			if (index != -1) object.__tags.splice(index, 1);
 
-			triggerEvent('__tags');
+			triggerChangeEvent('__tags');
 
 			return this;
 		};
@@ -263,7 +273,7 @@
 
 		this.getRemovedTags = function() { return _removetags; };
 
-		var setMutliItems = function(key, value, op) {
+		var setMutliItems = function(key, value, op, options) {
 			if (!key || !_type.isString(key) ||  key.length === 0  || key.trim().indexOf('__') == 0 || key.trim().indexOf('$') === 0 || value == undefined || value == null) return this; 
 			
 			key = key.toLowerCase();
@@ -303,7 +313,7 @@
 					addItem(value);
 				}
 
-			 	triggerEvent(key);
+			 	triggerChangeEvent(key, options);
 
 			} catch(e) {
 		 		throw new Error("Unable to add item to " + key);
@@ -312,16 +322,16 @@
 		 	return that; 
 		};
 
-		this.add = function(key, value) {
-			return setMutliItems.apply(this, [key, value, 'additems']);
+		this.add = function(key, value, options) {
+			return setMutliItems.apply(this, [key, value, 'additems', options]);
 		};
 
-		this.addUnique = function(key, value) {
-			return setMutliItems.apply(this, [key, value, 'adduniqueitems']);
+		this.addUnique = function(key, value, options) {
+			return setMutliItems.apply(this, [key, value, 'adduniqueitems', options]);
 		};
 
-		this.remove = function(key, value) {
-			return setMutliItems.apply(this, [key, value, 'removeitems']);
+		this.remove = function(key, value, options) {
+			return setMutliItems.apply(this, [key, value, 'removeitems', options]);
 		};
 
 		var _getChanged = function(isInternal) {
@@ -539,17 +549,24 @@
 	 		return global.Appacitive.Date.toISOString(value);
 		};
 
-		var triggerEvent = function(key) {
-			var changed = _getChanged();
+		var triggerChangeEvent = function(key, options) {
+			if (options && !options.silent) {
+				var changed = _getChanged();
 
-			if (changed[key]) {
 				// Trigger all relevant attribute changes.
 			    that.trigger('change:' + key, that, changed[key], {});
-			    that.trigger('change', that, {});
+			    that.trigger('change', that, options);
 			}
 		};
 
-		this.set = function(key, value, type) {
+		var triggerDestroy = function(opts) {
+			if (opts && !opts.silent) that.trigger('destroy', that, that.collection, opts);
+      	};
+
+		this.set = function(key, value, options) {
+			options = options || {};
+
+			var oType = options.dataType;
 
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
 			
@@ -561,7 +578,7 @@
 			 	else if (_type.isString(value)) { object[key] = value; }
 			 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
 			 	else if (value instanceof Date) {
-			 		object[key] = getDateValue(type, value);
+			 		object[key] = getDateValue(dataType, value);
 			 	} else if (_type.isObject(value)) {
 			 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
 			 		 	object[key] = value;
@@ -589,7 +606,7 @@
 				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
 				 			else throw new Error("Multivalued property cannot have values of property as an object");
 			 				
-				 			triggerEvent(key);
+				 			triggerChangeEvent(key, options);
 
 			 				return this; 
 						}
@@ -606,7 +623,7 @@
 					}
 				}
 
-				triggerEvent(key);
+				triggerChangeEvent(key, options);
 
 			 	return this;
 			} catch(e) {
@@ -614,10 +631,12 @@
 			} 
 		};
 
-		this.unset = function(key) {
+		this.unset = function(key, options) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
 			key = key.toLowerCase();
-		 	return this.set(key, null);
+		 	delete object[key];
+		 	triggerChangeEvent(key, options);
+		 	return this;
 		};
 
 		this.has = function(key) {
@@ -669,7 +688,7 @@
 			return this;
 		};
 
-		var _atomic = function(key, amount, multiplier) {
+		var _atomic = function(key, amount, multiplier, options) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
 			key = key.toLowerCase();
@@ -679,9 +698,13 @@
 			}
 
 			try {
-				if (!amount || isNaN(Number(amount))) amount = multiplier;
-				else amount = Number(amount) * multiplier;
-
+				if (_type.isObject(amount)) {
+					options = amount;
+					amount = multiplier;
+				} else {
+					if (!amount || isNaN(Number(amount))) amount = multiplier;
+					else amount = Number(amount) * multiplier;
+				}
 				object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
 
 				if (!that.isNew()) {
@@ -692,19 +715,18 @@
 				throw new Error('Cannot perform increment/decrement operation');
 			}
 
-			triggerEvent(key);
+			triggerChangeEvent(key, options);
 
 			return that;
 		};
 
-		this.increment = function(key, amount) {
-			return _atomic(key, amount, 1);
+		this.increment = function(key, amount, options) {
+			return _atomic(key, amount, 1, options);
 		};
 
-		this.decrement = function(key, amount) {
-			return _atomic(key, amount, -1);
+		this.decrement = function(key, amount, options) {
+			return _atomic(key, amount, -1, options);
 		};
-
 
 		/* crud operations  */
 
@@ -717,7 +739,7 @@
 		};
 
 		// to create the object
-		var _create = function(callbacks) {
+		var _create = function(options) {
 
 			var type = that.type;
 			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
@@ -736,14 +758,13 @@
 				op: 'getCreateUrl',
 				args: [this.className, _fields],
 				data: object,
-				callbacks: callbacks,
+				callbacks: options,
 				entity: that,
 				onSuccess: function(data) {
 					var savedState = null;
-					if (data && (data.object || data.connection || data.user || data.device)) {
-						savedState = data.object || data.connection || data.user || data.device;
-					}
-					if (data && savedState) {
+					if (data && data[type]) {
+						savedState = data[type];
+
 						_snapshot = savedState;
 						object.__id = savedState.__id;
 						
@@ -753,6 +774,8 @@
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
+
+						that.trigger('sync', that, data[type], options);
 
 						request.promise.fulfill(that);
 					} else {
@@ -766,9 +789,9 @@
 		};
 
 		// to update the object
-		var _update = function(callbacks, promise) {
+		var _update = function(options, promise) {
 
-			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(callbacks);
+			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(options);
 
 			var changeSet = _getChanged(true);
 			for (var p in changeSet) {
@@ -793,7 +816,7 @@
 					op: 'getUpdateUrl',
 					args: args,
 					data: changeSet,
-					callbacks: callbacks,
+					callbacks: options,
 					entity: that,
 					onSuccess: function(data) {
 						if (data && data[type]) {
@@ -803,6 +826,8 @@
 							
 							delete that.created;
 							
+							that.trigger('sync', that, data[type], options);
+
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
 							request.promise.fulfill(that);
 						} else {
@@ -823,7 +848,7 @@
 			return promise;
 		};
 
-		var _fetch = function (callbacks) {
+		var _fetch = function (options) {
 
 			if (!object.__id) throw new Error('Please specify id for get operation');
 			
@@ -839,7 +864,7 @@
 				type: type,
 				op: 'getGetUrl',
 				args: [this.className, object.__id, _fields],
-				callbacks: callbacks,
+				callbacks: options,
 				entity: that,
 				onSuccess: function(data) {
 					if (data && data[type]) {
@@ -850,6 +875,7 @@
 								that.setupConnection(object.__endpointa, object.__endpointb);
 							}
 						}
+						that.trigger('sync', that, data[type], options);
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
@@ -868,37 +894,41 @@
 		};
 
 		// delete the object
-		this.destroy = function(callbacks, deleteConnections) {
-          
-			if (_type.isBoolean(callbacks)) {
-				deleteConnections = callbacks;
-				callbacks = null;
-			} else if(!_type.isBoolean(deleteConnections)) {
-				deleteConnections = false;
+		this.destroy = function(opts) {
+          	opts = opts || {};
+
+			var deleteConnections = opts.deleteConnections;
+			
+			if (_type.isBoolean(opts)) {
+				deleteConnections = opts;
+				opts = {};
 			}
 
 			// if the object does not have __id set, 
 	        // just call success
 	        // else delete the object
 
-	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(callbacks).fulfill();
+	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
 			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
 				type = object.__type.toLowerCase()
 			}
 
+			if (!opts.wait)  triggerDestroy(opts);
+
 			var request = new global.Appacitive._Request({
 				method: 'DELETE',
 				type: type,
 				op: 'getDeleteUrl',
 				args: [this.className, object.__id, deleteConnections],
-				callbacks: callbacks,
+				callbacks: opts,
 				entity: this,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);
 
 					if (data && data.status) {
+						if (opts.wait) triggerDestroy(opts);
 						request.promise.fulfill(data.status);
 					} else {
 						data = data || {};
@@ -911,6 +941,14 @@
 			return request.send();
 		};
 		this.del = this.destroy;
+
+
+		if (this.type == 'object') {
+			this.destroyWithConnections = function(options) {
+				return this.destroy(_extend({ deleteConnections: true}, options));
+			};
+		}
+
 	};
 
 	global.Appacitive.BaseObject = _BaseObject;
