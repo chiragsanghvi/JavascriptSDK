@@ -49,7 +49,7 @@
         
         id = model.id();
         if (id && ((existing = ids[id]) || (existing = this._byId[id]))) {
-          existing.copy(model.toJSON(), true);
+          existing.copy(model.toJSON(), options.setSnapShot);
           existing.children = model.children;
         } else {
           ids[id] = model;
@@ -279,6 +279,39 @@
       var promise = global.Appacitive.Promise.buildPromise(options);
 
       query.fetch(options).then(function(results) {
+        if (options.add) collection.add(results, _extend({ setSnapShot: true }, options));
+        else collection.reset(results, options);
+        promise.fulfill(collection);
+      }, function() {
+        promise.reject.apply(promise, arguments);
+      });
+
+      return promise;
+    },
+
+
+    /**
+     * Mutiget a set of models for this collection, resetting the
+     * collection when they arrive. If `add: true` is passed, appends the
+     * models to the collection instead of resetting.
+     *
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are:<ul>
+     *   <li>silent: Set to true to avoid firing `add` or `reset` events for
+     *   models fetched by this fetch.
+     *   <li>success: A Backbone-style success callback.
+     *   <li>error: An Backbone-style error callback.
+     * </ul>
+     */
+    mutiGet: function(options) {
+      options = _clone(options) || {};
+      
+      var collection = this;
+      var query = this.query() || new global.Appacitive.Query(this.model);
+      
+      var promise = global.Appacitive.Promise.buildPromise(options);
+
+      query.fetch(options).then(function(results) {
         if (options.add) collection.add(results, options);
         else collection.reset(results, options);
         promise.fulfill(collection);
@@ -314,8 +347,8 @@
       if (!options.wait) this.add(model, options);
       var success = options.success;
       options.success = function() {
-        if (options.wait) collection.add(nextModel, options);
-        if (success) success(model);
+        if (options.wait) collection.add(model, _extend({ setSnapShot: true }, options));
+        if (success) success(model, collection);
       };
       model.save(options);
       return model;

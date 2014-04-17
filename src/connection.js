@@ -162,6 +162,8 @@
 	    return entity;
 	};
 
+	global.Appacitive.Connection._getClass = _getClass;
+
 	global.Appacitive.Connection._create = function(attributes, setSnapshot, relationClass) {
 	    var entity;
 		if (this.className) entity = this;

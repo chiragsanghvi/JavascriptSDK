@@ -294,6 +294,43 @@
 			return global.Appacitive.http.send(request);
 		};
 
+		/**
+	     * Returns a new instance of Appacitive.Collection backed by this query.
+	     * @param {Array} items An array of instances of <code>Appacitive.Object</code>
+	     *     with which to start this Collection.
+	     * @param {Object} options An optional object with Backbone-style options.
+	     * Valid options are:<ul>
+	     *   <li>model: The Appacitive.Object subclass that this collection contains.
+	     *   <li>query: An instance of Appacitive.Queries to use when fetching items.
+	     *   <li>comparator: A string property name or function to sort by.
+	     * </ul>
+	     * @return {Appacitive.Collection}
+	     */
+	    this.collection = function(items, opts) {
+			opts = opts || {};
+			items = items || [];
+			if (_type.isObject(items)) opts = items, items = null;
+
+			if (!items) items = this.results ? this.results : [];
+
+			var model = options.entity;
+
+			if (!model && items.length > 0 && items[0] instanceof global.Appacitive.BaseObject) {
+				var eType = items[0].type == 'object'  ? 'Object' : 'Connection';
+				model = global.Appacitive[eType]._getClass(items[0].className);
+			}
+
+			if (!model) {
+				var eType = (_etype === 'object') ? 'Object' : 'Connection';
+				model = global.Appacitive[eType]._getClass(this[eType]);
+			}
+
+			return new Appacitive.Collection(items, _extend(opts, {
+				model: this.model,
+				query: this
+			}));
+	    };
+
 		this.fetchNext = function(options) {
 			var pNum = this.pageNumber();
 			this.pageNumber(++pNum);
@@ -534,7 +571,8 @@
 
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-				promise.fulfill(d.connection ? global.Appacitive.Connection._create(d.connection, true, options.entity) :  null);
+				inner.results = d.connection ? [global.Appacitive.Connection._create(d.connection, true, options.entity)] :  null
+				promise.fulfill(inner.results ? inner.results[0] : null);
 			};
 			request.promise = promise;
 			request.entity = this;
@@ -654,6 +692,7 @@
 		this.name = name;
 		this.data = { ids: ids };
 		this.queryType = 'GraphProjectQuery';
+		var self = this;
 
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
@@ -723,13 +762,34 @@
 			return parseChildren(root.values);
 		};
 
+
+		this.collection = function(items, opts) {
+			opts = opts || {};
+			items = items || [];
+			if (_type.isObject(items)) opts = items, items = null;
+
+			if (!items) items = this.results ? ths.results : [];
+
+			var model;
+
+			if (items.length > 0 && items[0] instanceof global.Appacitive.BaseObject) {
+				model = global.Appacitive.Object._getClass(items[0].className);
+			}
+
+			return new Appacitive.Collection(items, _extend(opts, {
+				model: this.model,
+				query: this
+			}));
+	    };
+
 		this.fetch = function(options) {
 			
 			var promise = global.Appacitive.Promise.buildPromise(options);
 
 			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
-		   		promise.fulfill(_parseResult(d));
+				self.results = _parseResult(d);
+		   		promise.fulfill(results);
 			};
 			request.promise = promise;
 			request.entity = this;

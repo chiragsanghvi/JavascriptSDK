@@ -96,6 +96,8 @@
 	    return entity;
 	};
 
+	global.Appacitive.Object._getClass = _getClass;
+
 	global.Appacitive.Object._create = function(attributes, setSnapshot, typeClass) {
 		var entity;
 		if (this.className) entity = this;
@@ -178,7 +180,7 @@
 	};
 
 	//takes object id , type and fields and returns that object
-	global.Appacitive.Object.get = function(options, callbacks) {
+	global.Appacitive.Object.get = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -190,7 +192,7 @@
 		var obj = global.Appacitive.Object._create({ __type: options.type, __id: options.id });
 		obj.fields = options.fields;
 
-		return obj.fetch(callbacks);
+		return obj.fetch(options);
 	};
 
     //takes relation type and returns query for it

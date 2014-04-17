@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Apr 17 09:09:11 IST 2014
+ * Build time 	: Thu Apr 17 11:44:00 IST 2014
  */
 "use strict";
 
@@ -2928,6 +2928,43 @@ Depends on  NOTHING
 			return global.Appacitive.http.send(request);
 		};
 
+		/**
+	     * Returns a new instance of Appacitive.Collection backed by this query.
+	     * @param {Array} items An array of instances of <code>Appacitive.Object</code>
+	     *     with which to start this Collection.
+	     * @param {Object} options An optional object with Backbone-style options.
+	     * Valid options are:<ul>
+	     *   <li>model: The Appacitive.Object subclass that this collection contains.
+	     *   <li>query: An instance of Appacitive.Queries to use when fetching items.
+	     *   <li>comparator: A string property name or function to sort by.
+	     * </ul>
+	     * @return {Appacitive.Collection}
+	     */
+	    this.collection = function(items, opts) {
+			opts = opts || {};
+			items = items || [];
+			if (_type.isObject(items)) opts = items, items = null;
+
+			if (!items) items = this.results ? this.results : [];
+
+			var model = options.entity;
+
+			if (!model && items.length > 0 && items[0] instanceof global.Appacitive.BaseObject) {
+				var eType = items[0].type == 'object'  ? 'Object' : 'Connection';
+				model = global.Appacitive[eType]._getClass(items[0].className);
+			}
+
+			if (!model) {
+				var eType = (_etype === 'object') ? 'Object' : 'Connection';
+				model = global.Appacitive[eType]._getClass(this[eType]);
+			}
+
+			return new Appacitive.Collection(items, _extend(opts, {
+				model: this.model,
+				query: this
+			}));
+	    };
+
 		this.fetchNext = function(options) {
 			var pNum = this.pageNumber();
 			this.pageNumber(++pNum);
@@ -3168,7 +3205,8 @@ Depends on  NOTHING
 
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-				promise.fulfill(d.connection ? global.Appacitive.Connection._create(d.connection, true, options.entity) :  null);
+				inner.results = d.connection ? [global.Appacitive.Connection._create(d.connection, true, options.entity)] :  null
+				promise.fulfill(inner.results ? inner.results[0] : null);
 			};
 			request.promise = promise;
 			request.entity = this;
@@ -3288,6 +3326,7 @@ Depends on  NOTHING
 		this.name = name;
 		this.data = { ids: ids };
 		this.queryType = 'GraphProjectQuery';
+		var self = this;
 
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
@@ -3357,13 +3396,34 @@ Depends on  NOTHING
 			return parseChildren(root.values);
 		};
 
+
+		this.collection = function(items, opts) {
+			opts = opts || {};
+			items = items || [];
+			if (_type.isObject(items)) opts = items, items = null;
+
+			if (!items) items = this.results ? ths.results : [];
+
+			var model;
+
+			if (items.length > 0 && items[0] instanceof global.Appacitive.BaseObject) {
+				model = global.Appacitive.Object._getClass(items[0].className);
+			}
+
+			return new Appacitive.Collection(items, _extend(opts, {
+				model: this.model,
+				query: this
+			}));
+	    };
+
 		this.fetch = function(options) {
 			
 			var promise = global.Appacitive.Promise.buildPromise(options);
 
 			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
-		   		promise.fulfill(_parseResult(d));
+				self.results = _parseResult(d);
+		   		promise.fulfill(results);
 			};
 			request.promise = promise;
 			request.entity = this;
@@ -3826,7 +3886,7 @@ var extend = function(protoProps, staticProps) {
 		var _fields = '';
 
 		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
+		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__authtype", "__link"];
 		
 		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
 
@@ -4259,9 +4319,11 @@ var extend = function(protoProps, staticProps) {
 			if (options && !options.silent) {
 				var changed = _getChanged();
 
-				// Trigger all relevant attribute changes.
-			    that.trigger('change:' + key, that, changed[key], {});
-			    that.trigger('change', that, options);
+				if(changed[key]) {
+					// Trigger all relevant attribute changes.
+				    that.trigger('change:' + key, that, changed[key], {});
+				    that.trigger('change', that, options);
+				}
 			}
 		};
 
@@ -4836,6 +4898,8 @@ var extend = function(protoProps, staticProps) {
 	    return entity;
 	};
 
+	global.Appacitive.Object._getClass = _getClass;
+
 	global.Appacitive.Object._create = function(attributes, setSnapshot, typeClass) {
 		var entity;
 		if (this.className) entity = this;
@@ -4918,7 +4982,7 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes object id , type and fields and returns that object
-	global.Appacitive.Object.get = function(options, callbacks) {
+	global.Appacitive.Object.get = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -4930,7 +4994,7 @@ var extend = function(protoProps, staticProps) {
 		var obj = global.Appacitive.Object._create({ __type: options.type, __id: options.id });
 		obj.fields = options.fields;
 
-		return obj.fetch(callbacks);
+		return obj.fetch(options);
 	};
 
     //takes relation type and returns query for it
@@ -5126,6 +5190,8 @@ var extend = function(protoProps, staticProps) {
 	    }
 	    return entity;
 	};
+
+	global.Appacitive.Connection._getClass = _getClass;
 
 	global.Appacitive.Connection._create = function(attributes, setSnapshot, relationClass) {
 	    var entity;
@@ -5855,7 +5921,7 @@ var extend = function(protoProps, staticProps) {
         
         id = model.id();
         if (id && ((existing = ids[id]) || (existing = this._byId[id]))) {
-          existing.copy(model.toJSON(), true);
+          existing.copy(model.toJSON(), options.setSnapShot);
           existing.children = model.children;
         } else {
           ids[id] = model;
@@ -6085,6 +6151,39 @@ var extend = function(protoProps, staticProps) {
       var promise = global.Appacitive.Promise.buildPromise(options);
 
       query.fetch(options).then(function(results) {
+        if (options.add) collection.add(results, _extend({ setSnapShot: true }, options));
+        else collection.reset(results, options);
+        promise.fulfill(collection);
+      }, function() {
+        promise.reject.apply(promise, arguments);
+      });
+
+      return promise;
+    },
+
+
+    /**
+     * Mutiget a set of models for this collection, resetting the
+     * collection when they arrive. If `add: true` is passed, appends the
+     * models to the collection instead of resetting.
+     *
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are:<ul>
+     *   <li>silent: Set to true to avoid firing `add` or `reset` events for
+     *   models fetched by this fetch.
+     *   <li>success: A Backbone-style success callback.
+     *   <li>error: An Backbone-style error callback.
+     * </ul>
+     */
+    mutiGet: function(options) {
+      options = _clone(options) || {};
+      
+      var collection = this;
+      var query = this.query() || new global.Appacitive.Query(this.model);
+      
+      var promise = global.Appacitive.Promise.buildPromise(options);
+
+      query.fetch(options).then(function(results) {
         if (options.add) collection.add(results, options);
         else collection.reset(results, options);
         promise.fulfill(collection);
@@ -6120,8 +6219,8 @@ var extend = function(protoProps, staticProps) {
       if (!options.wait) this.add(model, options);
       var success = options.success;
       options.success = function() {
-        if (options.wait) collection.add(nextModel, options);
-        if (success) success(model);
+        if (options.wait) collection.add(model, _extend({ setSnapShot: true }, options));
+        if (success) success(model, collection);
       };
       model.save(options);
       return model;

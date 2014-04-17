@@ -120,7 +120,7 @@
 		var _fields = '';
 
 		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
+		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__authtype", "__link"];
 		
 		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
 
@@ -553,9 +553,11 @@
 			if (options && !options.silent) {
 				var changed = _getChanged();
 
-				// Trigger all relevant attribute changes.
-			    that.trigger('change:' + key, that, changed[key], {});
-			    that.trigger('change', that, options);
+				if(changed[key]) {
+					// Trigger all relevant attribute changes.
+				    that.trigger('change:' + key, that, changed[key], {});
+				    that.trigger('change', that, options);
+				}
 			}
 		};
 
