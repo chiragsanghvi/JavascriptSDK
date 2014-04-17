@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Apr 17 11:44:00 IST 2014
+ * Build time 	: Thu Apr 17 12:02:51 IST 2014
  */
 "use strict";
 
@@ -855,7 +855,7 @@ var global = {};
 							global.Appacitive.http.send(request);
 						}
 					} else {
-						if (response && ((response.status && response.status.code && response.status.code == '19036') || (response.code &&response.code == '19036'))) {
+						if (response && ((response.status && response.status.code && (response.status.code == '19036' || response.status.code == '421')) || (response.code && (response.code == '19036' || response.code == '421')))) {
 							global.Appacitive.Users.logout();
 						} else {
 							global.Appacitive.Session.incrementExpiry();
@@ -1906,16 +1906,15 @@ Depends on  NOTHING
 		};
 
 		this.isSessionValid = function(response) {
-			if (!response) return true;
 			if (response.status) {
 				if (response.status.code) {
-					if (response.status.code == '19027' || response.status.code == '19002') {
-						return { status: false, isSession: (response.status.code == '19027') ? true : false };
+					if (response.status.code == '420' || response.status.code == '19027' || response.status.code == '19002') {
+						return { status: false, isSession: (response.status.code == '19027' || response.status.code == '420') ? true : false };
 					}
 				}
 			} else if (response.code) {
-				if (response.code == '19027' || response.code == '19002') {
-					return { status: false, isSession: (response.code == '19027') ? true : false };
+				if (response.code == '420' || response.code == '19027' || response.code == '19002') {
+					return { status: false, isSession: (response.code == '19027' || response.code == '420') ? true : false };
 				}
 			}
 			return { status: true };
