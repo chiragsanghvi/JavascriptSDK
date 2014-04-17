@@ -105,12 +105,20 @@ if (!('find' in Array.prototype)) {
     }
 }
 if (!('each' in Array.prototype)) {
-    Array.prototype.each = function(callback){
+    Array.prototype.each = function(callback, that){
         for (var i =  0; i < this.length; i++){
-            callback(this[i]);
+            callback.apply(that, [this[i]]);
         }
     }
 }
+
+var _lookupIterator = function(value, context) {
+    if (value == null) return _.identity;
+    if (!_.isFunction(value)) return function(obj) { return obj[value]; };
+    if (!context) return value;
+    return function() { return value.apply(context, arguments); };
+};
+
 Array.prototype.pluck = function(property) {
     var results = [];
     this.each(function(value) {
@@ -119,6 +127,7 @@ Array.prototype.pluck = function(property) {
     return results;
 };
 Array.prototype.sortBy = function(iterator, context) {
+    iterator = _lookupIterator(iterator, context);
     return this.map(function(value, index) {
       return {
         value: value,
@@ -129,7 +138,6 @@ Array.prototype.sortBy = function(iterator, context) {
       return a < b ? -1 : a > b ? 1 : 0;
     }).pluck('value');
 };
-
 
 // Override only if native toISOString is not defined
 if ( !Date.prototype.toISOString ) {

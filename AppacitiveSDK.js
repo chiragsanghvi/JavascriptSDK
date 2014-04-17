@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Apr 17 12:02:51 IST 2014
+ * Build time 	: Thu Apr 17 17:10:54 IST 2014
  */
 "use strict";
 
@@ -113,12 +113,20 @@ if (!('find' in Array.prototype)) {
     }
 }
 if (!('each' in Array.prototype)) {
-    Array.prototype.each = function(callback){
+    Array.prototype.each = function(callback, that){
         for (var i =  0; i < this.length; i++){
-            callback(this[i]);
+            callback.apply(that, [this[i]]);
         }
     }
 }
+
+var _lookupIterator = function(value, context) {
+    if (value == null) return _.identity;
+    if (!_.isFunction(value)) return function(obj) { return obj[value]; };
+    if (!context) return value;
+    return function() { return value.apply(context, arguments); };
+};
+
 Array.prototype.pluck = function(property) {
     var results = [];
     this.each(function(value) {
@@ -127,6 +135,7 @@ Array.prototype.pluck = function(property) {
     return results;
 };
 Array.prototype.sortBy = function(iterator, context) {
+    iterator = _lookupIterator(iterator, context);
     return this.map(function(value, index) {
       return {
         value: value,
@@ -137,7 +146,6 @@ Array.prototype.sortBy = function(iterator, context) {
       return a < b ? -1 : a > b ? 1 : 0;
     }).pluck('value');
 };
-
 
 // Override only if native toISOString is not defined
 if ( !Date.prototype.toISOString ) {
@@ -5877,6 +5885,7 @@ var extend = function(protoProps, staticProps) {
     if (!this.model) throw new Error("Please specify model for collection");
     if (options.comparator !== void 0) this.comparator = options.comparator;
     if (options.query) this.query(options.query);
+    else this.query(new Appacitive.Query(this.model));
     this._reset();
     this.initialize.apply(this, arguments);
     if (models) this.reset(models, { silent: true });
@@ -5946,10 +5955,6 @@ var extend = function(protoProps, staticProps) {
         model = toAdd[i];
         options.index = i;
         model.trigger('add', model, this, options);
-      }
-
-      for (var i = 0, length = toAdd.length; i < length; i++) {
-          (model = toAdd[i]).trigger('add', model, this, options);
       }
 
       return this;
@@ -6083,7 +6088,8 @@ var extend = function(protoProps, staticProps) {
     sort: function(options) {
       options = options || {};
       if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
-      if (!_type.isFunction()) throw new Error('Comparator needs to be a function');
+      //if (!_type.isFunction()) throw new Error('Comparator needs to be a function');
+      
       if (this.comparator.length === 1) {
         this.models = this.models.sortBy(this.comparator);
       } else {
@@ -6104,6 +6110,20 @@ var extend = function(protoProps, staticProps) {
     },
 
     /**
+     * Returns the first model in this collection
+     */
+    first: function() {
+      return (this.length > 0) ? this.models[0] : null;
+    },
+
+    /**
+     * Returns the last model in this collection
+     */
+    last: function() {
+      return (this.length > 0) ? this.models[this.length - 1] : null;
+    },
+
+    /**
      * When you have more items than you want to add or remove individually,
      * you can reset the entire set with a new list of models, without firing
      * any `add` or `remove` events. Fires `reset` when finished.
@@ -6121,7 +6141,7 @@ var extend = function(protoProps, staticProps) {
         this._removeReference(this.models[i], options);
       }
       this._reset();
-      this.add(models, { silent: true });
+      this.add(models, _extend({ silent: true }, options));
       if (!options.silent) this.trigger('reset', this, options);
       return this;
     },
@@ -6178,11 +6198,18 @@ var extend = function(protoProps, staticProps) {
       options = _clone(options) || {};
       
       var collection = this;
-      var query = this.query() || new global.Appacitive.Query(this.model);
       
       var promise = global.Appacitive.Promise.buildPromise(options);
 
-      query.fetch(options).then(function(results) {
+      var ids = options.ids || [];
+
+      if (ids.length == 0) return promise.fulfill(collection);
+
+      var args = { ids: ids, fields : options.fields };
+
+      args[this.model.type || this.model.relation] = this.model.className;
+
+      global.Appacitive.Object.multiGet(args).then(function(results) {
         if (options.add) collection.add(results, options);
         else collection.reset(results, options);
         promise.fulfill(collection);
@@ -6320,6 +6347,16 @@ var extend = function(protoProps, staticProps) {
     child.extend = this.extend;
     return child;
   };
+
+  var methods = ['forEach', 'each', 'map' ,'find', 'filter', 'every', 'some', 'indexOf', 'lastIndexOf', 'isEmpty'];
+
+  // Mix in each Underscore method as a proxy to `Collection#models`.
+  methods.each(function(method) {
+    global.Appacitive.Collection.prototype[method] = function() {
+      var args = Array.prototype.slice.call(arguments);
+      return Array.prototype[method].apply(this.models, args);
+    };
+  });
 
 })(global);
 

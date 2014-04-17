@@ -6,6 +6,7 @@
     if (!this.model) throw new Error("Please specify model for collection");
     if (options.comparator !== void 0) this.comparator = options.comparator;
     if (options.query) this.query(options.query);
+    else this.query(new Appacitive.Query(this.model));
     this._reset();
     this.initialize.apply(this, arguments);
     if (models) this.reset(models, { silent: true });
@@ -75,10 +76,6 @@
         model = toAdd[i];
         options.index = i;
         model.trigger('add', model, this, options);
-      }
-
-      for (var i = 0, length = toAdd.length; i < length; i++) {
-          (model = toAdd[i]).trigger('add', model, this, options);
       }
 
       return this;
@@ -212,7 +209,8 @@
     sort: function(options) {
       options = options || {};
       if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
-      if (!_type.isFunction()) throw new Error('Comparator needs to be a function');
+      //if (!_type.isFunction()) throw new Error('Comparator needs to be a function');
+      
       if (this.comparator.length === 1) {
         this.models = this.models.sortBy(this.comparator);
       } else {
@@ -233,6 +231,20 @@
     },
 
     /**
+     * Returns the first model in this collection
+     */
+    first: function() {
+      return (this.length > 0) ? this.models[0] : null;
+    },
+
+    /**
+     * Returns the last model in this collection
+     */
+    last: function() {
+      return (this.length > 0) ? this.models[this.length - 1] : null;
+    },
+
+    /**
      * When you have more items than you want to add or remove individually,
      * you can reset the entire set with a new list of models, without firing
      * any `add` or `remove` events. Fires `reset` when finished.
@@ -250,7 +262,7 @@
         this._removeReference(this.models[i], options);
       }
       this._reset();
-      this.add(models, { silent: true });
+      this.add(models, _extend({ silent: true }, options));
       if (!options.silent) this.trigger('reset', this, options);
       return this;
     },
@@ -307,11 +319,18 @@
       options = _clone(options) || {};
       
       var collection = this;
-      var query = this.query() || new global.Appacitive.Query(this.model);
       
       var promise = global.Appacitive.Promise.buildPromise(options);
 
-      query.fetch(options).then(function(results) {
+      var ids = options.ids || [];
+
+      if (ids.length == 0) return promise.fulfill(collection);
+
+      var args = { ids: ids, fields : options.fields };
+
+      args[this.model.type || this.model.relation] = this.model.className;
+
+      global.Appacitive.Object.multiGet(args).then(function(results) {
         if (options.add) collection.add(results, options);
         else collection.reset(results, options);
         promise.fulfill(collection);
@@ -449,6 +468,16 @@
     child.extend = this.extend;
     return child;
   };
+
+  var methods = ['forEach', 'each', 'map' ,'find', 'filter', 'every', 'some', 'indexOf', 'lastIndexOf', 'isEmpty'];
+
+  // Mix in each Underscore method as a proxy to `Collection#models`.
+  methods.each(function(method) {
+    global.Appacitive.Collection.prototype[method] = function() {
+      var args = Array.prototype.slice.call(arguments);
+      return Array.prototype[method].apply(this.models, args);
+    };
+  });
 
 })(global);
 
