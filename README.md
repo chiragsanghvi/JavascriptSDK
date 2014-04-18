@@ -859,6 +859,7 @@ Marriage.multiGet({
 }).then(function(objects) { 
   // connections is an array of connection objects
 });
+```
 
 #### Get Connected Objects
 
@@ -870,9 +871,9 @@ var Person = new Appacitive.Object('person');
 
 var jane = new Person({ __id : '123345456');
 
-//call fetchConnectedObjects with all options that're supported by queries syntax
+//call getConnectedObjects with all options that're supported by queries syntax
 // we'll cover queries in next section
-var query = jane.fetchConnectedObjects({ 
+var query = jane.getConnectedObjects({ 
   relation : 'friends', //mandatory
   returnEdge: true, // set to false to stop returning connection
   label: 'friend' //mandatory for a relation between same type and different labels
@@ -911,7 +912,7 @@ var Person = new Appacitive.Object('person');
 
 var jane = new Person({ __id : '123345456');
 
-//call fetchConnectedObjects with all options that're supported by queries syntax
+//call getConnections with all options that're supported by queries syntax
 // we'll cover queries in dept in next section
 var query = jane.getConnections({
   relation: 'invite', //mandatory

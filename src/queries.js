@@ -381,6 +381,8 @@
 
 		if (!options.type && !options.relation) throw new Error('Specify either type or relation for basic filter query');
 
+		options.queryType = 'FindAllQuery';
+
 		BasicQuery.call(this, options);
 
 		return this;
@@ -389,8 +391,6 @@
 	global.Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
 
 	global.Appacitive.Queries.FindAllQuery.prototype.constructor = global.Appacitive.Queries.FindAllQuery;
-
-	global.Appacitive.Query = global.Appacitive.Queries.FindAllQuery;
 
 	/** 
 	* @constructor

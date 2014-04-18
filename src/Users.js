@@ -75,7 +75,8 @@
 			else user = userObject.toJSON(); 
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
-			if (!expiry) expiry = 60;
+
+			if (!expiry) expiry = 3600;
 			_authenticatedUser = userObject;
 
 			if (token) global.Appacitive.Session.setUserAuthHeader(token, expiry);
@@ -398,7 +399,7 @@
 				callback = function() {}; 
 			}
 
-			var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
+			var token = global.Appacitive.localStorage.get('Appacitive-UserToken');
 
 			if (!token) {
 				promise.fulfill(false);
