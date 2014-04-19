@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Apr 19 15:05:02 IST 2014
+ * Build time 	: Sat Apr 19 17:41:51 IST 2014
  */
 "use strict";
 
@@ -1650,6 +1650,260 @@ Depends on  NOTHING
 
     global.Appacitive.eventManager = new EventManager();
 
+})(global);/**
+ * Standalone extraction of Backbone.Events, no external dependency required.
+ * Degrades nicely when Backone/underscore are already available in the current
+ * global context.
+ *
+ * Note that docs suggest to use underscore's `_.extend()` method to add Events
+ * support to some given object. A `mixin()` method has been added to the Events
+ * prototype to avoid using underscore for that sole purpose:
+ *
+ *     var myEventEmitter = BackboneEvents.mixin({});
+ *
+ * Or for a function constructor:
+ *
+ *     function MyConstructor(){}
+ *     MyConstructor.prototype.foo = function(){}
+ *     BackboneEvents.mixin(MyConstructor.prototype);
+ *
+ * (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
+ * (c) 2013 Nicolas Perriault
+ */
+/* global exports:true, define, module */
+(function(global) {
+  var root = global,
+      breaker = {},
+      nativeForEach = Array.prototype.forEach,
+      hasOwnProperty = Object.prototype.hasOwnProperty,
+      slice = Array.prototype.slice,
+      idCounter = 0;
+
+  // Returns a partial implementation matching the minimal API subset required
+  // by Backbone.Events
+  function miniscore() {
+    return {
+      keys: Object.keys,
+
+      uniqueId: function(prefix) {
+        var id = ++idCounter + '';
+        return prefix ? prefix + id : id;
+      },
+
+      has: function(obj, key) {
+        return hasOwnProperty.call(obj, key);
+      },
+
+      each: function(obj, iterator, context) {
+        if (obj == null) return;
+        if (nativeForEach && obj.forEach === nativeForEach) {
+          obj.forEach(iterator, context);
+        } else if (obj.length === +obj.length) {
+          for (var i = 0, l = obj.length; i < l; i++) {
+            if (iterator.call(context, obj[i], i, obj) === breaker) return;
+          }
+        } else {
+          for (var key in obj) {
+            if (this.has(obj, key)) {
+              if (iterator.call(context, obj[key], key, obj) === breaker) return;
+            }
+          }
+        }
+      },
+
+      once: function(func) {
+        var ran = false, memo;
+        return function() {
+          if (ran) return memo;
+          ran = true;
+          memo = func.apply(this, arguments);
+          func = null;
+          return memo;
+        };
+      }
+    };
+  }
+
+  var _ = miniscore(), Events;
+
+  // Backbone.Events
+  // ---------------
+
+  // A module that can be mixed in to *any object* in order to provide it with
+  // custom events. You may bind with `on` or remove with `off` callback
+  // functions to an event; `trigger`-ing an event fires all callbacks in
+  // succession.
+  //
+  //     var object = {};
+  //     _.extend(object, Backbone.Events);
+  //     object.on('expand', function(){ alert('expanded'); });
+  //     object.trigger('expand');
+  //
+  Events = {
+
+    // Bind an event to a `callback` function. Passing `"all"` will bind
+    // the callback to all events fired.
+    on: function(name, callback, context) {
+      if (!eventsApi(this, 'on', name, [callback, context]) || !callback) return this;
+      this._events || (this._events = {});
+      var events = this._events[name] || (this._events[name] = []);
+      events.push({callback: callback, context: context, ctx: context || this});
+      return this;
+    },
+
+    // Bind an event to only be triggered a single time. After the first time
+    // the callback is invoked, it will be removed.
+    once: function(name, callback, context) {
+      if (!eventsApi(this, 'once', name, [callback, context]) || !callback) return this;
+      var self = this;
+      var once = _.once(function() {
+        self.off(name, once);
+        callback.apply(this, arguments);
+      });
+      once._callback = callback;
+      return this.on(name, once, context);
+    },
+
+    // Remove one or many callbacks. If `context` is null, removes all
+    // callbacks with that function. If `callback` is null, removes all
+    // callbacks for the event. If `name` is null, removes all bound
+    // callbacks for all events.
+    off: function(name, callback, context) {
+      var retain, ev, events, names, i, l, j, k;
+      if (!this._events || !eventsApi(this, 'off', name, [callback, context])) return this;
+      if (!name && !callback && !context) {
+        this._events = {};
+        return this;
+      }
+
+      names = name ? [name] : _.keys(this._events);
+      for (i = 0, l = names.length; i < l; i++) {
+        name = names[i];
+        if (events = this._events[name]) {
+          this._events[name] = retain = [];
+          if (callback || context) {
+            for (j = 0, k = events.length; j < k; j++) {
+              ev = events[j];
+              if ((callback && callback !== ev.callback && callback !== ev.callback._callback) ||
+                  (context && context !== ev.context)) {
+                retain.push(ev);
+              }
+            }
+          }
+          if (!retain.length) delete this._events[name];
+        }
+      }
+
+      return this;
+    },
+
+    // Trigger one or many events, firing all bound callbacks. Callbacks are
+    // passed the same arguments as `trigger` is, apart from the event name
+    // (unless you're listening on `"all"`, which will cause your callback to
+    // receive the true name of the event as the first argument).
+    trigger: function(name) {
+      if (!this._events) return this;
+      var args = slice.call(arguments, 1);
+      if (!eventsApi(this, 'trigger', name, args)) return this;
+      var events = this._events[name];
+      var allEvents = this._events.all;
+      if (events) triggerEvents(events, args);
+      if (allEvents) triggerEvents(allEvents, arguments);
+      return this;
+    },
+
+    // Tell this object to stop listening to either specific events ... or
+    // to every object it's currently listening to.
+    stopListening: function(obj, name, callback) {
+      var listeners = this._listeners;
+      if (!listeners) return this;
+      var deleteListener = !name && !callback;
+      if (typeof name === 'object') callback = this;
+      if (obj) (listeners = {})[obj._listenerId] = obj;
+      for (var id in listeners) {
+        listeners[id].off(name, callback, this);
+        if (deleteListener) delete this._listeners[id];
+      }
+      return this;
+    }
+
+  };
+
+  // Regular expression used to split event strings.
+  var eventSplitter = /\s+/;
+
+  // Implement fancy features of the Events API such as multiple event
+  // names `"change blur"` and jQuery-style event maps `{change: action}`
+  // in terms of the existing API.
+  var eventsApi = function(obj, action, name, rest) {
+    if (!name) return true;
+
+    // Handle event maps.
+    if (typeof name === 'object') {
+      for (var key in name) {
+        obj[action].apply(obj, [key, name[key]].concat(rest));
+      }
+      return false;
+    }
+
+    // Handle space separated event names.
+    if (eventSplitter.test(name)) {
+      var names = name.split(eventSplitter);
+      for (var i = 0, l = names.length; i < l; i++) {
+        obj[action].apply(obj, [names[i]].concat(rest));
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  // A difficult-to-believe, but optimized internal dispatch function for
+  // triggering events. Tries to keep the usual cases speedy (most internal
+  // Backbone events have 3 arguments).
+  var triggerEvents = function(events, args) {
+    var ev, i = -1, l = events.length, a1 = args[0], a2 = args[1], a3 = args[2];
+    switch (args.length) {
+      case 0: while (++i < l) (ev = events[i]).callback.call(ev.ctx); return;
+      case 1: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1); return;
+      case 2: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2); return;
+      case 3: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2, a3); return;
+      default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args);
+    }
+  };
+
+  var listenMethods = {listenTo: 'on', listenToOnce: 'once'};
+
+  // Inversion-of-control versions of `on` and `once`. Tell *this* object to
+  // listen to an event in another object ... keeping track of what it's
+  // listening to.
+  _.each(listenMethods, function(implementation, method) {
+    Events[method] = function(obj, name, callback) {
+      var listeners = this._listeners || (this._listeners = {});
+      var id = obj._listenerId || (obj._listenerId = _.uniqueId('l'));
+      listeners[id] = obj;
+      if (typeof name === 'object') callback = this;
+      obj[implementation](name, callback, this);
+      return this;
+    };
+  });
+
+  // Aliases for backwards compatibility.
+  Events.bind   = Events.on;
+  Events.unbind = Events.off;
+
+  // Mixin utility
+  Events.mixin = function(proto) {
+    var exports = ['on', 'once', 'off', 'trigger', 'stopListening', 'listenTo', 'listenToOnce', 'bind', 'unbind'];
+    _.each(exports, function(name) {
+      proto[name] = this[name];
+    }, this);
+    return proto;
+  };
+
+  //changed to match with Appacitive
+  root.Appacitive.Events = Events;
+ 
 })(global);(function (global) {
 
 	"use strict";
@@ -1824,11 +2078,16 @@ Depends on  NOTHING
 		};
 
 		this.removeUserAuthHeader = function(makeApiCall, options) {
-			
+
+			var promise = global.Appacitive.Promise.buildPromise(options);
+
+			if (!makeApiCall) {
+				global.Appacitive.User.trigger('logout', {});
+			}
+
 			global.Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
-					var promise = new global.Appacitive.Promise();
 
 					var _request = new global.Appacitive.HttpRequest(options);
 		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
@@ -1856,7 +2115,7 @@ Depends on  NOTHING
 				global.Appacitive.localStorage.remove('Appacitive-UserToken');
  				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
  				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
-				return global.Appacitive.Promise().fulfill();
+				return promise.fulfill();
 			}
 		};
 
@@ -1982,7 +2241,7 @@ Depends on  NOTHING
 
 
 // compulsory http plugin
-// attaches the appacitive environment headers
+// attaches the appacitive environment headers and other event plugins
 (function (global){
 
 	"use strict";
@@ -1995,6 +2254,9 @@ Depends on  NOTHING
 			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
 		}
 	});
+
+
+   global.Appacitive.Events.mixin(global.Appacitive);
 
 })(global);
 (function (global) {
@@ -3390,260 +3652,6 @@ Depends on  NOTHING
 		};
 	};
 
-})(global);/**
- * Standalone extraction of Backbone.Events, no external dependency required.
- * Degrades nicely when Backone/underscore are already available in the current
- * global context.
- *
- * Note that docs suggest to use underscore's `_.extend()` method to add Events
- * support to some given object. A `mixin()` method has been added to the Events
- * prototype to avoid using underscore for that sole purpose:
- *
- *     var myEventEmitter = BackboneEvents.mixin({});
- *
- * Or for a function constructor:
- *
- *     function MyConstructor(){}
- *     MyConstructor.prototype.foo = function(){}
- *     BackboneEvents.mixin(MyConstructor.prototype);
- *
- * (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
- * (c) 2013 Nicolas Perriault
- */
-/* global exports:true, define, module */
-(function(global) {
-  var root = global,
-      breaker = {},
-      nativeForEach = Array.prototype.forEach,
-      hasOwnProperty = Object.prototype.hasOwnProperty,
-      slice = Array.prototype.slice,
-      idCounter = 0;
-
-  // Returns a partial implementation matching the minimal API subset required
-  // by Backbone.Events
-  function miniscore() {
-    return {
-      keys: Object.keys,
-
-      uniqueId: function(prefix) {
-        var id = ++idCounter + '';
-        return prefix ? prefix + id : id;
-      },
-
-      has: function(obj, key) {
-        return hasOwnProperty.call(obj, key);
-      },
-
-      each: function(obj, iterator, context) {
-        if (obj == null) return;
-        if (nativeForEach && obj.forEach === nativeForEach) {
-          obj.forEach(iterator, context);
-        } else if (obj.length === +obj.length) {
-          for (var i = 0, l = obj.length; i < l; i++) {
-            if (iterator.call(context, obj[i], i, obj) === breaker) return;
-          }
-        } else {
-          for (var key in obj) {
-            if (this.has(obj, key)) {
-              if (iterator.call(context, obj[key], key, obj) === breaker) return;
-            }
-          }
-        }
-      },
-
-      once: function(func) {
-        var ran = false, memo;
-        return function() {
-          if (ran) return memo;
-          ran = true;
-          memo = func.apply(this, arguments);
-          func = null;
-          return memo;
-        };
-      }
-    };
-  }
-
-  var _ = miniscore(), Events;
-
-  // Backbone.Events
-  // ---------------
-
-  // A module that can be mixed in to *any object* in order to provide it with
-  // custom events. You may bind with `on` or remove with `off` callback
-  // functions to an event; `trigger`-ing an event fires all callbacks in
-  // succession.
-  //
-  //     var object = {};
-  //     _.extend(object, Backbone.Events);
-  //     object.on('expand', function(){ alert('expanded'); });
-  //     object.trigger('expand');
-  //
-  Events = {
-
-    // Bind an event to a `callback` function. Passing `"all"` will bind
-    // the callback to all events fired.
-    on: function(name, callback, context) {
-      if (!eventsApi(this, 'on', name, [callback, context]) || !callback) return this;
-      this._events || (this._events = {});
-      var events = this._events[name] || (this._events[name] = []);
-      events.push({callback: callback, context: context, ctx: context || this});
-      return this;
-    },
-
-    // Bind an event to only be triggered a single time. After the first time
-    // the callback is invoked, it will be removed.
-    once: function(name, callback, context) {
-      if (!eventsApi(this, 'once', name, [callback, context]) || !callback) return this;
-      var self = this;
-      var once = _.once(function() {
-        self.off(name, once);
-        callback.apply(this, arguments);
-      });
-      once._callback = callback;
-      return this.on(name, once, context);
-    },
-
-    // Remove one or many callbacks. If `context` is null, removes all
-    // callbacks with that function. If `callback` is null, removes all
-    // callbacks for the event. If `name` is null, removes all bound
-    // callbacks for all events.
-    off: function(name, callback, context) {
-      var retain, ev, events, names, i, l, j, k;
-      if (!this._events || !eventsApi(this, 'off', name, [callback, context])) return this;
-      if (!name && !callback && !context) {
-        this._events = {};
-        return this;
-      }
-
-      names = name ? [name] : _.keys(this._events);
-      for (i = 0, l = names.length; i < l; i++) {
-        name = names[i];
-        if (events = this._events[name]) {
-          this._events[name] = retain = [];
-          if (callback || context) {
-            for (j = 0, k = events.length; j < k; j++) {
-              ev = events[j];
-              if ((callback && callback !== ev.callback && callback !== ev.callback._callback) ||
-                  (context && context !== ev.context)) {
-                retain.push(ev);
-              }
-            }
-          }
-          if (!retain.length) delete this._events[name];
-        }
-      }
-
-      return this;
-    },
-
-    // Trigger one or many events, firing all bound callbacks. Callbacks are
-    // passed the same arguments as `trigger` is, apart from the event name
-    // (unless you're listening on `"all"`, which will cause your callback to
-    // receive the true name of the event as the first argument).
-    trigger: function(name) {
-      if (!this._events) return this;
-      var args = slice.call(arguments, 1);
-      if (!eventsApi(this, 'trigger', name, args)) return this;
-      var events = this._events[name];
-      var allEvents = this._events.all;
-      if (events) triggerEvents(events, args);
-      if (allEvents) triggerEvents(allEvents, arguments);
-      return this;
-    },
-
-    // Tell this object to stop listening to either specific events ... or
-    // to every object it's currently listening to.
-    stopListening: function(obj, name, callback) {
-      var listeners = this._listeners;
-      if (!listeners) return this;
-      var deleteListener = !name && !callback;
-      if (typeof name === 'object') callback = this;
-      if (obj) (listeners = {})[obj._listenerId] = obj;
-      for (var id in listeners) {
-        listeners[id].off(name, callback, this);
-        if (deleteListener) delete this._listeners[id];
-      }
-      return this;
-    }
-
-  };
-
-  // Regular expression used to split event strings.
-  var eventSplitter = /\s+/;
-
-  // Implement fancy features of the Events API such as multiple event
-  // names `"change blur"` and jQuery-style event maps `{change: action}`
-  // in terms of the existing API.
-  var eventsApi = function(obj, action, name, rest) {
-    if (!name) return true;
-
-    // Handle event maps.
-    if (typeof name === 'object') {
-      for (var key in name) {
-        obj[action].apply(obj, [key, name[key]].concat(rest));
-      }
-      return false;
-    }
-
-    // Handle space separated event names.
-    if (eventSplitter.test(name)) {
-      var names = name.split(eventSplitter);
-      for (var i = 0, l = names.length; i < l; i++) {
-        obj[action].apply(obj, [names[i]].concat(rest));
-      }
-      return false;
-    }
-
-    return true;
-  };
-
-  // A difficult-to-believe, but optimized internal dispatch function for
-  // triggering events. Tries to keep the usual cases speedy (most internal
-  // Backbone events have 3 arguments).
-  var triggerEvents = function(events, args) {
-    var ev, i = -1, l = events.length, a1 = args[0], a2 = args[1], a3 = args[2];
-    switch (args.length) {
-      case 0: while (++i < l) (ev = events[i]).callback.call(ev.ctx); return;
-      case 1: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1); return;
-      case 2: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2); return;
-      case 3: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2, a3); return;
-      default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args);
-    }
-  };
-
-  var listenMethods = {listenTo: 'on', listenToOnce: 'once'};
-
-  // Inversion-of-control versions of `on` and `once`. Tell *this* object to
-  // listen to an event in another object ... keeping track of what it's
-  // listening to.
-  _.each(listenMethods, function(implementation, method) {
-    Events[method] = function(obj, name, callback) {
-      var listeners = this._listeners || (this._listeners = {});
-      var id = obj._listenerId || (obj._listenerId = _.uniqueId('l'));
-      listeners[id] = obj;
-      if (typeof name === 'object') callback = this;
-      obj[implementation](name, callback, this);
-      return this;
-    };
-  });
-
-  // Aliases for backwards compatibility.
-  Events.bind   = Events.on;
-  Events.unbind = Events.off;
-
-  // Mixin utility
-  Events.mixin = function(proto) {
-    var exports = ['on', 'once', 'off', 'trigger', 'stopListening', 'listenTo', 'listenToOnce', 'bind', 'unbind'];
-    _.each(exports, function(name) {
-      proto[name] = this[name];
-    }, this);
-    return proto;
-  };
-
-  //changed to match with Appacitive
-  root.Appacitive.Events = Events;
- 
 })(global);var ArrayProto = Array.prototype;
 var ObjectProto = Object.prototype;
 
@@ -5313,15 +5321,17 @@ var extend = function(protoProps, staticProps) {
 
 	"use strict";
 
-	var UserManager = function() {
+	
+		var User = function(options, setSnapshot) {
+			options = options || {};
+			options.__type = 'user';
+			global.Appacitive.Object.call(this, options, setSnapshot);
+			return this;
+		};
 
 		var _authenticatedUser = null;
 
-		this.current = function() {
-			return _authenticatedUser;
-		};
-
-		this.currentUser = this.current;
+		User.currentUser = User.current = function() { return _authenticatedUser; };
 
 		var _updatePassword = function(oldPassword, newPassword, callbacks) {
 			var userId = this.get('__id');
@@ -5377,7 +5387,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.setCurrentUser = function(user, token, expiry) {
+		User.setCurrentUser = function(user, token, expiry) {
 			if (!user) throw new Error('Cannot set null object as user');
 			var userObject = user;
 			
@@ -5407,12 +5417,6 @@ var extend = function(protoProps, staticProps) {
 			return _authenticatedUser;
 		};
 		
-		var User = function(options, setSnapshot) {
-			options = options || {};
-			options.__type = 'user';
-			global.Appacitive.Object.call(this, options, setSnapshot);
-			return this;
-		};
 
 		//getter to get linkedaccounts
 		User.prototype.linkedAccounts = function() {
@@ -5568,12 +5572,12 @@ var extend = function(protoProps, staticProps) {
 		delete global.Appacitive.User._parseResult;
 		delete global.Appacitive.User.multiDelete;
 
-		this.deleteUser = function(userId, callbacks) {
+		User.deleteUser = function(userId, callbacks) {
 			if (!userId) throw new Error('Specify userid for user delete');
 			return new global.Appacitive.Object({ __type: 'user', __id: userId }).del(true, callbacks);
 		};
 
-		this.deleteCurrentUser = function(callbacks) {
+		User.deleteCurrentUser = function(callbacks) {
 			
 			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
@@ -5599,7 +5603,7 @@ var extend = function(protoProps, staticProps) {
 			return promise;
 		};
 
-		this.createNewUser = function(user, callbacks) {
+		User.createNewUser = function(user, callbacks) {
 			user = user || {};
 			user.__type = 'user';
 			if (!user.username || !user.password || !user.firstname || user.username.length === 0 || user.password.length === 0 || user.firstname.length === 0) 
@@ -5608,10 +5612,10 @@ var extend = function(protoProps, staticProps) {
 			return new global.Appacitive.User(user).save(callbacks);
 		};
 
-		this.createUser = this.createNewUser;
+		User.createUser = User.createNewUser;
 
 		//method to allow user to signup and then login 
-		this.signup = function(user, callbacks) {
+		User.signup = function(user, callbacks) {
 			var that = this;
 			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
@@ -5629,7 +5633,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		//authenticate user with authrequest that contains username , password and expiry
-		this.authenticateUser = function(authRequest, callbacks, provider) {
+		User.authenticateUser = function(authRequest, callbacks, provider) {
 
 			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
@@ -5644,6 +5648,7 @@ var extend = function(protoProps, staticProps) {
 					if (data && data.user) {
 						if (provider) data.user.__authType = provider;
 						that.setCurrentUser(data.user, data.token, authRequest.expiry);
+						global.Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
 						request.promise.fulfill({ user : _authenticatedUser, token: data.token });
 					} else {
 						request.promise.reject(data.status);
@@ -5654,7 +5659,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		//An overrride for user login with username and password directly
-		this.login = function(username, password, callbacks) {
+		User.login = function(username, password, callbacks) {
 
 			if (!username || !password || username.length ==0 || password.length == 0) throw new Error('Please specify username and password');
 
@@ -5667,7 +5672,7 @@ var extend = function(protoProps, staticProps) {
 			return this.authenticateUser(authRequest, callbacks, 'BASIC');
 		};
 
-		this.loginWithFacebook = function(accessToken, callbacks) {
+		User.loginWithFacebook = function(accessToken, callbacks) {
 			
 			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
@@ -5681,7 +5686,7 @@ var extend = function(protoProps, staticProps) {
 			return this.authenticateUser(authRequest, callbacks, 'FB');
 		};
 
-		this.loginWithTwitter = function(twitterObj, callbacks) {
+		User.loginWithTwitter = function(twitterObj, callbacks) {
 			
 			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
@@ -5701,7 +5706,7 @@ var extend = function(protoProps, staticProps) {
 			return this.authenticateUser(authRequest, callbacks, 'TWITTER');
 		};
 
-		this.validateCurrentUser = function(avoidApiCall, callback) {
+		User.validateCurrentUser = function(avoidApiCall, callback) {
 
 			var promise = global.Appacitive.Promise.buildPromise({ success: callback });
 
@@ -5751,23 +5756,23 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.getUserByToken = function(token, callbacks) {
+		User.getUserByToken = function(token, callbacks) {
 			if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
 			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
 			return _getUserByIdType("getUserByTokenUrl", [token], callbacks);
 		};
 
-		this.getUserByUsername = function(username, callbacks) {
+		User.getUserByUsername = function(username, callbacks) {
 			if (!username || !_type.isString(username) || username.length === 0) throw new Error("Please specify valid username");
 			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
 		};
 
-		this.logout = function(makeApiCall) {
+		User.logout = function(makeApiCall) {
 			_authenticatedUser = null;
 			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall);
 		};
 
-		this.sendResetPasswordEmail = function(username, subject, callbacks) {
+		User.sendResetPasswordEmail = function(username, subject, callbacks) {
 
 			if (!username || !_type.isString(username)  || username.length === 0) throw new Error("Please specify valid username");
 			if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
@@ -5787,7 +5792,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.resetPassword = function(token, newPassword, callbacks) {
+		User.resetPassword = function(token, newPassword, callbacks) {
 
 			if (!token) throw new Error("Please specify token");
 			if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
@@ -5806,7 +5811,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.validateResetPasswordToken = function(token, callbacks) {
+		User.validateResetPasswordToken = function(token, callbacks) {
 			
 			if (!token) throw new Error("Please specify token");
 
@@ -5823,9 +5828,10 @@ var extend = function(protoProps, staticProps) {
 			});
 			return request.send();
 		};
-	};
 
-	global.Appacitive.Users = new UserManager();
+	global.Appacitive.Users = global.Appacitive.User;
+
+    global.Appacitive.Events.mixin(global.Appacitive.User);
 
 })(global);
   (function(global) {

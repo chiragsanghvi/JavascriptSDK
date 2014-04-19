@@ -106,11 +106,16 @@
 		};
 
 		this.removeUserAuthHeader = function(makeApiCall, options) {
-			
+
+			var promise = global.Appacitive.Promise.buildPromise(options);
+
+			if (!makeApiCall) {
+				global.Appacitive.User.trigger('logout', {});
+			}
+
 			global.Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
-					var promise = new global.Appacitive.Promise();
 
 					var _request = new global.Appacitive.HttpRequest(options);
 		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
@@ -138,7 +143,7 @@
 				global.Appacitive.localStorage.remove('Appacitive-UserToken');
  				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
  				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
-				return global.Appacitive.Promise().fulfill();
+				return promise.fulfill();
 			}
 		};
 
@@ -264,7 +269,7 @@
 
 
 // compulsory http plugin
-// attaches the appacitive environment headers
+// attaches the appacitive environment headers and other event plugins
 (function (global){
 
 	"use strict";
@@ -277,5 +282,8 @@
 			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
 		}
 	});
+
+
+   global.Appacitive.Events.mixin(global.Appacitive);
 
 })(global);
