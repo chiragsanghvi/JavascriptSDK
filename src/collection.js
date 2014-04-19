@@ -32,7 +32,7 @@
      * models' attributes.
      */
     toJSON: function(options) {
-      return this.model.map(function(model) { return model.toJSON(options); });
+      return this.models.map(function(model) { return model.toJSON(options); });
     },
 
     add: function(models, options) {
@@ -153,10 +153,13 @@
     },
 
     query: function(query) {
-      if ((query instanceof global.Appacitive.Query) 
-        || (query instanceof global.Appacitive.Queries.GraphProjectQuery)) { 
-        this._query = query;
-        return this;
+      if (query) {
+        if ((query instanceof global.Appacitive.Query) || (query instanceof global.Appacitive.Queries.GraphProjectQuery)) { 
+          this._query = query;
+          return this;
+        } else {
+          throw new Error("Cannot bind this query")
+        }
       }
       else return this._query;
     },

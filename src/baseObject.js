@@ -906,6 +906,8 @@
 				opts = {};
 			}
 
+			if (!opts.wait) triggerDestroy(opts);
+
 			// if the object does not have __id set, 
 	        // just call success
 	        // else delete the object
@@ -913,12 +915,8 @@
 	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
-			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
-				type = object.__type.toLowerCase()
-			}
-
-			if (!opts.wait)  triggerDestroy(opts);
-
+			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
+			
 			var request = new global.Appacitive._Request({
 				method: 'DELETE',
 				type: type,

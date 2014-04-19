@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Apr 18 10:16:10 IST 2014
+ * Build time 	: Sat Apr 19 15:05:02 IST 2014
  */
 "use strict";
 
@@ -455,7 +455,7 @@ var global = {};
 			});
 			request.prevHeaders = request.headers;
 			request.headers = [];
-			request.headers.push({ key:'Content-Type', value: 'text/plain' });
+			request.headers.push({ key:'Content-Type', value: 'text/plain; charset=utf-8' });
 			request.method = 'POST';
 
 			if (request.data) body.b = request.data;
@@ -809,14 +809,16 @@ var global = {};
 		// the error handler
 		this.onError = function (request, response) {
 			var error;
-		    if (response && response.responseText) {
-		        try {
-		          error = JSON.parse(response.responseText);
-		        } catch (e) {}
-		    }
+			if (response && response.responseText) {
+			    try {
+			        error = JSON.parse(response.responseText);
+			    } catch (e) { }
+			} else {
+			    response = { responseText: '' };
+			}
 
 		    error = error || { code: response.status, message: response.responseText, referenceid: response.headers["TransactionId"] };
-		    global.Appacitive.logs.logRequest(request, response, error, 'error');
+		    global.Appacitive.logs.logRequest(request, error, error, 'error');
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
@@ -917,7 +919,7 @@ var global = {};
     		responseTime : request.timeTakenInMilliseconds,
     		headers: {},
     		request: null,
-    		response: response.responseText,
+    		response: response,
     		description: request.description
 		};
 
@@ -1708,7 +1710,7 @@ Depends on  NOTHING
 		apiBaseUrl: 'https://apis.appacitive.com/v1.0/'
 	};
 
-	if (typeof XDomainRequest != 'undefined') {
+	if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/v1.0/';
 	}
 
@@ -4681,6 +4683,8 @@ var extend = function(protoProps, staticProps) {
 				opts = {};
 			}
 
+			if (!opts.wait) triggerDestroy(opts);
+
 			// if the object does not have __id set, 
 	        // just call success
 	        // else delete the object
@@ -4688,12 +4692,8 @@ var extend = function(protoProps, staticProps) {
 	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
-			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
-				type = object.__type.toLowerCase()
-			}
-
-			if (!opts.wait)  triggerDestroy(opts);
-
+			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
+			
 			var request = new global.Appacitive._Request({
 				method: 'DELETE',
 				type: type,
@@ -5914,7 +5914,7 @@ var extend = function(protoProps, staticProps) {
      * models' attributes.
      */
     toJSON: function(options) {
-      return this.model.map(function(model) { return model.toJSON(options); });
+      return this.models.map(function(model) { return model.toJSON(options); });
     },
 
     add: function(models, options) {
@@ -6035,10 +6035,13 @@ var extend = function(protoProps, staticProps) {
     },
 
     query: function(query) {
-      if ((query instanceof global.Appacitive.Query) 
-        || (query instanceof global.Appacitive.Queries.GraphProjectQuery)) { 
-        this._query = query;
-        return this;
+      if (query) {
+        if ((query instanceof global.Appacitive.Query) || (query instanceof global.Appacitive.Queries.GraphProjectQuery)) { 
+          this._query = query;
+          return this;
+        } else {
+          throw new Error("Cannot bind this query")
+        }
       }
       else return this._query;
     },

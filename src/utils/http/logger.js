@@ -28,7 +28,7 @@
     		responseTime : request.timeTakenInMilliseconds,
     		headers: {},
     		request: null,
-    		response: response.responseText,
+    		response: response,
     		description: request.description
 		};
 

@@ -424,15 +424,16 @@ var global = {};
 		// the error handler
 		this.onError = function (request, response) {
 			var error;
-		    if (response && response.responseText) {
-		        try {
-		          var errorJSON = JSON.parse(response.responseText);
-		          if (errorJSON) {
-		            error = { code: errorJSON.code, message: errorJSON.message };
-		          }
-		        } catch (e) {}
-		    }
-		    error = error || { code: response.status, message: response.responseText };
+			if (response && response.responseText) {
+			    try {
+			        error = JSON.parse(response.responseText);
+			    } catch (e) { }
+			} else {
+			    response = { responseText: '' };
+			}
+
+		    error = error || { code: response.status, message: response.responseText, referenceid: response.headers["TransactionId"] };
+		    global.Appacitive.logs.logRequest(request, error, error, 'error');
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;

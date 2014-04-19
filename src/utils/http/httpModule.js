@@ -122,7 +122,7 @@ var global = {};
 			});
 			request.prevHeaders = request.headers;
 			request.headers = [];
-			request.headers.push({ key:'Content-Type', value: 'text/plain' });
+			request.headers.push({ key:'Content-Type', value: 'text/plain; charset=utf-8' });
 			request.method = 'POST';
 
 			if (request.data) body.b = request.data;
@@ -476,14 +476,16 @@ var global = {};
 		// the error handler
 		this.onError = function (request, response) {
 			var error;
-		    if (response && response.responseText) {
-		        try {
-		          error = JSON.parse(response.responseText);
-		        } catch (e) {}
-		    }
+			if (response && response.responseText) {
+			    try {
+			        error = JSON.parse(response.responseText);
+			    } catch (e) { }
+			} else {
+			    response = { responseText: '' };
+			}
 
 		    error = error || { code: response.status, message: response.responseText, referenceid: response.headers["TransactionId"] };
-		    global.Appacitive.logs.logRequest(request, response, error, 'error');
+		    global.Appacitive.logs.logRequest(request, error, error, 'error');
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
