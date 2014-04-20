@@ -278,7 +278,7 @@
 				_authenticatedUser = null;
 				_callback();
 			}, function() { 
-				promise.reject(arguments);
+				promise.reject.apply(promise, arguments);
 			});
 
 			return promise;
@@ -307,7 +307,7 @@
 					promise.reject.apply(promise, arguments);
 				});
 			}, function() {
-				promise.reject(arguments);
+				promise.reject.apply(promise, arguments);
 			});
 
 			return promise;

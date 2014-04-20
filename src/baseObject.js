@@ -560,9 +560,10 @@
 			if (options && !options.silent) {
 				var changed = _getChanged();
 
-				if(changed[key]) {
+				if (changed[key] || (_ignoreTheseFields.indexOf(key) != -1)) {
+					var value = changed[key] || object[key];
 					// Trigger all relevant attribute changes.
-				    that.trigger('change:' + key, that, changed[key], {});
+				    that.trigger('change:' + key, that, value, {});
 				    that.trigger('change', that, options);
 				}
 			}

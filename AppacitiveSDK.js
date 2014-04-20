@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sun Apr 20 16:18:12 IST 2014
+ * Build time 	: Sun Apr 20 17:15:26 IST 2014
  */
 "use strict";
 
@@ -4353,9 +4353,10 @@ var extend = function(protoProps, staticProps) {
 			if (options && !options.silent) {
 				var changed = _getChanged();
 
-				if(changed[key]) {
+				if (changed[key] || (_ignoreTheseFields.indexOf(key) != -1)) {
+					var value = changed[key] || object[key];
 					// Trigger all relevant attribute changes.
-				    that.trigger('change:' + key, that, changed[key], {});
+				    that.trigger('change:' + key, that, value, {});
 				    that.trigger('change', that, options);
 				}
 			}
@@ -5924,7 +5925,7 @@ var extend = function(protoProps, staticProps) {
 				_authenticatedUser = null;
 				_callback();
 			}, function() { 
-				promise.reject(arguments);
+				promise.reject.apply(promise, arguments);
 			});
 
 			return promise;
@@ -5953,7 +5954,7 @@ var extend = function(protoProps, staticProps) {
 					promise.reject.apply(promise, arguments);
 				});
 			}, function() {
-				promise.reject(arguments);
+				promise.reject.apply(promise, arguments);
 			});
 
 			return promise;
