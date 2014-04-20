@@ -80,54 +80,56 @@
 			}
 		});
 
-		this.setUserAuthHeader = function(authToken, expiry, doNotSetCookie) {
+		this.setUserAuthHeader = function(authToken, expiry, doNotSetInStorage) {
 			try {
 				if (authToken) {
 					authEnabled = true;
 					_authToken = authToken;
-					if (!doNotSetCookie) {
-						if(!expiry) expiry = 60;
+					if (!doNotSetInStorage) {
+						if (!expiry) expiry = -1;
 						if (expiry == -1) expiry = null;
-						global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
-						global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
+
+						global.Appacitive.localStorage.set('Appacitive-UserToken', authToken);
+						global.Appacitive.localStorage.set('Appacitive-UserTokenExpiry', expiry);
+						global.Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 					}
 				}
 			} catch(e) {}
 		};
 
 		this.incrementExpiry = function() {
-			return;
-			/*try {
+			try {
 				if (global.Appacitive.runtime.isBrowser && authEnabled) {
-					var expiry = global.Appacitive.Cookie.readCookie('Appacitive-UserTokenExpiry');
-					
-					if (!expiry) expiry = 60;
-					if (expiry == -1) expiry = null;
-					
-					global.Appacitive.Cookie.setCookie('Appacitive-UserToken', _authToken, expiry);
-					global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
+					global.Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 				}
-			} catch(e) {}*/
+			} catch(e) {}
 		};
 
-		this.removeUserAuthHeader = function(makeApiCall) {
-			
+		this.removeUserAuthHeader = function(makeApiCall, options) {
+
+			var promise = global.Appacitive.Promise.buildPromise(options);
+
+			if (!makeApiCall) {
+				global.Appacitive.User.trigger('logout', {});
+			}
+
 			global.Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
-					var promise = new global.Appacitive.Promise();
 
-					var _request = new global.Appacitive.HttpRequest();
+					var _request = new global.Appacitive.HttpRequest(options);
 		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
 		            _request.type = 'user';
+		            _request.options = options;
 		            _request.description = 'InvalidateToken user';
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
-		            	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-		 				global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+		            	global.Appacitive.localStorage.remove('Appacitive-UserToken');
+		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
 						promise.fulfill();  
 		            };
 
@@ -138,23 +140,23 @@
 			} else {
 				authEnabled = false;
 				_authToken = null;
-				global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-		 		global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
-				return global.Appacitive.Promise().fulfill();
+				global.Appacitive.localStorage.remove('Appacitive-UserToken');
+ 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+ 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
+				return promise.fulfill();
 			}
 		};
 
 		this.isSessionValid = function(response) {
-			if (!response) return true;
 			if (response.status) {
 				if (response.status.code) {
-					if (response.status.code == '420' || response.status.code == '400') {
-						return { status: false, isSession: (response.status.code == '420') ? true : false };
+					if (response.status.code == '420' || response.status.code == '19027' || response.status.code == '19002') {
+						return { status: false, isSession: (response.status.code == '19027' || response.status.code == '420') ? true : false };
 					}
 				}
 			} else if (response.code) {
-				if (response.code == '420' || response.code == '400') {
-					return { status: false, isSession: (response.code == '420') ? true : false };
+				if (response.code == '420' || response.code == '19027' || response.code == '19002') {
+					return { status: false, isSession: (response.code == '19027' || response.code == '420') ? true : false };
 				}
 			}
 			return { status: true };
@@ -244,13 +246,18 @@
 		} else {
 
 			if (global.Appacitive.runtime.isBrowser) {
-				//read usertoken from cookie and set it
-				var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
+				//read usertoken from localstorage and set it
+				var token = global.Appacitive.localStorage.get('Appacitive-UserToken');
 				if (token) { 
-					var expiry = global.Appacitive.Cookie.readCookie('Appacitive-UserTokenExpiry');
-					if (!expiry) expiry = 60;
+					var expiry = global.Appacitive.localStorage.get('Appacitive-UserTokenExpiry');
+					var expiryDate = global.Appacitive.localStorage.get('Appacitive-UserTokenDate');
 					
-					//read usertoken from cookie and user from from localstorage and set it;
+					if (!expiry) expiry = -1;
+					if (expiryDate && expiry > 0) {
+						if (new Date(expiryDate + (expiry * 1000)) < new Date()) return;
+					}
+					if (expiry == -1) expiry = null;
+					//read usertoken and user from from localstorage and set it;
 					var user = global.Appacitive.localStorage.get('Appacitive-User');	
 					if (user) global.Appacitive.Users.setCurrentUser(user, token, expiry);
 				}
@@ -262,7 +269,7 @@
 
 
 // compulsory http plugin
-// attaches the appacitive environment headers
+// attaches the appacitive environment headers and other event plugins
 (function (global){
 
 	"use strict";
@@ -275,5 +282,8 @@
 			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
 		}
 	});
+
+
+   global.Appacitive.Events.mixin(global.Appacitive);
 
 })(global);

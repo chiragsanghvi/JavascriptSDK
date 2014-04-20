@@ -42,6 +42,7 @@ asyncTest('Cleaning up objects of type user by fetching them using "users" filte
     		ok(false, 'Could not fetch objects for type user');
     	} else {
     		var numFailures = 0;
+    		data = data || [];
 			data.forEach(function(v) { if (v) ++numFailures; });
 			ok(false, 'Object delete failed for ' + numFailures + '/' + total +' objects');
     	}
@@ -71,6 +72,7 @@ asyncTest('Cleaning up objects of type school', function() {
 	}, function(reasons, values) {
 		if (tasks.length > 0) {
 			var deleted = 0;
+			values = values || [];
 			values.forEach(function(v) { if (v) ++deleted; });
 			ok(false, deleted + ' of ' + total + ' objects of school deleted.');
 		} else {
@@ -103,8 +105,8 @@ asyncTest('Cleaning up connections of relation myschool', function() {
 	}, function(reasons, values) {
 		if (tasks.length > 0) {
 			var deleted = 0;
+			values = values || [];
 			values.forEach(function(v) { if (v) ++deleted; });
-
 			ok(false, deleted + ' of ' + total + ' connections of myschool deleted.');
 		} else {
 			ok(false, 'Could not fetch connections for relation myschool');
@@ -139,6 +141,7 @@ asyncTest('Cleaning up connections of relation userprofile using multiDelete', f
 	}, function(reasons, values) {
 		if (ids.length > 0) {
 			var deleted = 0;
+			values = values || [];
 			values.forEach(function(v) { if (v) ++deleted; });
 			ok(false, deleted + ' of ' + total + ' connections of userprofile.');
 		} else {
@@ -177,6 +180,7 @@ asyncTest('Cleaning up objects of type profile using multidelete', function() {
 	}, function(reasons, values) {
 		if (ids.length > 0) {
 			var deleted = 0;
+			values = values || [];
 			values.forEach(function(v) { if (v) ++deleted; });
 			ok(false, deleted + ' of ' + total + ' objects of profile.');
 		} else {

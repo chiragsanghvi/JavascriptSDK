@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Apr 15 16:18:03 IST 2014
+ * Build time 	: Sun Apr 20 16:18:12 IST 2014
  */
 "use strict";
 
@@ -100,6 +100,53 @@ if (!('some' in Array.prototype)) {
         return false;
     };
 }
+if (!('find' in Array.prototype)) {
+    Array.prototype.find = function(mapper, that /*opt*/) {
+        var list = this;
+        var length = list.length;
+        if (length === 0) return undefined;
+        for (var i = 0, value; i < length && i in list; i++) {
+          value = list[i];
+          if (predicate.call(that, value, i, list)) return value;
+        }
+        return undefined;
+    }
+}
+if (!('each' in Array.prototype)) {
+    Array.prototype.each = function(callback, that){
+        for (var i =  0; i < this.length; i++){
+            callback.apply(that, [this[i]]);
+        }
+    }
+}
+
+var _lookupIterator = function(value, context) {
+    if (value == null) return _.identity;
+    if (!_.isFunction(value)) return function(obj) { return obj[value]; };
+    if (!context) return value;
+    return function() { return value.apply(context, arguments); };
+};
+
+Array.prototype.pluck = function(property) {
+    var results = [];
+    this.each(function(value) {
+      results.push(value[property]);
+    });
+    return results;
+};
+Array.prototype.sortBy = function(iterator, context) {
+    iterator = _lookupIterator(iterator, context);
+    return this.map(function(value, index) {
+      return {
+        value: value,
+        criteria: iterator.call(context, value, index, this)
+      };
+    }, this).sort(function(left, right) {
+      var a = left.criteria, b = right.criteria;
+      return a < b ? -1 : a > b ? 1 : 0;
+    }).pluck('value');
+};
+
 // Override only if native toISOString is not defined
 if ( !Date.prototype.toISOString ) {
     ( function() {
@@ -207,6 +254,11 @@ _type['isNullOrUndefined'] = function(o) {
 
 _type['isNumeric'] = function(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
+};
+
+var _clone = function(obj) {
+    if (!_type.isObject(obj)) return obj;
+    return _type.isArray(obj) ? obj.slice() : _extend({}, obj);
 };
 
 Array.prototype.removeAll = function(obj){
@@ -705,14 +757,16 @@ var global = {};
 		// the error handler
 		this.onError = function (request, response) {
 			var error;
-		    if (response && response.responseText) {
-		        try {
-		          error = JSON.parse(response.responseText);
-		        } catch (e) {}
-		    }
+			if (response && response.responseText) {
+			    try {
+			        error = JSON.parse(response.responseText);
+			    } catch (e) { }
+			} else {
+			    response = { responseText: '' };
+			}
 
 		    error = error || { code: response.status, message: response.responseText, referenceid: response.headers["TransactionId"] };
-		    global.Appacitive.logs.logRequest(request, response, error, 'error');
+		    global.Appacitive.logs.logRequest(request, error, error, 'error');
 		    request.promise.reject(error, request.entity);
 		};
 		_inner.onError = this.onError;
@@ -758,7 +812,7 @@ var global = {};
 							global.Appacitive.http.send(request);
 						}
 					} else {
-						if (response && ((response.status && response.status.code && response.status.code == '421') || (response.code &&response.code == '421'))) {
+						if (response && ((response.status && response.status.code && (response.status.code == '19036' || response.status.code == '421')) || (response.code && (response.code == '19036' || response.code == '421')))) {
 							global.Appacitive.Users.logout(function(){}, true);
 						} else {
 							global.Appacitive.Session.incrementExpiry();
@@ -813,7 +867,7 @@ var global = {};
     		responseTime : request.timeTakenInMilliseconds,
     		headers: {},
     		request: null,
-    		response: response.responseText,
+    		response: response,
     		description: request.description
 		};
 
@@ -1332,7 +1386,7 @@ var global = {};
                     var err = {name: error.name, message: error.message, stack: error.stack};
                     global.Appacitive.logs.logException(err);
                     
-                    if (promise.calls.length == 0) throw new Error({ name: error.name, message: error.message, stack: error.stack });
+                    if (promise.calls.length == 0) throw error;
                     else promise.reject(error);
                 }
 
@@ -1414,9 +1468,9 @@ var global = {};
             if (numDone == total) {
                 if (!promise.state) {
                     if (reasons.length > 0) {
-                        promise.reject(reasons, values);
+                        promise.reject(reasons, values ? values : []);
                     } else {
-                        promise.fulfill(values);
+                        promise.fulfill(values ? values : []);
                     }
                 }
             }
@@ -1603,6 +1657,260 @@ Depends on  NOTHING
 
     global.Appacitive.eventManager = new EventManager();
 
+})(global);/**
+ * Standalone extraction of Backbone.Events, no external dependency required.
+ * Degrades nicely when Backone/underscore are already available in the current
+ * global context.
+ *
+ * Note that docs suggest to use underscore's `_.extend()` method to add Events
+ * support to some given object. A `mixin()` method has been added to the Events
+ * prototype to avoid using underscore for that sole purpose:
+ *
+ *     var myEventEmitter = BackboneEvents.mixin({});
+ *
+ * Or for a function constructor:
+ *
+ *     function MyConstructor(){}
+ *     MyConstructor.prototype.foo = function(){}
+ *     BackboneEvents.mixin(MyConstructor.prototype);
+ *
+ * (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
+ * (c) 2013 Nicolas Perriault
+ */
+/* global exports:true, define, module */
+(function(global) {
+  var root = global,
+      breaker = {},
+      nativeForEach = Array.prototype.forEach,
+      hasOwnProperty = Object.prototype.hasOwnProperty,
+      slice = Array.prototype.slice,
+      idCounter = 0;
+
+  // Returns a partial implementation matching the minimal API subset required
+  // by Backbone.Events
+  function miniscore() {
+    return {
+      keys: Object.keys,
+
+      uniqueId: function(prefix) {
+        var id = ++idCounter + '';
+        return prefix ? prefix + id : id;
+      },
+
+      has: function(obj, key) {
+        return hasOwnProperty.call(obj, key);
+      },
+
+      each: function(obj, iterator, context) {
+        if (obj == null) return;
+        if (nativeForEach && obj.forEach === nativeForEach) {
+          obj.forEach(iterator, context);
+        } else if (obj.length === +obj.length) {
+          for (var i = 0, l = obj.length; i < l; i++) {
+            if (iterator.call(context, obj[i], i, obj) === breaker) return;
+          }
+        } else {
+          for (var key in obj) {
+            if (this.has(obj, key)) {
+              if (iterator.call(context, obj[key], key, obj) === breaker) return;
+            }
+          }
+        }
+      },
+
+      once: function(func) {
+        var ran = false, memo;
+        return function() {
+          if (ran) return memo;
+          ran = true;
+          memo = func.apply(this, arguments);
+          func = null;
+          return memo;
+        };
+      }
+    };
+  }
+
+  var _ = miniscore(), Events;
+
+  // Backbone.Events
+  // ---------------
+
+  // A module that can be mixed in to *any object* in order to provide it with
+  // custom events. You may bind with `on` or remove with `off` callback
+  // functions to an event; `trigger`-ing an event fires all callbacks in
+  // succession.
+  //
+  //     var object = {};
+  //     _.extend(object, Backbone.Events);
+  //     object.on('expand', function(){ alert('expanded'); });
+  //     object.trigger('expand');
+  //
+  Events = {
+
+    // Bind an event to a `callback` function. Passing `"all"` will bind
+    // the callback to all events fired.
+    on: function(name, callback, context) {
+      if (!eventsApi(this, 'on', name, [callback, context]) || !callback) return this;
+      this._events || (this._events = {});
+      var events = this._events[name] || (this._events[name] = []);
+      events.push({callback: callback, context: context, ctx: context || this});
+      return this;
+    },
+
+    // Bind an event to only be triggered a single time. After the first time
+    // the callback is invoked, it will be removed.
+    once: function(name, callback, context) {
+      if (!eventsApi(this, 'once', name, [callback, context]) || !callback) return this;
+      var self = this;
+      var once = _.once(function() {
+        self.off(name, once);
+        callback.apply(this, arguments);
+      });
+      once._callback = callback;
+      return this.on(name, once, context);
+    },
+
+    // Remove one or many callbacks. If `context` is null, removes all
+    // callbacks with that function. If `callback` is null, removes all
+    // callbacks for the event. If `name` is null, removes all bound
+    // callbacks for all events.
+    off: function(name, callback, context) {
+      var retain, ev, events, names, i, l, j, k;
+      if (!this._events || !eventsApi(this, 'off', name, [callback, context])) return this;
+      if (!name && !callback && !context) {
+        this._events = {};
+        return this;
+      }
+
+      names = name ? [name] : _.keys(this._events);
+      for (i = 0, l = names.length; i < l; i++) {
+        name = names[i];
+        if (events = this._events[name]) {
+          this._events[name] = retain = [];
+          if (callback || context) {
+            for (j = 0, k = events.length; j < k; j++) {
+              ev = events[j];
+              if ((callback && callback !== ev.callback && callback !== ev.callback._callback) ||
+                  (context && context !== ev.context)) {
+                retain.push(ev);
+              }
+            }
+          }
+          if (!retain.length) delete this._events[name];
+        }
+      }
+
+      return this;
+    },
+
+    // Trigger one or many events, firing all bound callbacks. Callbacks are
+    // passed the same arguments as `trigger` is, apart from the event name
+    // (unless you're listening on `"all"`, which will cause your callback to
+    // receive the true name of the event as the first argument).
+    trigger: function(name) {
+      if (!this._events) return this;
+      var args = slice.call(arguments, 1);
+      if (!eventsApi(this, 'trigger', name, args)) return this;
+      var events = this._events[name];
+      var allEvents = this._events.all;
+      if (events) triggerEvents(events, args);
+      if (allEvents) triggerEvents(allEvents, arguments);
+      return this;
+    },
+
+    // Tell this object to stop listening to either specific events ... or
+    // to every object it's currently listening to.
+    stopListening: function(obj, name, callback) {
+      var listeners = this._listeners;
+      if (!listeners) return this;
+      var deleteListener = !name && !callback;
+      if (typeof name === 'object') callback = this;
+      if (obj) (listeners = {})[obj._listenerId] = obj;
+      for (var id in listeners) {
+        listeners[id].off(name, callback, this);
+        if (deleteListener) delete this._listeners[id];
+      }
+      return this;
+    }
+
+  };
+
+  // Regular expression used to split event strings.
+  var eventSplitter = /\s+/;
+
+  // Implement fancy features of the Events API such as multiple event
+  // names `"change blur"` and jQuery-style event maps `{change: action}`
+  // in terms of the existing API.
+  var eventsApi = function(obj, action, name, rest) {
+    if (!name) return true;
+
+    // Handle event maps.
+    if (typeof name === 'object') {
+      for (var key in name) {
+        obj[action].apply(obj, [key, name[key]].concat(rest));
+      }
+      return false;
+    }
+
+    // Handle space separated event names.
+    if (eventSplitter.test(name)) {
+      var names = name.split(eventSplitter);
+      for (var i = 0, l = names.length; i < l; i++) {
+        obj[action].apply(obj, [names[i]].concat(rest));
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  // A difficult-to-believe, but optimized internal dispatch function for
+  // triggering events. Tries to keep the usual cases speedy (most internal
+  // Backbone events have 3 arguments).
+  var triggerEvents = function(events, args) {
+    var ev, i = -1, l = events.length, a1 = args[0], a2 = args[1], a3 = args[2];
+    switch (args.length) {
+      case 0: while (++i < l) (ev = events[i]).callback.call(ev.ctx); return;
+      case 1: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1); return;
+      case 2: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2); return;
+      case 3: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2, a3); return;
+      default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args);
+    }
+  };
+
+  var listenMethods = {listenTo: 'on', listenToOnce: 'once'};
+
+  // Inversion-of-control versions of `on` and `once`. Tell *this* object to
+  // listen to an event in another object ... keeping track of what it's
+  // listening to.
+  _.each(listenMethods, function(implementation, method) {
+    Events[method] = function(obj, name, callback) {
+      var listeners = this._listeners || (this._listeners = {});
+      var id = obj._listenerId || (obj._listenerId = _.uniqueId('l'));
+      listeners[id] = obj;
+      if (typeof name === 'object') callback = this;
+      obj[implementation](name, callback, this);
+      return this;
+    };
+  });
+
+  // Aliases for backwards compatibility.
+  Events.bind   = Events.on;
+  Events.unbind = Events.off;
+
+  // Mixin utility
+  Events.mixin = function(proto) {
+    var exports = ['on', 'once', 'off', 'trigger', 'stopListening', 'listenTo', 'listenToOnce', 'bind', 'unbind'];
+    _.each(exports, function(name) {
+      proto[name] = this[name];
+    }, this);
+    return proto;
+  };
+
+  //changed to match with Appacitive
+  root.Appacitive.Events = Events;
+ 
 })(global);(function (global) {
 
 	"use strict";
@@ -1611,7 +1919,7 @@ Depends on  NOTHING
 		apiBaseUrl: 'https://apis.appacitive.com/v1.0/'
 	};
 
-	if (typeof XDomainRequest != 'undefined') {
+	if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/v1.0/';
 	}
 
@@ -1655,6 +1963,8 @@ Depends on  NOTHING
 		request.onError = options.onError;
 
 		request.promise = this.promise;
+
+		request.options = options.callbacks;
 
 		if (options.entity) request.entity = options.entity; 
 
@@ -1749,54 +2059,56 @@ Depends on  NOTHING
 			}
 		});
 
-		this.setUserAuthHeader = function(authToken, expiry, doNotSetCookie) {
+		this.setUserAuthHeader = function(authToken, expiry, doNotSetInStorage) {
 			try {
 				if (authToken) {
 					authEnabled = true;
 					_authToken = authToken;
-					if (!doNotSetCookie) {
-						if(!expiry) expiry = 60;
+					if (!doNotSetInStorage) {
+						if (!expiry) expiry = -1;
 						if (expiry == -1) expiry = null;
-						global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
-						global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
+
+						global.Appacitive.localStorage.set('Appacitive-UserToken', authToken);
+						global.Appacitive.localStorage.set('Appacitive-UserTokenExpiry', expiry);
+						global.Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 					}
 				}
 			} catch(e) {}
 		};
 
 		this.incrementExpiry = function() {
-			return;
-			/*try {
+			try {
 				if (global.Appacitive.runtime.isBrowser && authEnabled) {
-					var expiry = global.Appacitive.Cookie.readCookie('Appacitive-UserTokenExpiry');
-					
-					if (!expiry) expiry = 60;
-					if (expiry == -1) expiry = null;
-					
-					global.Appacitive.Cookie.setCookie('Appacitive-UserToken', _authToken, expiry);
-					global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
+					global.Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 				}
-			} catch(e) {}*/
+			} catch(e) {}
 		};
 
-		this.removeUserAuthHeader = function(makeApiCall) {
-			
+		this.removeUserAuthHeader = function(makeApiCall, options) {
+
+			var promise = global.Appacitive.Promise.buildPromise(options);
+
+			if (!makeApiCall) {
+				global.Appacitive.User.trigger('logout', {});
+			}
+
 			global.Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
-					var promise = new global.Appacitive.Promise();
 
-					var _request = new global.Appacitive.HttpRequest();
+					var _request = new global.Appacitive.HttpRequest(options);
 		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
 		            _request.type = 'user';
+		            _request.options = options;
 		            _request.description = 'InvalidateToken user';
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
-		            	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-		 				global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+		            	global.Appacitive.localStorage.remove('Appacitive-UserToken');
+		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
 						promise.fulfill();  
 		            };
 
@@ -1807,23 +2119,23 @@ Depends on  NOTHING
 			} else {
 				authEnabled = false;
 				_authToken = null;
-				global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-		 		global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
-				return global.Appacitive.Promise().fulfill();
+				global.Appacitive.localStorage.remove('Appacitive-UserToken');
+ 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+ 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
+				return promise.fulfill();
 			}
 		};
 
 		this.isSessionValid = function(response) {
-			if (!response) return true;
 			if (response.status) {
 				if (response.status.code) {
-					if (response.status.code == '420' || response.status.code == '400') {
-						return { status: false, isSession: (response.status.code == '420') ? true : false };
+					if (response.status.code == '420' || response.status.code == '19027' || response.status.code == '19002') {
+						return { status: false, isSession: (response.status.code == '19027' || response.status.code == '420') ? true : false };
 					}
 				}
 			} else if (response.code) {
-				if (response.code == '420' || response.code == '400') {
-					return { status: false, isSession: (response.code == '420') ? true : false };
+				if (response.code == '420' || response.code == '19027' || response.code == '19002') {
+					return { status: false, isSession: (response.code == '19027' || response.code == '420') ? true : false };
 				}
 			}
 			return { status: true };
@@ -1913,13 +2225,18 @@ Depends on  NOTHING
 		} else {
 
 			if (global.Appacitive.runtime.isBrowser) {
-				//read usertoken from cookie and set it
-				var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
+				//read usertoken from localstorage and set it
+				var token = global.Appacitive.localStorage.get('Appacitive-UserToken');
 				if (token) { 
-					var expiry = global.Appacitive.Cookie.readCookie('Appacitive-UserTokenExpiry');
-					if (!expiry) expiry = 60;
+					var expiry = global.Appacitive.localStorage.get('Appacitive-UserTokenExpiry');
+					var expiryDate = global.Appacitive.localStorage.get('Appacitive-UserTokenDate');
 					
-					//read usertoken from cookie and user from from localstorage and set it;
+					if (!expiry) expiry = -1;
+					if (expiryDate && expiry > 0) {
+						if (new Date(expiryDate + (expiry * 1000)) < new Date()) return;
+					}
+					if (expiry == -1) expiry = null;
+					//read usertoken and user from from localstorage and set it;
 					var user = global.Appacitive.localStorage.get('Appacitive-User');	
 					if (user) global.Appacitive.Users.setCurrentUser(user, token, expiry);
 				}
@@ -1931,7 +2248,7 @@ Depends on  NOTHING
 
 
 // compulsory http plugin
-// attaches the appacitive environment headers
+// attaches the appacitive environment headers and other event plugins
 (function (global){
 
 	"use strict";
@@ -1944,6 +2261,9 @@ Depends on  NOTHING
 			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
 		}
 	});
+
+
+   global.Appacitive.Events.mixin(global.Appacitive);
 
 })(global);
 (function (global) {
@@ -2775,10 +3095,11 @@ Depends on  NOTHING
 			}
 		};
 
-		this.toRequest = function() {
+		this.toRequest = function(options) {
 			var r = new global.Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
+			r.options = options;
 			r.description = obj.description;
             r.method = 'get';
 			return r;
@@ -2820,10 +3141,10 @@ Depends on  NOTHING
 			return global.Appacitive[eType]._parseResult(entities, options.entity);
 		};
 
-		this.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.fetch = function(opts) {
+			var promise = global.Appacitive.Promise.buildPromise(opts);
 
-			var request = this.toRequest();
+			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
 			   self.results = _parse(d[_etype + 's']);
 			   self._setPaging(d.paginginfo);
@@ -2835,24 +3156,61 @@ Depends on  NOTHING
 			return global.Appacitive.http.send(request);
 		};
 
-		this.fetchNext = function(callbacks) {
+		/**
+	     * Returns a new instance of Appacitive.Collection backed by this query.
+	     * @param {Array} items An array of instances of <code>Appacitive.Object</code>
+	     *     with which to start this Collection.
+	     * @param {Object} options An optional object with Backbone-style options.
+	     * Valid options are:<ul>
+	     *   <li>model: The Appacitive.Object subclass that this collection contains.
+	     *   <li>query: An instance of Appacitive.Queries to use when fetching items.
+	     *   <li>comparator: A string property name or function to sort by.
+	     * </ul>
+	     * @return {Appacitive.Collection}
+	     */
+	    this.collection = function(items, opts) {
+			opts = opts || {};
+			items = items || [];
+			if (_type.isObject(items)) opts = items, items = null;
+
+			if (!items) items = this.results ? this.results : [];
+
+			var model = options.entity;
+
+			if (!model && items.length > 0 && items[0] instanceof global.Appacitive.BaseObject) {
+				var eType = items[0].type == 'object'  ? 'Object' : 'Connection';
+				model = global.Appacitive[eType]._getClass(items[0].className);
+			}
+
+			if (!model) {
+				var eType = (_etype === 'object') ? 'Object' : 'Connection';
+				model = global.Appacitive[eType]._getClass(this[eType]);
+			}
+
+			return new Appacitive.Collection(items, _extend(opts, {
+				model: this.model,
+				query: this
+			}));
+	    };
+
+		this.fetchNext = function(options) {
 			var pNum = this.pageNumber();
 			this.pageNumber(++pNum);
-			return this.fetch(callbacks);
+			return this.fetch(options);
 		};
 
-		this.fetchPrev = function(callbacks) {
+		this.fetchPrev = function(options) {
 			var pNum = this.pageNumber();
 			pNum -= 1;
 			if (pNum <= 0) pNum = 1;
 			this.pageNumber(pNum);
-			return this.fetch(callbacks);
+			return this.fetch(options);
 		};
 
-		this.count = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.count = function(options) {
+			var promise = global.Appacitive.Promise.buildPromise(options);
 
-			var _queryRequest = this.toRequest();
+			var _queryRequest = this.toRequest(options);
 			_queryRequest.onSuccess = function(data) {
 				data = data || {};
 				var pagingInfo = data.paginginfo;
@@ -2874,14 +3232,18 @@ Depends on  NOTHING
 	/** 
 	* @constructor
 	**/
+	global.Appacitive.Query = BasicQuery;
+
+	/** 
+	* @constructor
+	**/
 	global.Appacitive.Queries.FindAllQuery = function(options) {
 
 		options = options || {};
 
-		if ((!options.type && !options.relation) || (options.type && options.relation)) 
-		    throw new Error('Specify either type or relation for basic filter query');
+		if (!options.type && !options.relation) throw new Error('Specify either type or relation for basic filter query');
 
-		options.queryType = 'BasicFilterQuery';
+		options.queryType = 'FindAllQuery';
 
 		BasicQuery.call(this, options);
 
@@ -2923,15 +3285,6 @@ Depends on  NOTHING
 
 		if (_type.isString(options.label) && options.label.length > 0) this.label = '&label=' + options.label;
 
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			var obj = this.toUrl();
-			r.url = obj.url;
-			r.description = obj.description;
-			r.method = 'get';
-			return r;
-		};
-
 		this.toUrl = function() {
 			return {
 				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
@@ -2967,10 +3320,10 @@ Depends on  NOTHING
 			return objects;
 		};
 
-		this.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.fetch = function(opts) {
+			var promise = global.Appacitive.Promise.buildPromise(opts);
 			
-			var request = this.toRequest();
+			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
 			    var _parse = parseNodes;
 			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent });
@@ -3010,15 +3363,6 @@ Depends on  NOTHING
 		this.relation = options.relation;
 		this.label = options.label;
 
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			var obj = this.toUrl();
-			r.url = obj.url;
-			r.description = obj.description;
-			r.method = 'get';
-			return r;
-		};
-
 		this.toUrl = function() {
 			return {
 				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
@@ -3057,15 +3401,6 @@ Depends on  NOTHING
 		this.objectBId = options.objectBId;
 		this.label = (this.queryType() === 'GetConnectionsBetweenObjectsForRelationQuery' && options.label && _type.isString(options.label) && options.label.length > 0) ? '&label=' + options.label : '';
 		this.relation = (options.relation && _type.isString(options.relation) && options.relation.length > 0) ? options.relation + '/' : '';
-		
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			var obj = this.toUrl();
-			r.url = obj.url;
-			r.description = obj.description;
-			r.method = 'get';
-			return r;
-		};
 
 		this.toUrl = function() {
 			return {
@@ -3093,12 +3428,13 @@ Depends on  NOTHING
 		
 		var inner = new global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options, 'GetConnectionsBetweenObjectsForRelationQuery');
 
-		inner.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		inner.fetch = function(opts) {
+			var promise = global.Appacitive.Promise.buildPromise(opts);
 
-			var request = this.toRequest();
+			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-				promise.fulfill(d.connection ? global.Appacitive.Connection._create(d.connection, true, options.entity) :  null);
+				inner.results = d.connection ? [global.Appacitive.Connection._create(d.connection, true, options.entity)] :  null
+				promise.fulfill(inner.results ? inner.results[0] : null);
 			};
 			request.promise = promise;
 			request.entity = this;
@@ -3128,10 +3464,11 @@ Depends on  NOTHING
 		this.objectAId = options.objectAId;
 		this.objectBIds = options.objectBIds;
 		
-		this.toRequest = function() {
+		this.toRequest = function(options) {
 			var r = new global.Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
+			r.options = options;
 			r.description = obj.description;
 			r.method = 'post';
 			r.data = {
@@ -3174,10 +3511,11 @@ Depends on  NOTHING
 			}
 		}
 		
-		this.toRequest = function() {
+		this.toRequest = function(options) {
 			var r = new global.Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
+			r.options = options;
 			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
@@ -3191,10 +3529,10 @@ Depends on  NOTHING
 			};
 		};
 
-		this.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.fetch = function(options) {
+			var promise = global.Appacitive.Promise.buildPromise(options);
 
-			var request = this.toRequest();
+			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
 		   		promise.fulfill(d.ids ? d.ids : []);
 			};
@@ -3216,6 +3554,7 @@ Depends on  NOTHING
 		this.name = name;
 		this.data = { ids: ids };
 		this.queryType = 'GraphProjectQuery';
+		var self = this;
 
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
@@ -3224,13 +3563,14 @@ Depends on  NOTHING
 			}
 		}
 
-		this.toRequest = function() {
+		this.toRequest = function(options) {
 			var r = new global.Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
 			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
+			r.options = options;
 			return r;
 		};
 
@@ -3284,13 +3624,34 @@ Depends on  NOTHING
 			return parseChildren(root.values);
 		};
 
-		this.fetch = function(callbacks) {
-			
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
-			var request = this.toRequest();
+		this.collection = function(items, opts) {
+			opts = opts || {};
+			items = items || [];
+			if (_type.isObject(items)) opts = items, items = null;
+
+			if (!items) items = this.results ? ths.results : [];
+
+			var model;
+
+			if (items.length > 0 && items[0] instanceof global.Appacitive.BaseObject) {
+				model = global.Appacitive.Object._getClass(items[0].className);
+			}
+
+			return new Appacitive.Collection(items, _extend(opts, {
+				model: this.model,
+				query: this
+			}));
+	    };
+
+		this.fetch = function(options) {
+			
+			var promise = global.Appacitive.Promise.buildPromise(options);
+
+			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
-		   		promise.fulfill(_parseResult(d));
+				self.results = _parseResult(d);
+		   		promise.fulfill(results);
 			};
 			request.promise = promise;
 			request.entity = this;
@@ -3298,260 +3659,6 @@ Depends on  NOTHING
 		};
 	};
 
-})(global);/**
- * Standalone extraction of Backbone.Events, no external dependency required.
- * Degrades nicely when Backone/underscore are already available in the current
- * global context.
- *
- * Note that docs suggest to use underscore's `_.extend()` method to add Events
- * support to some given object. A `mixin()` method has been added to the Events
- * prototype to avoid using underscore for that sole purpose:
- *
- *     var myEventEmitter = BackboneEvents.mixin({});
- *
- * Or for a function constructor:
- *
- *     function MyConstructor(){}
- *     MyConstructor.prototype.foo = function(){}
- *     BackboneEvents.mixin(MyConstructor.prototype);
- *
- * (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
- * (c) 2013 Nicolas Perriault
- */
-/* global exports:true, define, module */
-(function(global) {
-  var root = global,
-      breaker = {},
-      nativeForEach = Array.prototype.forEach,
-      hasOwnProperty = Object.prototype.hasOwnProperty,
-      slice = Array.prototype.slice,
-      idCounter = 0;
-
-  // Returns a partial implementation matching the minimal API subset required
-  // by Backbone.Events
-  function miniscore() {
-    return {
-      keys: Object.keys,
-
-      uniqueId: function(prefix) {
-        var id = ++idCounter + '';
-        return prefix ? prefix + id : id;
-      },
-
-      has: function(obj, key) {
-        return hasOwnProperty.call(obj, key);
-      },
-
-      each: function(obj, iterator, context) {
-        if (obj == null) return;
-        if (nativeForEach && obj.forEach === nativeForEach) {
-          obj.forEach(iterator, context);
-        } else if (obj.length === +obj.length) {
-          for (var i = 0, l = obj.length; i < l; i++) {
-            if (iterator.call(context, obj[i], i, obj) === breaker) return;
-          }
-        } else {
-          for (var key in obj) {
-            if (this.has(obj, key)) {
-              if (iterator.call(context, obj[key], key, obj) === breaker) return;
-            }
-          }
-        }
-      },
-
-      once: function(func) {
-        var ran = false, memo;
-        return function() {
-          if (ran) return memo;
-          ran = true;
-          memo = func.apply(this, arguments);
-          func = null;
-          return memo;
-        };
-      }
-    };
-  }
-
-  var _ = miniscore(), Events;
-
-  // Backbone.Events
-  // ---------------
-
-  // A module that can be mixed in to *any object* in order to provide it with
-  // custom events. You may bind with `on` or remove with `off` callback
-  // functions to an event; `trigger`-ing an event fires all callbacks in
-  // succession.
-  //
-  //     var object = {};
-  //     _.extend(object, Backbone.Events);
-  //     object.on('expand', function(){ alert('expanded'); });
-  //     object.trigger('expand');
-  //
-  Events = {
-
-    // Bind an event to a `callback` function. Passing `"all"` will bind
-    // the callback to all events fired.
-    on: function(name, callback, context) {
-      if (!eventsApi(this, 'on', name, [callback, context]) || !callback) return this;
-      this._events || (this._events = {});
-      var events = this._events[name] || (this._events[name] = []);
-      events.push({callback: callback, context: context, ctx: context || this});
-      return this;
-    },
-
-    // Bind an event to only be triggered a single time. After the first time
-    // the callback is invoked, it will be removed.
-    once: function(name, callback, context) {
-      if (!eventsApi(this, 'once', name, [callback, context]) || !callback) return this;
-      var self = this;
-      var once = _.once(function() {
-        self.off(name, once);
-        callback.apply(this, arguments);
-      });
-      once._callback = callback;
-      return this.on(name, once, context);
-    },
-
-    // Remove one or many callbacks. If `context` is null, removes all
-    // callbacks with that function. If `callback` is null, removes all
-    // callbacks for the event. If `name` is null, removes all bound
-    // callbacks for all events.
-    off: function(name, callback, context) {
-      var retain, ev, events, names, i, l, j, k;
-      if (!this._events || !eventsApi(this, 'off', name, [callback, context])) return this;
-      if (!name && !callback && !context) {
-        this._events = {};
-        return this;
-      }
-
-      names = name ? [name] : _.keys(this._events);
-      for (i = 0, l = names.length; i < l; i++) {
-        name = names[i];
-        if (events = this._events[name]) {
-          this._events[name] = retain = [];
-          if (callback || context) {
-            for (j = 0, k = events.length; j < k; j++) {
-              ev = events[j];
-              if ((callback && callback !== ev.callback && callback !== ev.callback._callback) ||
-                  (context && context !== ev.context)) {
-                retain.push(ev);
-              }
-            }
-          }
-          if (!retain.length) delete this._events[name];
-        }
-      }
-
-      return this;
-    },
-
-    // Trigger one or many events, firing all bound callbacks. Callbacks are
-    // passed the same arguments as `trigger` is, apart from the event name
-    // (unless you're listening on `"all"`, which will cause your callback to
-    // receive the true name of the event as the first argument).
-    trigger: function(name) {
-      if (!this._events) return this;
-      var args = slice.call(arguments, 1);
-      if (!eventsApi(this, 'trigger', name, args)) return this;
-      var events = this._events[name];
-      var allEvents = this._events.all;
-      if (events) triggerEvents(events, args);
-      if (allEvents) triggerEvents(allEvents, arguments);
-      return this;
-    },
-
-    // Tell this object to stop listening to either specific events ... or
-    // to every object it's currently listening to.
-    stopListening: function(obj, name, callback) {
-      var listeners = this._listeners;
-      if (!listeners) return this;
-      var deleteListener = !name && !callback;
-      if (typeof name === 'object') callback = this;
-      if (obj) (listeners = {})[obj._listenerId] = obj;
-      for (var id in listeners) {
-        listeners[id].off(name, callback, this);
-        if (deleteListener) delete this._listeners[id];
-      }
-      return this;
-    }
-
-  };
-
-  // Regular expression used to split event strings.
-  var eventSplitter = /\s+/;
-
-  // Implement fancy features of the Events API such as multiple event
-  // names `"change blur"` and jQuery-style event maps `{change: action}`
-  // in terms of the existing API.
-  var eventsApi = function(obj, action, name, rest) {
-    if (!name) return true;
-
-    // Handle event maps.
-    if (typeof name === 'object') {
-      for (var key in name) {
-        obj[action].apply(obj, [key, name[key]].concat(rest));
-      }
-      return false;
-    }
-
-    // Handle space separated event names.
-    if (eventSplitter.test(name)) {
-      var names = name.split(eventSplitter);
-      for (var i = 0, l = names.length; i < l; i++) {
-        obj[action].apply(obj, [names[i]].concat(rest));
-      }
-      return false;
-    }
-
-    return true;
-  };
-
-  // A difficult-to-believe, but optimized internal dispatch function for
-  // triggering events. Tries to keep the usual cases speedy (most internal
-  // Backbone events have 3 arguments).
-  var triggerEvents = function(events, args) {
-    var ev, i = -1, l = events.length, a1 = args[0], a2 = args[1], a3 = args[2];
-    switch (args.length) {
-      case 0: while (++i < l) (ev = events[i]).callback.call(ev.ctx); return;
-      case 1: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1); return;
-      case 2: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2); return;
-      case 3: while (++i < l) (ev = events[i]).callback.call(ev.ctx, a1, a2, a3); return;
-      default: while (++i < l) (ev = events[i]).callback.apply(ev.ctx, args);
-    }
-  };
-
-  var listenMethods = {listenTo: 'on', listenToOnce: 'once'};
-
-  // Inversion-of-control versions of `on` and `once`. Tell *this* object to
-  // listen to an event in another object ... keeping track of what it's
-  // listening to.
-  _.each(listenMethods, function(implementation, method) {
-    Events[method] = function(obj, name, callback) {
-      var listeners = this._listeners || (this._listeners = {});
-      var id = obj._listenerId || (obj._listenerId = _.uniqueId('l'));
-      listeners[id] = obj;
-      if (typeof name === 'object') callback = this;
-      obj[implementation](name, callback, this);
-      return this;
-    };
-  });
-
-  // Aliases for backwards compatibility.
-  Events.bind   = Events.on;
-  Events.unbind = Events.off;
-
-  // Mixin utility
-  Events.mixin = function(proto) {
-    var exports = ['on', 'once', 'off', 'trigger', 'stopListening', 'listenTo', 'listenToOnce', 'bind', 'unbind'];
-    _.each(exports, function(name) {
-      proto[name] = this[name];
-    }, this);
-    return proto;
-  };
-
-  //changed to match with Appacitive
-  root.Appacitive.Events = Events;
- 
 })(global);var ArrayProto = Array.prototype;
 var ObjectProto = Object.prototype;
 
@@ -3639,10 +3746,18 @@ var extend = function(protoProps, staticProps) {
 	/**
 	* @constructor
 	**/
-	var _BaseObject = function(objectOptions, setSnapShot) {
+	var _BaseObject = function(objectOptions, optns) {
 
 		var _snapshot = {};
 
+		optns = optns || {};
+
+		if (optns && optns.parse) objectOptions = this.parse(objectOptions);
+		
+		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _extend({}, this.defaults, objectOptions);
+		
+	    if (optns && optns.collection) this.collection = optns.collection;
+	    
 		//atomic properties
 		var _atomicProps = {};
 
@@ -3711,10 +3826,8 @@ var extend = function(protoProps, staticProps) {
 		var object = raw;
 
 		//will be used in case of creating an appacitive object for internal purpose
-		if (setSnapShot) {
-			_copy(object, _snapshot);
-		}
-
+		if (optns.setSnapShot) _copy(object, _snapshot);
+		
 		if (!_snapshot.__id && raw.__id) _snapshot.__id = raw.__id;
 
 		//Check whether __type or __relationtype is mentioned and set type property
@@ -3730,7 +3843,7 @@ var extend = function(protoProps, staticProps) {
 			this.className = raw.__relationtype;
 		}
 
-		var __cid = parseInt(Math.random() * 1000000, 10);
+		var __cid = parseInt(Math.random() * 100000000, 10);
 
 		this.cid = __cid;
 
@@ -3777,6 +3890,10 @@ var extend = function(protoProps, staticProps) {
 			return this.get('__id');	
 		};
 
+	    this.parse = function(resp, options) {
+	      return resp;
+	    };
+
 		// accessor function for the object's attributes
 		this.attr = function() {
 			if (arguments.length === 0) {
@@ -3792,7 +3909,7 @@ var extend = function(protoProps, staticProps) {
 				object.__attributes[arguments[0]] = arguments[1];
 			} else throw new Error('.attr() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 
-			triggerEvent('__attributes');
+			triggerChangeEvent('__attributes');
 
 			return object.__attributes;
 		};
@@ -3849,14 +3966,14 @@ var extend = function(protoProps, staticProps) {
 		    object.__tags = Array.distinct(object.__tags);
 
 		    if (!_removeTags || !_removeTags.length) {
-		    	triggerEvent('__tags');
+		    	triggerChangeEvent('__tags');
 		     	return this;
 			} 
 
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
 
-			triggerEvent('__tags');
+			triggerChangeEvent('__tags');
 
 			return this;
 		};
@@ -3868,14 +3985,14 @@ var extend = function(protoProps, staticProps) {
 			_removeTags = Array.distinct(_removeTags);
 
 			if (!object.__tags || !object.__tags.length) {
-				triggerEvent('__tags');
+				triggerChangeEvent('__tags');
 				return this;
 			}
 
 			var index = object.__tags.indexOf(tag);
 			if (index != -1) object.__tags.splice(index, 1);
 
-			triggerEvent('__tags');
+			triggerChangeEvent('__tags');
 
 			return this;
 		};
@@ -3896,7 +4013,8 @@ var extend = function(protoProps, staticProps) {
 
 		this.getRemovedTags = function() { return _removetags; };
 
-		var _setMutliItems = function(key, value, op) {
+		var setMutliItems = function(key, value, op, options) {
+
 			if (!key || !_type.isString(key) ||  key.length === 0  || key.trim().indexOf('__') == 0 || key.trim().indexOf('$') === 0 || value == undefined || value == null) return this; 
 			
 			key = key.toLowerCase();
@@ -3936,7 +4054,7 @@ var extend = function(protoProps, staticProps) {
 					addItem(value);
 				}
 
-			 	triggerEvent(key);
+			 	triggerChangeEvent(key, options);
 
 			} catch(e) {
 		 		throw new Error("Unable to add item to " + key);
@@ -3945,16 +4063,16 @@ var extend = function(protoProps, staticProps) {
 		 	return that; 
 		};
 
-		this.add = function(key, value) {
-			return _setMutliItems.apply(this, [key, value, 'additems']);
+		this.add = function(key, value, options) {
+			return setMutliItems.apply(this, [key, value, 'additems', options]);
 		};
 
-		this.addUnique = function(key, value) {
-			return _setMutliItems.apply(this, [key, value, 'adduniqueitems']);
+		this.addUnique = function(key, value, options) {
+			return setMutliItems.apply(this, [key, value, 'adduniqueitems', options]);
 		};
 
-		this.remove = function(key, value) {
-			return _setMutliItems.apply(this, [key, value, 'removeitems']);
+		this.remove = function(key, value, options) {
+			return setMutliItems.apply(this, [key, value, 'removeitems', options]);
 		};
 
 		var _getChanged = function(isInternal) {
@@ -4178,17 +4296,26 @@ var extend = function(protoProps, staticProps) {
 	 		return global.Appacitive.Date.toISOString(value);
 		};
 
-		var triggerEvent = function(key) {
-			var changed = _getChanged();
+		var triggerChangeEvent = function(key, options) {
+			if (options && !options.silent) {
+				var changed = _getChanged();
 
-			if (changed[key]) {
-				// Trigger all relevant attribute changes.
-			    that.trigger('change:' + key, that, changed[key], {});
-			    that.trigger('change', that, {});
+				if(changed[key]) {
+					// Trigger all relevant attribute changes.
+				    that.trigger('change:' + key, that, changed[key], {});
+				    that.trigger('change', that, options);
+				}
 			}
 		};
 
-		this.set = function(key, value, type) {
+		var triggerDestroy = function(opts) {
+			if (opts && !opts.silent) that.trigger('destroy', that, that.collection, opts);
+      	};
+
+		this.set = function(key, value, options) {
+			options = options || {};
+
+			var oType = options.dataType;
 
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
 			
@@ -4200,7 +4327,7 @@ var extend = function(protoProps, staticProps) {
 			 	else if (_type.isString(value)) { object[key] = value; }
 			 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
 			 	else if (value instanceof Date) {
-			 		object[key] = getDateValue(type, value);
+			 		object[key] = getDateValue(dataType, value);
 			 	} else if (_type.isObject(value)) {
 			 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
 			 		 	object[key] = value;
@@ -4228,7 +4355,7 @@ var extend = function(protoProps, staticProps) {
 				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
 				 			else throw new Error("Multivalued property cannot have values of property as an object");
 			 				
-				 			triggerEvent(key);
+				 			triggerChangeEvent(key, options);
 
 			 				return this; 
 						}
@@ -4245,7 +4372,7 @@ var extend = function(protoProps, staticProps) {
 					}
 				}
 
-				triggerEvent(key);
+				triggerChangeEvent(key, options);
 
 			 	return this;
 			} catch(e) {
@@ -4253,10 +4380,12 @@ var extend = function(protoProps, staticProps) {
 			} 
 		};
 
-		this.unset = function(key) {
+		this.unset = function(key, options) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
 			key = key.toLowerCase();
-		 	return this.set(key, null);
+		 	delete object[key];
+		 	triggerChangeEvent(key, options);
+		 	return this;
 		};
 
 		this.has = function(key) {
@@ -4308,7 +4437,7 @@ var extend = function(protoProps, staticProps) {
 			return this;
 		};
 
-		var _atomic = function(key, amount, multiplier) {
+		var _atomic = function(key, amount, multiplier, options) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
 			key = key.toLowerCase();
@@ -4318,9 +4447,13 @@ var extend = function(protoProps, staticProps) {
 			}
 
 			try {
-				if (!amount || isNaN(Number(amount))) amount = multiplier;
-				else amount = Number(amount) * multiplier;
-
+				if (_type.isObject(amount)) {
+					options = amount;
+					amount = multiplier;
+				} else {
+					if (!amount || isNaN(Number(amount))) amount = multiplier;
+					else amount = Number(amount) * multiplier;
+				}
 				object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
 
 				if (!that.isNew()) {
@@ -4331,19 +4464,18 @@ var extend = function(protoProps, staticProps) {
 				throw new Error('Cannot perform increment/decrement operation');
 			}
 
-			triggerEvent(key);
+			triggerChangeEvent(key, options);
 
 			return that;
 		};
 
-		this.increment = function(key, amount) {
-			return _atomic(key, amount, 1);
+		this.increment = function(key, amount, options) {
+			return _atomic(key, amount, 1, options);
 		};
 
-		this.decrement = function(key, amount) {
-			return _atomic(key, amount, -1);
+		this.decrement = function(key, amount, options) {
+			return _atomic(key, amount, -1, options);
 		};
-
 
 		/* crud operations  */
 
@@ -4356,7 +4488,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		// to create the object
-		var _create = function(callbacks) {
+		var _create = function(options) {
 
 			var type = that.type;
 			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
@@ -4381,15 +4513,14 @@ var extend = function(protoProps, staticProps) {
 				op: 'getCreateUrl',
 				args: [this.className, _fields],
 				data: object,
-				callbacks: callbacks,
+				callbacks: options,
 				entity: that,
 				onSuccess: function(data) {
 					var savedState = null;
-					if (data && (data.object || data.connection || data.user || data.device)) {
-						savedState = data.object || data.connection || data.user || data.device;
-					}
-					if (data && savedState) {
-						
+
+					if (data && data[type]) {
+						savedState = data[type];
+
 						_snapshot = savedState;
 						object.__id = savedState.__id;
 
@@ -4401,6 +4532,8 @@ var extend = function(protoProps, staticProps) {
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
+
+						that.trigger('sync', that, data[type], options);
 
 						request.promise.fulfill(that);
 					} else {
@@ -4414,9 +4547,9 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		// to update the object
-		var _update = function(callbacks, promise) {
+		var _update = function(options, promise) {
 
-			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(callbacks);
+			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(options);
 
 			var changeSet = _getChanged(true);
 			for (var p in changeSet) {
@@ -4441,7 +4574,7 @@ var extend = function(protoProps, staticProps) {
 					op: 'getUpdateUrl',
 					args: args,
 					data: changeSet,
-					callbacks: callbacks,
+					callbacks: options,
 					entity: that,
 					onSuccess: function(data) {
 						if (data && data[type]) {
@@ -4454,6 +4587,8 @@ var extend = function(protoProps, staticProps) {
 							
 							delete that.created;
 							
+							that.trigger('sync', that, data[type], options);
+
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
 							request.promise.fulfill(that);
 						} else {
@@ -4474,7 +4609,7 @@ var extend = function(protoProps, staticProps) {
 			return promise;
 		};
 
-		var _fetch = function (callbacks) {
+		var _fetch = function (options) {
 
 			if (!object.__id) throw new Error('Please specify id for get operation');
 			
@@ -4490,7 +4625,7 @@ var extend = function(protoProps, staticProps) {
 				type: type,
 				op: 'getGetUrl',
 				args: [this.className, object.__id, _fields],
-				callbacks: callbacks,
+				callbacks: options,
 				entity: that,
 				onSuccess: function(data) {
 					if (data && data[type]) {
@@ -4501,6 +4636,7 @@ var extend = function(protoProps, staticProps) {
 								that.setupConnection(object.__endpointa, object.__endpointb);
 							}
 						}
+						that.trigger('sync', that, data[type], options);
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
@@ -4519,37 +4655,39 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		// delete the object
-		this.destroy = function(callbacks, deleteConnections) {
-          
-			if (_type.isBoolean(callbacks)) {
-				deleteConnections = callbacks;
-				callbacks = null;
-			} else if(!_type.isBoolean(deleteConnections)) {
-				deleteConnections = false;
+		this.destroy = function(opts) {
+          	opts = opts || {};
+
+			var deleteConnections = opts.deleteConnections;
+			
+			if (_type.isBoolean(opts)) {
+				deleteConnections = opts;
+				opts = {};
 			}
+
+			if (!opts.wait) triggerDestroy(opts);
 
 			// if the object does not have __id set, 
 	        // just call success
 	        // else delete the object
 
-	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(callbacks).fulfill();
+	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
-			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
-				type = object.__type.toLowerCase()
-			}
-
+			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
+			
 			var request = new global.Appacitive._Request({
 				method: 'DELETE',
 				type: type,
 				op: 'getDeleteUrl',
 				args: [this.className, object.__id, deleteConnections],
-				callbacks: callbacks,
+				callbacks: opts,
 				entity: this,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);
 
 					if (data && data.status) {
+						if (opts.wait) triggerDestroy(opts);
 						request.promise.fulfill(data.status);
 					} else {
 						data = data || {};
@@ -4562,6 +4700,14 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 		this.del = this.destroy;
+
+
+		if (this.type == 'object') {
+			this.destroyWithConnections = function(options) {
+				return this.destroy(_extend({ deleteConnections: true}, options));
+			};
+		}
+
 	};
 
 	global.Appacitive.BaseObject = _BaseObject;
@@ -4893,21 +5039,19 @@ var extend = function(protoProps, staticProps) {
 
 	"use strict";
 
-	global.Appacitive.Object = function(options, setSnapShot) {
+	global.Appacitive.Object = function(attrs, options) {
+		attrs = attrs || {};
 		options = options || {};
 
-		if (this.className) {
-			options.__type = this.className;
-		}
-
-		if (_type.isString(options)) {
-			var sName = options;
-			options = { __type : sName };
-		}
-
-		if (!options.__type) throw new Error("Cannot set object without __type");
+		if (this.className) attrs.__type = this.className;
 		
-		global.Appacitive.BaseObject.call(this, options, setSnapShot);
+		if (_type.isString(attrs)) attrs = { __type : attrs };
+
+		if (!attrs.__type) throw new Error("Cannot set object without __type");
+
+		if (_type.isBoolean(options)) options = { setSnapShot: true };
+
+		global.Appacitive.BaseObject.call(this, attrs, options);
 
 		this.type = 'object';
 		this.getObject = this.getObject;
@@ -4936,14 +5080,14 @@ var extend = function(protoProps, staticProps) {
 			}
 		};
 
-		this.typeName = options.__type;
+		this.typeName = attrs.__type;
 
-		this._aclFactory = new Appacitive._Acl(options.__acls, setSnapShot);
+		this._aclFactory = new Appacitive._Acl(options.__acls, options.setSnapShot);
 
 		this.acls = this._aclFactory.acls;
 
 		if (_type.isFunction(this.initialize)) {
-			this.initialize.apply(this, [options]);
+			this.initialize.apply(this, [attrs]);
 		}
 
 		return this;
@@ -4972,6 +5116,8 @@ var extend = function(protoProps, staticProps) {
 	    // Set className in entity class
 	    entity.className = typeName;
 
+	    entity.type = typeName;
+
 	    __typeMap[typeName] = entity;
 
 	    return entity;
@@ -4991,15 +5137,13 @@ var extend = function(protoProps, staticProps) {
 	    return entity;
 	};
 
+	global.Appacitive.Object._getClass = _getClass;
+
 	global.Appacitive.Object._create = function(attributes, setSnapshot, typeClass) {
 		var entity;
-		if (this.className) {
-			entity = this;
-		} else {
-			entity = (typeClass) ? typeClass : _getClass(attributes.__type);
-		}
-	    if (setSnapshot == true) return new entity(attributes).copy(attributes, setSnapshot);
-		return new entity(attributes).copy(attributes);
+		if (this.className) entity = this;
+		else entity = (typeClass) ? typeClass : _getClass(attributes.__type);
+		return new entity(attributes).copy(attributes, setSnapshot);
 	};
 
 	//private function for parsing objects
@@ -5014,21 +5158,36 @@ var extend = function(protoProps, staticProps) {
 
 	global.Appacitive.Object._parseResult = _parseObjects;
 
-	global.Appacitive.Object.multiDelete = function(options, callbacks) {
+	global.Appacitive.Object.multiDelete = function(attrs, options) {
+		attrs = attrs || {};
 		options = options || {};
-		if (this.className) options.type = this.className;
-		if (!options.type || !_type.isString(options.type) || options.type.length === 0) throw new Error("Specify valid type");
-		if (options.type.toLowerCase() === 'user' || options.type.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
-		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
+		var models = [];
+		if (this.className) attrs.type = this.className;
+
+		if (_type.isArray(attrs) && attrs.length > 0) {
+			models = attrs;
+			attrs = { 
+				type:  models[0].className ,
+				ids : models.map(function(o) { return o.id(); }).filter(function(o) { return o; }) 
+			};
+		}
+		if (!attrs.type || !_type.isString(attrs.type) || attrs.type.length === 0) throw new Error("Specify valid type");
+		if (attrs.type.toLowerCase() === 'user' || attrs.type.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
+		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
 		var request = new global.Appacitive._Request({
 			method: 'POST',
-			data: { idlist : options.ids },
+			data: { idlist : attrs.ids },
 			type: 'object',
 			op: 'getMultiDeleteUrl',
-			args: [options.type],
-			callbacks: callbacks,
+			args: [attrs.type],
+			callbacks: options,
 			onSuccess: function(d) {
+				if (options && !options.silent) {
+					models.forEach(function(m) {
+						m.trigger('destroy', m, m.collection, options);
+					});
+			    }
 				request.promise.fulfill();
 			}
 		});
@@ -5062,7 +5221,7 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes object id , type and fields and returns that object
-	global.Appacitive.Object.get = function(options, callbacks) {
+	global.Appacitive.Object.get = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -5074,7 +5233,7 @@ var extend = function(protoProps, staticProps) {
 		var obj = global.Appacitive.Object._create({ __type: options.type, __id: options.id });
 		obj.fields = options.fields;
 
-		return obj.fetch(callbacks);
+		return obj.fetch(options);
 	};
 
     //takes relation type and returns query for it
@@ -5157,40 +5316,38 @@ var extend = function(protoProps, staticProps) {
 		}
 	};
 
-	global.Appacitive.Connection = function(options, doNotSetup) {
+	global.Appacitive.Connection = function(attrs, options) {
+		attrs = attrs || {};
 		options = options || {};
+
+		if (this.className) attrs.__relationtype = this.className;
 		
-		if (this.className) {
-			options.__relationtype = this.className;
+		if (_type.isString(attrs)) attrs = { __relationtype : attrs };
+		
+		if (!attrs.__relationtype && !attrs.relation ) throw new Error("Cannot set connection without relation");
+
+		if (attrs.relation) {
+			attrs.__relationtype = attrs.relation;
+			delete attrs.relation;
 		}
 
-		if (_type.isString(options)) {
-			var rName = options;
-			options = { __relationtype : rName };
+		if (_type.isBoolean(options)) options = { setSnapShot: true };
+
+		if (attrs.endpoints && attrs.endpoints.length === 2) {
+			attrs.__endpointa = attrs.endpoints[0];
+			attrs.__endpointb = attrs.endpoints[1];
+			delete attrs.endpoints;
 		}
 
-		if (!options.__relationtype && !options.relation ) throw new Error("Cannot set connection without relation");
-
-		if (options.relation) {
-			options.__relationtype = options.relation;
-			delete options.relation;
-		}
-
-		if (options.endpoints && options.endpoints.length === 2) {
-			options.__endpointa = options.endpoints[0];
-			options.__endpointb = options.endpoints[1];
-			delete options.endpoints;
-		}
-
-		global.Appacitive.BaseObject.call(this, options, doNotSetup);
+		global.Appacitive.BaseObject.call(this, attrs, options);
 		this.type = 'connection';
 		this.getConnection = this.getObject;
 
 		this.parseConnection = function() {
 			
 			var typeA = 'A', typeB ='B';
-			if ( options.__endpointa.label.toLowerCase() === this.get('__endpointb').label.toLowerCase() ) {
-				if ((options.__endpointa.label.toLowerCase() != options.__endpointb.label.toLowerCase()) && (options.__endpointa.objectid == this.get('__endpointb').objectid || !options.__endpointa.objectid)) {
+			if ( attrs.__endpointa.label.toLowerCase() === this.get('__endpointb').label.toLowerCase() ) {
+				if ((attrs.__endpointa.label.toLowerCase() != attrs.__endpointb.label.toLowerCase()) && (attrs.__endpointa.objectid == this.get('__endpointb').objectid || !attrs.__endpointa.objectid)) {
 				 	typeA = 'B';
 				 	typeB = 'A';
 				}
@@ -5214,16 +5371,16 @@ var extend = function(protoProps, staticProps) {
 			return this;
 		};
 
-		if (doNotSetup) {
-			this.parseConnection(options);
+		if (options.setSnapShot) {
+			this.parseConnection(attrs);
 		} else {
-			if (options.__endpointa && options.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));
+			if (attrs.__endpointa && attrs.__endpointb) this.setupConnection(this.get('__endpointa'), this.get('__endpointb'));
 		} 
 
-		this.relationName = options.__relationtype;
+		this.relationName = attrs.__relationtype;
 
 		if (_type.isFunction(this.initialize)) {
-			this.initialize.apply(this, [options]);
+			this.initialize.apply(this, [attrs]);
 		}
 
 		return this;
@@ -5252,6 +5409,8 @@ var extend = function(protoProps, staticProps) {
 	    // Set className in entity class
 	    entity.className = typeName;
 
+	    entity.relation = typeName;
+
 	    __relationMap[typeName] = entity;
 
 	    return entity;
@@ -5271,15 +5430,13 @@ var extend = function(protoProps, staticProps) {
 	    return entity;
 	};
 
+	global.Appacitive.Connection._getClass = _getClass;
+
 	global.Appacitive.Connection._create = function(attributes, setSnapshot, relationClass) {
 	    var entity;
-		if (this.className) {
-			entity = this;
-		} else {
-			entity = (relationClass) ? relationClass : _getClass(attributes.__relationtype);
-		}
-	    if (setSnapshot == true) return new entity(attributes).copy(attributes, setSnapshot);
-		return new entity(attributes).copy(attributes);
+		if (this.className) entity = this;
+		else entity = (relationClass) ? relationClass : _getClass(attributes.__relationtype);
+		return new entity(attributes).copy(attributes, setSnapshot);
 	};
 
     //private function for parsing api connections in sdk connection object
@@ -5309,10 +5466,10 @@ var extend = function(protoProps, staticProps) {
 		// sigh
 		
 		// 1
-		this.set('__endpointa', _parseEndpoint(endpointA, 'A', this));
+		this.set('__endpointa', _parseEndpoint(endpointA, 'A', this), { silent: true });
 
 		// 2
-		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this));
+		this.set('__endpointb', _parseEndpoint(endpointB, 'B', this), { silent: true });
 
 		// 3
 		this.endpoints = function() {
@@ -5366,20 +5523,35 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes relationame, and array of connections ids
-	global.Appacitive.Connection.multiDelete = function(options, callbacks) {
+	global.Appacitive.Connection.multiDelete = function(attrs, options) {
+		attrs = attrs || {};
 		options = options || {};
-		if (this.className) options.relation = this.className;
-		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
-		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to get");
-		
+		var models = [];
+		if (this.className) attrs.relation = this.className;
+
+		if (_type.isArray(attrs) && attrs.length > 0) {
+			models = attrs;
+			attrs = { 
+				relation:  models[0].className ,
+				ids : models.map(function(o) { return o.id(); }).filter(function(o) { return o; }) 
+			};
+		}
+		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
+		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
+
 		var request = new global.Appacitive._Request({
 			method: 'POST',
-			data: { idlist : options.ids },
+			data: { idlist : attrs.ids },
 			type: 'connection',
 			op: 'getMultiDeleteUrl',
-			args: [options.relation],
+			args: [attrs.relation],
 			callbacks: callbacks,
 			onSuccess: function(d) {
+				if (options && !options.silent) {
+					models.forEach(function(m) {
+						m.trigger('destroy', m, m.collection, options);
+					});
+			    }
 				request.promise.fulfill();
 			}
 		});
@@ -5387,6 +5559,7 @@ var extend = function(protoProps, staticProps) {
 		return request.send();
 	};
 
+	
 	//takes relation type and returns all connections for it
 	global.Appacitive.Connection.findAll = global.Appacitive.Connection.findAllQuery = function(options) {
 		options = options || {};
@@ -5422,15 +5595,17 @@ var extend = function(protoProps, staticProps) {
 
 	"use strict";
 
-	var UserManager = function() {
+	
+		var User = function(options, setSnapshot) {
+			options = options || {};
+			options.__type = 'user';
+			global.Appacitive.Object.call(this, options, setSnapshot);
+			return this;
+		};
 
 		var _authenticatedUser = null;
 
-		this.current = function() {
-			return _authenticatedUser;
-		};
-
-		this.currentUser = this.current;
+		User.currentUser = User.current = function() { return _authenticatedUser; };
 
 		var _updatePassword = function(oldPassword, newPassword, callbacks) {
 			var userId = this.get('__id');
@@ -5486,7 +5661,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.setCurrentUser = function(user, token, expiry) {
+		User.setCurrentUser = function(user, token, expiry) {
 			if (!user) throw new Error('Cannot set null object as user');
 			var userObject = user;
 			
@@ -5495,7 +5670,8 @@ var extend = function(protoProps, staticProps) {
 			else user = userObject.toJSON(); 
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
-			if (!expiry) expiry = 60;
+
+			if (!expiry) expiry = 3600;
 			_authenticatedUser = userObject;
 
 			if (token) global.Appacitive.Session.setUserAuthHeader(token, expiry);
@@ -5515,12 +5691,6 @@ var extend = function(protoProps, staticProps) {
 			return _authenticatedUser;
 		};
 		
-		var User = function(options, setSnapshot) {
-			options = options || {};
-			options.__type = 'user';
-			global.Appacitive.Object.call(this, options, setSnapshot);
-			return this;
-		};
 
 		//getter to get linkedaccounts
 		User.prototype.linkedAccounts = function() {
@@ -5676,12 +5846,12 @@ var extend = function(protoProps, staticProps) {
 		delete global.Appacitive.User._parseResult;
 		delete global.Appacitive.User.multiDelete;
 
-		this.deleteUser = function(userId, callbacks) {
+		User.deleteUser = function(userId, callbacks) {
 			if (!userId) throw new Error('Specify userid for user delete');
 			return new global.Appacitive.Object({ __type: 'user', __id: userId }).del(true, callbacks);
 		};
 
-		this.deleteCurrentUser = function(callbacks) {
+		User.deleteCurrentUser = function(callbacks) {
 			
 			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
@@ -5707,7 +5877,7 @@ var extend = function(protoProps, staticProps) {
 			return promise;
 		};
 
-		this.createNewUser = function(user, callbacks) {
+		User.createNewUser = function(user, callbacks) {
 			user = user || {};
 			user.__type = 'user';
 			if (!user.username || !user.password || !user.firstname || user.username.length === 0 || user.password.length === 0 || user.firstname.length === 0) 
@@ -5716,10 +5886,10 @@ var extend = function(protoProps, staticProps) {
 			return new global.Appacitive.User(user).save(callbacks);
 		};
 
-		this.createUser = this.createNewUser;
+		User.createUser = User.createNewUser;
 
 		//method to allow user to signup and then login 
-		this.signup = function(user, callbacks) {
+		User.signup = function(user, callbacks) {
 			var that = this;
 			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
@@ -5737,7 +5907,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		//authenticate user with authrequest that contains username , password and expiry
-		this.authenticateUser = function(authRequest, callbacks, provider) {
+		User.authenticateUser = function(authRequest, callbacks, provider) {
 
 			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
@@ -5752,6 +5922,7 @@ var extend = function(protoProps, staticProps) {
 					if (data && data.user) {
 						if (provider) data.user.__authType = provider;
 						that.setCurrentUser(data.user, data.token, authRequest.expiry);
+						global.Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
 						request.promise.fulfill({ user : _authenticatedUser, token: data.token });
 					} else {
 						request.promise.reject(data.status);
@@ -5762,7 +5933,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		//An overrride for user login with username and password directly
-		this.login = function(username, password, callbacks) {
+		User.login = function(username, password, callbacks) {
 
 			if (!username || !password || username.length ==0 || password.length == 0) throw new Error('Please specify username and password');
 
@@ -5775,7 +5946,7 @@ var extend = function(protoProps, staticProps) {
 			return this.authenticateUser(authRequest, callbacks, 'BASIC');
 		};
 
-		this.loginWithFacebook = function(accessToken, callbacks) {
+		User.loginWithFacebook = function(accessToken, callbacks) {
 			
 			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
@@ -5789,7 +5960,7 @@ var extend = function(protoProps, staticProps) {
 			return this.authenticateUser(authRequest, callbacks, 'FB');
 		};
 
-		this.loginWithTwitter = function(twitterObj, callbacks) {
+		User.loginWithTwitter = function(twitterObj, callbacks) {
 			
 			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
@@ -5809,7 +5980,7 @@ var extend = function(protoProps, staticProps) {
 			return this.authenticateUser(authRequest, callbacks, 'TWITTER');
 		};
 
-		this.validateCurrentUser = function(avoidApiCall, callback) {
+		User.validateCurrentUser = function(avoidApiCall, callback) {
 
 			var promise = global.Appacitive.Promise.buildPromise({ success: callback });
 
@@ -5818,7 +5989,7 @@ var extend = function(protoProps, staticProps) {
 				callback = function() {}; 
 			}
 
-			var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
+			var token = global.Appacitive.localStorage.get('Appacitive-UserToken');
 
 			if (!token) {
 				promise.fulfill(false);
@@ -5859,23 +6030,23 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.getUserByToken = function(token, callbacks) {
+		User.getUserByToken = function(token, callbacks) {
 			if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
 			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
 			return _getUserByIdType("getUserByTokenUrl", [token], callbacks);
 		};
 
-		this.getUserByUsername = function(username, callbacks) {
+		User.getUserByUsername = function(username, callbacks) {
 			if (!username || !_type.isString(username) || username.length === 0) throw new Error("Please specify valid username");
 			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
 		};
 
-		this.logout = function(makeApiCall) {
+		User.logout = function(makeApiCall) {
 			_authenticatedUser = null;
 			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall);
 		};
 
-		this.sendResetPasswordEmail = function(username, subject, callbacks) {
+		User.sendResetPasswordEmail = function(username, subject, callbacks) {
 
 			if (!username || !_type.isString(username)  || username.length === 0) throw new Error("Please specify valid username");
 			if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
@@ -5895,7 +6066,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.resetPassword = function(token, newPassword, callbacks) {
+		User.resetPassword = function(token, newPassword, callbacks) {
 
 			if (!token) throw new Error("Please specify token");
 			if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
@@ -5914,7 +6085,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.validateResetPasswordToken = function(token, callbacks) {
+		User.validateResetPasswordToken = function(token, callbacks) {
 			
 			if (!token) throw new Error("Please specify token");
 
@@ -5931,11 +6102,498 @@ var extend = function(protoProps, staticProps) {
 			});
 			return request.send();
 		};
-	};
 
-	global.Appacitive.Users = new UserManager();
+	global.Appacitive.Users = global.Appacitive.User;
+
+    global.Appacitive.Events.mixin(global.Appacitive.User);
 
 })(global);
+  (function(global) {
+
+  global.Appacitive.Collection = function(models, options) {
+    options || (options = {});
+    if (options.model) this.model = options.model;
+    if (!this.model) throw new Error("Please specify model for collection");
+    if (options.comparator !== void 0) this.comparator = options.comparator;
+    if (options.query) this.query(options.query);
+    else this.query(new Appacitive.Query(this.model));
+    this._reset();
+    this.initialize.apply(this, arguments);
+    if (models) this.reset(models, { silent: true });
+  };
+
+  global.Appacitive.Events.mixin(global.Appacitive.Collection.prototype);
+
+  // Define the Collection's inheritable methods.
+  _extend(global.Appacitive.Collection.prototype, {
+    
+    models: [],
+
+    /**
+     * Initialize is an empty function by default. Override it with your own
+     * initialization logic.
+     */
+    initialize: function(){},
+
+    _query: null,
+
+    /**
+     * The JSON representation of a Collection is an array of the
+     * models' attributes.
+     */
+    toJSON: function(options) {
+      return this.models.map(function(model) { return model.toJSON(options); });
+    },
+
+    add: function(models, options) {
+      options = options || {};
+      var i, index, length, model, cid, id, cids = {}, ids = {}, at = options.at, merge = options.merge, toAdd = [], sort = options.sort, existing;
+      models = _type.isArray(models) ? models.slice() : [models];
+
+      for (i = 0, length = models.length; i < length; i++) {
+        models[i] = this._prepareModel(models[i]);
+        model = models[i];
+        if (!model) throw new Error("Can't add an invalid model to a collection");
+
+        cid = model.cid;
+        if (cids[cid] || this._byCid[cid])  throw new Error("Duplicate cid: can't add the same model to a collection twice");
+        
+        id = model.id();
+        if (id && ((existing = ids[id]) || (existing = this._byId[id]))) {
+          existing.copy(model.toJSON(), options.setSnapShot);
+          existing.children = model.children;
+        } else {
+          ids[id] = model;
+          cids[cid] = model;
+
+          toAdd.push(model);
+          
+          this._addReference(model, options);
+        }
+      }
+
+      // Insert models into the collection, re-sorting if needed, and triggering
+      // `add` events unless silenced.
+      
+      index = (options.at != null) ? options.at : this.models.length;
+      this.models.splice.apply(this.models, [index, 0].concat(toAdd));
+      if (sort && this.comparator) this.sort({silent: true});
+      this.length = this.models.length;
+
+      if (options.silent) return this;
+      
+      for (i = 0, length = toAdd.length; i < length; i++) {
+        model = toAdd[i];
+        options.index = i;
+        model.trigger('add', model, this, options);
+      }
+
+      return this;
+    },
+
+
+    /**
+     * Remove a model, or a list of models from the set. Pass silent to avoid
+     * firing the <code>remove</code> event for every model removed.
+     *
+     * @param {Array} models The model or list of models to remove from the
+     *   collection.
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are: <ul>
+     *   <li>silent: Set to true to avoid firing the `remove` event.
+     * </ul>
+     */
+    remove: function(models, options) {
+      var i, l, index, model;
+      options = options || {};
+      models = _type.isArray(models) ? models.slice() : [models];
+      for (i = 0, l = models.length; i < l; i++) {
+        model = this.getByCid(models[i]) || this.get(models[i]);
+        if (!model) continue; 
+        delete this._byId[model.id()];
+        delete this._byCid[model.cid];
+        index = this.models.indexOf(model);
+        this.models.splice(index, 1);
+        this.length--;
+        if (!options.silent) {
+          options.index = index;
+          model.trigger('remove', model, this, options);
+        }
+        this._removeReference(model);
+      }
+      return this;
+    },
+
+    // Add a model to the end of the collection.
+    push: function(model, options) {
+      return this.add(model, _extend({ at: this.length}, options));
+    },
+
+    // Remove a model from the end of the collection.
+    pop: function(options) {
+      var model = this.at(this.length - 1);
+      this.remove(model, options);
+      return model;
+    },
+
+    // Add a model to the beginning of the collection.
+    unshift: function(model, options) {
+      return this.add(model, _extend({ at: 0 }, options));
+    },
+
+    // Remove a model from the beginning of the collection.
+    shift: function(options) {
+      var model = this.at(0);
+      this.remove(model, options);
+      return model;
+    },
+
+    // Slice out a sub-array of models from the collection.
+    slice: function() {
+      return Array.prototype.slice.apply(this.models, arguments);
+    },
+
+    /**
+     * Gets a model from the set by id.
+     * @param {String} id The Appacitive objectId identifying the Appacitive.Object to
+     * fetch from this collection.
+     */
+    get: function(id) {
+      return id && this._byId[(id instanceof global.Appacitive.BaseObject) ? id.id() : id];
+    },
+
+    query: function(query) {
+      if (query) {
+        if ((query instanceof global.Appacitive.Query) || (query instanceof global.Appacitive.Queries.GraphProjectQuery)) { 
+          this._query = query;
+          return this;
+        } else {
+          throw new Error("Cannot bind this query")
+        }
+      }
+      else return this._query;
+    },
+
+    /**
+     * Gets a model from the set by client id.
+     * @param {} cid The Backbone collection id identifying the Appacitive.Object to
+     * fetch from this collection.
+     */
+    getByCid: function(cid) {
+      return cid && this._byCid[cid.cid || cid];
+    },
+
+    /**
+     * Gets the model at the given index.
+     *
+     * @param {Number} index The index of the model to return.
+     */
+    at: function(index) {
+      return this.models[index];
+    },
+
+    // Return models with matching attributes. Useful for simple cases of
+    // `filter`.
+    where: function(attrs, first) {
+      if (Object.isEmpty(attrs)) return first ? void 0 : [];
+      return this.models[first ? 'find' : 'filter'](function(model) {
+        for (var key in attrs) {
+          if (attrs[key] !== model.get(key)) return false;
+        }
+        return true;
+      });
+    },
+
+    // Return the first model with matching attributes. Useful for simple cases
+    // of `find`.
+    findWhere: function(attrs) {
+      return this.where(attrs, true);
+    },
+
+    /**
+     * Forces the collection to re-sort itself. You don't need to call this
+     * under normal circumstances, as the set will maintain sort order as each
+     * item is added.
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are: <ul>
+     *   <li>silent: Set to true to avoid firing the `reset` event.
+     * </ul>
+     */
+    sort: function(options) {
+      options = options || {};
+      if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
+      //if (!_type.isFunction()) throw new Error('Comparator needs to be a function');
+      
+      if (this.comparator.length === 1) {
+        this.models = this.models.sortBy(this.comparator);
+      } else {
+        this.models.sort(this.comparator.bind(this.models));
+      }
+      if (!options.silent) this.trigger('reset', this, options);
+      
+      return this;
+    },
+
+    /**
+     * Plucks an attribute from each model in the collection.
+     * @param {String} attr The attribute to return from each model in the
+     * collection.
+     */
+    pluck: function(attr) {
+      return this.models.map(function(model) { return model.get(attr); });
+    },
+
+    /**
+     * Returns the first model in this collection
+     */
+    first: function() {
+      return (this.length > 0) ? this.models[0] : null;
+    },
+
+    /**
+     * Returns the last model in this collection
+     */
+    last: function() {
+      return (this.length > 0) ? this.models[this.length - 1] : null;
+    },
+
+    /**
+     * When you have more items than you want to add or remove individually,
+     * you can reset the entire set with a new list of models, without firing
+     * any `add` or `remove` events. Fires `reset` when finished.
+     *
+     * @param {Array} models The model or list of models to remove from the
+     *   collection.
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are: <ul>
+     *   <li>silent: Set to true to avoid firing the `reset` event.
+     * </ul>
+     */
+    reset: function(models, options) {
+      options || (options = {});
+      for (var i = 0, length = this.models.length; i < length; i++) {
+        this._removeReference(this.models[i], options);
+      }
+      this._reset();
+      this.add(models, _extend({ silent: true }, options));
+      if (!options.silent) this.trigger('reset', this, options);
+      return this;
+    },
+
+    /**
+     * Fetches the default set of models for this collection, resetting the
+     * collection when they arrive. If `add: true` is passed, appends the
+     * models to the collection instead of resetting.
+     *
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are:<ul>
+     *   <li>silent: Set to true to avoid firing `add` or `reset` events for
+     *   models fetched by this fetch.
+     *   <li>success: A Backbone-style success callback.
+     *   <li>error: An Backbone-style error callback.
+     *   <li>useMasterKey: In Cloud Code and Node only, uses the Master Key for
+     *       this request.
+     * </ul>
+     */
+    fetch: function(options) {
+      options = _clone(options) || {};
+      
+      var collection = this;
+      var query = this.query() || new global.Appacitive.Query(this.model);
+      
+      var promise = global.Appacitive.Promise.buildPromise(options);
+
+      query.fetch(options).then(function(results) {
+        if (options.add) collection.add(results, _extend({ setSnapShot: true }, options));
+        else collection.reset(results, options);
+        promise.fulfill(collection);
+      }, function() {
+        promise.reject.apply(promise, arguments);
+      });
+
+      return promise;
+    },
+
+
+    /**
+     * Mutiget a set of models for this collection, resetting the
+     * collection when they arrive. If `add: true` is passed, appends the
+     * models to the collection instead of resetting.
+     *
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are:<ul>
+     *   <li>silent: Set to true to avoid firing `add` or `reset` events for
+     *   models fetched by this fetch.
+     *   <li>success: A Backbone-style success callback.
+     *   <li>error: An Backbone-style error callback.
+     * </ul>
+     */
+    mutiGet: function(options) {
+      options = _clone(options) || {};
+      
+      var collection = this;
+      
+      var promise = global.Appacitive.Promise.buildPromise(options);
+
+      var ids = options.ids || [];
+
+      if (ids.length == 0) return promise.fulfill(collection);
+
+      var args = { ids: ids, fields : options.fields };
+
+      args[this.model.type || this.model.relation] = this.model.className;
+
+      global.Appacitive.Object.multiGet(args).then(function(results) {
+        if (options.add) collection.add(results, options);
+        else collection.reset(results, options);
+        promise.fulfill(collection);
+      }, function() {
+        promise.reject.apply(promise, arguments);
+      });
+
+      return promise;
+    },
+
+    /**
+     * Creates a new instance of a model in this collection. Add the model to
+     * the collection immediately, unless `wait: true` is passed, in which case
+     * we wait for the server to agree.
+     *
+     * @param {Appacitive.Object} model The new model to create and add to the
+     *   collection.
+     * @param {Object} options An optional object with Backbone-style options.
+     * Valid options are:<ul>
+     *   <li>wait: Set to true to wait for the server to confirm creation of the
+     *       model before adding it to the collection.
+     *   <li>silent: Set to true to avoid firing an `add` event.
+     *   <li>success: A Backbone-style success callback.
+     *   <li>error: An Backbone-style error callback.
+     *   <li>useMasterKey: In Cloud Code and Node only, uses the Master Key for
+     *       this request.
+     * </ul>
+     */
+    create: function(model, options) {
+      var collection = this;
+      options = options ? _clone(options) : {};
+      if (!(model = this._prepareModel(model, options))) return false;
+      if (!options.wait) this.add(model, options);
+      var success = options.success;
+      options.success = function() {
+        if (options.wait) collection.add(model, _extend({ setSnapShot: true }, options));
+        if (success) success(model, collection);
+      };
+      model.save(options);
+      return model;
+    },
+
+    /**
+     * Reset all internal state. Called when the collection is reset.
+     */
+    _reset: function(options) {
+      this.length = 0;
+      this.models = [];
+      this._byId  = {};
+      this._byCid = {};
+    },
+
+    /**
+     * Prepare a model or hash of attributes to be added to this collection.
+     */
+    _prepareModel: function(model) {
+      if (!(model instanceof global.Appacitive.BaseObject)) {
+        model = new this.model(model);
+      }
+
+      if (!model.collection) model.collection = this;
+
+      return model;
+    },
+
+
+    // Internal method to create a model's ties to a collection.
+    _addReference: function(model) {
+      this._byId[model.cid] = model;
+      if (model.id() != null) this._byId[model.id()] = model;
+      this._byCid[model.cid] = model;
+      model.on('all', this._onModelEvent, this);
+    },
+
+    /**
+     * Internal method to remove a model's ties to a collection.
+     */
+    _removeReference: function(model) {
+      if (this === model.collection) {
+        delete model.collection;
+      }
+      model.off('all', this._onModelEvent, this);
+    },
+
+    /**
+     * Internal method called every time a model in the set fires an event.
+     * Sets need to update their indexes when models change ids. All other
+     * events simply proxy through. "add" and "remove" events that originate
+     * in other collections are ignored.
+     */
+    _onModelEvent: function(ev, model, collection, options) {
+      if ((ev === 'add' || ev === 'remove') && collection !== this) return;
+      if (ev === 'destroy') this.remove(model, options);
+      if (model && ev === 'change:__id') {
+        delete this._byId[model.previous("__id")];
+        this._byId[model.id()] = model;
+      }
+      this.trigger.apply(this, arguments);
+    }
+  });
+
+  /**
+   * Creates a new subclass of <code>Appacitive.Collection</code>.  For example,<pre>
+   *   var MyCollection = Appacitive.Collection.extend({
+   *     // Instance properties
+   *
+   *     model: MyClass,
+   *     query: MyQuery,
+   *
+   *     getFirst: function() {
+   *       return this.at(0);
+   *     }
+   *   }, {
+   *     // Class properties
+   *
+   *     makeOne: function() {
+   *       return new MyCollection();
+   *     }
+   *   });
+   *
+   *   var collection = new MyCollection();
+   * </pre>
+   *
+   * @function
+   * @param {Object} instanceProps Instance properties for the collection.
+   * @param {Object} classProps Class properies for the collection.
+   * @return {Class} A new subclass of <code>Appacitive.Collection</code>.
+   */
+  global.Appacitive.Collection.extend = function(protoProps, classProps) {
+    if (protoProps && protoProps.query) {
+      protoProps._query = protoProps.query;
+      delete protoProps.query;
+    }
+    var child = global.Appacitive._extend(this, protoProps, classProps);
+    child.extend = this.extend;
+    return child;
+  };
+
+  var methods = ['forEach', 'each', 'map' ,'find', 'filter', 'every', 'some', 'indexOf', 'lastIndexOf', 'isEmpty'];
+
+  // Mix in each Underscore method as a proxy to `Collection#models`.
+  methods.each(function(method) {
+    global.Appacitive.Collection.prototype[method] = function() {
+      var args = Array.prototype.slice.call(arguments);
+      return Array.prototype[method].apply(this.models, args);
+    };
+  });
+
+})(global);
+
 (function (global) {
 
 	"use strict";

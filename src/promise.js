@@ -67,7 +67,7 @@
                     var err = {name: error.name, message: error.message, stack: error.stack};
                     global.Appacitive.logs.logException(err);
                     
-                    if (promise.calls.length == 0) throw new Error({ name: error.name, message: error.message, stack: error.stack });
+                    if (promise.calls.length == 0) throw error;
                     else promise.reject(error);
                 }
 
@@ -149,9 +149,9 @@
             if (numDone == total) {
                 if (!promise.state) {
                     if (reasons.length > 0) {
-                        promise.reject(reasons, values);
+                        promise.reject(reasons, values ? values : []);
                     } else {
-                        promise.fulfill(values);
+                        promise.fulfill(values ? values : []);
                     }
                 }
             }

@@ -2,21 +2,19 @@
 
 	"use strict";
 
-	global.Appacitive.Object = function(options, setSnapShot) {
+	global.Appacitive.Object = function(attrs, options) {
+		attrs = attrs || {};
 		options = options || {};
 
-		if (this.className) {
-			options.__type = this.className;
-		}
-
-		if (_type.isString(options)) {
-			var sName = options;
-			options = { __type : sName };
-		}
-
-		if (!options.__type) throw new Error("Cannot set object without __type");
+		if (this.className) attrs.__type = this.className;
 		
-		global.Appacitive.BaseObject.call(this, options, setSnapShot);
+		if (_type.isString(attrs)) attrs = { __type : attrs };
+
+		if (!attrs.__type) throw new Error("Cannot set object without __type");
+
+		if (_type.isBoolean(options)) options = { setSnapShot: true };
+
+		global.Appacitive.BaseObject.call(this, attrs, options);
 
 		this.type = 'object';
 		this.getObject = this.getObject;
@@ -45,14 +43,14 @@
 			}
 		};
 
-		this.typeName = options.__type;
+		this.typeName = attrs.__type;
 
-		this._aclFactory = new Appacitive._Acl(options.__acls, setSnapShot);
+		this._aclFactory = new Appacitive._Acl(options.__acls, options.setSnapShot);
 
 		this.acls = this._aclFactory.acls;
 
 		if (_type.isFunction(this.initialize)) {
-			this.initialize.apply(this, [options]);
+			this.initialize.apply(this, [attrs]);
 		}
 
 		return this;
@@ -81,6 +79,8 @@
 	    // Set className in entity class
 	    entity.className = typeName;
 
+	    entity.type = typeName;
+
 	    __typeMap[typeName] = entity;
 
 	    return entity;
@@ -100,15 +100,13 @@
 	    return entity;
 	};
 
+	global.Appacitive.Object._getClass = _getClass;
+
 	global.Appacitive.Object._create = function(attributes, setSnapshot, typeClass) {
 		var entity;
-		if (this.className) {
-			entity = this;
-		} else {
-			entity = (typeClass) ? typeClass : _getClass(attributes.__type);
-		}
-	    if (setSnapshot == true) return new entity(attributes).copy(attributes, setSnapshot);
-		return new entity(attributes).copy(attributes);
+		if (this.className) entity = this;
+		else entity = (typeClass) ? typeClass : _getClass(attributes.__type);
+		return new entity(attributes).copy(attributes, setSnapshot);
 	};
 
 	//private function for parsing objects
@@ -123,21 +121,36 @@
 
 	global.Appacitive.Object._parseResult = _parseObjects;
 
-	global.Appacitive.Object.multiDelete = function(options, callbacks) {
+	global.Appacitive.Object.multiDelete = function(attrs, options) {
+		attrs = attrs || {};
 		options = options || {};
-		if (this.className) options.type = this.className;
-		if (!options.type || !_type.isString(options.type) || options.type.length === 0) throw new Error("Specify valid type");
-		if (options.type.toLowerCase() === 'user' || options.type.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
-		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
+		var models = [];
+		if (this.className) attrs.type = this.className;
+
+		if (_type.isArray(attrs) && attrs.length > 0) {
+			models = attrs;
+			attrs = { 
+				type:  models[0].className ,
+				ids : models.map(function(o) { return o.id(); }).filter(function(o) { return o; }) 
+			};
+		}
+		if (!attrs.type || !_type.isString(attrs.type) || attrs.type.length === 0) throw new Error("Specify valid type");
+		if (attrs.type.toLowerCase() === 'user' || attrs.type.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
+		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
 		var request = new global.Appacitive._Request({
 			method: 'POST',
-			data: { idlist : options.ids },
+			data: { idlist : attrs.ids },
 			type: 'object',
 			op: 'getMultiDeleteUrl',
-			args: [options.type],
-			callbacks: callbacks,
+			args: [attrs.type],
+			callbacks: options,
 			onSuccess: function(d) {
+				if (options && !options.silent) {
+					models.forEach(function(m) {
+						m.trigger('destroy', m, m.collection, options);
+					});
+			    }
 				request.promise.fulfill();
 			}
 		});
@@ -171,7 +184,7 @@
 	};
 
 	//takes object id , type and fields and returns that object
-	global.Appacitive.Object.get = function(options, callbacks) {
+	global.Appacitive.Object.get = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
@@ -183,7 +196,7 @@
 		var obj = global.Appacitive.Object._create({ __type: options.type, __id: options.id });
 		obj.fields = options.fields;
 
-		return obj.fetch(callbacks);
+		return obj.fetch(options);
 	};
 
     //takes relation type and returns query for it

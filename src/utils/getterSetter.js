@@ -92,6 +92,53 @@ if (!('some' in Array.prototype)) {
         return false;
     };
 }
+if (!('find' in Array.prototype)) {
+    Array.prototype.find = function(mapper, that /*opt*/) {
+        var list = this;
+        var length = list.length;
+        if (length === 0) return undefined;
+        for (var i = 0, value; i < length && i in list; i++) {
+          value = list[i];
+          if (predicate.call(that, value, i, list)) return value;
+        }
+        return undefined;
+    }
+}
+if (!('each' in Array.prototype)) {
+    Array.prototype.each = function(callback, that){
+        for (var i =  0; i < this.length; i++){
+            callback.apply(that, [this[i]]);
+        }
+    }
+}
+
+var _lookupIterator = function(value, context) {
+    if (value == null) return _.identity;
+    if (!_.isFunction(value)) return function(obj) { return obj[value]; };
+    if (!context) return value;
+    return function() { return value.apply(context, arguments); };
+};
+
+Array.prototype.pluck = function(property) {
+    var results = [];
+    this.each(function(value) {
+      results.push(value[property]);
+    });
+    return results;
+};
+Array.prototype.sortBy = function(iterator, context) {
+    iterator = _lookupIterator(iterator, context);
+    return this.map(function(value, index) {
+      return {
+        value: value,
+        criteria: iterator.call(context, value, index, this)
+      };
+    }, this).sort(function(left, right) {
+      var a = left.criteria, b = right.criteria;
+      return a < b ? -1 : a > b ? 1 : 0;
+    }).pluck('value');
+};
+
 // Override only if native toISOString is not defined
 if ( !Date.prototype.toISOString ) {
     ( function() {
@@ -199,6 +246,11 @@ _type['isNullOrUndefined'] = function(o) {
 
 _type['isNumeric'] = function(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
+};
+
+var _clone = function(obj) {
+    if (!_type.isObject(obj)) return obj;
+    return _type.isArray(obj) ? obj.slice() : _extend({}, obj);
 };
 
 Array.prototype.removeAll = function(obj){

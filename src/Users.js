@@ -2,15 +2,17 @@
 
 	"use strict";
 
-	var UserManager = function() {
+	
+		var User = function(options, setSnapshot) {
+			options = options || {};
+			options.__type = 'user';
+			global.Appacitive.Object.call(this, options, setSnapshot);
+			return this;
+		};
 
 		var _authenticatedUser = null;
 
-		this.current = function() {
-			return _authenticatedUser;
-		};
-
-		this.currentUser = this.current;
+		User.currentUser = User.current = function() { return _authenticatedUser; };
 
 		var _updatePassword = function(oldPassword, newPassword, callbacks) {
 			var userId = this.get('__id');
@@ -66,7 +68,7 @@
 			return request.send();
 		};
 
-		this.setCurrentUser = function(user, token, expiry) {
+		User.setCurrentUser = function(user, token, expiry) {
 			if (!user) throw new Error('Cannot set null object as user');
 			var userObject = user;
 			
@@ -75,7 +77,8 @@
 			else user = userObject.toJSON(); 
 
 			global.Appacitive.localStorage.set('Appacitive-User', user);
-			if (!expiry) expiry = 60;
+
+			if (!expiry) expiry = 3600;
 			_authenticatedUser = userObject;
 
 			if (token) global.Appacitive.Session.setUserAuthHeader(token, expiry);
@@ -95,12 +98,6 @@
 			return _authenticatedUser;
 		};
 		
-		var User = function(options, setSnapshot) {
-			options = options || {};
-			options.__type = 'user';
-			global.Appacitive.Object.call(this, options, setSnapshot);
-			return this;
-		};
 
 		//getter to get linkedaccounts
 		User.prototype.linkedAccounts = function() {
@@ -256,12 +253,12 @@
 		delete global.Appacitive.User._parseResult;
 		delete global.Appacitive.User.multiDelete;
 
-		this.deleteUser = function(userId, callbacks) {
+		User.deleteUser = function(userId, callbacks) {
 			if (!userId) throw new Error('Specify userid for user delete');
 			return new global.Appacitive.Object({ __type: 'user', __id: userId }).del(true, callbacks);
 		};
 
-		this.deleteCurrentUser = function(callbacks) {
+		User.deleteCurrentUser = function(callbacks) {
 			
 			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
@@ -287,7 +284,7 @@
 			return promise;
 		};
 
-		this.createNewUser = function(user, callbacks) {
+		User.createNewUser = function(user, callbacks) {
 			user = user || {};
 			user.__type = 'user';
 			if (!user.username || !user.password || !user.firstname || user.username.length === 0 || user.password.length === 0 || user.firstname.length === 0) 
@@ -296,10 +293,10 @@
 			return new global.Appacitive.User(user).save(callbacks);
 		};
 
-		this.createUser = this.createNewUser;
+		User.createUser = User.createNewUser;
 
 		//method to allow user to signup and then login 
-		this.signup = function(user, callbacks) {
+		User.signup = function(user, callbacks) {
 			var that = this;
 			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
@@ -317,7 +314,7 @@
 		};
 
 		//authenticate user with authrequest that contains username , password and expiry
-		this.authenticateUser = function(authRequest, callbacks, provider) {
+		User.authenticateUser = function(authRequest, callbacks, provider) {
 
 			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
@@ -332,6 +329,7 @@
 					if (data && data.user) {
 						if (provider) data.user.__authType = provider;
 						that.setCurrentUser(data.user, data.token, authRequest.expiry);
+						global.Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
 						request.promise.fulfill({ user : _authenticatedUser, token: data.token });
 					} else {
 						request.promise.reject(data.status);
@@ -342,7 +340,7 @@
 		};
 
 		//An overrride for user login with username and password directly
-		this.login = function(username, password, callbacks) {
+		User.login = function(username, password, callbacks) {
 
 			if (!username || !password || username.length ==0 || password.length == 0) throw new Error('Please specify username and password');
 
@@ -355,7 +353,7 @@
 			return this.authenticateUser(authRequest, callbacks, 'BASIC');
 		};
 
-		this.loginWithFacebook = function(accessToken, callbacks) {
+		User.loginWithFacebook = function(accessToken, callbacks) {
 			
 			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
@@ -369,7 +367,7 @@
 			return this.authenticateUser(authRequest, callbacks, 'FB');
 		};
 
-		this.loginWithTwitter = function(twitterObj, callbacks) {
+		User.loginWithTwitter = function(twitterObj, callbacks) {
 			
 			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
@@ -389,7 +387,7 @@
 			return this.authenticateUser(authRequest, callbacks, 'TWITTER');
 		};
 
-		this.validateCurrentUser = function(avoidApiCall, callback) {
+		User.validateCurrentUser = function(avoidApiCall, callback) {
 
 			var promise = global.Appacitive.Promise.buildPromise({ success: callback });
 
@@ -398,7 +396,7 @@
 				callback = function() {}; 
 			}
 
-			var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
+			var token = global.Appacitive.localStorage.get('Appacitive-UserToken');
 
 			if (!token) {
 				promise.fulfill(false);
@@ -439,23 +437,23 @@
 			return request.send();
 		};
 
-		this.getUserByToken = function(token, callbacks) {
+		User.getUserByToken = function(token, callbacks) {
 			if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
 			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
 			return _getUserByIdType("getUserByTokenUrl", [token], callbacks);
 		};
 
-		this.getUserByUsername = function(username, callbacks) {
+		User.getUserByUsername = function(username, callbacks) {
 			if (!username || !_type.isString(username) || username.length === 0) throw new Error("Please specify valid username");
 			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
 		};
 
-		this.logout = function(makeApiCall) {
+		User.logout = function(makeApiCall) {
 			_authenticatedUser = null;
 			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall);
 		};
 
-		this.sendResetPasswordEmail = function(username, subject, callbacks) {
+		User.sendResetPasswordEmail = function(username, subject, callbacks) {
 
 			if (!username || !_type.isString(username)  || username.length === 0) throw new Error("Please specify valid username");
 			if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
@@ -475,7 +473,7 @@
 			return request.send();
 		};
 
-		this.resetPassword = function(token, newPassword, callbacks) {
+		User.resetPassword = function(token, newPassword, callbacks) {
 
 			if (!token) throw new Error("Please specify token");
 			if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
@@ -494,7 +492,7 @@
 			return request.send();
 		};
 
-		this.validateResetPasswordToken = function(token, callbacks) {
+		User.validateResetPasswordToken = function(token, callbacks) {
 			
 			if (!token) throw new Error("Please specify token");
 
@@ -511,8 +509,9 @@
 			});
 			return request.send();
 		};
-	};
 
-	global.Appacitive.Users = new UserManager();
+	global.Appacitive.Users = global.Appacitive.User;
+
+    global.Appacitive.Events.mixin(global.Appacitive.User);
 
 })(global);
