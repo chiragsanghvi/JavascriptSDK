@@ -144,7 +144,7 @@
 			type: 'object',
 			op: 'getMultiDeleteUrl',
 			args: [attrs.type],
-			callbacks: options,
+			options: options,
 			onSuccess: function(d) {
 				if (options && !options.silent) {
 					models.forEach(function(m) {
@@ -160,23 +160,23 @@
 
 
 	//takes typename and array of objectids and returns an array of Appacitive object objects
-	global.Appacitive.Object.multiGet = function(options, callbacks) {
-		options = options || {};
+	global.Appacitive.Object.multiGet = function(attrs, options) {
+		attrs = attrs || {};
 		if (this.className) {
-			options.relation = this.className;
-			options.entity = this;
+			attrs.relation = this.className;
+			attrs.entity = this;
 		}
-		if (!options.type || !_type.isString(options.type) || options.type.length === 0) throw new Error("Specify valid type");
-		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
+		if (!attrs.type || !_type.isString(attrs.type) || attrs.type.length === 0) throw new Error("Specify valid type");
+		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
 		var request = new global.Appacitive._Request({
 			method: 'GET',
 			type: 'object',
 			op: 'getMultiGetUrl',
-			args: [options.type, options.ids.join(','), options.fields],
-			callbacks: callbacks,
+			args: [attrs.type, attrs.ids.join(','), attrs.fields],
+			options: options,
 			onSuccess: function(d) {
-				request.promise.fulfill(_parseObjects(d.objects, options.entity));
+				request.promise.fulfill(_parseObjects(d.objects, attrs.entity));
 			}
 		});
 			
@@ -184,19 +184,19 @@
 	};
 
 	//takes object id , type and fields and returns that object
-	global.Appacitive.Object.get = function(options) {
-		options = options || {};
+	global.Appacitive.Object.get = function(attrs, options) {
+		attrs = attrs || {};
 		if (this.className) {
-			options.relation = this.className;
-			options.entity = this;
+			attrs.relation = this.className;
+			attrs.entity = this;
 		}
-		if (!options.type) throw new Error("Specify type");
-		if (!options.id) throw new Error("Specify id to fetch");
+		if (!attrs.type) throw new Error("Specify type");
+		if (!attrs.id) throw new Error("Specify id to fetch");
 
-		var obj = global.Appacitive.Object._create({ __type: options.type, __id: options.id });
-		obj.fields = options.fields;
+		var obj = global.Appacitive.Object._create({ __type: attrs.type, __id: attrs.id });
+		obj.fields = attrs.fields;
 
-		return obj.fetch(options);
+		return obj.fetch(attrs, options);
 	};
 
     //takes relation type and returns query for it

@@ -774,7 +774,7 @@
 				op: 'getCreateUrl',
 				args: [this.className, _fields],
 				data: object,
-				callbacks: options,
+				options: options,
 				entity: that,
 				onSuccess: function(data) {
 					var savedState = null;
@@ -835,7 +835,7 @@
 					op: 'getUpdateUrl',
 					args: args,
 					data: changeSet,
-					callbacks: options,
+					options: options,
 					entity: that,
 					onSuccess: function(data) {
 						if (data && data[type]) {
@@ -886,7 +886,7 @@
 				type: type,
 				op: 'getGetUrl',
 				args: [this.className, object.__id, _fields],
-				callbacks: options,
+				options: options,
 				entity: that,
 				onSuccess: function(data) {
 					if (data && data[type]) {
@@ -911,8 +911,8 @@
 		};
 
 		// fetch ( by id )
-		this.fetch = function(callbacks) {
-			return _fetch.apply(this ,[callbacks]);
+		this.fetch = function(options) {
+			return _fetch.apply(this ,[options]);
 		};
 
 		// delete the object
@@ -942,7 +942,7 @@
 				type: type,
 				op: 'getDeleteUrl',
 				args: [this.className, object.__id, deleteConnections],
-				callbacks: opts,
+				options: opts,
 				entity: this,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);

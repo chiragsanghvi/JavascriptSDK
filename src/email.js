@@ -21,13 +21,13 @@
 			return _copy;
 		};
 
-		var _sendEmail = function (email, callbacks) {
+		var _sendEmail = function (email, options) {
 			
 			var request = new global.Appacitive._Request({
 				method: 'POST',
 				type: 'email',
 				op: 'getSendEmailUrl',
-				callbacks: callbacks,
+				options: options,
 				data: email,
 				entity: email,
 				onSuccess: function(d) {
@@ -49,87 +49,87 @@
 		};
 
 
-		this.sendTemplatedEmail = function(options, callbacks) {
+		this.sendTemplatedEmail = function(args, options) {
 			
-			if (!options || !options.to || !options.to.length || options.to.length === 0) {
+			if (!args || !args.to || !args.to.length || args.to.length === 0) {
 				throw new Error('Atleast one receipient is mandatory to send an email');
 			}
-			if (!options.subject || options.subject.trim().length === 0) {
+			if (!args.subject || args.subject.trim().length === 0) {
 				throw new Error('Subject is mandatory to send an email');
 			}
 
-			if(!options.from && config.from) {
+			if(!args.from && config.from) {
 				throw new Error('from is mandatory to send an email. Set it in config or send it in options on the portal');
 			} 
 
-			if (!options.templateName) {
+			if (!args.templateName) {
 				throw new Error('template name is mandatory to send an email');
 			}
 
 			var email = {
-				to: options.to || [],
-				cc: options.cc || [],
-				bcc: options.bcc || [],
-				subject: options.subject,
-				from: options.from,
+				to: args.to || [],
+				cc: args.cc || [],
+				bcc: args.bcc || [],
+				subject: args.subject,
+				from: args.from,
 				body: {
-					templatename: options.templateName || '',
-					data : options.data || {},
-					ishtml: (options.isHtml === false) ? false : true
+					templatename: args.templateName || '',
+					data : args.data || {},
+					ishtml: (args.isHtml === false) ? false : true
 				}
 			};
 
-			if (options.useConfig) {
+			if (args.useConfig) {
 				email.smtp = config.smtp;
-				if(!options.from && !config.from) {
+				if(!args.from && !config.from) {
 					throw new Error('from is mandatory to send an email. Set it in config or send it in options');
 				}
-				email.from = options.from || config.from;
-				email.replyto = options.replyTo || config.replyto;
+				email.from = args.from || config.from;
+				email.replyto = args.replyTo || config.replyto;
 			}
 
-			return _sendEmail(email, callbacks);
+			return _sendEmail(email, options);
 		};
 
-		this.sendRawEmail = function(options, callbacks) {
+		this.sendRawEmail = function(args, options) {
 
-			if (!options || !options.to || !options.to.length || options.to.length === 0) {
+			if (!args || !args.to || !args.to.length || args.to.length === 0) {
 				throw new Error('Atleast one receipient is mandatory to send an email');
 			}
-			if (!options.subject || options.subject.trim().length === 0) {
+			if (!args.subject || args.subject.trim().length === 0) {
 				throw new Error('Subject is mandatory to send an email');
 			}
 
-			if(!options.from && config.from) {
+			if(!args.from && config.from) {
 				throw new Error('from is mandatory to send an email. Set it in config or send it in options on the portal');
 			} 
 
-			if (!options.body) {
+			if (!args.body) {
 				throw new Error('body is mandatory to send an email');
 			} 
 
 			var email = {
-				to: options.to || [],
-				cc: options.cc || [],
-				bcc: options.bcc || [],
-				subject: options.subject,
-				from: options.from,
+				to: args.to || [],
+				cc: args.cc || [],
+				bcc: args.bcc || [],
+				subject: args.subject,
+				from: args.from,
 				body: {
-					content: options.body || '',
-					ishtml: (options.isHtml === false) ? false : true
+					content: args.body || '',
+					ishtml: (args.isHtml === false) ? false : true
 				}
 			};
 
-			if (options.useConfig) {
+			if (args.useConfig) {
 				email.smtp = config.smtp;
-				if(!options.from && !config.from) {
+				if(!args.from && !config.from) {
 					throw new Error('from is mandatory to send an email. Set it in config or send it in options');
 				}
-				email.from = options.from || config.from;
-				email.replyto = options.replyTo || config.replyto;
+				email.from = args.from || config.from;
+				email.replyto = args.replyTo || config.replyto;
 			}
 
-			return _sendEmail(email, callbacks);
+			return _sendEmail(email, options);
 		};
 
 	};

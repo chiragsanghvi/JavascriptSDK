@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sun Apr 20 17:15:26 IST 2014
+ * Build time 	: Mon Apr 21 14:35:24 IST 2014
  */
 "use strict";
 
@@ -107,7 +107,7 @@ if (!('find' in Array.prototype)) {
         if (length === 0) return undefined;
         for (var i = 0, value; i < length && i in list; i++) {
           value = list[i];
-          if (predicate.call(that, value, i, list)) return value;
+          if (mapper.call(that, value, i, list)) return value;
         }
         return undefined;
     }
@@ -1997,7 +1997,7 @@ Depends on  NOTHING
 
 		if (!options || !_type.isObject(options)) throw new Error("Please specify request options");
 
-		this.promise = global.Appacitive.Promise.buildPromise(options.callbacks);
+		this.promise = global.Appacitive.Promise.buildPromise(options.options);
 
 		var request = this.request = new global.Appacitive.HttpRequest();
 		
@@ -2017,7 +2017,7 @@ Depends on  NOTHING
 
 		request.promise = this.promise;
 
-		request.options = options.callbacks;
+		request.options = options.options;
 
 		if (options.entity) request.entity = options.entity; 
 
@@ -2052,17 +2052,17 @@ Depends on  NOTHING
 			this.windowtime = 240;
 		};
 
-		var _sessionKey = null, _appName = null, _options = null, _apikey = null, _authToken = null, authEnabled = false;
+		var _sessionKey = null, _appName = null, _options = null, _apikey = null, _authToken = null, authEnabled = false, _masterKey;
 
 		this.useApiKey = true ;
 
 		this.onSessionCreated = function() {};
 
-		this.recreate = function(callbacks) {
-			return global.Appacitive.Session.create(callbacks);
+		this.recreate = function(options) {
+			return global.Appacitive.Session.create(options);
 		};
 
-		this.create = function(callbacks) {
+		this.create = function(options) {
 
 			if (!this.initialized) throw new Error("Intialize Appacitive SDK");
 
@@ -2075,7 +2075,7 @@ Depends on  NOTHING
 				method: 'PUT',
 				type: 'application',
 				op: 'getSessionCreateUrl',
-				callbacks: callbacks,
+				options: options,
 				data: _sRequest,
 				onSuccess: function(data) {
 					_sessionKey = data.session.sessionkey;
@@ -2089,24 +2089,39 @@ Depends on  NOTHING
 
 		global.Appacitive.http.addProcessor({
 			pre: function(request) {
+				request.options = request.options || {};
 				if (global.Appacitive.Session.useApiKey) {
-					request.headers.push({ key: 'ak', value: _apikey });
+					var key = _apikey;
+					if ((request.options.useMasterKey || (global.Appacitive.useMasterKey && !request.options.useMasterKey )) && _type.isString(_masterKey) && _masterKey.length > 0) {
+						key = _masterKey;
+					}
+					request.headers.push({ key: 'ak', value: key });
 				} else {
 					request.headers.push({ key: 'as', value: _sessionKey });
 				}
 
 				if (authEnabled === true) {
-					var userAuthHeader = request.headers.filter(function (uah) {
-						return uah.key == 'ut';
+					var ind = -1;
+					var userAuthHeader = request.headers.filter(function (uah, i) {
+						if (uah.key == 'ut') {
+							ind = i;
+							return true;
+						}
+						return false;
 					});
-					if (userAuthHeader.length == 1) {
-						request.headers.forEach(function (uah) {
-							if (uah.key == 'ut') {
-								uah.value = _authToken;
-							}
-						});
+
+					if (request.options && request.options.ignoreUserToken) {
+						if (ind != -1) request.headers.splice(ind, 1);
 					} else {
-						request.headers.push({ key: 'ut', value: _authToken });
+						if (userAuthHeader.length == 1) {
+							request.headers.forEach(function (uah) {
+								if (uah.key == 'ut') {
+									uah.value = _authToken;
+								}
+							});
+						} else {
+							request.headers.push({ key: 'ut', value: _authToken });
+						}
 					}
 				}
 			}
@@ -2217,6 +2232,12 @@ Depends on  NOTHING
 			}
 		};
 
+		this.setMasterKey = function(key) {
+			_masterKey = key;
+		};
+
+		this.useMasterKey = false;
+
 		// the name of the environment, simple public property
 		var _env = 'sandbox';
 		this.environment = function() {
@@ -2241,12 +2262,17 @@ Depends on  NOTHING
 
 		if (global.Appacitive.Session.initialized) return;
 		
-		if (!options.apikey || options.apikey.length === 0) throw new Error("apikey is mandatory");
-		
+		if (options.masterKey && options.masterKey.length > 0) global.Appacitive.Session.setMasterKey(options.masterKey);
+
+		if (!options.apikey || options.apikey.length === 0) {
+			if (_masterKey) options.apikey = _masterKey;
+		    else throw new Error("apikey is mandatory");
+		}
+
 		if (!options.appId || options.appId.length === 0) throw new Error("appId is mandatory");
 
-
-		global.Appacitive.Session.setApiKey( options.apikey) ;
+		
+		global.Appacitive.Session.setApiKey( options.apikey);
 		global.Appacitive.Session.environment(options.env || 'sandbox' );
 		global.Appacitive.useApiKey = true;
 		global.Appacitive.appId = options.appId;
@@ -4567,7 +4593,7 @@ var extend = function(protoProps, staticProps) {
 				op: 'getCreateUrl',
 				args: [this.className, _fields],
 				data: object,
-				callbacks: options,
+				options: options,
 				entity: that,
 				onSuccess: function(data) {
 					var savedState = null;
@@ -4628,7 +4654,7 @@ var extend = function(protoProps, staticProps) {
 					op: 'getUpdateUrl',
 					args: args,
 					data: changeSet,
-					callbacks: options,
+					options: options,
 					entity: that,
 					onSuccess: function(data) {
 						if (data && data[type]) {
@@ -4679,7 +4705,7 @@ var extend = function(protoProps, staticProps) {
 				type: type,
 				op: 'getGetUrl',
 				args: [this.className, object.__id, _fields],
-				callbacks: options,
+				options: options,
 				entity: that,
 				onSuccess: function(data) {
 					if (data && data[type]) {
@@ -4704,8 +4730,8 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		// fetch ( by id )
-		this.fetch = function(callbacks) {
-			return _fetch.apply(this ,[callbacks]);
+		this.fetch = function(options) {
+			return _fetch.apply(this ,[options]);
 		};
 
 		// delete the object
@@ -4735,7 +4761,7 @@ var extend = function(protoProps, staticProps) {
 				type: type,
 				op: 'getDeleteUrl',
 				args: [this.className, object.__id, deleteConnections],
-				callbacks: opts,
+				options: opts,
 				entity: this,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);
@@ -5039,7 +5065,7 @@ var extend = function(protoProps, staticProps) {
 
 	var _groupManager = function() {
 		
-		var _addRemoveMembers = function(op, groupName, members) {
+		var _addRemoveMembers = function(op, groupName, members, options) {
 
 			if (!groupName || !_type.isString(groupName) ||  groupName.length === 0) throw new Error("Please specify valid groupname"); 
 
@@ -5069,6 +5095,7 @@ var extend = function(protoProps, staticProps) {
 				args: [groupName],
 				data: cmd,
 				entity: this,
+				options: options,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);
 				}
@@ -5077,11 +5104,11 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.addMembers = function(groupName, members) {
+		this.addMembers = function(groupName, members, options) {
 			return _addRemoveMembers('add', groupName, members);
 		};
 
-		this.removeMembers = function(groupName, members) {
+		this.removeMembers = function(groupName, members, options) {
 			return _addRemoveMembers('remove', groupName, members);
 		};
 	};
@@ -5235,7 +5262,7 @@ var extend = function(protoProps, staticProps) {
 			type: 'object',
 			op: 'getMultiDeleteUrl',
 			args: [attrs.type],
-			callbacks: options,
+			options: options,
 			onSuccess: function(d) {
 				if (options && !options.silent) {
 					models.forEach(function(m) {
@@ -5251,23 +5278,23 @@ var extend = function(protoProps, staticProps) {
 
 
 	//takes typename and array of objectids and returns an array of Appacitive object objects
-	global.Appacitive.Object.multiGet = function(options, callbacks) {
-		options = options || {};
+	global.Appacitive.Object.multiGet = function(attrs, options) {
+		attrs = attrs || {};
 		if (this.className) {
-			options.relation = this.className;
-			options.entity = this;
+			attrs.relation = this.className;
+			attrs.entity = this;
 		}
-		if (!options.type || !_type.isString(options.type) || options.type.length === 0) throw new Error("Specify valid type");
-		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
+		if (!attrs.type || !_type.isString(attrs.type) || attrs.type.length === 0) throw new Error("Specify valid type");
+		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
 		var request = new global.Appacitive._Request({
 			method: 'GET',
 			type: 'object',
 			op: 'getMultiGetUrl',
-			args: [options.type, options.ids.join(','), options.fields],
-			callbacks: callbacks,
+			args: [attrs.type, attrs.ids.join(','), attrs.fields],
+			options: options,
 			onSuccess: function(d) {
-				request.promise.fulfill(_parseObjects(d.objects, options.entity));
+				request.promise.fulfill(_parseObjects(d.objects, attrs.entity));
 			}
 		});
 			
@@ -5275,19 +5302,19 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes object id , type and fields and returns that object
-	global.Appacitive.Object.get = function(options) {
-		options = options || {};
+	global.Appacitive.Object.get = function(attrs, options) {
+		attrs = attrs || {};
 		if (this.className) {
-			options.relation = this.className;
-			options.entity = this;
+			attrs.relation = this.className;
+			attrs.entity = this;
 		}
-		if (!options.type) throw new Error("Specify type");
-		if (!options.id) throw new Error("Specify id to fetch");
+		if (!attrs.type) throw new Error("Specify type");
+		if (!attrs.id) throw new Error("Specify id to fetch");
 
-		var obj = global.Appacitive.Object._create({ __type: options.type, __id: options.id });
-		obj.fields = options.fields;
+		var obj = global.Appacitive.Object._create({ __type: attrs.type, __id: attrs.id });
+		obj.fields = attrs.fields;
 
-		return obj.fetch(options);
+		return obj.fetch(attrs, options);
 	};
 
     //takes relation type and returns query for it
@@ -5542,34 +5569,34 @@ var extend = function(protoProps, staticProps) {
 
 	};
 
-	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(options, callbacks) {
-		options = options || {};
-		if (this.className) options.relation = this.className;
-		if (!options.relation) throw new Error("Specify relation");
-		if (!options.id) throw new Error("Specify id to fetch");
-		var obj = global.Appacitive.Connection._create({ __relationtype: options.relation, __id: options.id });
-		obj.fields = options.fields;
-		return obj.fetch(callbacks);
+	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(attrs, options) {
+		attrs = attrs || {};
+		if (this.className) attrs.relation = this.className;
+		if (!attrs.relation) throw new Error("Specify relation");
+		if (!attrs.id) throw new Error("Specify id to fetch");
+		var obj = global.Appacitive.Connection._create({ __relationtype: attrs.relation, __id: attrs.id });
+		obj.fields = attrs.fields;
+		return obj.fetch(options);
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
-	global.Appacitive.Connection.multiGet = function(options, callbacks) {
-		options = options || {};
+	global.Appacitive.Connection.multiGet = function(attrs, options) {
+		attrs = attrs || {};
 		if (this.className) {
-			options.relation = this.className;
-			options.entity = this;
+			attrs.relation = this.className;
+			attrs.entity = this;
 		}
-		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
-		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
+		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
+		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
 		var request = new global.Appacitive._Request({
 			method: 'GET',
 			type: 'connection',
 			op: 'getMultiGetUrl',
-			args: [options.relation, options.ids.join(','), options.fields],
-			callbacks: callbacks,
+			args: [attrs.relation, attrs.ids.join(','), attrs.fields],
+			options: options,
 			onSuccess: function(d) {
-				request.promise.fulfill(_parseConnections(d.connections, options.entity));
+				request.promise.fulfill(_parseConnections(d.connections, attrs.entity));
 			}
 		});
 			
@@ -5599,7 +5626,7 @@ var extend = function(protoProps, staticProps) {
 			type: 'connection',
 			op: 'getMultiDeleteUrl',
 			args: [attrs.relation],
-			callbacks: callbacks,
+			options: options,
 			onSuccess: function(d) {
 				if (options && !options.silent) {
 					models.forEach(function(m) {
@@ -5661,7 +5688,7 @@ var extend = function(protoProps, staticProps) {
 
 		User.currentUser = User.current = function() { return _authenticatedUser; };
 
-		var _updatePassword = function(oldPassword, newPassword, callbacks) {
+		var _updatePassword = function(oldPassword, newPassword, options) {
 			var userId = this.get('__id');
 			if (!userId || !_type.isString(userId) || userId.length === 0) throw new Error("Please specify valid userid");
 			if (!oldPassword || !_type.isString(oldPassword) || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
@@ -5674,7 +5701,7 @@ var extend = function(protoProps, staticProps) {
 				type: 'user',
 				op: 'getUpdatePasswordUrl',
 				args: [userId],
-				callbacks: callbacks,
+				options: options,
 				data: updatedPasswordOptions,
 				entity: this,
 				onSuccess: function(data) {
@@ -5684,12 +5711,12 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		var _link = function(link, callbacks) {
+		var _link = function(link, options) {
 			var userId = this.get('__id');
 
 			if (!this.get('__id')) {
 				this.set('__link', link);
-				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this);
+				return global.Appacitive.Promise.buildPromise(options).fulfill(this);
 			}
 
 			var that = this;
@@ -5699,7 +5726,7 @@ var extend = function(protoProps, staticProps) {
 				type: 'user',
 				op: 'getLinkAccountUrl',
 				args: [userId],
-				callbacks: callbacks,
+				options: options,
 				data: link,
 				entity: this,
 				onSuccess: function(data) {
@@ -5732,8 +5759,8 @@ var extend = function(protoProps, staticProps) {
 
 			_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
 
-			_authenticatedUser.updatePassword = function(oldPassword, newPassword, callbacks) {
-				return _updatePassword.apply(this, [oldPassword, newPassword, callbacks]);
+			_authenticatedUser.updatePassword = function(oldPassword, newPassword, options) {
+				return _updatePassword.apply(this, [oldPassword, newPassword, options]);
 			};
 
 			_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
@@ -5758,11 +5785,11 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		//method for getting all linked accounts
-		User.prototype.getAllLinkedAccounts = function(callbacks) {
+		User.prototype.getAllLinkedAccounts = function(options) {
 			var userId = this.get('__id');
 			
 			if (!userId || !_type.isString(userId) || userId.length === 0) {
-				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this.linkedAccounts(), this);
+				return global.Appacitive.Promise.buildPromise(options).fulfill(this.linkedAccounts(), this);
 			}
 
 			var that = this;
@@ -5772,7 +5799,7 @@ var extend = function(protoProps, staticProps) {
 				type: 'user',
 				op: 'getGetAllLinkedAccountsUrl',
 				args: [userId],
-				callbacks: callbacks,
+				options: options,
 				entity: this,
 				onSuccess: function() {
 					var accounts = a.identities || []; 
@@ -5785,7 +5812,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		User.prototype.checkin = function(coords, callbacks) {
+		User.prototype.checkin = function(coords, options) {
 			var userId = this.get('__id');
 			if (!userId || !_type.isString(userId) || userId.length === 0) {
 				if (onSuccess && _type.isFunction(onSuccess)) onSuccess();
@@ -5799,7 +5826,7 @@ var extend = function(protoProps, staticProps) {
 				type: 'user',
 				op: 'getCheckinUrl',
 				args: [userId, coords.lat, coords.lngerId],
-				callbacks: callbacks,
+				options: options,
 				entity: this,
 				onSuccess: function() {
 					request.promise.fulfill(that);
@@ -5809,7 +5836,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		//method for linking facebook account to a user
-		User.prototype.linkFacebook = function(accessToken, callbacks) {
+		User.prototype.linkFacebook = function(accessToken, options) {
 			
 			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
@@ -5819,11 +5846,11 @@ var extend = function(protoProps, staticProps) {
 				"name": "facebook"
 			};
 
-			return _link.apply(this, [payload, callbacks]);
+			return _link.apply(this, [payload, options]);
 		};
 
 		//method for linking twitter account to a user
-		User.prototype.linkTwitter = function(twitterObj, callbacks) {
+		User.prototype.linkTwitter = function(twitterObj, options) {
 			
 			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
@@ -5838,11 +5865,11 @@ var extend = function(protoProps, staticProps) {
 				payload.consumerkey = twitterObj.consumerKey;
 			}
 
-			return _link.apply(this, [payload, callbacks]);
+			return _link.apply(this, [payload, options]);
 		};
 
 		//method to unlink an oauth account
-		User.prototype.unlink = function(name, callbacks) {
+		User.prototype.unlink = function(name, options) {
 			
 			if (!_.isString(name)) throw new Error("Specify aouth account type for unlinking");
 
@@ -5861,7 +5888,7 @@ var extend = function(protoProps, staticProps) {
 				type: 'user',
 				op: 'getDelinkAccountUrl',
 				args: [userId, name],
-				callbacks: callbacks,
+				options: options,
 				entity: this,
 				onSuccess: function(a) {
 					var accounts = that.get('__link');
@@ -5900,14 +5927,14 @@ var extend = function(protoProps, staticProps) {
 		delete global.Appacitive.User._parseResult;
 		delete global.Appacitive.User.multiDelete;
 
-		User.deleteUser = function(userId, callbacks) {
+		User.deleteUser = function(userId, options) {
 			if (!userId) throw new Error('Specify userid for user delete');
-			return new global.Appacitive.Object({ __type: 'user', __id: userId }).del(true, callbacks);
+			return new global.Appacitive.Object({ __type: 'user', __id: userId }).destroyWithConnections(options);
 		};
 
-		User.deleteCurrentUser = function(callbacks) {
+		User.deleteCurrentUser = function(options) {
 			
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+			var promise = global.Appacitive.Promise.buildPromise(options);
 
 			var _callback = function() {
 				global.Appacitive.Session.removeUserAuthHeader();
@@ -5931,21 +5958,21 @@ var extend = function(protoProps, staticProps) {
 			return promise;
 		};
 
-		User.createNewUser = function(user, callbacks) {
+		User.createNewUser = function(user, options) {
 			user = user || {};
 			user.__type = 'user';
 			if (!user.username || !user.password || !user.firstname || user.username.length === 0 || user.password.length === 0 || user.firstname.length === 0) 
 				throw new Error('username, password and firstname are mandatory');
 
-			return new global.Appacitive.User(user).save(callbacks);
+			return new global.Appacitive.User(user).save(options);
 		};
 
 		User.createUser = User.createNewUser;
 
 		//method to allow user to signup and then login 
-		User.signup = function(user, callbacks) {
+		User.signup = function(user, options) {
 			var that = this;
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+			var promise = global.Appacitive.Promise.buildPromise(options);
 
 			this.createUser(user).then(function() {
 				that.login(user.username, user.password).then(function() {
@@ -5961,7 +5988,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		//authenticate user with authrequest that contains username , password and expiry
-		User.authenticateUser = function(authRequest, callbacks, provider) {
+		User.authenticateUser = function(authRequest, options, provider) {
 
 			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
@@ -5970,7 +5997,7 @@ var extend = function(protoProps, staticProps) {
 				method: 'POST',
 				type: 'user',
 				op: 'getAuthenticateUserUrl',
-				callbacks: callbacks,
+				options: options,
 				data: authRequest,
 				onSuccess: function(data) {
 					if (data && data.user) {
@@ -5987,7 +6014,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		//An overrride for user login with username and password directly
-		User.login = function(username, password, callbacks) {
+		User.login = function(username, password, options) {
 
 			if (!username || !password || username.length ==0 || password.length == 0) throw new Error('Please specify username and password');
 
@@ -5997,10 +6024,10 @@ var extend = function(protoProps, staticProps) {
 				expiry: 86400000
 			};
 
-			return this.authenticateUser(authRequest, callbacks, 'BASIC');
+			return this.authenticateUser(authRequest, options, 'BASIC');
 		};
 
-		User.loginWithFacebook = function(accessToken, callbacks) {
+		User.loginWithFacebook = function(accessToken, options) {
 			
 			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
@@ -6011,10 +6038,10 @@ var extend = function(protoProps, staticProps) {
 				"createnew": true
 			};
 
-			return this.authenticateUser(authRequest, callbacks, 'FB');
+			return this.authenticateUser(authRequest, options, 'FB');
 		};
 
-		User.loginWithTwitter = function(twitterObj, callbacks) {
+		User.loginWithTwitter = function(twitterObj, options) {
 			
 			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
@@ -6031,7 +6058,7 @@ var extend = function(protoProps, staticProps) {
 				authRequest.consumerkey = twitterObj.consumerKey;
 			}
 
-			return this.authenticateUser(authRequest, callbacks, 'TWITTER');
+			return this.authenticateUser(authRequest, options, 'TWITTER');
 		};
 
 		User.validateCurrentUser = function(avoidApiCall, callback) {
@@ -6069,12 +6096,12 @@ var extend = function(protoProps, staticProps) {
 			return promise;
 		};
 
-		var _getUserByIdType = function(op, args, callbacks) {
+		var _getUserByIdType = function(op, args, options) {
 			var request = new global.Appacitive._Request({
 				method: 'GET',
 				type: 'user',
 				op: op,
-				callbacks: callbacks,
+				options: options,
 				args: args,
 				onSuccess: function(data) {
 					if (data && data.user) request.promise.fulfill(new global.Appacitive.User(data.user));
@@ -6084,23 +6111,23 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		User.getUserByToken = function(token, callbacks) {
+		User.getUserByToken = function(token, options) {
 			if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
 			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
-			return _getUserByIdType("getUserByTokenUrl", [token], callbacks);
+			return _getUserByIdType("getUserByTokenUrl", [token], options);
 		};
 
-		User.getUserByUsername = function(username, callbacks) {
+		User.getUserByUsername = function(username, options) {
 			if (!username || !_type.isString(username) || username.length === 0) throw new Error("Please specify valid username");
-			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
+			return _getUserByIdType("getUserByUsernameUrl", [username], options);
 		};
 
-		User.logout = function(makeApiCall) {
+		User.logout = function(makeApiCall, options) {
 			_authenticatedUser = null;
-			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall);
+			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall, options);
 		};
 
-		User.sendResetPasswordEmail = function(username, subject, callbacks) {
+		User.sendResetPasswordEmail = function(username, subject, options) {
 
 			if (!username || !_type.isString(username)  || username.length === 0) throw new Error("Please specify valid username");
 			if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
@@ -6111,7 +6138,7 @@ var extend = function(protoProps, staticProps) {
 				method: 'POST',
 				type: 'user',
 				op: 'getSendResetPasswordEmailUrl',
-				callbacks: callbacks,
+				options: options,
 				data: passwordResetOptions,
 				onSuccess: function() {
 					request.promise.fulfill();
@@ -6120,7 +6147,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		User.resetPassword = function(token, newPassword, callbacks) {
+		User.resetPassword = function(token, newPassword, options) {
 
 			if (!token) throw new Error("Please specify token");
 			if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
@@ -6129,7 +6156,7 @@ var extend = function(protoProps, staticProps) {
 				method: 'POST',
 				type: 'user',
 				op: 'getResetPasswordUrl',
-				callbacks: callbacks,
+				options: options,
 				data: { newpassword: newPassword },
 				args: [token],
 				onSuccess: function() {
@@ -6139,7 +6166,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		User.validateResetPasswordToken = function(token, callbacks) {
+		User.validateResetPasswordToken = function(token, options) {
 			
 			if (!token) throw new Error("Please specify token");
 
@@ -6147,7 +6174,7 @@ var extend = function(protoProps, staticProps) {
 				method: 'POST',
 				type: 'user',
 				op: 'getValidateResetPasswordUrl',
-				callbacks: callbacks,
+				options: options,
 				data: {},
 				args: [token],
 				onSuccess: function(a) {
@@ -6823,13 +6850,13 @@ var extend = function(protoProps, staticProps) {
 			return _copy;
 		};
 
-		var _sendEmail = function (email, callbacks) {
+		var _sendEmail = function (email, options) {
 			
 			var request = new global.Appacitive._Request({
 				method: 'POST',
 				type: 'email',
 				op: 'getSendEmailUrl',
-				callbacks: callbacks,
+				options: options,
 				data: email,
 				entity: email,
 				onSuccess: function(d) {
@@ -6851,87 +6878,87 @@ var extend = function(protoProps, staticProps) {
 		};
 
 
-		this.sendTemplatedEmail = function(options, callbacks) {
+		this.sendTemplatedEmail = function(args, options) {
 			
-			if (!options || !options.to || !options.to.length || options.to.length === 0) {
+			if (!args || !args.to || !args.to.length || args.to.length === 0) {
 				throw new Error('Atleast one receipient is mandatory to send an email');
 			}
-			if (!options.subject || options.subject.trim().length === 0) {
+			if (!args.subject || args.subject.trim().length === 0) {
 				throw new Error('Subject is mandatory to send an email');
 			}
 
-			if(!options.from && config.from) {
+			if(!args.from && config.from) {
 				throw new Error('from is mandatory to send an email. Set it in config or send it in options on the portal');
 			} 
 
-			if (!options.templateName) {
+			if (!args.templateName) {
 				throw new Error('template name is mandatory to send an email');
 			}
 
 			var email = {
-				to: options.to || [],
-				cc: options.cc || [],
-				bcc: options.bcc || [],
-				subject: options.subject,
-				from: options.from,
+				to: args.to || [],
+				cc: args.cc || [],
+				bcc: args.bcc || [],
+				subject: args.subject,
+				from: args.from,
 				body: {
-					templatename: options.templateName || '',
-					data : options.data || {},
-					ishtml: (options.isHtml === false) ? false : true
+					templatename: args.templateName || '',
+					data : args.data || {},
+					ishtml: (args.isHtml === false) ? false : true
 				}
 			};
 
-			if (options.useConfig) {
+			if (args.useConfig) {
 				email.smtp = config.smtp;
-				if(!options.from && !config.from) {
+				if(!args.from && !config.from) {
 					throw new Error('from is mandatory to send an email. Set it in config or send it in options');
 				}
-				email.from = options.from || config.from;
-				email.replyto = options.replyTo || config.replyto;
+				email.from = args.from || config.from;
+				email.replyto = args.replyTo || config.replyto;
 			}
 
-			return _sendEmail(email, callbacks);
+			return _sendEmail(email, options);
 		};
 
-		this.sendRawEmail = function(options, callbacks) {
+		this.sendRawEmail = function(args, options) {
 
-			if (!options || !options.to || !options.to.length || options.to.length === 0) {
+			if (!args || !args.to || !args.to.length || args.to.length === 0) {
 				throw new Error('Atleast one receipient is mandatory to send an email');
 			}
-			if (!options.subject || options.subject.trim().length === 0) {
+			if (!args.subject || args.subject.trim().length === 0) {
 				throw new Error('Subject is mandatory to send an email');
 			}
 
-			if(!options.from && config.from) {
+			if(!args.from && config.from) {
 				throw new Error('from is mandatory to send an email. Set it in config or send it in options on the portal');
 			} 
 
-			if (!options.body) {
+			if (!args.body) {
 				throw new Error('body is mandatory to send an email');
 			} 
 
 			var email = {
-				to: options.to || [],
-				cc: options.cc || [],
-				bcc: options.bcc || [],
-				subject: options.subject,
-				from: options.from,
+				to: args.to || [],
+				cc: args.cc || [],
+				bcc: args.bcc || [],
+				subject: args.subject,
+				from: args.from,
 				body: {
-					content: options.body || '',
-					ishtml: (options.isHtml === false) ? false : true
+					content: args.body || '',
+					ishtml: (args.isHtml === false) ? false : true
 				}
 			};
 
-			if (options.useConfig) {
+			if (args.useConfig) {
 				email.smtp = config.smtp;
-				if(!options.from && !config.from) {
+				if(!args.from && !config.from) {
 					throw new Error('from is mandatory to send an email. Set it in config or send it in options');
 				}
-				email.from = options.from || config.from;
-				email.replyto = options.replyTo || config.replyto;
+				email.from = args.from || config.from;
+				email.replyto = args.replyTo || config.replyto;
 			}
 
-			return _sendEmail(email, callbacks);
+			return _sendEmail(email, options);
 		};
 
 	};
@@ -6945,17 +6972,17 @@ var extend = function(protoProps, staticProps) {
 
 	var _pushManager = function() {
 
-		this.send = function(options, callbacks) {
+		this.send = function(args, options) {
 			
-			if (!options) throw new Error("Please specify push options");
+			if (!args) throw new Error("Please specify push options");
 
 			var request = new global.Appacitive._Request({
 				method: 'POST',
 				type: 'push',
 				op: 'getPushUrl',
-				callbacks: callbacks,
-				data: options,
-				entity: options,
+				options: options,
+				data: args,
+				entity: args,
 				onSuccess: function(d) {
 					request.promise.fulfill(d.id);
 				}
@@ -6963,7 +6990,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.getNotification = function(notificationId, callbacks) {
+		this.getNotification = function(notificationId, options) {
 
 			if (!notificationId) throw new Error("Please specify notification id");
 
@@ -6972,7 +6999,7 @@ var extend = function(protoProps, staticProps) {
 				type: 'push',
 				op: 'getGetNotificationUrl',
 				args: [notificationId],
-				callbacks: callbacks,
+				options: options,
 				onSuccess: function(d) {
 					request.promise.fulfill(d.pushnotification);
 				}
@@ -6980,7 +7007,7 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 
-		this.getAllNotifications = function(pagingInfo, callbacks) {
+		this.getAllNotifications = function(pagingInfo, options) {
 			
 			if (!pagingInfo)
 				pagingInfo = { pnum: 1, psize: 20 };
@@ -6994,7 +7021,7 @@ var extend = function(protoProps, staticProps) {
 				type: 'push',
 				op: 'getGetAllNotificationsUrl',
 				args: [pagingInfo],
-				callbacks: callbacks,
+				options: options,
 				onSuccess: function(d) {
 					request.promise.fulfill(d.pushnotifications, d.paginginfo);
 				}
@@ -7011,15 +7038,15 @@ var extend = function(protoProps, staticProps) {
 
   "use strict";
 
-  var _file = function(options) {
+  var _file = function(ops) {
       
-      options = options || {}; 
-      this.fileId = options.fileId;
-      this.contentType = options.contentType;
-      this.fileData = options.fileData;
+      ops = ops || {}; 
+      this.fileId = ops.fileId;
+      this.contentType = ops.contentType;
+      this.fileData = ops.fileData;
       var that = this;
 
-      var _getUrls = function(url, onSuccess, promise, description) {
+      var _getUrls = function(url, onSuccess, promise, description, options) {
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'GET';
@@ -7027,6 +7054,7 @@ var extend = function(protoProps, staticProps) {
           request.onSuccess = onSuccess;
           request.promise = promise;
           request.entity = that;
+          request.options = options;
           global.Appacitive.http.send(request); 
       };
 
@@ -7045,21 +7073,21 @@ var extend = function(protoProps, staticProps) {
           });
       };
 
-      this.save = function(callbacks) {
+      this.save = function(options) {
         if (this.fileId && _type.isString(this.fileId) && this.fileId.length > 0)
-          return _update(callbacks);
+          return _update(options);
         else
-          return _create(callbacks);
+          return _create(options);
       };
 
-      var _create = function(callbacks) {
+      var _create = function(options) {
           if (!that.fileData) throw new Error('Please specify filedata');
           if(!that.contentType) {
             try { that.contentType = that.fileData.type; } catch(e) {}
           }
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
           
-          var promise = global.Appacitive.Promise.buildPromise(callbacks);
+          var promise = global.Appacitive.Promise.buildPromise(options);
 
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
          
@@ -7067,48 +7095,48 @@ var extend = function(protoProps, staticProps) {
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.fileId = response.id;
                     
-                    that.getDownloadUrl().then(function(res) {
+                    that.getDownloadUrl(options).then(function(res) {
                       return promise.fulfill(res, that);
                     }, function(e) {
                       return promise.reject(e);
                     });
 
                 }, promise);
-          }, promise, ' Get upload url for file ');
+          }, promise, ' Get upload url for file ', options);
 
           return promise;
       };
 
-      var _update = function(callbacks) {
+      var _update = function(options) {
           if (!that.fileData) throw new Error('Please specify filedata');
           if(!that.contentType) {
             try { that.contentType = that.fileData.type; } catch(e) {}
           }
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
           
-          var promise = global.Appacitive.Promise.buildPromise(callbacks);
+          var promise = global.Appacitive.Promise.buildPromise(options);
 
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUpdateUrl(that.fileId, that.contentType);
           
           _getUrls(url, function(response) {
               _upload(response.url, that.fileData, that.contentType, function() {
                   
-                  that.getDownloadUrl().then(function(res) {
+                  that.getDownloadUrl(options).then(function(res) {
                     promise.fulfill(res, that);
                   }, function(e) {
                     promise.reject(e);
                   });
 
               }, promise);
-          }, promise, ' Get update url for file ' + that.fileId);
+          }, promise, ' Get update url for file ' + that.fileId, options);
 
           return promise;
       };
 
-      this.deleteFile = function(callbacks) {
+      this.deleteFile = function(options) {
           if (!this.fileId) throw new Error('Please specify fileId to delete');
 
-          var promise = global.Appacitive.Promise.buildPromise(callbacks);
+          var promise = global.Appacitive.Promise.buildPromise(options);
 
           var request = new global.Appacitive.HttpRequest();
           request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);
@@ -7119,40 +7147,41 @@ var extend = function(protoProps, staticProps) {
           };
           request.promise = promise;
           request.entity = that;
+          request.options= options;
           return global.Appacitive.http.send(request); 
       };
 
-      this.getDownloadUrl = function(expiry, callbacks) {
+      this.getDownloadUrl = function(expiry, options) {
           if (!this.fileId) throw new Error('Please specify fileId to download');
 
           if (typeof expiry !== 'number') {
-            callbacks = expiry;
+            options = expiry;
             expiry = -1;
           }
           
-          var promise = global.Appacitive.Promise.buildPromise(callbacks);
+          var promise = global.Appacitive.Promise.buildPromise(options);
 
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDownloadUrl(this.fileId, expiry);
  
           _getUrls(url, function(response) {
               that.url = response.uri;
               promise.fulfill(response.uri);
-          }, promise,  ' Get download url for file ' + this.fileId);
+          }, promise,  ' Get download url for file ' + this.fileId, options);
 
           return promise;
       };
 
-      this.getUploadUrl = function(callbacks) {
+      this.getUploadUrl = function(options) {
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
 
-          var promise = global.Appacitive.Promise.buildPromise(callbacks);
+          var promise = global.Appacitive.Promise.buildPromise(options);
 
           var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');
 
           _getUrls(url, function(response) {
               that.url = response.url;
               promise.fulfill(response.url, that);
-          }, promise, ' Get upload url for file ' + this.fileId);
+          }, promise, ' Get upload url for file ' + this.fileId, options);
 
           return promise;
       };

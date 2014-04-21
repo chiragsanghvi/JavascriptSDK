@@ -14,7 +14,7 @@
 
 		User.currentUser = User.current = function() { return _authenticatedUser; };
 
-		var _updatePassword = function(oldPassword, newPassword, callbacks) {
+		var _updatePassword = function(oldPassword, newPassword, options) {
 			var userId = this.get('__id');
 			if (!userId || !_type.isString(userId) || userId.length === 0) throw new Error("Please specify valid userid");
 			if (!oldPassword || !_type.isString(oldPassword) || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
@@ -27,7 +27,7 @@
 				type: 'user',
 				op: 'getUpdatePasswordUrl',
 				args: [userId],
-				callbacks: callbacks,
+				options: options,
 				data: updatedPasswordOptions,
 				entity: this,
 				onSuccess: function(data) {
@@ -37,12 +37,12 @@
 			return request.send();
 		};
 
-		var _link = function(link, callbacks) {
+		var _link = function(link, options) {
 			var userId = this.get('__id');
 
 			if (!this.get('__id')) {
 				this.set('__link', link);
-				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this);
+				return global.Appacitive.Promise.buildPromise(options).fulfill(this);
 			}
 
 			var that = this;
@@ -52,7 +52,7 @@
 				type: 'user',
 				op: 'getLinkAccountUrl',
 				args: [userId],
-				callbacks: callbacks,
+				options: options,
 				data: link,
 				entity: this,
 				onSuccess: function(data) {
@@ -85,8 +85,8 @@
 
 			_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
 
-			_authenticatedUser.updatePassword = function(oldPassword, newPassword, callbacks) {
-				return _updatePassword.apply(this, [oldPassword, newPassword, callbacks]);
+			_authenticatedUser.updatePassword = function(oldPassword, newPassword, options) {
+				return _updatePassword.apply(this, [oldPassword, newPassword, options]);
 			};
 
 			_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
@@ -111,11 +111,11 @@
 		};
 
 		//method for getting all linked accounts
-		User.prototype.getAllLinkedAccounts = function(callbacks) {
+		User.prototype.getAllLinkedAccounts = function(options) {
 			var userId = this.get('__id');
 			
 			if (!userId || !_type.isString(userId) || userId.length === 0) {
-				return global.Appacitive.Promise.buildPromise(callbacks).fulfill(this.linkedAccounts(), this);
+				return global.Appacitive.Promise.buildPromise(options).fulfill(this.linkedAccounts(), this);
 			}
 
 			var that = this;
@@ -125,7 +125,7 @@
 				type: 'user',
 				op: 'getGetAllLinkedAccountsUrl',
 				args: [userId],
-				callbacks: callbacks,
+				options: options,
 				entity: this,
 				onSuccess: function() {
 					var accounts = a.identities || []; 
@@ -138,7 +138,7 @@
 			return request.send();
 		};
 
-		User.prototype.checkin = function(coords, callbacks) {
+		User.prototype.checkin = function(coords, options) {
 			var userId = this.get('__id');
 			if (!userId || !_type.isString(userId) || userId.length === 0) {
 				if (onSuccess && _type.isFunction(onSuccess)) onSuccess();
@@ -152,7 +152,7 @@
 				type: 'user',
 				op: 'getCheckinUrl',
 				args: [userId, coords.lat, coords.lngerId],
-				callbacks: callbacks,
+				options: options,
 				entity: this,
 				onSuccess: function() {
 					request.promise.fulfill(that);
@@ -162,7 +162,7 @@
 		};
 
 		//method for linking facebook account to a user
-		User.prototype.linkFacebook = function(accessToken, callbacks) {
+		User.prototype.linkFacebook = function(accessToken, options) {
 			
 			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
@@ -172,11 +172,11 @@
 				"name": "facebook"
 			};
 
-			return _link.apply(this, [payload, callbacks]);
+			return _link.apply(this, [payload, options]);
 		};
 
 		//method for linking twitter account to a user
-		User.prototype.linkTwitter = function(twitterObj, callbacks) {
+		User.prototype.linkTwitter = function(twitterObj, options) {
 			
 			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
@@ -191,11 +191,11 @@
 				payload.consumerkey = twitterObj.consumerKey;
 			}
 
-			return _link.apply(this, [payload, callbacks]);
+			return _link.apply(this, [payload, options]);
 		};
 
 		//method to unlink an oauth account
-		User.prototype.unlink = function(name, callbacks) {
+		User.prototype.unlink = function(name, options) {
 			
 			if (!_.isString(name)) throw new Error("Specify aouth account type for unlinking");
 
@@ -214,7 +214,7 @@
 				type: 'user',
 				op: 'getDelinkAccountUrl',
 				args: [userId, name],
-				callbacks: callbacks,
+				options: options,
 				entity: this,
 				onSuccess: function(a) {
 					var accounts = that.get('__link');
@@ -253,14 +253,14 @@
 		delete global.Appacitive.User._parseResult;
 		delete global.Appacitive.User.multiDelete;
 
-		User.deleteUser = function(userId, callbacks) {
+		User.deleteUser = function(userId, options) {
 			if (!userId) throw new Error('Specify userid for user delete');
-			return new global.Appacitive.Object({ __type: 'user', __id: userId }).del(true, callbacks);
+			return new global.Appacitive.Object({ __type: 'user', __id: userId }).destroyWithConnections(options);
 		};
 
-		User.deleteCurrentUser = function(callbacks) {
+		User.deleteCurrentUser = function(options) {
 			
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+			var promise = global.Appacitive.Promise.buildPromise(options);
 
 			var _callback = function() {
 				global.Appacitive.Session.removeUserAuthHeader();
@@ -284,21 +284,21 @@
 			return promise;
 		};
 
-		User.createNewUser = function(user, callbacks) {
+		User.createNewUser = function(user, options) {
 			user = user || {};
 			user.__type = 'user';
 			if (!user.username || !user.password || !user.firstname || user.username.length === 0 || user.password.length === 0 || user.firstname.length === 0) 
 				throw new Error('username, password and firstname are mandatory');
 
-			return new global.Appacitive.User(user).save(callbacks);
+			return new global.Appacitive.User(user).save(options);
 		};
 
 		User.createUser = User.createNewUser;
 
 		//method to allow user to signup and then login 
-		User.signup = function(user, callbacks) {
+		User.signup = function(user, options) {
 			var that = this;
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+			var promise = global.Appacitive.Promise.buildPromise(options);
 
 			this.createUser(user).then(function() {
 				that.login(user.username, user.password).then(function() {
@@ -314,7 +314,7 @@
 		};
 
 		//authenticate user with authrequest that contains username , password and expiry
-		User.authenticateUser = function(authRequest, callbacks, provider) {
+		User.authenticateUser = function(authRequest, options, provider) {
 
 			if (!authRequest.expiry) authRequest.expiry = 86400000;
 			var that = this;
@@ -323,7 +323,7 @@
 				method: 'POST',
 				type: 'user',
 				op: 'getAuthenticateUserUrl',
-				callbacks: callbacks,
+				options: options,
 				data: authRequest,
 				onSuccess: function(data) {
 					if (data && data.user) {
@@ -340,7 +340,7 @@
 		};
 
 		//An overrride for user login with username and password directly
-		User.login = function(username, password, callbacks) {
+		User.login = function(username, password, options) {
 
 			if (!username || !password || username.length ==0 || password.length == 0) throw new Error('Please specify username and password');
 
@@ -350,10 +350,10 @@
 				expiry: 86400000
 			};
 
-			return this.authenticateUser(authRequest, callbacks, 'BASIC');
+			return this.authenticateUser(authRequest, options, 'BASIC');
 		};
 
-		User.loginWithFacebook = function(accessToken, callbacks) {
+		User.loginWithFacebook = function(accessToken, options) {
 			
 			if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
@@ -364,10 +364,10 @@
 				"createnew": true
 			};
 
-			return this.authenticateUser(authRequest, callbacks, 'FB');
+			return this.authenticateUser(authRequest, options, 'FB');
 		};
 
-		User.loginWithTwitter = function(twitterObj, callbacks) {
+		User.loginWithTwitter = function(twitterObj, options) {
 			
 			if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 			
@@ -384,7 +384,7 @@
 				authRequest.consumerkey = twitterObj.consumerKey;
 			}
 
-			return this.authenticateUser(authRequest, callbacks, 'TWITTER');
+			return this.authenticateUser(authRequest, options, 'TWITTER');
 		};
 
 		User.validateCurrentUser = function(avoidApiCall, callback) {
@@ -422,12 +422,12 @@
 			return promise;
 		};
 
-		var _getUserByIdType = function(op, args, callbacks) {
+		var _getUserByIdType = function(op, args, options) {
 			var request = new global.Appacitive._Request({
 				method: 'GET',
 				type: 'user',
 				op: op,
-				callbacks: callbacks,
+				options: options,
 				args: args,
 				onSuccess: function(data) {
 					if (data && data.user) request.promise.fulfill(new global.Appacitive.User(data.user));
@@ -437,23 +437,23 @@
 			return request.send();
 		};
 
-		User.getUserByToken = function(token, callbacks) {
+		User.getUserByToken = function(token, options) {
 			if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
 			global.Appacitive.Session.setUserAuthHeader(token, 0, true);
-			return _getUserByIdType("getUserByTokenUrl", [token], callbacks);
+			return _getUserByIdType("getUserByTokenUrl", [token], options);
 		};
 
-		User.getUserByUsername = function(username, callbacks) {
+		User.getUserByUsername = function(username, options) {
 			if (!username || !_type.isString(username) || username.length === 0) throw new Error("Please specify valid username");
-			return _getUserByIdType("getUserByUsernameUrl", [username], callbacks);
+			return _getUserByIdType("getUserByUsernameUrl", [username], options);
 		};
 
-		User.logout = function(makeApiCall) {
+		User.logout = function(makeApiCall, options) {
 			_authenticatedUser = null;
-			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall);
+			return global.Appacitive.Session.removeUserAuthHeader(makeApiCall, options);
 		};
 
-		User.sendResetPasswordEmail = function(username, subject, callbacks) {
+		User.sendResetPasswordEmail = function(username, subject, options) {
 
 			if (!username || !_type.isString(username)  || username.length === 0) throw new Error("Please specify valid username");
 			if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
@@ -464,7 +464,7 @@
 				method: 'POST',
 				type: 'user',
 				op: 'getSendResetPasswordEmailUrl',
-				callbacks: callbacks,
+				options: options,
 				data: passwordResetOptions,
 				onSuccess: function() {
 					request.promise.fulfill();
@@ -473,7 +473,7 @@
 			return request.send();
 		};
 
-		User.resetPassword = function(token, newPassword, callbacks) {
+		User.resetPassword = function(token, newPassword, options) {
 
 			if (!token) throw new Error("Please specify token");
 			if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
@@ -482,7 +482,7 @@
 				method: 'POST',
 				type: 'user',
 				op: 'getResetPasswordUrl',
-				callbacks: callbacks,
+				options: options,
 				data: { newpassword: newPassword },
 				args: [token],
 				onSuccess: function() {
@@ -492,7 +492,7 @@
 			return request.send();
 		};
 
-		User.validateResetPasswordToken = function(token, callbacks) {
+		User.validateResetPasswordToken = function(token, options) {
 			
 			if (!token) throw new Error("Please specify token");
 
@@ -500,7 +500,7 @@
 				method: 'POST',
 				type: 'user',
 				op: 'getValidateResetPasswordUrl',
-				callbacks: callbacks,
+				options: options,
 				data: {},
 				args: [token],
 				onSuccess: function(a) {

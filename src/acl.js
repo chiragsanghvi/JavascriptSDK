@@ -192,7 +192,7 @@
 
 	var _groupManager = function() {
 		
-		var _addRemoveMembers = function(op, groupName, members) {
+		var _addRemoveMembers = function(op, groupName, members, options) {
 
 			if (!groupName || !_type.isString(groupName) ||  groupName.length === 0) throw new Error("Please specify valid groupname"); 
 
@@ -222,6 +222,7 @@
 				args: [groupName],
 				data: cmd,
 				entity: this,
+				options: options,
 				onSuccess: function(data) {
 					request.promise.fulfill(data);
 				}
@@ -230,11 +231,11 @@
 			return request.send();
 		};
 
-		this.addMembers = function(groupName, members) {
+		this.addMembers = function(groupName, members, options) {
 			return _addRemoveMembers('add', groupName, members);
 		};
 
-		this.removeMembers = function(groupName, members) {
+		this.removeMembers = function(groupName, members, options) {
 			return _addRemoveMembers('remove', groupName, members);
 		};
 	};

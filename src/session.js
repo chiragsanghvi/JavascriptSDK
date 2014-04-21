@@ -20,17 +20,17 @@
 			this.windowtime = 240;
 		};
 
-		var _sessionKey = null, _appName = null, _options = null, _apikey = null, _authToken = null, authEnabled = false;
+		var _sessionKey = null, _appName = null, _options = null, _apikey = null, _authToken = null, authEnabled = false, _masterKey;
 
 		this.useApiKey = true ;
 
 		this.onSessionCreated = function() {};
 
-		this.recreate = function(callbacks) {
-			return global.Appacitive.Session.create(callbacks);
+		this.recreate = function(options) {
+			return global.Appacitive.Session.create(options);
 		};
 
-		this.create = function(callbacks) {
+		this.create = function(options) {
 
 			if (!this.initialized) throw new Error("Intialize Appacitive SDK");
 
@@ -43,7 +43,7 @@
 				method: 'PUT',
 				type: 'application',
 				op: 'getSessionCreateUrl',
-				callbacks: callbacks,
+				options: options,
 				data: _sRequest,
 				onSuccess: function(data) {
 					_sessionKey = data.session.sessionkey;
@@ -57,24 +57,39 @@
 
 		global.Appacitive.http.addProcessor({
 			pre: function(request) {
+				request.options = request.options || {};
 				if (global.Appacitive.Session.useApiKey) {
-					request.headers.push({ key: 'ak', value: _apikey });
+					var key = _apikey;
+					if ((request.options.useMasterKey || (global.Appacitive.useMasterKey && !request.options.useMasterKey )) && _type.isString(_masterKey) && _masterKey.length > 0) {
+						key = _masterKey;
+					}
+					request.headers.push({ key: 'ak', value: key });
 				} else {
 					request.headers.push({ key: 'as', value: _sessionKey });
 				}
 
 				if (authEnabled === true) {
-					var userAuthHeader = request.headers.filter(function (uah) {
-						return uah.key == 'ut';
+					var ind = -1;
+					var userAuthHeader = request.headers.filter(function (uah, i) {
+						if (uah.key == 'ut') {
+							ind = i;
+							return true;
+						}
+						return false;
 					});
-					if (userAuthHeader.length == 1) {
-						request.headers.forEach(function (uah) {
-							if (uah.key == 'ut') {
-								uah.value = _authToken;
-							}
-						});
+
+					if (request.options && request.options.ignoreUserToken) {
+						if (ind != -1) request.headers.splice(ind, 1);
 					} else {
-						request.headers.push({ key: 'ut', value: _authToken });
+						if (userAuthHeader.length == 1) {
+							request.headers.forEach(function (uah) {
+								if (uah.key == 'ut') {
+									uah.value = _authToken;
+								}
+							});
+						} else {
+							request.headers.push({ key: 'ut', value: _authToken });
+						}
 					}
 				}
 			}
@@ -185,6 +200,12 @@
 			}
 		};
 
+		this.setMasterKey = function(key) {
+			_masterKey = key;
+		};
+
+		this.useMasterKey = false;
+
 		// the name of the environment, simple public property
 		var _env = 'sandbox';
 		this.environment = function() {
@@ -209,12 +230,17 @@
 
 		if (global.Appacitive.Session.initialized) return;
 		
-		if (!options.apikey || options.apikey.length === 0) throw new Error("apikey is mandatory");
-		
+		if (options.masterKey && options.masterKey.length > 0) global.Appacitive.Session.setMasterKey(options.masterKey);
+
+		if (!options.apikey || options.apikey.length === 0) {
+			if (_masterKey) options.apikey = _masterKey;
+		    else throw new Error("apikey is mandatory");
+		}
+
 		if (!options.appId || options.appId.length === 0) throw new Error("appId is mandatory");
 
-
-		global.Appacitive.Session.setApiKey( options.apikey) ;
+		
+		global.Appacitive.Session.setApiKey( options.apikey);
 		global.Appacitive.Session.environment(options.env || 'sandbox' );
 		global.Appacitive.useApiKey = true;
 		global.Appacitive.appId = options.appId;

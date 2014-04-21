@@ -220,34 +220,34 @@
 
 	};
 
-	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(options, callbacks) {
-		options = options || {};
-		if (this.className) options.relation = this.className;
-		if (!options.relation) throw new Error("Specify relation");
-		if (!options.id) throw new Error("Specify id to fetch");
-		var obj = global.Appacitive.Connection._create({ __relationtype: options.relation, __id: options.id });
-		obj.fields = options.fields;
-		return obj.fetch(callbacks);
+	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(attrs, options) {
+		attrs = attrs || {};
+		if (this.className) attrs.relation = this.className;
+		if (!attrs.relation) throw new Error("Specify relation");
+		if (!attrs.id) throw new Error("Specify id to fetch");
+		var obj = global.Appacitive.Connection._create({ __relationtype: attrs.relation, __id: attrs.id });
+		obj.fields = attrs.fields;
+		return obj.fetch(options);
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
-	global.Appacitive.Connection.multiGet = function(options, callbacks) {
-		options = options || {};
+	global.Appacitive.Connection.multiGet = function(attrs, options) {
+		attrs = attrs || {};
 		if (this.className) {
-			options.relation = this.className;
-			options.entity = this;
+			attrs.relation = this.className;
+			attrs.entity = this;
 		}
-		if (!options.relation || !_type.isString(options.relation) || options.relation.length === 0) throw new Error("Specify valid relation");
-		if (!options.ids || options.ids.length === 0) throw new Error("Specify ids to delete");
+		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
+		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
 		var request = new global.Appacitive._Request({
 			method: 'GET',
 			type: 'connection',
 			op: 'getMultiGetUrl',
-			args: [options.relation, options.ids.join(','), options.fields],
-			callbacks: callbacks,
+			args: [attrs.relation, attrs.ids.join(','), attrs.fields],
+			options: options,
 			onSuccess: function(d) {
-				request.promise.fulfill(_parseConnections(d.connections, options.entity));
+				request.promise.fulfill(_parseConnections(d.connections, attrs.entity));
 			}
 		});
 			
@@ -277,7 +277,7 @@
 			type: 'connection',
 			op: 'getMultiDeleteUrl',
 			args: [attrs.relation],
-			callbacks: callbacks,
+			options: options,
 			onSuccess: function(d) {
 				if (options && !options.silent) {
 					models.forEach(function(m) {

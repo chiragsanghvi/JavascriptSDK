@@ -18,7 +18,7 @@
 
 		if (!options || !_type.isObject(options)) throw new Error("Please specify request options");
 
-		this.promise = global.Appacitive.Promise.buildPromise(options.callbacks);
+		this.promise = global.Appacitive.Promise.buildPromise(options.options);
 
 		var request = this.request = new global.Appacitive.HttpRequest();
 		
@@ -38,7 +38,7 @@
 
 		request.promise = this.promise;
 
-		request.options = options.callbacks;
+		request.options = options.options;
 
 		if (options.entity) request.entity = options.entity; 
 
