@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Apr 22 10:05:44 IST 2014
+ * Build time 	: Tue Apr 22 10:27:17 IST 2014
  */
 "use strict";
 
@@ -4518,6 +4518,7 @@ var extend = function(protoProps, staticProps) {
 
 		this.mergeWithPrevious = function() {
 			_copy(object, _snapshot);
+			if (that._aclFactory) that._aclFactory.merge();
 			_removeTags = [];
 			_atomicProps = {};
 			_multivaluedProps = {};
@@ -4527,6 +4528,7 @@ var extend = function(protoProps, staticProps) {
 
 		var _merge = function() {
 			_copy(_snapshot, object);
+			if (that._aclFactory) that._aclFactory.merge();
 			_removeTags = [];
 			_atomicProps = {};
 			_multivaluedProps = {};
@@ -4629,8 +4631,7 @@ var extend = function(protoProps, staticProps) {
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
-						else if (that._aclFactory) that._aclFactory.merge();
-
+						
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
@@ -4683,8 +4684,6 @@ var extend = function(protoProps, staticProps) {
 							
 							_snapshot = data[type];
 							
-							if (that._aclFactory) that._aclFactory.merge();
-
 							_merge();
 							
 							delete that.created;
@@ -4733,6 +4732,7 @@ var extend = function(protoProps, staticProps) {
 					if (data && data[type]) {
 						_snapshot = data[type];
 						_copy(_snapshot, object);
+						if (that._aclFactory) that._aclFactory._rollback();
 						if (data.connection) {
 							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
 								that.setupConnection(object.__endpointa, object.__endpointb);
@@ -4802,7 +4802,6 @@ var extend = function(protoProps, staticProps) {
 			return request.send();
 		};
 		this.del = this.destroy;
-
 
 		if (this.type == 'object') {
 			this.destroyWithConnections = function(options) {

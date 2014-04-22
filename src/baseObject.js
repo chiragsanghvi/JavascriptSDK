@@ -677,6 +677,7 @@
 
 		this.mergeWithPrevious = function() {
 			_copy(object, _snapshot);
+			if (that._aclFactory) that._aclFactory.merge();
 			_removeTags = [];
 			_atomicProps = {};
 			_multivaluedProps = {};
@@ -686,6 +687,7 @@
 
 		var _merge = function() {
 			_copy(_snapshot, object);
+			if (that._aclFactory) that._aclFactory.merge();
 			_removeTags = [];
 			_atomicProps = {};
 			_multivaluedProps = {};
@@ -788,8 +790,7 @@
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
-						else if (that._aclFactory) that._aclFactory.merge();
-
+						
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
@@ -842,8 +843,6 @@
 							
 							_snapshot = data[type];
 							
-							if (that._aclFactory) that._aclFactory.merge();
-
 							_merge();
 							
 							delete that.created;
@@ -892,6 +891,7 @@
 					if (data && data[type]) {
 						_snapshot = data[type];
 						_copy(_snapshot, object);
+						if (that._aclFactory) that._aclFactory._rollback();
 						if (data.connection) {
 							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
 								that.setupConnection(object.__endpointa, object.__endpointb);
@@ -961,7 +961,6 @@
 			return request.send();
 		};
 		this.del = this.destroy;
-
 
 		if (this.type == 'object') {
 			this.destroyWithConnections = function(options) {
