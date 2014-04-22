@@ -404,7 +404,7 @@
 			}
 			else delete changeSet["__attributes"];
 
-			if (that.type == 'object') {
+			if (that.type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
 				if (acls) changeSet['__acls'] = acls;
 			}
@@ -762,7 +762,7 @@
 			}
 			if (object["__revision"]) delete object["__revision"];
 			
-			if (type == 'object') {
+			if (type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
 				if (acls) object.__acls = acls;
 			}
@@ -788,7 +788,7 @@
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
-						else that._aclFactory.merge();
+						else if (that._aclFactory) that._aclFactory.merge();
 
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
@@ -842,7 +842,7 @@
 							
 							_snapshot = data[type];
 							
-							that._aclFactory.merge();
+							if (that._aclFactory) that._aclFactory.merge();
 
 							_merge();
 							

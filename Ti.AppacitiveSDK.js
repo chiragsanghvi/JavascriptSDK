@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Apr 22 09:24:20 IST 2014
+ * Build time 	: Tue Apr 22 10:05:44 IST 2014
  */
 "use strict";
 
@@ -2286,7 +2286,7 @@ Depends on  NOTHING
 	};
 
 	global.Appacitive.reset = function() {
-
+		global.Appacitive.Session.reset();
 	};
 
 } (global));
@@ -2303,7 +2303,10 @@ Depends on  NOTHING
 
 	global.Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
+			var env = global.Appacitive.Session.environment()
+			req.options = req.options || {};
+			if (_type.isString(req.options.env)) env = req.options.env;
+			req.headers.push({ key: 'e', value: env });
 		}
 	});
 
@@ -4189,7 +4192,7 @@ var extend = function(protoProps, staticProps) {
 			}
 			else delete changeSet["__attributes"];
 
-			if (that.type == 'object') {
+			if (that.type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
 				if (acls) changeSet['__acls'] = acls;
 			}
@@ -4547,7 +4550,7 @@ var extend = function(protoProps, staticProps) {
 			}
 			if (object["__revision"]) delete object["__revision"];
 			
-			if (type == 'object') {
+			if (type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
 				if (acls) object.__acls = acls;
 			}
@@ -4573,7 +4576,7 @@ var extend = function(protoProps, staticProps) {
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
-						else that._aclFactory.merge();
+						else if (that._aclFactory) that._aclFactory.merge();
 
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
@@ -4627,7 +4630,7 @@ var extend = function(protoProps, staticProps) {
 							
 							_snapshot = data[type];
 							
-							that._aclFactory.merge();
+							if (that._aclFactory) that._aclFactory.merge();
 
 							_merge();
 							

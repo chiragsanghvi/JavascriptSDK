@@ -307,7 +307,7 @@
 	};
 
 	global.Appacitive.reset = function() {
-
+		global.Appacitive.Session.reset();
 	};
 
 } (global));
@@ -324,7 +324,10 @@
 
 	global.Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
+			var env = global.Appacitive.Session.environment()
+			req.options = req.options || {};
+			if (_type.isString(req.options.env)) env = req.options.env;
+			req.headers.push({ key: 'e', value: env });
 		}
 	});
 
