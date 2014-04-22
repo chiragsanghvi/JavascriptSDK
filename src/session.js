@@ -22,7 +22,9 @@
 
 		var _sessionKey = null, _appName = null, _options = null, _apikey = null, _authToken = null, authEnabled = false, _masterKey;
 
-		this.useApiKey = true ;
+		this.useApiKey = true;
+
+		this.useMasterKey = false;
 
 		this.onSessionCreated = function() {};
 
@@ -62,6 +64,8 @@
 					var key = _apikey;
 					if ((request.options.useMasterKey || (global.Appacitive.useMasterKey && !request.options.useMasterKey )) && _type.isString(_masterKey) && _masterKey.length > 0) {
 						key = _masterKey;
+					} else if (_type.isString(request.options.apikey)) {
+						key = request.options.apikey;
 					}
 					request.headers.push({ key: 'ak', value: key });
 				} else {
@@ -78,17 +82,22 @@
 						return false;
 					});
 
-					if (request.options && request.options.ignoreUserToken) {
+					if (request.options.ignoreUserToken) {
 						if (ind != -1) request.headers.splice(ind, 1);
 					} else {
+						var token = _authToken;
+						
+						if (_type.isString(request.options.userToken) && request.options.userToken.length > 0)
+							token = request.options.userToken;
+
 						if (userAuthHeader.length == 1) {
 							request.headers.forEach(function (uah) {
 								if (uah.key == 'ut') {
-									uah.value = _authToken;
+									uah.value = token;
 								}
 							});
 						} else {
-							request.headers.push({ key: 'ut', value: _authToken });
+							request.headers.push({ key: 'ut', value: token });
 						}
 					}
 				}
@@ -204,7 +213,13 @@
 			_masterKey = key;
 		};
 
-		this.useMasterKey = false;
+		this.reset = function() {
+			this.removeUserAuthHeader();
+			_sessionKey = null, _appName = null, _options = null, _apikey = null, _authToken = null, authEnabled = false, _masterKey = null;
+			this.initialized = false;
+			this.useApiKey = false;
+			this.useMasterKey = false;
+		};
 
 		// the name of the environment, simple public property
 		var _env = 'sandbox';
@@ -289,6 +304,10 @@
 				}
 			}
 		}			
+	};
+
+	global.Appacitive.reset = function() {
+
 	};
 
 } (global));
