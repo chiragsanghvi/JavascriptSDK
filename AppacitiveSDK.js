@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Apr 24 16:59:08 IST 2014
+ * Build time 	: Thu Apr 24 19:26:26 IST 2014
  */
 "use strict";
 
@@ -5395,6 +5395,8 @@ var extend = function(protoProps, staticProps) {
 
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
 			
+			var that = this;
+
 			var request = new global.Appacitive._Request({
 				method: 'POST',
 				type: 'user',

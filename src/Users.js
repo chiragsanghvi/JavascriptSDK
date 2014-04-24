@@ -22,6 +22,8 @@
 
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
 			
+			var that = this;
+
 			var request = new global.Appacitive._Request({
 				method: 'POST',
 				type: 'user',
