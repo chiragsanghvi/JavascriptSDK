@@ -133,7 +133,9 @@
 			return data;
 		};
 
-		this.attributes = this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
+		this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
+
+		this.attributes = object;
 
 		this.properties = function() {
 			var properties = this.attributes();
