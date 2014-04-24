@@ -228,4 +228,8 @@
 		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
+	global.Appacitive.Object.saveAll = function(objects, options) {
+		return global.Appacitive.BaseObject._saveAll(objects, options, 'Object');
+	};
+ 
 })(global);

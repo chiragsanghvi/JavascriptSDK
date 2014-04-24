@@ -214,6 +214,15 @@
         return promise;
     };
 
+    Promise._continueUntil = function(iterator, func) {
+        if (_type.isFunction(iterator) && iterator()) {
+            return func().then(function() {
+                return Promise._continueUntil(iterator, func);
+            });
+        }
+        return new Promise().fulfill();
+    };
+
     global.Appacitive.Promise = Promise;
 
 })(global);

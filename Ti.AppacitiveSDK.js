@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Apr 24 11:51:40 IST 2014
+ * Build time 	: Thu Apr 24 15:08:39 IST 2014
  */
 "use strict";
 
@@ -1531,6 +1531,15 @@ var global = {};
             promise.then(options.success, options.error);
         }
         return promise;
+    };
+
+    Promise._continueUntil = function(iterator, func) {
+        if (_type.isFunction(iterator) && iterator()) {
+            return func().then(function() {
+                return Promise._continueUntil(iterator, func);
+            });
+        }
+        return new Promise().fulfill();
     };
 
     global.Appacitive.Promise = Promise;
@@ -4583,10 +4592,12 @@ var extend = function(protoProps, staticProps) {
 
 						that.created = true;
 
-						that.trigger('sync', that, data[type], options);
+						if (!options.silent) that.trigger('sync', that, data[type], options);
 
 						request.promise.fulfill(that);
 					} else {
+						if (!options.silent) that.trigger('error', that, data.status, options);
+
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, { error: data.status });
 						request.promise.reject(data.status, that);
 					}
@@ -4605,6 +4616,8 @@ var extend = function(protoProps, staticProps) {
 			for (var p in changeSet) {
 				if (p[0] == '$') delete changeSet[p];
 			}
+
+			options = options || {};
 
 			if (!Object.isEmpty(changeSet)) {
 
@@ -4635,7 +4648,7 @@ var extend = function(protoProps, staticProps) {
 							
 							delete that.created;
 							
-							that.trigger('sync', that, data[type], options);
+							if (!options.silent) that.trigger('sync', that, data[type], options);
 
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
 							request.promise.fulfill(that);
@@ -4643,6 +4656,7 @@ var extend = function(protoProps, staticProps) {
 							data = data || {};
 							data.status =  data.status || {};
 							data.status = _getOutpuStatus(data.status);
+							if (!options.silent) that.trigger('error', that, data.status, options);
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
 							request.promise.reject(data.status, that);
 						}
@@ -4661,6 +4675,8 @@ var extend = function(protoProps, staticProps) {
 
 			if (!object.__id) throw new Error('Please specify id for get operation');
 			
+			options = options || [];
+
 			var type = this.type;
 
 			// for User and Device objects
@@ -4685,7 +4701,8 @@ var extend = function(protoProps, staticProps) {
 								that.setupConnection(object.__endpointa, object.__endpointb);
 							}
 						}
-						that.trigger('sync', that, data[type], options);
+
+						if (!options.silent) that.trigger('sync', that, data[type], options);
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
@@ -4759,6 +4776,24 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	global.Appacitive.BaseObject = _BaseObject;
+
+	global.Appacitive.BaseObject._saveAll = function(objects, options, type) {
+	    var unsavedObjects = [], tasks = [];
+	    
+    	options = options || [];
+
+		if (!_type.isArray(objects)) throw new Error("Provide an array of objects for Object.saveAll");	    
+
+	    objects.forEach(function(o) {
+	    	if (!(o instanceof global.Appacitive.BaseObject) && _type.isObject(o)) o = new global.Appacitive[type](o);
+	    	if (unsavedObjects.find(function(x) { return x.id() == o.id(); })) return;
+	    	unsavedObjects.push(o);
+
+	    	tasks.push(o.save());
+	    });
+
+	    return Appacitive.Promise.when(tasks);
+	};
 
 	global.Appacitive.BaseObject.prototype.toString = function() {
 		return JSON.stringify(this.getObject());
@@ -5314,6 +5349,10 @@ var extend = function(protoProps, staticProps) {
 		return new global.Appacitive.Queries.FindAllQuery(options);
 	};
 
+	global.Appacitive.Object.saveAll = function(objects, options) {
+		return global.Appacitive.BaseObject._saveAll(objects, options, 'Object');
+	};
+ 
 })(global);
 (function (global) {
 
@@ -5637,6 +5676,10 @@ var extend = function(protoProps, staticProps) {
 			options.entity = this;
 		}
 		return new global.Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery(options);
+	};
+
+	global.Appacitive.Connection.saveAll = function(objects, options) {
+		return global.Appacitive.BaseObject._saveAll(objects, options, 'Connection');
 	};
 
 })(global);
@@ -6240,18 +6283,6 @@ var extend = function(protoProps, staticProps) {
       return this;
     },
 
-
-    /**
-     * Remove a model, or a list of models from the set. Pass silent to avoid
-     * firing the <code>remove</code> event for every model removed.
-     *
-     * @param {Array} models The model or list of models to remove from the
-     *   collection.
-     * @param {Object} options An optional object with Backbone-style options.
-     * Valid options are: <ul>
-     *   <li>silent: Set to true to avoid firing the `remove` event.
-     * </ul>
-     */
     remove: function(models, options) {
       var i, l, index, model;
       options = options || {};
@@ -6359,15 +6390,6 @@ var extend = function(protoProps, staticProps) {
       return this.where(attrs, true);
     },
 
-    /**
-     * Forces the collection to re-sort itself. You don't need to call this
-     * under normal circumstances, as the set will maintain sort order as each
-     * item is added.
-     * @param {Object} options An optional object with Backbone-style options.
-     * Valid options are: <ul>
-     *   <li>silent: Set to true to avoid firing the `reset` event.
-     * </ul>
-     */
     sort: function(options) {
       options = options || {};
       if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
@@ -6406,18 +6428,6 @@ var extend = function(protoProps, staticProps) {
       return (this.length > 0) ? this.models[this.length - 1] : null;
     },
 
-    /**
-     * When you have more items than you want to add or remove individually,
-     * you can reset the entire set with a new list of models, without firing
-     * any `add` or `remove` events. Fires `reset` when finished.
-     *
-     * @param {Array} models The model or list of models to remove from the
-     *   collection.
-     * @param {Object} options An optional object with Backbone-style options.
-     * Valid options are: <ul>
-     *   <li>silent: Set to true to avoid firing the `reset` event.
-     * </ul>
-     */
     reset: function(models, options) {
       options || (options = {});
       for (var i = 0, length = this.models.length; i < length; i++) {
@@ -6429,21 +6439,6 @@ var extend = function(protoProps, staticProps) {
       return this;
     },
 
-    /**
-     * Fetches the default set of models for this collection, resetting the
-     * collection when they arrive. If `add: true` is passed, appends the
-     * models to the collection instead of resetting.
-     *
-     * @param {Object} options An optional object with Backbone-style options.
-     * Valid options are:<ul>
-     *   <li>silent: Set to true to avoid firing `add` or `reset` events for
-     *   models fetched by this fetch.
-     *   <li>success: A Backbone-style success callback.
-     *   <li>error: An Backbone-style error callback.
-     *   <li>useMasterKey: In Cloud Code and Node only, uses the Master Key for
-     *       this request.
-     * </ul>
-     */
     fetch: function(options) {
       options = _clone(options) || {};
       
@@ -6464,19 +6459,6 @@ var extend = function(protoProps, staticProps) {
     },
 
 
-    /**
-     * Mutiget a set of models for this collection, resetting the
-     * collection when they arrive. If `add: true` is passed, appends the
-     * models to the collection instead of resetting.
-     *
-     * @param {Object} options An optional object with Backbone-style options.
-     * Valid options are:<ul>
-     *   <li>silent: Set to true to avoid firing `add` or `reset` events for
-     *   models fetched by this fetch.
-     *   <li>success: A Backbone-style success callback.
-     *   <li>error: An Backbone-style error callback.
-     * </ul>
-     */
     mutiGet: function(options) {
       options = _clone(options) || {};
       
@@ -6503,24 +6485,10 @@ var extend = function(protoProps, staticProps) {
       return promise;
     },
 
-    /**
-     * Creates a new instance of a model in this collection. Add the model to
-     * the collection immediately, unless `wait: true` is passed, in which case
-     * we wait for the server to agree.
-     *
-     * @param {Appacitive.Object} model The new model to create and add to the
-     *   collection.
-     * @param {Object} options An optional object with Backbone-style options.
-     * Valid options are:<ul>
-     *   <li>wait: Set to true to wait for the server to confirm creation of the
-     *       model before adding it to the collection.
-     *   <li>silent: Set to true to avoid firing an `add` event.
-     *   <li>success: A Backbone-style success callback.
-     *   <li>error: An Backbone-style error callback.
-     *   <li>useMasterKey: In Cloud Code and Node only, uses the Master Key for
-     *       this request.
-     * </ul>
-     */
+    saveAll: function(options) {
+      return this.model.saveAll(_extend(options));
+    },
+
     create: function(model, options) {
       var collection = this;
       options = options ? _clone(options) : {};
@@ -6594,33 +6562,6 @@ var extend = function(protoProps, staticProps) {
     }
   });
 
-  /**
-   * Creates a new subclass of <code>Appacitive.Collection</code>.  For example,<pre>
-   *   var MyCollection = Appacitive.Collection.extend({
-   *     // Instance properties
-   *
-   *     model: MyClass,
-   *     query: MyQuery,
-   *
-   *     getFirst: function() {
-   *       return this.at(0);
-   *     }
-   *   }, {
-   *     // Class properties
-   *
-   *     makeOne: function() {
-   *       return new MyCollection();
-   *     }
-   *   });
-   *
-   *   var collection = new MyCollection();
-   * </pre>
-   *
-   * @function
-   * @param {Object} instanceProps Instance properties for the collection.
-   * @param {Object} classProps Class properies for the collection.
-   * @return {Class} A new subclass of <code>Appacitive.Collection</code>.
-   */
   global.Appacitive.Collection.extend = function(protoProps, classProps) {
     if (protoProps && protoProps.query) {
       protoProps._query = protoProps.query;

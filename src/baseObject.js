@@ -795,10 +795,12 @@
 
 						that.created = true;
 
-						that.trigger('sync', that, data[type], options);
+						if (!options.silent) that.trigger('sync', that, data[type], options);
 
 						request.promise.fulfill(that);
 					} else {
+						if (!options.silent) that.trigger('error', that, data.status, options);
+
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, { error: data.status });
 						request.promise.reject(data.status, that);
 					}
@@ -817,6 +819,8 @@
 			for (var p in changeSet) {
 				if (p[0] == '$') delete changeSet[p];
 			}
+
+			options = options || {};
 
 			if (!Object.isEmpty(changeSet)) {
 
@@ -847,7 +851,7 @@
 							
 							delete that.created;
 							
-							that.trigger('sync', that, data[type], options);
+							if (!options.silent) that.trigger('sync', that, data[type], options);
 
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
 							request.promise.fulfill(that);
@@ -855,6 +859,7 @@
 							data = data || {};
 							data.status =  data.status || {};
 							data.status = _getOutpuStatus(data.status);
+							if (!options.silent) that.trigger('error', that, data.status, options);
 							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
 							request.promise.reject(data.status, that);
 						}
@@ -873,6 +878,8 @@
 
 			if (!object.__id) throw new Error('Please specify id for get operation');
 			
+			options = options || [];
+
 			var type = this.type;
 
 			// for User and Device objects
@@ -897,7 +904,8 @@
 								that.setupConnection(object.__endpointa, object.__endpointb);
 							}
 						}
-						that.trigger('sync', that, data[type], options);
+
+						if (!options.silent) that.trigger('sync', that, data[type], options);
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
@@ -971,6 +979,24 @@
 	};
 
 	global.Appacitive.BaseObject = _BaseObject;
+
+	global.Appacitive.BaseObject._saveAll = function(objects, options, type) {
+	    var unsavedObjects = [], tasks = [];
+	    
+    	options = options || [];
+
+		if (!_type.isArray(objects)) throw new Error("Provide an array of objects for Object.saveAll");	    
+
+	    objects.forEach(function(o) {
+	    	if (!(o instanceof global.Appacitive.BaseObject) && _type.isObject(o)) o = new global.Appacitive[type](o);
+	    	if (unsavedObjects.find(function(x) { return x.id() == o.id(); })) return;
+	    	unsavedObjects.push(o);
+
+	    	tasks.push(o.save());
+	    });
+
+	    return Appacitive.Promise.when(tasks);
+	};
 
 	global.Appacitive.BaseObject.prototype.toString = function() {
 		return JSON.stringify(this.getObject());

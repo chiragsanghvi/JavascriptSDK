@@ -322,4 +322,8 @@
 		return new global.Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery(options);
 	};
 
+	global.Appacitive.Connection.saveAll = function(objects, options) {
+		return global.Appacitive.BaseObject._saveAll(objects, options, 'Connection');
+	};
+
 })(global);
