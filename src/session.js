@@ -248,7 +248,7 @@
 		if (options.masterKey && options.masterKey.length > 0) global.Appacitive.Session.setMasterKey(options.masterKey);
 
 		if (!options.apikey || options.apikey.length === 0) {
-			if (_masterKey) options.apikey = _masterKey;
+			if (options.masterKey) options.apikey = options.masterKey;
 		    else throw new Error("apikey is mandatory");
 		}
 

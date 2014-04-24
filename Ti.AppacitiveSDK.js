@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Apr 24 10:28:32 IST 2014
+ * Build time 	: Thu Apr 24 11:51:40 IST 2014
  */
 "use strict";
 
@@ -2227,7 +2227,7 @@ Depends on  NOTHING
 		if (options.masterKey && options.masterKey.length > 0) global.Appacitive.Session.setMasterKey(options.masterKey);
 
 		if (!options.apikey || options.apikey.length === 0) {
-			if (_masterKey) options.apikey = _masterKey;
+			if (options.masterKey) options.apikey = options.masterKey;
 		    else throw new Error("apikey is mandatory");
 		}
 
