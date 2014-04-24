@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Apr 19 17:41:51 IST 2014
+ * Build time 	: Thu Apr 24 10:31:26 IST 2014
  */
 "use strict";
 
@@ -3644,7 +3644,7 @@ Depends on  NOTHING
 			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
 				self.results = _parseResult(d);
-		   		promise.fulfill(results);
+		   		promise.fulfill(self.results);
 			};
 			request.promise = promise;
 			request.entity = this;
