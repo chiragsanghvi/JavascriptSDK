@@ -789,7 +789,7 @@
 			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
 				self.results = _parseResult(d);
-		   		promise.fulfill(results);
+		   		promise.fulfill(self.results);
 			};
 			request.promise = promise;
 			request.entity = this;
