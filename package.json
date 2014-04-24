@@ -1,7 +1,7 @@
 {
   "name": "appacitive",
   "description": "Allows you to integrate applications built using javascript with the Appacitive platform. ",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "keywords": ["Appacitive", "BAAS", "cloud", "api"],
   "author": {
     "name": "Chirag Sanghvi",

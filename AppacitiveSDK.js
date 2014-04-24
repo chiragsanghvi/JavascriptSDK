@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Apr 24 11:47:49 IST 2014
+ * Build time 	: Thu Apr 24 16:59:08 IST 2014
  */
 "use strict";
 
@@ -4367,7 +4367,7 @@ var extend = function(protoProps, staticProps) {
 			 	else if (_type.isString(value)) { object[key] = value; }
 			 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
 			 	else if (value instanceof Date) {
-			 		object[key] = getDateValue(dataType, value);
+			 		object[key] = getDateValue(oType, value);
 			 	} else if (_type.isObject(value)) {
 			 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
 			 		 	object[key] = value;
