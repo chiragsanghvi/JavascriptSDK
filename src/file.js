@@ -28,8 +28,8 @@
           request.log = false;
           request.description = 'Upload file';
           request.data = file;
-          request.headers.push({ key:'content-type', value: type });
-          request.send().then(onSuccess, function() {
+          request.headers.push({ key:'Content-Type', value: type });
+          request.send().then(onSuccess, function(d) {
             promise.reject(d, that);
           });
       };
