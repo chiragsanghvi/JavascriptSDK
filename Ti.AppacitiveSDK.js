@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Apr 25 13:24:51 IST 2014
+ * Build time 	: Fri Apr 25 16:28:58 IST 2014
  */
 "use strict";
 
@@ -662,7 +662,7 @@ var global = {};
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
 
-					if ((data.code >= '200' && data.code <= '300') || (data.status && data.status.code >= '200' && data.status.code <= '300')) {
+					if ((data.code >= 200 && data.code <= 300) || (data.status && data.status.code >= 200 && data.status.code <= 300)) {
 						that.onResponse(request, data);
 					} else {
 						data = data || {};
