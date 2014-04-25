@@ -22,8 +22,6 @@
       };
 
       var _upload = function(url, file, type, onSuccess, promise) {
-          var fd = new FormData();
-          fd.append("fileToUpload", file);
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'PUT';
