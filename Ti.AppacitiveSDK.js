@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Apr 25 23:21:05 IST 2014
+ * Build time 	: Sat Apr 26 15:40:48 IST 2014
  */
 "use strict";
 
@@ -2493,7 +2493,7 @@ Depends on  NOTHING
         _filter.call(this);
 
         options = options || {};
-        if (!options.tags || _type.isArray(options.tags) || options.tags.length === 0) throw new Error("Specify valid tags");
+        if (!options.tags || !_type.isArray(options.tags) || options.tags.length === 0) throw new Error("Specify valid tags");
 
         this.tags = options.tags;
         this.operator = options.operator;
