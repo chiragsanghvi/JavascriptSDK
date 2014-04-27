@@ -29,7 +29,7 @@
 				    } catch(e){}
 			    }
 
-				if (!isLocalStorageSupported) {
+				if (!isLocalStorageSupported()) {
 					global.Appacitive.Cookie.setCookie(key, value);
 					return this;
 				} else {
@@ -45,7 +45,7 @@
 
 				var value;
 
-				if (!isLocalStorageSupported) {
+				if (!isLocalStorageSupported()) {
 					value = global.Appacitive.Cookie.readCookie(key);
 				} else {
 					key = global.Appacitive.getAppPrefix(key);
@@ -66,7 +66,7 @@
 			
 			this.remove = function(key) {
 				if (!key) return;
-				if (!isLocalStorageSupported) {
+				if (!isLocalStorageSupported()) {
 					global.Appacitive.Cookie.eraseCookie(key);
 					return;
 				}
