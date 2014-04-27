@@ -30,7 +30,7 @@
 			    }
 
 				if (!isLocalStorageSupported) {
-					global.Appacitive.Cookies.setCookie(key, value);
+					global.Appacitive.Cookie.setCookie(key, value);
 					return this;
 				}
 				
@@ -46,7 +46,7 @@
 				var value;
 
 				if (!isLocalStorageSupported) {
-					value = global.Appacitive.Cookies.readCookie(key);
+					value = global.Appacitive.Cookie.readCookie(key);
 				} else {
 					key = global.Appacitive.getAppPrefix(key);
 					value = _localStorage.getItem(key);
@@ -67,7 +67,7 @@
 			this.remove = function(key) {
 				if (!key) return;
 				if (!isLocalStorageSupported) {
-					global.Appacitive.Cookies.eraseCookie(key);
+					global.Appacitive.Cookie.eraseCookie(key);
 					return;
 				}
 				key = global.Appacitive.getAppPrefix(key);

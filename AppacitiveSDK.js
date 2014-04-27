@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sun Apr 27 10:28:46 IST 2014
+ * Build time 	: Sun Apr 27 11:02:39 IST 2014
  */
 "use strict";
 
@@ -7018,7 +7018,7 @@ var extend = function(protoProps, staticProps) {
 			    }
 
 				if (!isLocalStorageSupported) {
-					global.Appacitive.Cookies.setCookie(key, value);
+					global.Appacitive.Cookie.setCookie(key, value);
 					return this;
 				}
 				
@@ -7034,7 +7034,7 @@ var extend = function(protoProps, staticProps) {
 				var value;
 
 				if (!isLocalStorageSupported) {
-					value = global.Appacitive.Cookies.readCookie(key);
+					value = global.Appacitive.Cookie.readCookie(key);
 				} else {
 					key = global.Appacitive.getAppPrefix(key);
 					value = _localStorage.getItem(key);
@@ -7055,7 +7055,7 @@ var extend = function(protoProps, staticProps) {
 			this.remove = function(key) {
 				if (!key) return;
 				if (!isLocalStorageSupported) {
-					global.Appacitive.Cookies.eraseCookie(key);
+					global.Appacitive.Cookie.eraseCookie(key);
 					return;
 				}
 				key = global.Appacitive.getAppPrefix(key);
