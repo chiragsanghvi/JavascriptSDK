@@ -32,12 +32,12 @@
 				if (!isLocalStorageSupported) {
 					global.Appacitive.Cookie.setCookie(key, value);
 					return this;
+				} else {
+					key = global.Appacitive.getAppPrefix(key);
+				    
+				    _localStorage[key] = value;
+				    return this;
 				}
-				
-				key = global.Appacitive.getAppPrefix(key);
-			    
-			    _localStorage[key] = value;
-			    return this;
 			};
 
 			this.get = function(key) {
