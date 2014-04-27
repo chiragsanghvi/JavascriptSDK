@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Apr 26 15:40:48 IST 2014
+ * Build time 	: Sun Apr 27 10:20:27 IST 2014
  */
 "use strict";
 
@@ -6996,27 +6996,50 @@ var extend = function(protoProps, staticProps) {
 
 			var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
 
+			var isLocalStorageSupported = function() {
+				var testKey = 'test';
+				try {
+					_localStorage.setItem(testKey, '1');
+					_localStorage.removeItem(testKey);
+					return true;
+				} catch (error) {
+					return false;
+				}
+			};
+
 			this.set = function(key, value) {
 				value = value || '';
 				if (!key) return false;
 
 			    if (_type.isObject(value) || _type.isArray(value)) {
 			    	try {
-				      value = JSON.stringify(value);
+				       value = JSON.stringify(value);
 				    } catch(e){}
 			    }
-			    key = global.Appacitive.getAppPrefix(key);
 
-				_localStorage[key] = value;
-				return this;
+				if (!isLocalStorageSupported) {
+					global.Appacitive.Cookies.setCookie(key, value);
+					return this;
+				}
+				
+				key = global.Appacitive.getAppPrefix(key);
+			    
+			    _localStorage[key] = value;
+			    return this;
 			};
 
 			this.get = function(key) {
 				if (!key) return null;
 
-				key = global.Appacitive.getAppPrefix(key);
+				var value;
 
-				var value = _localStorage.getItem(key);
+				if (!isLocalStorageSupported) {
+					value = global.Appacitive.Cookies.readCookie(key);
+				} else {
+					key = global.Appacitive.getAppPrefix(key);
+					value = _localStorage.getItem(key);
+			   	}
+
 			   	if (!value) { return null; }
 
 			    // assume it is an object that has been stringified
@@ -7031,6 +7054,10 @@ var extend = function(protoProps, staticProps) {
 			
 			this.remove = function(key) {
 				if (!key) return;
+				if (!isLocalStorageSupported) {
+					global.Appacitive.Cookies.eraseCookie(key);
+					return;
+				}
 				key = global.Appacitive.getAppPrefix(key);
 				try { delete _localStorage[key]; } catch(e){}
 			};
