@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sun Apr 27 11:44:03 IST 2014
+ * Build time 	: Mon Apr 28 08:29:42 IST 2014
  */
 "use strict";
 
@@ -107,7 +107,7 @@ if (!('find' in Array.prototype)) {
         if (length === 0) return undefined;
         for (var i = 0, value; i < length && i in list; i++) {
           value = list[i];
-          if (predicate.call(that, value, i, list)) return value;
+          if (mapper.call(that, value, i, list)) return value;
         }
         return undefined;
     }

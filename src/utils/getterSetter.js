@@ -99,7 +99,7 @@ if (!('find' in Array.prototype)) {
         if (length === 0) return undefined;
         for (var i = 0, value; i < length && i in list; i++) {
           value = list[i];
-          if (predicate.call(that, value, i, list)) return value;
+          if (mapper.call(that, value, i, list)) return value;
         }
         return undefined;
     }
