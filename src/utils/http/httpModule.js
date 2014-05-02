@@ -381,7 +381,7 @@ var global = {};
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
 
-					if ((data.code >= '200' && data.code <= '300') || (data.status && data.status.code >= '200' && data.status.code <= '300')) {
+					if ((data.code >= 200 && data.code <= 300) || (data.status && data.status.code >= 200 && data.status.code <= 300)) {
 						that.onResponse(request, data);
 					} else {
 						data = data || {};

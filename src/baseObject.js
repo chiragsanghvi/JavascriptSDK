@@ -133,7 +133,9 @@
 			return data;
 		};
 
-		this.attributes = this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
+		this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
+
+		this.attributes = object;
 
 		this.properties = function() {
 			var properties = this.attributes();
@@ -588,7 +590,7 @@
 			 	else if (_type.isString(value)) { object[key] = value; }
 			 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
 			 	else if (value instanceof Date) {
-			 		object[key] = getDateValue(dataType, value);
+			 		object[key] = getDateValue(oType, value);
 			 	} else if (_type.isObject(value)) {
 			 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
 			 		 	object[key] = value;

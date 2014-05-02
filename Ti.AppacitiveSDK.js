@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Apr 24 15:08:39 IST 2014
+ * Build time 	: Thu May  1 14:15:52 IST 2014
  */
 "use strict";
 
@@ -662,7 +662,7 @@ var global = {};
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
 
-					if ((data.code >= '200' && data.code <= '300') || (data.status && data.status.code >= '200' && data.status.code <= '300')) {
+					if ((data.code >= 200 && data.code <= 300) || (data.status && data.status.code >= 200 && data.status.code <= 300)) {
 						that.onResponse(request, data);
 					} else {
 						data = data || {};
@@ -2557,7 +2557,7 @@ Depends on  NOTHING
         _filter.call(this);
 
         options = options || {};
-        if (!options.tags || _type.isArray(options.tags) || options.tags.length === 0) throw new Error("Specify valid tags");
+        if (!options.tags || !_type.isArray(options.tags) || options.tags.length === 0) throw new Error("Specify valid tags");
 
         this.tags = options.tags;
         this.operator = options.operator;
@@ -3930,7 +3930,9 @@ var extend = function(protoProps, staticProps) {
 			return data;
 		};
 
-		this.attributes = this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
+		this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
+
+		this.attributes = object;
 
 		this.properties = function() {
 			var properties = this.attributes();
@@ -4385,7 +4387,7 @@ var extend = function(protoProps, staticProps) {
 			 	else if (_type.isString(value)) { object[key] = value; }
 			 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
 			 	else if (value instanceof Date) {
-			 		object[key] = getDateValue(dataType, value);
+			 		object[key] = getDateValue(oType, value);
 			 	} else if (_type.isObject(value)) {
 			 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
 			 		 	object[key] = value;
@@ -5707,6 +5709,8 @@ var extend = function(protoProps, staticProps) {
 
 			var updatedPasswordOptions = { oldpassword : oldPassword, newpassword: newPassword };
 			
+			var that = this;
+
 			var request = new global.Appacitive._Request({
 				method: 'POST',
 				type: 'user',
@@ -6906,16 +6910,14 @@ var extend = function(protoProps, staticProps) {
       };
 
       var _upload = function(url, file, type, onSuccess, promise) {
-          var fd = new FormData();
-          fd.append("fileToUpload", file);
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'PUT';
           request.log = false;
           request.description = 'Upload file';
           request.data = file;
-          request.headers.push({ key:'content-type', value: type });
-          request.send().then(onSuccess, function() {
+          request.headers.push({ key:'Content-Type', value: type });
+          request.send().then(onSuccess, function(d) {
             promise.reject(d, that);
           });
       };

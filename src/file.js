@@ -23,16 +23,14 @@
       };
 
       var _upload = function(url, file, type, onSuccess, promise) {
-          var fd = new FormData();
-          fd.append("fileToUpload", file);
           var request = new global.Appacitive.HttpRequest();
           request.url = url;
           request.method = 'PUT';
           request.log = false;
           request.description = 'Upload file';
           request.data = file;
-          request.headers.push({ key:'content-type', value: type });
-          request.send().then(onSuccess, function() {
+          request.headers.push({ key:'Content-Type', value: type });
+          request.send().then(onSuccess, function(d) {
             promise.reject(d, that);
           });
       };

@@ -327,7 +327,7 @@
 
     // Internal method to create a model's ties to a collection.
     _addReference: function(model) {
-      this._byId[model.cid] = model;
+      this._byId[model.id] = model;
       if (model.id() != null) this._byId[model.id()] = model;
       this._byCid[model.cid] = model;
       model.on('all', this._onModelEvent, this);
