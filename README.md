@@ -328,7 +328,7 @@ if (!player.isNew()) console.log("Updating player");
 //isNew determines that an object is created or not
 
 player.save().then(function(obj) {
-  console.log("ID : " + player.id()); //
+  console.log("ID : " + player.id); //
   console.dir(palyer.toJSON());
 });
 // output
@@ -388,7 +388,7 @@ var Player = Appacitive.Object.extend('player');
 var player = new Player(); //You can initialize object in this way too.
 
 // set an (existing) id in the object
-player.id({{existing_id}});
+player.set('__id', {{existing_id}});
 
 // set fields to be returned in the object 
 player.fields(["name"]);
@@ -1656,7 +1656,7 @@ query.fetch().then(function(results) {
      of specified child elements in query
      eg: */ 
 
-  console.log("This id '" + results[0].id() + "' has " 
+  console.log("This id '" + results[0].id + "' has " 
        + results[0].children["friends"].length) + " friends and owns "
        + results[0].children["owns"].length) + " houses");
 }, function(status) {
