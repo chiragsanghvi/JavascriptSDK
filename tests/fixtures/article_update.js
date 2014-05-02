@@ -34,10 +34,10 @@ asyncTest('Update object and verify after fetching it again', function() {
 		//fetch object
 		return Appacitive.Object.get({
 			type: 'profile',
-			id: object.id()
+			id: object.id
 		});
 	}).then(function(fetchedObject) {
-		ok(true, 'Object with id (' + fetchedObject.id() + ') saved and retrieved successfully.');
+		ok(true, 'Object with id (' + fetchedObject.id + ') saved and retrieved successfully.');
 		equal(name, fetchedObject.get('name'), 'Value of object in model match after fetch');
 		start();
 	}, function() {
@@ -70,7 +70,7 @@ asyncTest('Fetch object using search and then update it and verify its value', f
 		}).fetch();
 	}).then(function(fetchedObjects) {
 		var fetchedObjects = fetchedObjects.filter(function (a) {
-			return a.get('__id') == object.id();
+			return a.get('__id') == object.id;
 		});
 		if (!fetchedObjects || fetchedObjects.length == 0) {
 			return new Appacitive.Promise().reject();
@@ -78,7 +78,7 @@ asyncTest('Fetch object using search and then update it and verify its value', f
 		var fetchedObject = fetchedObjects[0];
 
 		fetched = true;
-		ok(true, 'Object with id (' + fetchedObject.id() + ') saved and retrieved successfully.');
+		ok(true, 'Object with id (' + fetchedObject.id + ') saved and retrieved successfully.');
 		
 		//Update object
 		fetchedObject.set('name', name);

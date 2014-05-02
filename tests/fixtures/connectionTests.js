@@ -45,7 +45,7 @@ asyncTest('Happy path for create two objects and connect them', function() {
 		//create connection between newly created user and profile
 		var connectOptions = {
 			__endpointa: {
-				objectid: profile.id(),
+				objectid: profile.id,
 				label: 'profile'
 			},
 			__endpointb: {
@@ -56,7 +56,7 @@ asyncTest('Happy path for create two objects and connect them', function() {
 		};
 		return new Appacitive.Connection(connectOptions).save();
 	}).then( function(con) {
-		ok(true, 'Connection saved with id ' + con.id());
+		ok(true, 'Connection saved with id ' + con.id);
 		start();
 	}, function() {
 		ok(false, 'Could not create connection.');

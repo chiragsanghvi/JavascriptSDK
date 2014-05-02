@@ -61,7 +61,7 @@ asyncTest('Verify created connection is fetched when fetching connected objects'
 		}
 
 		var existingConnections = objects.filter(function (_c) {
-			return _c.connection.id() == conn.id();
+			return _c.connection.id == conn.id;
 		});
 
 		//Verify connection is returned via the getConnectedObjects
@@ -111,7 +111,7 @@ asyncTest('Verify created connection is fetched when fetching connections for an
 	}).then(function(connections) {
 		
 		var existingConnections = connections.filter(function (_c) {
-			return _c.id() == conn.id();
+			return _c.id == conn.id;
 		});
 
 		//Verify connection is returned via the get connections
@@ -165,7 +165,7 @@ asyncTest('Verify created connection is fetched when fetching connection between
 	}).then(function(connection) {
 		
 		//Verify connection is returned via the getBetweenObjects
-		equal(connection.id(), conn.id() , 'Connection fetched between 2 objects');
+		equal(connection.id, conn.id , 'Connection fetched between 2 objects');
 		start();
 	}, function() {
 		if (conn.isNew()) {
@@ -227,7 +227,7 @@ asyncTest('Verify object fetched via the collection returned via getConnectedObj
 		}
 
 		var existingObjects = objects.filter(function (_a) {
-			return _a.connection.id() == conn.id();
+			return _a.connection.id == conn.id;
 		});
 
 		//Verify connection is returned via the getConnectedObjects

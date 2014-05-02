@@ -10,7 +10,7 @@
 				// provided an instance of Appacitive.ObjectCollection
 				// stick the whole object if there is no __id
 				// else just stick the __id
-				if (endpoint.object.id()) result.objectid = endpoint.object.id();
+				if (endpoint.object.id) result.objectid = endpoint.object.id;
 				else result.object = endpoint.object.getObject();
 			} else if (_type.isObject(endpoint.object)) {
 				// provided a raw object
@@ -222,7 +222,17 @@
 
 	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(attrs, options) {
 		attrs = attrs || {};
-		if (this.className) attrs.relation = this.className;
+		if (_type.isString(attrs) && this.className) {
+			attrs = {
+				id: attrs
+			};
+		}
+
+		if (this.className) {
+			attrs.relation = this.className;
+			attrs.entity = this;
+		}
+		
 		if (!attrs.relation) throw new Error("Specify relation");
 		if (!attrs.id) throw new Error("Specify id to fetch");
 		var obj = global.Appacitive.Connection._create({ __relationtype: attrs.relation, __id: attrs.id });
@@ -233,10 +243,25 @@
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
 	global.Appacitive.Connection.multiGet = function(attrs, options) {
 		attrs = attrs || {};
+		
+		if (_type.isArray(attrs) && attrs.length > 0) {
+			if (attrs[0] instanceof global.Appacitive.Connection) {
+				models = attrs;
+				attrs = { 
+					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+				};
+			} else {
+				attrs = {
+					ids: attrs
+				};
+			}
+		}
+
 		if (this.className) {
 			attrs.relation = this.className;
 			attrs.entity = this;
 		}
+		
 		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
@@ -262,11 +287,18 @@
 		if (this.className) attrs.relation = this.className;
 
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			models = attrs;
-			attrs = { 
-				relation:  models[0].className ,
-				ids : models.map(function(o) { return o.id(); }).filter(function(o) { return o; }) 
-			};
+			if (attrs[0] instanceof global.Appacitive.Connection) {
+				models = attrs;
+				attrs = { 
+					relation:  models[0].className ,
+					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+				};
+			} else {
+				attrs = {
+					relation: this.className,
+					ids: attrs
+				};
+			}
 		}
 		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");

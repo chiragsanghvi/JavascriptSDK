@@ -749,7 +749,7 @@
 							label: parentLabel
 						};
 						edge.__endpointb = {
-							objectid: tmpObject.id(),
+							objectid: tmpObject.id,
 							label: edge.__label
 						};
 						delete edge.__label;

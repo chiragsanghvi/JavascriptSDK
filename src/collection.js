@@ -48,7 +48,7 @@
         cid = model.cid;
         if (cids[cid] || this._byCid[cid])  throw new Error("Duplicate cid: can't add the same model to a collection twice");
         
-        id = model.id();
+        id = model.id;
         if (id && ((existing = ids[id]) || (existing = this._byId[id]))) {
           existing.copy(model.toJSON(), options.setSnapShot);
           existing.children = model.children;
@@ -88,7 +88,7 @@
       for (i = 0, l = models.length; i < l; i++) {
         model = this.getByCid(models[i]) || this.get(models[i]);
         if (!model) continue; 
-        delete this._byId[model.id()];
+        delete this._byId[model.id];
         delete this._byCid[model.cid];
         index = this.models.indexOf(model);
         this.models.splice(index, 1);
@@ -137,7 +137,7 @@
      * fetch from this collection.
      */
     get: function(id) {
-      return id && this._byId[(id instanceof global.Appacitive.BaseObject) ? id.id() : id];
+      return id && this._byId[(id instanceof global.Appacitive.BaseObject) ? id.id : id];
     },
 
     query: function(query) {
@@ -327,9 +327,9 @@
 
     // Internal method to create a model's ties to a collection.
     _addReference: function(model) {
-      this._byId[model.id] = model;
-      if (model.id() != null) this._byId[model.id()] = model;
-      this._byCid[model.cid] = model;
+      this._byId[model.cid] = model;
+      if (model.id != null) this._byId[model.id] = model;
+      if (!model.collection) model.collection = this;
       model.on('all', this._onModelEvent, this);
     },
 
@@ -353,8 +353,8 @@
       if ((ev === 'add' || ev === 'remove') && collection !== this) return;
       if (ev === 'destroy') this.remove(model, options);
       if (model && ev === 'change:__id') {
-        delete this._byId[model.previous("__id")];
-        this._byId[model.id()] = model;
+        delete this._byId[model.previous(model.idAttribute)];
+        if (model.id != null) this._byId[model.id] = model;
       }
       this.trigger.apply(this, arguments);
     }

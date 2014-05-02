@@ -128,7 +128,7 @@ asyncTest('Cleaning up connections of relation userprofile using multiDelete', f
 			return Appacitive.Promise().fulfill();
 		} else {
 			connections.forEach(function (con) {
-				ids.push(con.id());
+				ids.push(con.id);
 			});
 			return Appacitive.Connection.multiDelete({
 				relation: 'userprofile',
@@ -166,7 +166,7 @@ asyncTest('Cleaning up objects of type profile using multidelete', function() {
 			return Appacitive.Promise().fulfill();
 		} else {
 			objects.forEach(function (object) {
-				ids.push(object.id());
+				ids.push(object.id);
 			});
 			//Multidelete them
 			return Appacitive.Object.multiDelete({

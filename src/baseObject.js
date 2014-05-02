@@ -26,9 +26,12 @@
 
 	    var _setOps = {};
 
-		//Copy properties to current object
+		//Copy properties from source to destination object
 		var _copy = function(src, des) {
 			for (var property in src) {
+
+				if (property == '__id') that.id = src[property];
+
 				if (_atomicProps[property]) delete _atomicProps[property];
 				if (_multivaluedProps[property]) delete _multivaluedProps[property];
 				if (_setOps[property]) delete _setOps[property];
@@ -107,6 +110,10 @@
 
 		this.cid = __cid;
 
+		this.idAttribute = '__id';
+
+		this.id = _snapshot.__id
+
 		//attributes
 		if (!object.__attributes) object.__attributes = {};
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
@@ -115,6 +122,8 @@
 		var _removeTags = []; 
 		if (!object.__tags) object.__tags = [];
 		if (!_snapshot.__tags) _snapshot.__tags = [];
+
+		this.attributes = object;
 
 		//fields to be returned
 		var _fields = '';
@@ -135,21 +144,11 @@
 
 		this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
 
-		this.attributes = object;
-
 		this.properties = function() {
 			var properties = this.attributes();
 			delete properties.__attributes;
 			delete properties.__tags;
 			return properties;
-		};
-
-		this.id = function() {
-			if (arguments.length === 1) {
-				this.set('__id', arguments[0]);
-				return this;
-			}
-			return this.get('__id');	
 		};
 
 	    this.parse = function(resp, options) {
@@ -635,6 +634,8 @@
 					}
 				}
 
+				if (key == '__id') that.id = value; 
+
 				triggerChangeEvent(key, options);
 
 			 	return this;
@@ -658,7 +659,7 @@
 		};
 
 		this.isNew = function() {
-			if (object.__id && object.__id.length) return false;
+			if (this.id && this.id.length) return false;
 			return true;
 		};
 
@@ -748,12 +749,14 @@
 		   if the object has an id, then it has been created -> update
 		   else create */
 		this.save = function() {
-			if (object.__id) return _update.apply(this, arguments);
+			if (this.id) return _update.apply(this, arguments);
 			else return _create.apply(this, arguments);
 		};
 
 		// to create the object
 		var _create = function(options) {
+
+			options = options || {};
 
 			var type = that.type;
 			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
@@ -787,12 +790,17 @@
 						savedState = data[type];
 
 						_snapshot = savedState;
+						
 						object.__id = savedState.__id;
+						that.id = savedState.__id;
 
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
-						
+
+
+						that.trigger('change:__id', that, object.__id, { });
+
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
@@ -818,9 +826,6 @@
 			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(options);
 
 			var changeSet = _getChanged(true);
-			for (var p in changeSet) {
-				if (p[0] == '$') delete changeSet[p];
-			}
 
 			options = options || {};
 
@@ -828,7 +833,7 @@
 
 				var type = that.type;
 				
-				var args = [that.className, (_snapshot.__id) ? _snapshot.__id : object.__id, _fields];
+				var args = [that.className, (that.id) ? that.id : that.id, _fields];
 
 				// for User and Device objects
 				if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
@@ -852,17 +857,17 @@
 							_merge();
 							
 							delete that.created;
-							
+
 							if (!options.silent) that.trigger('sync', that, data[type], options);
 
-							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
+							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
 							request.promise.fulfill(that);
 						} else {
 							data = data || {};
 							data.status =  data.status || {};
 							data.status = _getOutpuStatus(data.status);
 							if (!options.silent) that.trigger('error', that, data.status, options);
-							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
+							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updateFailed', that, { object : data.status });
 							request.promise.reject(data.status, that);
 						}
 					}
@@ -878,7 +883,7 @@
 
 		var _fetch = function (options) {
 
-			if (!object.__id) throw new Error('Please specify id for get operation');
+			if (!that.id) throw new Error('Please specify id for get operation');
 			
 			options = options || [];
 
@@ -893,7 +898,7 @@
 				method: 'GET',
 				type: type,
 				op: 'getGetUrl',
-				args: [this.className, object.__id, _fields],
+				args: [this.className, that.id, _fields],
 				options: options,
 				entity: that,
 				onSuccess: function(data) {
@@ -942,7 +947,7 @@
 	        // just call success
 	        // else delete the object
 
-	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
+	        if (!that.id) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
 			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
@@ -951,7 +956,7 @@
 				method: 'DELETE',
 				type: type,
 				op: 'getDeleteUrl',
-				args: [this.className, object.__id, deleteConnections],
+				args: [this.className, that.id, deleteConnections],
 				options: opts,
 				entity: this,
 				onSuccess: function(data) {
@@ -991,7 +996,7 @@
 
 	    objects.forEach(function(o) {
 	    	if (!(o instanceof global.Appacitive.BaseObject) && _type.isObject(o)) o = new global.Appacitive[type](o);
-	    	if (unsavedObjects.find(function(x) { return x.id() == o.id(); })) return;
+	    	if (unsavedObjects.find(function(x) { return x.id == o.id; })) return;
 	    	unsavedObjects.push(o);
 
 	    	tasks.push(o.save());

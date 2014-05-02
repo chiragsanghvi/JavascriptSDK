@@ -128,11 +128,18 @@
 		if (this.className) attrs.type = this.className;
 
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			models = attrs;
-			attrs = { 
-				type:  models[0].className ,
-				ids : models.map(function(o) { return o.id(); }).filter(function(o) { return o; }) 
-			};
+			if (attrs[0] instanceof global.Appacitive.Object) {
+				models = attrs;
+				attrs = { 
+					type:  models[0].className ,
+					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+				};
+			} else {
+				attrs = {
+					type: this.className,
+					ids: attrs
+				};
+			}
 		}
 		if (!attrs.type || !_type.isString(attrs.type) || attrs.type.length === 0) throw new Error("Specify valid type");
 		if (attrs.type.toLowerCase() === 'user' || attrs.type.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
@@ -162,10 +169,25 @@
 	//takes typename and array of objectids and returns an array of Appacitive object objects
 	global.Appacitive.Object.multiGet = function(attrs, options) {
 		attrs = attrs || {};
+		if (_type.isArray(attrs) && attrs.length > 0) {
+			if (attrs[0] instanceof global.Appacitive.Object) {
+				models = attrs;
+				attrs = { 
+					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+				};
+			} else {
+				attrs = {
+					ids: attrs
+				};
+			}
+		}
+
 		if (this.className) {
-			attrs.relation = this.className;
+			attrs.type = this.className;
 			attrs.entity = this;
 		}
+
+
 		if (!attrs.type || !_type.isString(attrs.type) || attrs.type.length === 0) throw new Error("Specify valid type");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
@@ -186,10 +208,18 @@
 	//takes object id , type and fields and returns that object
 	global.Appacitive.Object.get = function(attrs, options) {
 		attrs = attrs || {};
+		
+		if (_type.isString(attrs) && this.className) {
+			attrs = {
+				id: attrs
+			};
+		}
+
 		if (this.className) {
-			attrs.relation = this.className;
+			attrs.type = this.className;
 			attrs.entity = this;
 		}
+
 		if (!attrs.type) throw new Error("Specify type");
 		if (!attrs.id) throw new Error("Specify id to fetch");
 

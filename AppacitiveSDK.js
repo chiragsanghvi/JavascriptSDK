@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri May  2 09:46:02 IST 2014
+ * Build time 	: Fri May  2 15:35:51 IST 2014
  */
 "use strict";
 
@@ -3721,7 +3721,7 @@ Depends on  NOTHING
 							label: parentLabel
 						};
 						edge.__endpointb = {
-							objectid: tmpObject.id(),
+							objectid: tmpObject.id,
 							label: edge.__label
 						};
 						delete edge.__label;
@@ -3876,9 +3876,12 @@ var extend = function(protoProps, staticProps) {
 
 	    var _setOps = {};
 
-		//Copy properties to current object
+		//Copy properties from source to destination object
 		var _copy = function(src, des) {
 			for (var property in src) {
+
+				if (property == '__id') that.id = src[property];
+
 				if (_atomicProps[property]) delete _atomicProps[property];
 				if (_multivaluedProps[property]) delete _multivaluedProps[property];
 				if (_setOps[property]) delete _setOps[property];
@@ -3957,6 +3960,10 @@ var extend = function(protoProps, staticProps) {
 
 		this.cid = __cid;
 
+		this.idAttribute = '__id';
+
+		this.id = _snapshot.__id
+
 		//attributes
 		if (!object.__attributes) object.__attributes = {};
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
@@ -3965,6 +3972,8 @@ var extend = function(protoProps, staticProps) {
 		var _removeTags = []; 
 		if (!object.__tags) object.__tags = [];
 		if (!_snapshot.__tags) _snapshot.__tags = [];
+
+		this.attributes = object;
 
 		//fields to be returned
 		var _fields = '';
@@ -3985,21 +3994,11 @@ var extend = function(protoProps, staticProps) {
 
 		this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
 
-		this.attributes = object;
-
 		this.properties = function() {
 			var properties = this.attributes();
 			delete properties.__attributes;
 			delete properties.__tags;
 			return properties;
-		};
-
-		this.id = function() {
-			if (arguments.length === 1) {
-				this.set('__id', arguments[0]);
-				return this;
-			}
-			return this.get('__id');	
 		};
 
 	    this.parse = function(resp, options) {
@@ -4485,6 +4484,8 @@ var extend = function(protoProps, staticProps) {
 					}
 				}
 
+				if (key == '__id') that.id = value; 
+
 				triggerChangeEvent(key, options);
 
 			 	return this;
@@ -4508,7 +4509,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.isNew = function() {
-			if (object.__id && object.__id.length) return false;
+			if (this.id && this.id.length) return false;
 			return true;
 		};
 
@@ -4598,12 +4599,14 @@ var extend = function(protoProps, staticProps) {
 		   if the object has an id, then it has been created -> update
 		   else create */
 		this.save = function() {
-			if (object.__id) return _update.apply(this, arguments);
+			if (this.id) return _update.apply(this, arguments);
 			else return _create.apply(this, arguments);
 		};
 
 		// to create the object
 		var _create = function(options) {
+
+			options = options || {};
 
 			var type = that.type;
 			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
@@ -4637,12 +4640,17 @@ var extend = function(protoProps, staticProps) {
 						savedState = data[type];
 
 						_snapshot = savedState;
+						
 						object.__id = savedState.__id;
+						that.id = savedState.__id;
 
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
-						
+
+
+						that.trigger('change:__id', that, object.__id, { });
+
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
@@ -4668,9 +4676,6 @@ var extend = function(protoProps, staticProps) {
 			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(options);
 
 			var changeSet = _getChanged(true);
-			for (var p in changeSet) {
-				if (p[0] == '$') delete changeSet[p];
-			}
 
 			options = options || {};
 
@@ -4678,7 +4683,7 @@ var extend = function(protoProps, staticProps) {
 
 				var type = that.type;
 				
-				var args = [that.className, (_snapshot.__id) ? _snapshot.__id : object.__id, _fields];
+				var args = [that.className, (that.id) ? that.id : that.id, _fields];
 
 				// for User and Device objects
 				if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
@@ -4702,17 +4707,17 @@ var extend = function(protoProps, staticProps) {
 							_merge();
 							
 							delete that.created;
-							
+
 							if (!options.silent) that.trigger('sync', that, data[type], options);
 
-							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
+							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
 							request.promise.fulfill(that);
 						} else {
 							data = data || {};
 							data.status =  data.status || {};
 							data.status = _getOutpuStatus(data.status);
 							if (!options.silent) that.trigger('error', that, data.status, options);
-							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
+							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updateFailed', that, { object : data.status });
 							request.promise.reject(data.status, that);
 						}
 					}
@@ -4728,7 +4733,7 @@ var extend = function(protoProps, staticProps) {
 
 		var _fetch = function (options) {
 
-			if (!object.__id) throw new Error('Please specify id for get operation');
+			if (!that.id) throw new Error('Please specify id for get operation');
 			
 			options = options || [];
 
@@ -4743,7 +4748,7 @@ var extend = function(protoProps, staticProps) {
 				method: 'GET',
 				type: type,
 				op: 'getGetUrl',
-				args: [this.className, object.__id, _fields],
+				args: [this.className, that.id, _fields],
 				options: options,
 				entity: that,
 				onSuccess: function(data) {
@@ -4792,7 +4797,7 @@ var extend = function(protoProps, staticProps) {
 	        // just call success
 	        // else delete the object
 
-	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
+	        if (!that.id) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
 			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
@@ -4801,7 +4806,7 @@ var extend = function(protoProps, staticProps) {
 				method: 'DELETE',
 				type: type,
 				op: 'getDeleteUrl',
-				args: [this.className, object.__id, deleteConnections],
+				args: [this.className, that.id, deleteConnections],
 				options: opts,
 				entity: this,
 				onSuccess: function(data) {
@@ -4841,7 +4846,7 @@ var extend = function(protoProps, staticProps) {
 
 	    objects.forEach(function(o) {
 	    	if (!(o instanceof global.Appacitive.BaseObject) && _type.isObject(o)) o = new global.Appacitive[type](o);
-	    	if (unsavedObjects.find(function(x) { return x.id() == o.id(); })) return;
+	    	if (unsavedObjects.find(function(x) { return x.id == o.id; })) return;
 	    	unsavedObjects.push(o);
 
 	    	tasks.push(o.save());
@@ -4970,7 +4975,7 @@ var extend = function(protoProps, staticProps) {
 			if (!sid) throw new Error("Specify valid user or usergroup");
 
 			if ((sid instanceof global.Appacitive.Object) && sid.typeName == 'user' && !sid.isNew()) {
-				sid = sid.id();
+				sid = sid.id;
 			} 
 
 			var acl = acls.filter(function(a) { return  (a.sid == sid && a.type == type ); }), exists = false;
@@ -5137,7 +5142,7 @@ var extend = function(protoProps, staticProps) {
 				if (!m) return;
 
 				if ((m instanceof global.Appacitive.Object)  && m.typeName == 'user' && !m.isNew()) {
-					cmd[op].push(m.id());
+					cmd[op].push(m.id);
 				} else {
 					cmd[op].push(m);
 				}
@@ -5304,11 +5309,18 @@ var extend = function(protoProps, staticProps) {
 		if (this.className) attrs.type = this.className;
 
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			models = attrs;
-			attrs = { 
-				type:  models[0].className ,
-				ids : models.map(function(o) { return o.id(); }).filter(function(o) { return o; }) 
-			};
+			if (attrs[0] instanceof global.Appacitive.Object) {
+				models = attrs;
+				attrs = { 
+					type:  models[0].className ,
+					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+				};
+			} else {
+				attrs = {
+					type: this.className,
+					ids: attrs
+				};
+			}
 		}
 		if (!attrs.type || !_type.isString(attrs.type) || attrs.type.length === 0) throw new Error("Specify valid type");
 		if (attrs.type.toLowerCase() === 'user' || attrs.type.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
@@ -5338,10 +5350,25 @@ var extend = function(protoProps, staticProps) {
 	//takes typename and array of objectids and returns an array of Appacitive object objects
 	global.Appacitive.Object.multiGet = function(attrs, options) {
 		attrs = attrs || {};
+		if (_type.isArray(attrs) && attrs.length > 0) {
+			if (attrs[0] instanceof global.Appacitive.Object) {
+				models = attrs;
+				attrs = { 
+					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+				};
+			} else {
+				attrs = {
+					ids: attrs
+				};
+			}
+		}
+
 		if (this.className) {
-			attrs.relation = this.className;
+			attrs.type = this.className;
 			attrs.entity = this;
 		}
+
+
 		if (!attrs.type || !_type.isString(attrs.type) || attrs.type.length === 0) throw new Error("Specify valid type");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
@@ -5362,10 +5389,18 @@ var extend = function(protoProps, staticProps) {
 	//takes object id , type and fields and returns that object
 	global.Appacitive.Object.get = function(attrs, options) {
 		attrs = attrs || {};
+		
+		if (_type.isString(attrs) && this.className) {
+			attrs = {
+				id: attrs
+			};
+		}
+
 		if (this.className) {
-			attrs.relation = this.className;
+			attrs.type = this.className;
 			attrs.entity = this;
 		}
+
 		if (!attrs.type) throw new Error("Specify type");
 		if (!attrs.id) throw new Error("Specify id to fetch");
 
@@ -5421,7 +5456,7 @@ var extend = function(protoProps, staticProps) {
 				// provided an instance of Appacitive.ObjectCollection
 				// stick the whole object if there is no __id
 				// else just stick the __id
-				if (endpoint.object.id()) result.objectid = endpoint.object.id();
+				if (endpoint.object.id) result.objectid = endpoint.object.id;
 				else result.object = endpoint.object.getObject();
 			} else if (_type.isObject(endpoint.object)) {
 				// provided a raw object
@@ -5633,7 +5668,17 @@ var extend = function(protoProps, staticProps) {
 
 	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(attrs, options) {
 		attrs = attrs || {};
-		if (this.className) attrs.relation = this.className;
+		if (_type.isString(attrs) && this.className) {
+			attrs = {
+				id: attrs
+			};
+		}
+
+		if (this.className) {
+			attrs.relation = this.className;
+			attrs.entity = this;
+		}
+		
 		if (!attrs.relation) throw new Error("Specify relation");
 		if (!attrs.id) throw new Error("Specify id to fetch");
 		var obj = global.Appacitive.Connection._create({ __relationtype: attrs.relation, __id: attrs.id });
@@ -5644,10 +5689,25 @@ var extend = function(protoProps, staticProps) {
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
 	global.Appacitive.Connection.multiGet = function(attrs, options) {
 		attrs = attrs || {};
+		
+		if (_type.isArray(attrs) && attrs.length > 0) {
+			if (attrs[0] instanceof global.Appacitive.Connection) {
+				models = attrs;
+				attrs = { 
+					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+				};
+			} else {
+				attrs = {
+					ids: attrs
+				};
+			}
+		}
+
 		if (this.className) {
 			attrs.relation = this.className;
 			attrs.entity = this;
 		}
+		
 		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
@@ -5673,11 +5733,18 @@ var extend = function(protoProps, staticProps) {
 		if (this.className) attrs.relation = this.className;
 
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			models = attrs;
-			attrs = { 
-				relation:  models[0].className ,
-				ids : models.map(function(o) { return o.id(); }).filter(function(o) { return o; }) 
-			};
+			if (attrs[0] instanceof global.Appacitive.Connection) {
+				models = attrs;
+				attrs = { 
+					relation:  models[0].className ,
+					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+				};
+			} else {
+				attrs = {
+					relation: this.className,
+					ids: attrs
+				};
+			}
 		}
 		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
@@ -6306,7 +6373,7 @@ var extend = function(protoProps, staticProps) {
         cid = model.cid;
         if (cids[cid] || this._byCid[cid])  throw new Error("Duplicate cid: can't add the same model to a collection twice");
         
-        id = model.id();
+        id = model.id;
         if (id && ((existing = ids[id]) || (existing = this._byId[id]))) {
           existing.copy(model.toJSON(), options.setSnapShot);
           existing.children = model.children;
@@ -6346,7 +6413,7 @@ var extend = function(protoProps, staticProps) {
       for (i = 0, l = models.length; i < l; i++) {
         model = this.getByCid(models[i]) || this.get(models[i]);
         if (!model) continue; 
-        delete this._byId[model.id()];
+        delete this._byId[model.id];
         delete this._byCid[model.cid];
         index = this.models.indexOf(model);
         this.models.splice(index, 1);
@@ -6395,7 +6462,7 @@ var extend = function(protoProps, staticProps) {
      * fetch from this collection.
      */
     get: function(id) {
-      return id && this._byId[(id instanceof global.Appacitive.BaseObject) ? id.id() : id];
+      return id && this._byId[(id instanceof global.Appacitive.BaseObject) ? id.id : id];
     },
 
     query: function(query) {
@@ -6585,9 +6652,9 @@ var extend = function(protoProps, staticProps) {
 
     // Internal method to create a model's ties to a collection.
     _addReference: function(model) {
-      this._byId[model.id] = model;
-      if (model.id() != null) this._byId[model.id()] = model;
-      this._byCid[model.cid] = model;
+      this._byId[model.cid] = model;
+      if (model.id != null) this._byId[model.id] = model;
+      if (!model.collection) model.collection = this;
       model.on('all', this._onModelEvent, this);
     },
 
@@ -6611,8 +6678,8 @@ var extend = function(protoProps, staticProps) {
       if ((ev === 'add' || ev === 'remove') && collection !== this) return;
       if (ev === 'destroy') this.remove(model, options);
       if (model && ev === 'change:__id') {
-        delete this._byId[model.previous("__id")];
-        this._byId[model.id()] = model;
+        delete this._byId[model.previous(model.idAttribute)];
+        if (model.id != null) this._byId[model.id] = model;
       }
       this.trigger.apply(this, arguments);
     }

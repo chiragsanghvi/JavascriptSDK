@@ -39,7 +39,7 @@
 			if (!sid) throw new Error("Specify valid user or usergroup");
 
 			if ((sid instanceof global.Appacitive.Object) && sid.typeName == 'user' && !sid.isNew()) {
-				sid = sid.id();
+				sid = sid.id;
 			} 
 
 			var acl = acls.filter(function(a) { return  (a.sid == sid && a.type == type ); }), exists = false;
@@ -206,7 +206,7 @@
 				if (!m) return;
 
 				if ((m instanceof global.Appacitive.Object)  && m.typeName == 'user' && !m.isNew()) {
-					cmd[op].push(m.id());
+					cmd[op].push(m.id);
 				} else {
 					cmd[op].push(m);
 				}

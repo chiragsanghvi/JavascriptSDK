@@ -50,13 +50,13 @@ asyncTest('Add and Remove members in a group', function() {
 		return Appacitive.Group.addMembers('aclusergroup1', users);
 	}).then( function() {
 		ok(true, 'successfully added new users to group');
-		return Appacitive.Group.addMembers('aclusergroup1', 'acluser1');
+		return Appacitive.Group.addMembers('aclusergroup1', 'chiragsanghvi');
 	}).then(function() {
 		ok(true, 'successfully added existing users to group');
 		return Appacitive.Group.removeMembers('aclusergroup1', users);
 	}).then( function() {
 		ok(true, 'successfully removed new users from group');
-		return Appacitive.Group.removeMembers('aclusergroup1', 'acluser1');
+		return Appacitive.Group.removeMembers('aclusergroup1', 'chiragsanghvi');
 	}).then( function() {
 		ok(true, 'successfully removed existing user from group');
 		start();
