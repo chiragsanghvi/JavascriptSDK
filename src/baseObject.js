@@ -84,6 +84,8 @@
 
 		var that = this;
 
+		this.base = this.prototype;
+
 		var raw = {};
 		_copy(objectOptions, raw);
 		var object = raw;
@@ -177,7 +179,7 @@
 
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
-			if (!object.__attributes) return null;
+			if (!object.__attributes) return undefined;
 			if (!_snapshot.__attributes) return object.__attributes;
 
 			var isDirty = false;
@@ -193,7 +195,7 @@
 					delete changeSet[property];
 				}
 			}
-			if (!isDirty) return null;
+			if (!isDirty) return undefined;
 			return changeSet;
 		};
 
@@ -259,7 +261,7 @@
 		};
 
 		var _getChangedTags = function() {
-			if (!object.__tags) return [];
+			if (!object.__tags) return undefined;
 			if (!_snapshot.__tags) return object.__tags;
 
 			var _tags = [];
@@ -267,7 +269,7 @@
 				if (_snapshot.__tags.indexOf(a) == -1)
 					_tags.push(a);
 			});
-			return _tags.length > 0 ? _tags : null;
+			return _tags.length > 0 ? _tags : undefined;
 		};
 
 		this.getChangedTags = _getChangedTags;
@@ -336,6 +338,34 @@
 			return setMutliItems.apply(this, [key, value, 'removeitems', options]);
 		};
 
+		var hasChanged = function(property, prevValue, currValue) {
+			var changed = undefined;
+
+			if (currValue != prevValue) {
+				if (property == '__tags') {
+					var changedTags = _getChangedTags();
+					if (changedTags) changed = changedTags; 
+				} else if (property == '__attributes') {
+					var attrs = _getChangedAttributes();
+					if (attrs) changed = attrs;
+				} else {
+					if (_type.isArray(currValue)) {
+						if (_multivaluedProps[property] && !_setOps[property]) {
+							changed = _multivaluedProps[property];
+						} else if (!currValue.equals(prevValue)) {
+							changed = currValue;
+						} 
+					} else if (_atomicProps[property] && !_setOps[property]) {
+						changed = { incrementby : _atomicProps[property].value };
+					} else {
+						changed = currValue;
+					}
+				}
+			} 
+
+			return changed;
+		};
+
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
@@ -345,33 +375,13 @@
 			}
 
 			for (var property in object) {
-				if (object[property] == null || object[property] == undefined) {
-					changeSet[property] = null;
-					isDirty = true;
-				} else if (object[property] != _snapshot[property]) {
-					if (property == '__tags' || property == '__attributes') {
-						delete changeSet[property];
-					} else {
-						if (_type.isArray(object[property])) {
-							if (_multivaluedProps[property] && !_setOps[property]) {
-								changeSet[property] = _multivaluedProps[property];
-								isDirty = true;
-							} else if (!object[property].equals(_snapshot[property])) {
-								changeSet[property] = object[property];
-								isDirty = true;
-							} else {
-								delete changeSet[property];
-							}
-						} else if (_atomicProps[property] && !_setOps[property]) {
-							changeSet[property] = { incrementby : _atomicProps[property].value };
-							isDirty = true;
-						} else {
-							changeSet[property] = object[property];
-							isDirty = true;
-						}
-					}
-				} else if (object[property] == _snapshot[property]) {
+				var changed = hasChanged(property, changeSet[property], object[property]);
+
+				if (changed == undefined) {
 					delete changeSet[property];
+				} else {
+					isDirty = true;
+					changeSet[property] = changed;
 				}
 			}
 
@@ -381,9 +391,10 @@
 				});
 			} catch(e) {}
 
+
 			var changedTags = _getChangedTags();
 			if (isInternal) {
-				if (changedTags) { 
+				if (changedTags && changedTags.length > 0) { 
 					changeSet["__addtags"] = changedTags; 
 					isDirty = true;
 				}
@@ -392,18 +403,17 @@
 				    isDirty = true;
 				}
 			} else {
-				if (changedTags) { 
+				if (changedTags && changedTags.length > 0) { 
 					changeSet["__tags"] = changedTags; 
 					isDirty = true;
 				}
 			}
 
 			var attrs = _getChangedAttributes();
-			if (attrs) { 
+			if (attrs && !Object.isEmpty(attrs)) { 
 				changeSet["__attributes"] = attrs;
 				isDirty = true;
-			}
-			else delete changeSet["__attributes"];
+			} else delete changeSet["__attributes"];
 
 			if (that.type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
@@ -423,14 +433,11 @@
 		this.hasChanged = function() {
 			if (this.isNew()) return true;
 
-			var changeSet = _getChanged(true);
-			if (arguments.length === 0) {
-				return Object.isEmpty(changeSet) ? false : true;
-			} else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0) {
-				if (changeSet && changeSet[arguments[0]]) {
-					return true;
-				} return false;
-			}
+			if (arguments.length === 0)
+				return Object.isEmpty(_getChanged(true)) ? false : true;
+			else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0)
+				return (hasChanged(arguments[0]) == undefined) ? false : true;
+			
 			return false;
 		};
 
@@ -559,13 +566,13 @@
 
 		var triggerChangeEvent = function(key, options) {
 			if (options && !options.silent) {
-				var changed = _getChanged();
+				var changed = hasChanged(key, _snapshot[key], object[key]);
 
-				if (changed[key] || (_ignoreTheseFields.indexOf(key) != -1)) {
+				if (changed[key] != undefined || (_ignoreTheseFields.indexOf(key) != -1)) {
 					var value = changed[key] || object[key];
 					// Trigger all relevant attribute changes.
 				    that.trigger('change:' + key, that, value, {});
-				    that.trigger('change', that, options);
+				    if (!options.ignoreChange) that.trigger('change', that, options);
 				}
 			}
 		};
@@ -574,13 +581,14 @@
 			if (opts && !opts.silent) that.trigger('destroy', that, that.collection, opts);
       	};
 
-		this.set = function(key, value, options) {
+      	var set = function(key, value, options) {
+
+      		if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
+			
 			options = options || {};
 
 			var oType = options.dataType;
 
-			if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
-			
 			key = key.toLowerCase();
 
 			try {
@@ -615,10 +623,9 @@
 						  	var len = this.length;
 						  	if (_type.isString(v)) { this[len] = v; }
 				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
-				 			else throw new Error("Multivalued property cannot have values of property as an object");
-			 				
-				 			triggerChangeEvent(key, options);
-
+				 			else if (value instanceof Date) throw new Error("Multivalued property cannot have values of property as date");
+			 				else throw new Error("Multivalued property cannot have values of property as an object");
+			 			
 			 				return this; 
 						}
 					}
@@ -636,12 +643,57 @@
 
 				if (key == '__id') that.id = value; 
 
-				triggerChangeEvent(key, options);
-
 			 	return this;
 			} catch(e) {
 			 	throw new Error("Unable to set " + key);
 			} 
+      	};
+
+		this.set = function(key, val, options) {
+
+			var attr, attrs, unset, changes, silent, changing, prev, current;
+
+			if (key == null) return this;
+
+			// Handle both `"key", value` and `{key: value}` -style arguments.
+			if (key == null || typeof key === 'object') {
+				attrs = key;
+				options = val;
+			} else {
+				(attrs = {})[key] = val;
+			}
+
+			options || (options = {});
+
+		    // Run validation.
+		    if (!this._validate(attrs, options)) return false;
+
+		    // Check for changes of `id`.
+			if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
+
+			var changed = false;
+
+			// For each `set` attribute, update or delete the current value.
+			for (attr in attrs) {
+				val = attrs[attr];
+				set.apply(this, [ attr, val, _extend({}, options, { ignoreChange: true }) ]);
+			}
+
+			if (options && !options.silent) {
+				for (attr in attrs) {
+					var changedValue = hasChanged(attr, _snapshot[attr], object[attr]);
+					if (changedValue || (_ignoreTheseFields.indexOf(attr) != -1)) {
+						changed = true;
+						var value = changedValue || object[key];
+						// Trigger relevant attribute change event.
+					    that.trigger('change:' + key, that, value, {});
+					}
+				}
+			}
+
+			if (changed) this.trigger('change', this, options);
+
+			return this;
 		};
 
 		this.unset = function(key, options) {
@@ -651,6 +703,22 @@
 		 	triggerChangeEvent(key, options);
 		 	return this;
 		};
+
+		// Run validation against the next complete set of model attributes,
+	    // returning `true` if all is well. Otherwise, fire an `"invalid"` event.
+	    this._validate = function(attrs, options) {
+			if (!options.validate || !this.validate || !_type.isFunction(this.validate)) return true;
+			attrs = _extend({}, this.attributes, attrs);
+			var error = this.validationError = this.validate(attrs, options) || null;
+			if (!error) return true;
+			this.trigger('invalid', this, error, _extend(options, {validationError: error}));
+			return false;
+	    };
+
+	     // Check if the model is currently in a valid state.
+	    this.isValid = function(options) {
+	    	return this._validate({}, _extend(options || {}, { validate: true }));
+	    };
 
 		this.has = function(key) {
 			if (!key || !_type.isString(key) ||  key.length === 0) return false; 
@@ -748,7 +816,7 @@
 		/* save
 		   if the object has an id, then it has been created -> update
 		   else create */
-		this.save = function() {
+		this._save = function() {
 			if (this.id) return _update.apply(this, arguments);
 			else return _create.apply(this, arguments);
 		};
@@ -763,24 +831,29 @@
 				type = object.__type.toLowerCase()
 			}
 
+			var clonedObject = JSON.parse(JSON.stringify(object));
+
 			//remove __revision and aggregate poprerties
-			for (var p in object) {
-				if (p[0] == '$') delete object[p];
+			for (var p in clonedObject) {
+				if (p[0] == '$') delete clonedObject[p];
 			}
-			if (object["__revision"]) delete object["__revision"];
+			if (clonedObject["__revision"]) delete clonedObject["__revision"];
 			
 			if (type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
-				if (acls) object.__acls = acls;
+				if (acls) clonedObject.__acls = acls;
 			}
 
+			if (clonedObject.__tags && clonedObject.__tags.length == 0) delete clonedObject.__tags;
+
+			if (Object.isEmpty(clonedObject.__attributes)) delete clonedObject.__attributes;
 
 			var request = new global.Appacitive._Request({
 				method: 'PUT',
 				type: type,
 				op: 'getCreateUrl',
 				args: [this.className, _fields],
-				data: object,
+				data: clonedObject,
 				options: options,
 				entity: that,
 				onSuccess: function(data) {
@@ -913,6 +986,8 @@
 						}
 
 						if (!options.silent) that.trigger('sync', that, data[type], options);
+
+						global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
@@ -926,12 +1001,12 @@
 		};
 
 		// fetch ( by id )
-		this.fetch = function(options) {
+		this._fetch = function(options) {
 			return _fetch.apply(this ,[options]);
 		};
 
 		// delete the object
-		this.destroy = function(opts) {
+		this._destroy = function(opts) {
           	opts = opts || {};
 
 			var deleteConnections = opts.deleteConnections;
@@ -950,7 +1025,7 @@
 	        if (!that.id) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
-			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
+			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
 			
 			var request = new global.Appacitive._Request({
 				method: 'DELETE',
@@ -975,14 +1050,30 @@
 			});
 			return request.send();
 		};
-		this.del = this.destroy;
+		this.del = this._destroy;
 
 		if (this.type == 'object') {
-			this.destroyWithConnections = function(options) {
+			this._destroyWithConnections = function(options) {
 				return this.destroy(_extend({ deleteConnections: true}, options));
 			};
 		}
 
+	};
+
+	_BaseObject.prototype.save = function() {
+		return this._save.apply(this, arguments);
+	};
+
+	_BaseObject.prototype.fetch = function() {
+		return this._fetch.apply(this, arguments);
+	};
+
+	_BaseObject.prototype.destroy = function() {
+		return this._destroy.apply(this, arguments);
+	};
+
+	_BaseObject.prototype.destroyWithConnections = function() {
+		return this._destroyWithConnections.apply(this, arguments);
 	};
 
 	global.Appacitive.BaseObject = _BaseObject;
@@ -1008,6 +1099,7 @@
 	global.Appacitive.BaseObject.prototype.toString = function() {
 		return JSON.stringify(this.getObject());
 	};
+
 
 	global.Appacitive.Events.mixin(global.Appacitive.BaseObject.prototype);
 

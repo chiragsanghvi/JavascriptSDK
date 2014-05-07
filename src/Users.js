@@ -79,7 +79,7 @@
 
 		global.Appacitive.localStorage.set('Appacitive-User', user);
 
-		if (!expiry) expiry = 3600;
+		if (!expiry) expiry = 86400000;
 		_authenticatedUser = userObject;
 
 		if (token) global.Appacitive.Session.setUserAuthHeader(token, expiry);
@@ -358,11 +358,17 @@
 		
 		if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
+		options = options || {};	
+
+		var createNew = true;
+
+		if (options.create == false) createNew = false; 
+
 		var authRequest = {
 			"accesstoken": accessToken,
 			"type": "facebook",
 			"expiry": 86400000,
-			"createnew": true
+			"createnew": createNew
 		};
 
 		return this.authenticateUser(authRequest, options, 'FB');
@@ -372,12 +378,16 @@
 		
 		if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 		
+		var createNew = true;
+
+		if (options.create == false) createNew = false; 
+
 		var authRequest = {
 			"type": "twitter",
 			"oauthtoken": twitterObj.oAuthToken ,
 			"oauthtokensecret": twitterObj.oAuthTokenSecret,
 			"expiry": 86400000,
-			"createnew": true
+			"createnew": createNew
 		};
 
 		if (twitterObj.consumerKey && twitterObj.consumerSecret) {

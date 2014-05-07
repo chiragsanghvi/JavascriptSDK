@@ -634,7 +634,7 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphFilterQuery = function(name, placeholders) {
+	global.Appacitive.Queries.GraphQuery = function(name, placeholders) {
 		
 		if (!name || name.length === 0) throw new Error("Specify name of filter query");
 		
@@ -684,7 +684,7 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphProjectQuery = function(name, ids, placeholders) {
+	global.Appacitive.Queries.GraphAPI = function(name, ids, placeholders) {
 
 		if (!name || name.length === 0) throw new Error("Specify name of project query");
 		if (!ids || !ids.length) throw new Error("Specify ids to project");

@@ -142,7 +142,7 @@
 
     query: function(query) {
       if (query) {
-        if ((query instanceof global.Appacitive.Query) || (query instanceof global.Appacitive.Queries.GraphProjectQuery)) { 
+        if ((query instanceof global.Appacitive.Query) || (query instanceof global.Appacitive.Queries.GraphAPI)) { 
           this._query = query;
           return this;
         } else {

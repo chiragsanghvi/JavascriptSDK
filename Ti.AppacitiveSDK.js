@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri May  2 15:35:51 IST 2014
+ * Build time 	: Wed May  7 16:12:21 IST 2014
  */
 "use strict";
 
@@ -3553,7 +3553,7 @@ Depends on  NOTHING
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphFilterQuery = function(name, placeholders) {
+	global.Appacitive.Queries.GraphQuery = function(name, placeholders) {
 		
 		if (!name || name.length === 0) throw new Error("Specify name of filter query");
 		
@@ -3603,7 +3603,7 @@ Depends on  NOTHING
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphProjectQuery = function(name, ids, placeholders) {
+	global.Appacitive.Queries.GraphAPI = function(name, ids, placeholders) {
 
 		if (!name || name.length === 0) throw new Error("Specify name of project query");
 		if (!ids || !ids.length) throw new Error("Specify ids to project");
@@ -3881,6 +3881,8 @@ var extend = function(protoProps, staticProps) {
 
 		var that = this;
 
+		this.base = this.prototype;
+
 		var raw = {};
 		_copy(objectOptions, raw);
 		var object = raw;
@@ -3974,7 +3976,7 @@ var extend = function(protoProps, staticProps) {
 
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
-			if (!object.__attributes) return null;
+			if (!object.__attributes) return undefined;
 			if (!_snapshot.__attributes) return object.__attributes;
 
 			var isDirty = false;
@@ -3990,7 +3992,7 @@ var extend = function(protoProps, staticProps) {
 					delete changeSet[property];
 				}
 			}
-			if (!isDirty) return null;
+			if (!isDirty) return undefined;
 			return changeSet;
 		};
 
@@ -4056,7 +4058,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		var _getChangedTags = function() {
-			if (!object.__tags) return [];
+			if (!object.__tags) return undefined;
 			if (!_snapshot.__tags) return object.__tags;
 
 			var _tags = [];
@@ -4064,7 +4066,7 @@ var extend = function(protoProps, staticProps) {
 				if (_snapshot.__tags.indexOf(a) == -1)
 					_tags.push(a);
 			});
-			return _tags.length > 0 ? _tags : null;
+			return _tags.length > 0 ? _tags : undefined;
 		};
 
 		this.getChangedTags = _getChangedTags;
@@ -4133,6 +4135,34 @@ var extend = function(protoProps, staticProps) {
 			return setMutliItems.apply(this, [key, value, 'removeitems', options]);
 		};
 
+		var hasChanged = function(property, prevValue, currValue) {
+			var changed = undefined;
+
+			if (currValue != prevValue) {
+				if (property == '__tags') {
+					var changedTags = _getChangedTags();
+					if (changedTags) changed = changedTags; 
+				} else if (property == '__attributes') {
+					var attrs = _getChangedAttributes();
+					if (attrs) changed = attrs;
+				} else {
+					if (_type.isArray(currValue)) {
+						if (_multivaluedProps[property] && !_setOps[property]) {
+							changed = _multivaluedProps[property];
+						} else if (!currValue.equals(prevValue)) {
+							changed = currValue;
+						} 
+					} else if (_atomicProps[property] && !_setOps[property]) {
+						changed = { incrementby : _atomicProps[property].value };
+					} else {
+						changed = currValue;
+					}
+				}
+			} 
+
+			return changed;
+		};
+
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
 			var changeSet = JSON.parse(JSON.stringify(_snapshot));
@@ -4142,33 +4172,13 @@ var extend = function(protoProps, staticProps) {
 			}
 
 			for (var property in object) {
-				if (object[property] == null || object[property] == undefined) {
-					changeSet[property] = null;
-					isDirty = true;
-				} else if (object[property] != _snapshot[property]) {
-					if (property == '__tags' || property == '__attributes') {
-						delete changeSet[property];
-					} else {
-						if (_type.isArray(object[property])) {
-							if (_multivaluedProps[property] && !_setOps[property]) {
-								changeSet[property] = _multivaluedProps[property];
-								isDirty = true;
-							} else if (!object[property].equals(_snapshot[property])) {
-								changeSet[property] = object[property];
-								isDirty = true;
-							} else {
-								delete changeSet[property];
-							}
-						} else if (_atomicProps[property] && !_setOps[property]) {
-							changeSet[property] = { incrementby : _atomicProps[property].value };
-							isDirty = true;
-						} else {
-							changeSet[property] = object[property];
-							isDirty = true;
-						}
-					}
-				} else if (object[property] == _snapshot[property]) {
+				var changed = hasChanged(property, changeSet[property], object[property]);
+
+				if (changed == undefined) {
 					delete changeSet[property];
+				} else {
+					isDirty = true;
+					changeSet[property] = changed;
 				}
 			}
 
@@ -4178,9 +4188,10 @@ var extend = function(protoProps, staticProps) {
 				});
 			} catch(e) {}
 
+
 			var changedTags = _getChangedTags();
 			if (isInternal) {
-				if (changedTags) { 
+				if (changedTags && changedTags.length > 0) { 
 					changeSet["__addtags"] = changedTags; 
 					isDirty = true;
 				}
@@ -4189,18 +4200,17 @@ var extend = function(protoProps, staticProps) {
 				    isDirty = true;
 				}
 			} else {
-				if (changedTags) { 
+				if (changedTags && changedTags.length > 0) { 
 					changeSet["__tags"] = changedTags; 
 					isDirty = true;
 				}
 			}
 
 			var attrs = _getChangedAttributes();
-			if (attrs) { 
+			if (attrs && !Object.isEmpty(attrs)) { 
 				changeSet["__attributes"] = attrs;
 				isDirty = true;
-			}
-			else delete changeSet["__attributes"];
+			} else delete changeSet["__attributes"];
 
 			if (that.type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
@@ -4220,14 +4230,11 @@ var extend = function(protoProps, staticProps) {
 		this.hasChanged = function() {
 			if (this.isNew()) return true;
 
-			var changeSet = _getChanged(true);
-			if (arguments.length === 0) {
-				return Object.isEmpty(changeSet) ? false : true;
-			} else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0) {
-				if (changeSet && changeSet[arguments[0]]) {
-					return true;
-				} return false;
-			}
+			if (arguments.length === 0)
+				return Object.isEmpty(_getChanged(true)) ? false : true;
+			else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0)
+				return (hasChanged(arguments[0]) == undefined) ? false : true;
+			
 			return false;
 		};
 
@@ -4356,13 +4363,13 @@ var extend = function(protoProps, staticProps) {
 
 		var triggerChangeEvent = function(key, options) {
 			if (options && !options.silent) {
-				var changed = _getChanged();
+				var changed = hasChanged(key, _snapshot[key], object[key]);
 
-				if (changed[key] || (_ignoreTheseFields.indexOf(key) != -1)) {
+				if (changed[key] != undefined || (_ignoreTheseFields.indexOf(key) != -1)) {
 					var value = changed[key] || object[key];
 					// Trigger all relevant attribute changes.
 				    that.trigger('change:' + key, that, value, {});
-				    that.trigger('change', that, options);
+				    if (!options.ignoreChange) that.trigger('change', that, options);
 				}
 			}
 		};
@@ -4371,13 +4378,14 @@ var extend = function(protoProps, staticProps) {
 			if (opts && !opts.silent) that.trigger('destroy', that, that.collection, opts);
       	};
 
-		this.set = function(key, value, options) {
+      	var set = function(key, value, options) {
+
+      		if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
+			
 			options = options || {};
 
 			var oType = options.dataType;
 
-			if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
-			
 			key = key.toLowerCase();
 
 			try {
@@ -4412,10 +4420,9 @@ var extend = function(protoProps, staticProps) {
 						  	var len = this.length;
 						  	if (_type.isString(v)) { this[len] = v; }
 				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
-				 			else throw new Error("Multivalued property cannot have values of property as an object");
-			 				
-				 			triggerChangeEvent(key, options);
-
+				 			else if (value instanceof Date) throw new Error("Multivalued property cannot have values of property as date");
+			 				else throw new Error("Multivalued property cannot have values of property as an object");
+			 			
 			 				return this; 
 						}
 					}
@@ -4433,12 +4440,57 @@ var extend = function(protoProps, staticProps) {
 
 				if (key == '__id') that.id = value; 
 
-				triggerChangeEvent(key, options);
-
 			 	return this;
 			} catch(e) {
 			 	throw new Error("Unable to set " + key);
 			} 
+      	};
+
+		this.set = function(key, val, options) {
+
+			var attr, attrs, unset, changes, silent, changing, prev, current;
+
+			if (key == null) return this;
+
+			// Handle both `"key", value` and `{key: value}` -style arguments.
+			if (key == null || typeof key === 'object') {
+				attrs = key;
+				options = val;
+			} else {
+				(attrs = {})[key] = val;
+			}
+
+			options || (options = {});
+
+		    // Run validation.
+		    if (!this._validate(attrs, options)) return false;
+
+		    // Check for changes of `id`.
+			if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
+
+			var changed = false;
+
+			// For each `set` attribute, update or delete the current value.
+			for (attr in attrs) {
+				val = attrs[attr];
+				set.apply(this, [ attr, val, _extend({}, options, { ignoreChange: true }) ]);
+			}
+
+			if (options && !options.silent) {
+				for (attr in attrs) {
+					var changedValue = hasChanged(attr, _snapshot[attr], object[attr]);
+					if (changedValue || (_ignoreTheseFields.indexOf(attr) != -1)) {
+						changed = true;
+						var value = changedValue || object[key];
+						// Trigger relevant attribute change event.
+					    that.trigger('change:' + key, that, value, {});
+					}
+				}
+			}
+
+			if (changed) this.trigger('change', this, options);
+
+			return this;
 		};
 
 		this.unset = function(key, options) {
@@ -4448,6 +4500,22 @@ var extend = function(protoProps, staticProps) {
 		 	triggerChangeEvent(key, options);
 		 	return this;
 		};
+
+		// Run validation against the next complete set of model attributes,
+	    // returning `true` if all is well. Otherwise, fire an `"invalid"` event.
+	    this._validate = function(attrs, options) {
+			if (!options.validate || !this.validate || !_type.isFunction(this.validate)) return true;
+			attrs = _extend({}, this.attributes, attrs);
+			var error = this.validationError = this.validate(attrs, options) || null;
+			if (!error) return true;
+			this.trigger('invalid', this, error, _extend(options, {validationError: error}));
+			return false;
+	    };
+
+	     // Check if the model is currently in a valid state.
+	    this.isValid = function(options) {
+	    	return this._validate({}, _extend(options || {}, { validate: true }));
+	    };
 
 		this.has = function(key) {
 			if (!key || !_type.isString(key) ||  key.length === 0) return false; 
@@ -4545,7 +4613,7 @@ var extend = function(protoProps, staticProps) {
 		/* save
 		   if the object has an id, then it has been created -> update
 		   else create */
-		this.save = function() {
+		this._save = function() {
 			if (this.id) return _update.apply(this, arguments);
 			else return _create.apply(this, arguments);
 		};
@@ -4560,24 +4628,29 @@ var extend = function(protoProps, staticProps) {
 				type = object.__type.toLowerCase()
 			}
 
+			var clonedObject = JSON.parse(JSON.stringify(object));
+
 			//remove __revision and aggregate poprerties
-			for (var p in object) {
-				if (p[0] == '$') delete object[p];
+			for (var p in clonedObject) {
+				if (p[0] == '$') delete clonedObject[p];
 			}
-			if (object["__revision"]) delete object["__revision"];
+			if (clonedObject["__revision"]) delete clonedObject["__revision"];
 			
 			if (type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
-				if (acls) object.__acls = acls;
+				if (acls) clonedObject.__acls = acls;
 			}
 
+			if (clonedObject.__tags && clonedObject.__tags.length == 0) delete clonedObject.__tags;
+
+			if (Object.isEmpty(clonedObject.__attributes)) delete clonedObject.__attributes;
 
 			var request = new global.Appacitive._Request({
 				method: 'PUT',
 				type: type,
 				op: 'getCreateUrl',
 				args: [this.className, _fields],
-				data: object,
+				data: clonedObject,
 				options: options,
 				entity: that,
 				onSuccess: function(data) {
@@ -4710,6 +4783,8 @@ var extend = function(protoProps, staticProps) {
 						}
 
 						if (!options.silent) that.trigger('sync', that, data[type], options);
+
+						global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
@@ -4723,12 +4798,12 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		// fetch ( by id )
-		this.fetch = function(options) {
+		this._fetch = function(options) {
 			return _fetch.apply(this ,[options]);
 		};
 
 		// delete the object
-		this.destroy = function(opts) {
+		this._destroy = function(opts) {
           	opts = opts || {};
 
 			var deleteConnections = opts.deleteConnections;
@@ -4747,7 +4822,7 @@ var extend = function(protoProps, staticProps) {
 	        if (!that.id) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
-			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
+			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
 			
 			var request = new global.Appacitive._Request({
 				method: 'DELETE',
@@ -4772,14 +4847,30 @@ var extend = function(protoProps, staticProps) {
 			});
 			return request.send();
 		};
-		this.del = this.destroy;
+		this.del = this._destroy;
 
 		if (this.type == 'object') {
-			this.destroyWithConnections = function(options) {
+			this._destroyWithConnections = function(options) {
 				return this.destroy(_extend({ deleteConnections: true}, options));
 			};
 		}
 
+	};
+
+	_BaseObject.prototype.save = function() {
+		return this._save.apply(this, arguments);
+	};
+
+	_BaseObject.prototype.fetch = function() {
+		return this._fetch.apply(this, arguments);
+	};
+
+	_BaseObject.prototype.destroy = function() {
+		return this._destroy.apply(this, arguments);
+	};
+
+	_BaseObject.prototype.destroyWithConnections = function() {
+		return this._destroyWithConnections.apply(this, arguments);
 	};
 
 	global.Appacitive.BaseObject = _BaseObject;
@@ -4805,6 +4896,7 @@ var extend = function(protoProps, staticProps) {
 	global.Appacitive.BaseObject.prototype.toString = function() {
 		return JSON.stringify(this.getObject());
 	};
+
 
 	global.Appacitive.Events.mixin(global.Appacitive.BaseObject.prototype);
 
@@ -5189,8 +5281,14 @@ var extend = function(protoProps, staticProps) {
 	global.Appacitive.Object.prototype.constructor = global.Appacitive.Object;
 
 	global.Appacitive.Object.extend = function(typeName, protoProps, staticProps) {
-    
-	    if (!_type.isString(typeName)) {
+    	
+    	if (_type.isObject(typeName)) {
+    		staticProps = protoProps;
+    		protoProps = typeName;
+    		typeName = protoProps.typeName;
+    	}
+
+	    if (!_type.isString(typeName) || typeName.length == 0) {
 	      throw new Error("Appacitive.Object.extend's first argument should be the type-name.");
 	    }
 
@@ -5515,16 +5613,23 @@ var extend = function(protoProps, staticProps) {
 
 	global.Appacitive.Connection.prototype.constructor = global.Appacitive.Connection;
 
-	global.Appacitive.Connection.extend = function(typeName, protoProps, staticProps) {
-    
-	    if (!_type.isString(typeName)) {
-	      throw new Error("Appacitive.Connection.extend's first argument should be the relation-name.");
+	global.Appacitive.Connection.extend = function(relationName, protoProps, staticProps) {
+    	
+    	if (_type.isObject(relationName)) {
+    		staticProps = protoProps;
+    		protoProps = relationName;
+    		relationName = protoProps.relationName;
+    	}
+
+
+	    if (!_type.isString(relationName)) {
+	      throw new Error("Appacitive.Connection.extend's first argument should be the relationName.");
 	    }
 
 	    var entity = null;
     
 	    protoProps = protoProps || {};
-	    protoProps.className = typeName;
+	    protoProps.className = relationName;
 
 	    entity = global.Appacitive._extend(global.Appacitive.Connection, protoProps, staticProps);
 
@@ -5532,11 +5637,11 @@ var extend = function(protoProps, staticProps) {
 	    delete entity.extend;
 
 	    // Set className in entity class
-	    entity.className = typeName;
+	    entity.className = relationName;
 
-	    entity.relation = typeName;
+	    entity.relation = relationName;
 
-	    __relationMap[typeName] = entity;
+	    __relationMap[relationName] = entity;
 
 	    return entity;
 	};
@@ -5833,7 +5938,7 @@ var extend = function(protoProps, staticProps) {
 
 		global.Appacitive.localStorage.set('Appacitive-User', user);
 
-		if (!expiry) expiry = 3600;
+		if (!expiry) expiry = 86400000;
 		_authenticatedUser = userObject;
 
 		if (token) global.Appacitive.Session.setUserAuthHeader(token, expiry);
@@ -6112,11 +6217,17 @@ var extend = function(protoProps, staticProps) {
 		
 		if (!accessToken || !_type.isString(accessToken)) throw new Error("Please provide accessToken");
 
+		options = options || {};	
+
+		var createNew = true;
+
+		if (options.create == false) createNew = false; 
+
 		var authRequest = {
 			"accesstoken": accessToken,
 			"type": "facebook",
 			"expiry": 86400000,
-			"createnew": true
+			"createnew": createNew
 		};
 
 		return this.authenticateUser(authRequest, options, 'FB');
@@ -6126,12 +6237,16 @@ var extend = function(protoProps, staticProps) {
 		
 		if (!_type.isObject(twitterObj) || !twitterObj.oAuthToken  || !twitterObj.oAuthTokenSecret) throw new Error("Twitter Token and Token Secret required for linking");
 		
+		var createNew = true;
+
+		if (options.create == false) createNew = false; 
+
 		var authRequest = {
 			"type": "twitter",
 			"oauthtoken": twitterObj.oAuthToken ,
 			"oauthtokensecret": twitterObj.oAuthTokenSecret,
 			"expiry": 86400000,
-			"createnew": true
+			"createnew": createNew
 		};
 
 		if (twitterObj.consumerKey && twitterObj.consumerSecret) {
@@ -6414,7 +6529,7 @@ var extend = function(protoProps, staticProps) {
 
     query: function(query) {
       if (query) {
-        if ((query instanceof global.Appacitive.Query) || (query instanceof global.Appacitive.Queries.GraphProjectQuery)) { 
+        if ((query instanceof global.Appacitive.Query) || (query instanceof global.Appacitive.Queries.GraphAPI)) { 
           this._query = query;
           return this;
         } else {
@@ -6988,14 +7103,19 @@ var extend = function(protoProps, staticProps) {
           });
       };
 
-      this.save = function(options) {
+      this.save = function(expiry, options) {
+        if (typeof expiry !== 'number') {
+          options = expiry;
+          expiry = -1;
+        }
+          
         if (this.fileId && _type.isString(this.fileId) && this.fileId.length > 0)
-          return _update(options);
+          return _update(expiry, options);
         else
-          return _create(options);
+          return _create(expiry, options);
       };
 
-      var _create = function(options) {
+      var _create = function(expiry, options) {
           if (!that.fileData) throw new Error('Please specify filedata');
           if(!that.contentType) {
             try { that.contentType = that.fileData.type; } catch(e) {}
@@ -7010,7 +7130,7 @@ var extend = function(protoProps, staticProps) {
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.fileId = response.id;
                     
-                    that.getDownloadUrl(options).then(function(res) {
+                    that.getDownloadUrl(expiry, options).then(function(res) {
                       return promise.fulfill(res, that);
                     }, function(e) {
                       return promise.reject(e);
@@ -7022,7 +7142,7 @@ var extend = function(protoProps, staticProps) {
           return promise;
       };
 
-      var _update = function(options) {
+      var _update = function(expiry, options) {
           if (!that.fileData) throw new Error('Please specify filedata');
           if(!that.contentType) {
             try { that.contentType = that.fileData.type; } catch(e) {}
@@ -7036,7 +7156,7 @@ var extend = function(protoProps, staticProps) {
           _getUrls(url, function(response) {
               _upload(response.url, that.fileData, that.contentType, function() {
                   
-                  that.getDownloadUrl(options).then(function(res) {
+                  that.getDownloadUrl(expiry, options).then(function(res) {
                     promise.fulfill(res, that);
                   }, function(e) {
                     promise.reject(e);
@@ -7048,7 +7168,7 @@ var extend = function(protoProps, staticProps) {
           return promise;
       };
 
-      this.deleteFile = function(options) {
+      this.destroy = function(options) {
           if (!this.fileId) throw new Error('Please specify fileId to delete');
 
           var promise = global.Appacitive.Promise.buildPromise(options);

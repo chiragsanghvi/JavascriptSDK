@@ -35,14 +35,19 @@
           });
       };
 
-      this.save = function(options) {
+      this.save = function(expiry, options) {
+        if (typeof expiry !== 'number') {
+          options = expiry;
+          expiry = -1;
+        }
+          
         if (this.fileId && _type.isString(this.fileId) && this.fileId.length > 0)
-          return _update(options);
+          return _update(expiry, options);
         else
-          return _create(options);
+          return _create(expiry, options);
       };
 
-      var _create = function(options) {
+      var _create = function(expiry, options) {
           if (!that.fileData) throw new Error('Please specify filedata');
           if(!that.contentType) {
             try { that.contentType = that.fileData.type; } catch(e) {}
@@ -57,7 +62,7 @@
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.fileId = response.id;
                     
-                    that.getDownloadUrl(options).then(function(res) {
+                    that.getDownloadUrl(expiry, options).then(function(res) {
                       return promise.fulfill(res, that);
                     }, function(e) {
                       return promise.reject(e);
@@ -69,7 +74,7 @@
           return promise;
       };
 
-      var _update = function(options) {
+      var _update = function(expiry, options) {
           if (!that.fileData) throw new Error('Please specify filedata');
           if(!that.contentType) {
             try { that.contentType = that.fileData.type; } catch(e) {}
@@ -83,7 +88,7 @@
           _getUrls(url, function(response) {
               _upload(response.url, that.fileData, that.contentType, function() {
                   
-                  that.getDownloadUrl(options).then(function(res) {
+                  that.getDownloadUrl(expiry, options).then(function(res) {
                     promise.fulfill(res, that);
                   }, function(e) {
                     promise.reject(e);
@@ -95,7 +100,7 @@
           return promise;
       };
 
-      this.deleteFile = function(options) {
+      this.destroy = function(options) {
           if (!this.fileId) throw new Error('Please specify fileId to delete');
 
           var promise = global.Appacitive.Promise.buildPromise(options);

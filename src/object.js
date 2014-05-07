@@ -61,8 +61,14 @@
 	global.Appacitive.Object.prototype.constructor = global.Appacitive.Object;
 
 	global.Appacitive.Object.extend = function(typeName, protoProps, staticProps) {
-    
-	    if (!_type.isString(typeName)) {
+    	
+    	if (_type.isObject(typeName)) {
+    		staticProps = protoProps;
+    		protoProps = typeName;
+    		typeName = protoProps.typeName;
+    	}
+
+	    if (!_type.isString(typeName) || typeName.length == 0) {
 	      throw new Error("Appacitive.Object.extend's first argument should be the type-name.");
 	    }
 

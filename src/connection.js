@@ -122,16 +122,23 @@
 
 	global.Appacitive.Connection.prototype.constructor = global.Appacitive.Connection;
 
-	global.Appacitive.Connection.extend = function(typeName, protoProps, staticProps) {
-    
-	    if (!_type.isString(typeName)) {
-	      throw new Error("Appacitive.Connection.extend's first argument should be the relation-name.");
+	global.Appacitive.Connection.extend = function(relationName, protoProps, staticProps) {
+    	
+    	if (_type.isObject(relationName)) {
+    		staticProps = protoProps;
+    		protoProps = relationName;
+    		relationName = protoProps.relationName;
+    	}
+
+
+	    if (!_type.isString(relationName)) {
+	      throw new Error("Appacitive.Connection.extend's first argument should be the relationName.");
 	    }
 
 	    var entity = null;
     
 	    protoProps = protoProps || {};
-	    protoProps.className = typeName;
+	    protoProps.className = relationName;
 
 	    entity = global.Appacitive._extend(global.Appacitive.Connection, protoProps, staticProps);
 
@@ -139,11 +146,11 @@
 	    delete entity.extend;
 
 	    // Set className in entity class
-	    entity.className = typeName;
+	    entity.className = relationName;
 
-	    entity.relation = typeName;
+	    entity.relation = relationName;
 
-	    __relationMap[typeName] = entity;
+	    __relationMap[relationName] = entity;
 
 	    return entity;
 	};
