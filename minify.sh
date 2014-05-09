@@ -1,6 +1,32 @@
 echo "=======================Combining======================="
 
-ver="1.0"
+function increment_version()
+{
+  declare -a part=( ${1//\./ } )
+  declare    new
+  declare -i carry=1
+
+  for (( CNTR=${#part[@]}-1; CNTR>=0; CNTR-=1 )); do
+    len=${#part[CNTR]}
+    new=$((part[CNTR]+carry))
+    [ ${#new} -gt $len ] && carry=1 || carry=0
+    [ $CNTR -gt 0 ] && part[CNTR]=${new: -len} || part[CNTR]=${new}
+  done
+  new="${part[*]}"
+  echo "${new// /.}"
+} 
+ 
+minifiedFile=$(find .. -name appacitive-js-sdk-v\*.min.js)
+minSearchText='./appacitive-js-sdk-v'
+minResult="${minifiedFile/$minSearchText/}"
+minExt='.min.js'
+
+oldVersion="${minResult/.min.js/}"
+echo 'old version' $oldVersion
+
+ver=$(increment_version $oldVersion)
+echo 'new version' $ver
+
 thedate=$(date)
 type=""
 format="String.Format"
@@ -21,3 +47,4 @@ out=AppacitiveSDK.min.js
 java -jar /usr/local/lib/compiler.jar --js $in --js_output_file $out
 
 echo "============Minified AppacitiveSDK.min.js=============="
+
