@@ -133,10 +133,8 @@
 
 			var promise = global.Appacitive.Promise.buildPromise(options);
 
-			if (!makeApiCall) {
-				global.Appacitive.User.trigger('logout', {});
-			}
-
+			if (!makeApiCall) global.Appacitive.User.trigger('logout', {});
+			
 			global.Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
@@ -151,7 +149,8 @@
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
-		            	global.Appacitive.localStorage.remove('Appacitive-UserToken');
+		            	global.Appacitive.User.trigger('logout', {});
+			        	global.Appacitive.localStorage.remove('Appacitive-UserToken');
 		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
 		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
 						promise.fulfill();  

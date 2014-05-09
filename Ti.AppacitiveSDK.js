@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.6.7 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.6.8 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri May  9 15:07:06 IST 2014
+ * Build time 	: Fri May  9 15:30:25 IST 2014
  */
 "use strict";
 
@@ -2263,10 +2263,8 @@ Depends on  NOTHING
 
 			var promise = global.Appacitive.Promise.buildPromise(options);
 
-			if (!makeApiCall) {
-				global.Appacitive.User.trigger('logout', {});
-			}
-
+			if (!makeApiCall) global.Appacitive.User.trigger('logout', {});
+			
 			global.Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
@@ -2281,7 +2279,8 @@ Depends on  NOTHING
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
-		            	global.Appacitive.localStorage.remove('Appacitive-UserToken');
+		            	global.Appacitive.User.trigger('logout', {});
+			        	global.Appacitive.localStorage.remove('Appacitive-UserToken');
 		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
 		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
 						promise.fulfill();  
