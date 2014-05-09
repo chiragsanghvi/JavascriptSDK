@@ -111,6 +111,42 @@ if (!('each' in Array.prototype)) {
         }
     }
 }
+if (!('difference' in Array.prototype)) {
+    Array.prototype.difference = function(a) {
+        return this.filter(function(i) {return a.indexOf(i) < 0;});
+    };
+}
+if (!('without' in Array.prototype)) {
+    Array.prototype.without = function() {
+        return this.difference(Array.prototype.slice.call(arguments, 0));
+    };
+}
+if ( 'function' !== typeof Array.prototype.reduce ) {
+    Array.prototype.reduce = function( callback /*, initialValue*/ ) {
+        'use strict';
+        if ( null === this || 'undefined' === typeof this ) {
+            throw new TypeError('Array.prototype.reduce called on null or undefined' );
+        }
+        if ( 'function' !== typeof callback ) {
+            throw new TypeError( callback + ' is not a function' );
+        }
+        var t = Object( this ), len = t.length >>> 0, k = 0, value;
+        if ( arguments.length >= 2 ) {
+            value = arguments[1];
+        } else {
+            while ( k < len && ! k in t ) k++; 
+            if ( k >= len )
+                throw new TypeError('Reduce of empty array with no initial value');
+            value = t[ k++ ];
+        }
+        for ( ; k < len ; k++ ) {
+            if ( k in t ) {
+                value = callback( value, t[k], k, t );
+            }
+        }
+        return value;
+    };
+}
 
 var _lookupIterator = function(value, context) {
     if (value == null) return _.identity;
@@ -248,12 +284,16 @@ _type['isNumeric'] = function(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 };
 
+_type['isDate'] =  function(n) {
+    return n instanceof Date;
+};
+
 var _clone = function(obj) {
     if (!_type.isObject(obj)) return obj;
     return _type.isArray(obj) ? obj.slice() : _extend({}, obj);
 };
 
-Array.prototype.removeAll = function(obj){
+Array.prototype.removeAll = function(obj) {
     // Return null if no objects were found and removed
     var destroyed = null;
 
@@ -314,7 +354,7 @@ Array.prototype.equals = function (array, strict) {
             if (!this[i].equals(array[i], strict))
                 return false;
         }
-        else if (strict && this[i] != array[i]) {
+        else if (strict && !_type.isEqual(this[i], array[i])) {
             // Warning - two different object instances will never be equal: {x:20} != {x:20}
             return false;
         }
@@ -323,4 +363,104 @@ Array.prototype.equals = function (array, strict) {
         }
     }
     return true;
+};
+
+// Internal recursive comparison function for `isEqual`.
+var eq = function(a, b, aStack, bStack) {
+  var toString = Object.prototype.toString;
+
+  var _has = function(obj, key) {
+    return Object.prototype.hasOwnProperty.call(obj, key);
+  }
+
+  // Identical objects are equal. `0 === -0`, but they aren't identical.
+  // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
+  if (a === b) return a !== 0 || 1 / a == 1 / b;
+  // A strict comparison is necessary because `null == undefined`.
+  if (a == null || b == null) return a === b;
+  
+  // Compare `[[Class]]` names.
+  var className = toString.call(a);
+  if (className != toString.call(b)) return false;
+  switch (className) {
+    // Strings, numbers, dates, and booleans are compared by value.
+    case '[object String]':
+      // Primitives and their corresponding object wrappers are equivalent; thus, `"5"` is
+      // equivalent to `new String("5")`.
+      return a == String(b);
+    case '[object Number]':
+      // `NaN`s are equivalent, but non-reflexive. An `egal` comparison is performed for
+      // other numeric values.
+      return a != +a ? b != +b : (a == 0 ? 1 / a == 1 / b : a == +b);
+    case '[object Date]':
+    case '[object Boolean]':
+      // Coerce dates and booleans to numeric primitive values. Dates are compared by their
+      // millisecond representations. Note that invalid dates with millisecond representations
+      // of `NaN` are not equivalent.
+      return +a == +b;
+  }
+
+  if (typeof a != 'object' || typeof b != 'object') return false;
+
+  if (a instanceof global.Appacitive.GeoCoord && b instanceof global.Appacitive.GeoCoord)
+    return (a.toString() == b.toString());
+
+  // Assume equality for cyclic structures. The algorithm for detecting cyclic
+  // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
+  var length = aStack.length;
+  while (length--) {
+    // Linear search. Performance is inversely proportional to the number of
+    // unique nested structures.
+    if (aStack[length] == a) return bStack[length] == b;
+  }
+  // Objects with different constructors are not equivalent, but `Object`s
+  // from different frames are.
+  var aCtor = a.constructor, bCtor = b.constructor;
+  if (aCtor !== bCtor && !(_types.isFunction(aCtor) && (aCtor instanceof aCtor) &&
+                           _types.isFunction(bCtor) && (bCtor instanceof bCtor))
+                      && ('constructor' in a && 'constructor' in b)) {
+    return false;
+  }
+  // Add the first object to the stack of traversed objects.
+  aStack.push(a);
+  bStack.push(b);
+  var size = 0, result = true;
+  // Recursively compare objects and arrays.
+  if (className == '[object Array]') {
+    // Compare array lengths to determine if a deep comparison is necessary.
+    size = a.length;
+    result = size == b.length;
+    if (result) {
+      // Deep compare the contents, ignoring non-numeric properties.
+      while (size--) {
+        if (!(result = eq(a[size], b[size], aStack, bStack))) break;
+      }
+    }
+  } else {
+    // Deep compare objects.
+    for (var key in a) {
+      if (_has(a, key)) {
+        // Count the expected number of properties.
+        size++;
+        // Deep compare each member.
+        if (!(result = _has(b, key) && eq(a[key], b[key], aStack, bStack))) break;
+      }
+    }
+    // Ensure that both objects contain the same number of properties.
+    if (result) {
+      for (key in b) {
+        if (_has(b, key) && !(size--)) break;
+      }
+      result = !size;
+    }
+  }
+  // Remove the first object from the stack of traversed objects.
+  aStack.pop();
+  bStack.pop();
+  return result;
+};
+
+// Perform a deep comparison to check if two objects are equal.
+_type.isEqual = function(a, b) {
+  return eq(a, b, [], []);
 };

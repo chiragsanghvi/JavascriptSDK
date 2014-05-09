@@ -133,6 +133,11 @@ var global = {};
 				else request.url = request.url + '&debug=true';
 			}
 
+			if (global.Appacitive.config.metadata) {
+				if (request.url.indexOf('?') === -1) request.url = request.url + '?metadata=true';
+				else request.url = request.url + '&metadata=true';
+			}
+
 			try { request.data = JSON.stringify(body); } catch(e) {}
 			return request;
 		};

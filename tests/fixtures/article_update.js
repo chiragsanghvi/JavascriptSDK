@@ -131,17 +131,17 @@ asyncTest('Update multivalued property with just adding items', function() {
 
 	x.add('docvisits',[10 , 20]);
 
-	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as added');
+	ok(x.get('docvisits').equals([10,20]), 'Multivalued property same as added');
 
 	x.save().then(function() {
-		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated after create');
+		ok(x.get('docvisits').equals([10,20]), 'Multivalued property updated after create');
 
 		x.add('docvisits', 30);
 
-		ok(x.get('docvisits').equals(["10","20","30"]), 'Multivalued property updated with add');
+		ok(x.get('docvisits').equals([10,20,30]), 'Multivalued property updated with add');
 		
 		x.save().then(function() {
-			ok(x.get('docvisits').equals(["10","20","30"]), 'Multivalued property updated after adding item');
+			ok(x.get('docvisits').equals([10,20,30]), 'Multivalued property updated after adding item');
 			start();
 		}, function() {
 			ok(false, 'Could not update object, onError called');
@@ -160,18 +160,18 @@ asyncTest('Update multivalued property with first setting value and then adding 
 	x.set('docvisits', [20]);
 	x.add('docvisits',[10]);
 
-	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as set and add');
+	ok(x.get('docvisits').equals([10,20]), 'Multivalued property same as set and add');
 
 	x.save().then(function() {
-		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated after create');
+		ok(x.get('docvisits').equals([10,20]), 'Multivalued property updated after create');
 
 		x.set('docvisits', [30]);
 		x.add('docvisits', 30);
 
-		ok(x.get('docvisits').equals(["30","30"]), 'Multivalued property updated with set and add');
+		ok(x.get('docvisits').equals([30,30]), 'Multivalued property updated with set and add');
 		
 		x.save().then(function() {
-			ok(x.get('docvisits').equals(["30","30"]), 'Multivalued property updated after setting and adding item');
+			ok(x.get('docvisits').equals([30,30]), 'Multivalued property updated after setting and adding item');
 			start();
 		}, function() {
 			ok(false, 'Could not update object, onError called');
@@ -189,17 +189,17 @@ asyncTest('Update multivalued property with just adding unique items', function(
 
 	x.addUnique('docvisits',[10 , 20]);
 
-	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as added unqiuely');
+	ok(x.get('docvisits').equals([10,20]), 'Multivalued property same as added unqiuely');
 
 	x.save().then(function() {
-		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated unqiuely after create');
+		ok(x.get('docvisits').equals([10,20]), 'Multivalued property updated unqiuely after create');
 
 		x.addUnique('docvisits', 20);
 
-		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated unqiuely with add');
+		ok(x.get('docvisits').equals([10,20]), 'Multivalued property updated unqiuely with add');
 		
 		x.save().then(function() {
-			ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated unqiuely after adding item');
+			ok(x.get('docvisits').equals([10,20]), 'Multivalued property updated unqiuely after adding item');
 			start();
 		}, function() {
 			ok(false, 'Could not update object, onError called');
@@ -217,18 +217,18 @@ asyncTest('Update multivalued property with first adding item, saving it and the
 
 	x.add('docvisits',[10 , 20]);
 
-	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as added');
+	ok(x.get('docvisits').equals([10,20]), 'Multivalued property same as added');
 
 	x.save().then(function() {
-		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated after create');
+		ok(x.get('docvisits').equals([10,20]), 'Multivalued property updated after create');
 
 		x.remove('docvisits', 20);
 		x.remove('docvisits', 30);
 
-		ok(x.get('docvisits').equals(["10"]), 'Multivalued property updated with remove');
+		ok(x.get('docvisits').equals([10]), 'Multivalued property updated with remove');
 		
 		x.save().then(function() {
-			ok(x.get('docvisits').equals(["10"]), 'Multivalued property updated after removing item');
+			ok(x.get('docvisits').equals([10]), 'Multivalued property updated after removing item');
 			start();
 		}, function() {
 			ok(false, 'Could not update object, onError called');
@@ -248,20 +248,20 @@ asyncTest('Update multivalued property with adding normal and unique items and r
 
 	x.addUnique('docvisits', 20);
 
-	ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property same as added unqiuely');
+	ok(x.get('docvisits').equals([10,20]), 'Multivalued property same as added unqiuely');
 
 	x.save().then(function() {
-		ok(x.get('docvisits').equals(["10","20"]), 'Multivalued property updated unqiuely after create');
+		ok(x.get('docvisits').equals([10,20]), 'Multivalued property updated unqiuely after create');
 
 		x.add('docvisits', 10);
 
 		x.remove('docvisits', 20);
 		x.remove('docvisits', 30);
 
-		ok(x.get('docvisits').equals(["10","10"]), 'Multivalued property updated with remove');
+		ok(x.get('docvisits').equals([10,10]), 'Multivalued property updated with remove');
 		
 		x.save().then(function() {
-			ok(x.get('docvisits').equals(["10","10"]), 'Multivalued property updated after removing item');
+			ok(x.get('docvisits').equals([10,10]), 'Multivalued property updated after removing item');
 			start();
 		}, function() {
 			ok(false, 'Could not update object, onError called');
@@ -280,18 +280,18 @@ asyncTest('Update atomic property by first creating and then incrementing it', f
 	x.set('score', 10)
 	 .increment('score')
 
-	equal(x.get('score'), '11', 'Atomic property set properly after incrementing');
+	equal(x.get('score'), 11, 'Atomic property set properly after incrementing');
 
 	x.save().then(function() {	
 
-		equal(x.get('score'), '11', 'Atomic property set properly after create');
+		equal(x.get('score'), 11, 'Atomic property set properly after create');
 
 		x.increment('score', 11);
 
-		equal(x.get('score'), "22", 'Atomic property incremenented properly');
+		equal(x.get('score'), 22, 'Atomic property incremenented properly');
 
 		x.save().then(function() {
-			equal(x.get('score'), "22", 'Atomic property incremenented properly after update');
+			equal(x.get('score'), 22, 'Atomic property incremenented properly after update');
 			start();
 		}, function() {
 			ok(false, 'Could not update object, onError called');
@@ -309,23 +309,23 @@ asyncTest('Update atomic property by first incrementing it and then setting it, 
 
 	x.increment('score')
 
-	equal(x.get('score'), '1', 'Atomic property set properly after incrementing');
+	equal(x.get('score'), 1, 'Atomic property set properly after incrementing');
 
 	x.save().then(function() {	
 
-		equal(x.get('score'), '1', 'Atomic property set properly after create');
+		equal(x.get('score'), 1, 'Atomic property set properly after create');
 
 		x.set('score', 11)
 		  .increment('score', 20);
 
-		equal(x.get('score'), "31", 'Atomic property incremenented properly');
+		equal(x.get('score'), 31, 'Atomic property incremenented properly');
 
 		x.decrement('score', 6);
 
-		equal(x.get('score'), "25", 'Atomic property decremenented properly');
+		equal(x.get('score'), 25, 'Atomic property decremenented properly');
 
 		x.save().then(function() {
-			equal(x.get('score'), "25", 'Atomic property decremenented properly after update');
+			equal(x.get('score'), 25, 'Atomic property decremenented properly after update');
 			start();
 		}, function() {
 			ok(false, 'Could not update object, onError called');
@@ -343,32 +343,32 @@ asyncTest('Update atomic property by first incrementing it and then setting it a
 
 	x.increment('score')
 
-	equal(x.get('score'), '1', 'Atomic property set properly after incrementing');
+	equal(x.get('score'), 1, 'Atomic property set properly after incrementing');
 
 	x.save().then(function() {	
 
-		equal(x.get('score'), '1', 'Atomic property set properly after create');
+		equal(x.get('score'), 1, 'Atomic property set properly after create');
 
 		x.set('score', 11)
 		  .increment('score', 20);
 
-		equal(x.get('score'), "31", 'Atomic property incremenented properly');
+		equal(x.get('score'), 31, 'Atomic property incremenented properly');
 
 		x.decrement('score', 6);
 
-		equal(x.get('score'), "25", 'Atomic property decremenented properly');
+		equal(x.get('score'), 25, 'Atomic property decremenented properly');
 
 		x.save().then(function() {
-			equal(x.get('score'), "25", 'Atomic property decremenented properly after update');
+			equal(x.get('score'), 25, 'Atomic property decremenented properly after update');
 
 			var d = x.clone();
 			
 			d.increment('score', 5);
 
-			equal(d.get('score'), "30", 'Atomic property incremenented properly in other object');
+			equal(d.get('score'), 30, 'Atomic property incremenented properly in other object');
 
 			d.save().then(function() {
-				equal(d.get('score'), "30", 'Atomic property incremenented properly in other object after save');
+				equal(d.get('score'), 30, 'Atomic property incremenented properly in other object after save');
 				start();
 			}, function() {
 				ok(false, 'Could not update other object, onError called');
@@ -413,8 +413,8 @@ asyncTest('Update object with properties and acls', function() {
 				.allowUser("acluser3", "update");
 
 
-    	ok(object.get('docvisits').equals(["10","20","30","40"]), 'Multivalued property same as added unqiuely');
-    	equal(object.get('score'), "1", "Atomic property score incremented successfully on create");
+    	ok(object.get('docvisits').equals([10,20,30,40]), 'Multivalued property same as added unqiuely');
+    	equal(object.get('score'), 1, "Atomic property score incremented successfully on create");
 
 		object.increment('score', 5);
 		object.remove('docvisits', 20);
@@ -424,8 +424,8 @@ asyncTest('Update object with properties and acls', function() {
 		return object.save();
 	}).then(function() {
 
-		ok(object.get('docvisits').equals(["10","30","40"]), 'Multivalued property updated with remove');
-		equal(object.get('score'), "6", "Atomic property score incremented successfully on update");
+		ok(object.get('docvisits').equals([10,30,40]), 'Multivalued property updated with remove');
+		equal(object.get('score'), 6, "Atomic property score incremented successfully on update");
 
 		ok(true, 'Object update with acls done successfully');
 		start();

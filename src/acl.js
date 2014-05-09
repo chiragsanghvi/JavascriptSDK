@@ -179,6 +179,7 @@
 			return chAcls;
 		};
 
+		this.toJSON = this.getChanged;
 
 		this.merge = function() {
 			changed = [];

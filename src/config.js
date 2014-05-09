@@ -3,7 +3,8 @@
 	"use strict";
 
 	global.Appacitive.config = {
-		apiBaseUrl: 'https://apis.appacitive.com/v1.0/'
+		apiBaseUrl: 'https://apis.appacitive.com/v1.0/',
+		metadata: true
 	};
 
 	if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {

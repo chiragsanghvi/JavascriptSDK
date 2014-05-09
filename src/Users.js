@@ -329,6 +329,7 @@
 			onSuccess: function(data) {
 				if (data && data.user) {
 					if (provider) data.user.__authType = provider;
+					_extend(data.user, { __meta: data.__meta });
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
 					global.Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
 					request.promise.fulfill({ user : _authenticatedUser, token: data.token });
@@ -434,6 +435,7 @@
 	};
 
 	var _getUserByIdType = function(op, args, options) {
+		options = options || {};
 		var request = new global.Appacitive._Request({
 			method: 'GET',
 			type: 'user',
@@ -441,7 +443,7 @@
 			options: options,
 			args: args,
 			onSuccess: function(data) {
-				if (data && data.user) request.promise.fulfill(new global.Appacitive.User(data.user));
+				if (data && data.user) request.promise.fulfill(new global.Appacitive.User(_extend(data.user, { __meta: data.__meta }),  _extend(options, { setSnapShot: true })));
 				else request.promise.reject(data.status);
 			}
 		});
@@ -507,6 +509,8 @@
 		
 		if (!token) throw new Error("Please specify token");
 
+		options = options || {};
+
 		var request = new global.Appacitive._Request({
 			method: 'POST',
 			type: 'user',
@@ -514,8 +518,8 @@
 			options: options,
 			data: {},
 			args: [token],
-			onSuccess: function(a) {
-				request.promise.fulfill(a.user);
+			onSuccess: function(data) {
+				request.promise.fulfill(new global.Appacitive.User(_extend(data.user, { __meta: data.__meta }), _extend(options, { setSnapShot: true })));
 			}
 		});
 		return request.send();

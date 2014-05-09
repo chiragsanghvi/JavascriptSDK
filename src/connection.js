@@ -1,8 +1,9 @@
 (function (global) {
 
 	"use strict";
-
+    
 	var _parseEndpoint = function(endpoint, type, base) {
+
 		var result = { label: endpoint.label };
 		if (endpoint.objectid)  result.objectid = endpoint.objectid;
 		if (endpoint.object) {
@@ -11,7 +12,7 @@
 				// stick the whole object if there is no __id
 				// else just stick the __id
 				if (endpoint.object.id) result.objectid = endpoint.object.id;
-				else result.object = endpoint.object.getObject();
+				else  result.object = endpoint.object.getObject();
 			} else if (_type.isObject(endpoint.object)) {
 				// provided a raw object
 				// if there is an __id, just add that
@@ -24,6 +25,19 @@
 		} else {
 			if (!result.objectid && !result.object) throw new Error('Incorrectly configured endpoints provided to parseConnection');
 		}
+
+		result.toJSON = function() {
+			var d = _extend({}, this);
+			if (d.object) {
+				d.object = endpoint.object.toJSON();
+				if (endpoint.object._aclFactory) {
+					var acls = endpoint.object._aclFactory.toJSON();
+					if (acls) d.object.__acls = acls;
+				}
+			}
+			delete d.toJSON;
+			return d
+		};		
 
 		base["endpoint" + type] = endpoint;
 		return result;
@@ -40,6 +54,11 @@
 				else 
 					base['endpoint' + type].object = global.Appacitive.Object._create(endpoint.object, true);
 			}
+
+			if (base["endpoint" + type]._aclFactory) {
+				base["endpoint" + type]._aclFactory.merge();
+			}
+
 			base["endpoint" + type].objectid = endpoint.object.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
@@ -179,11 +198,11 @@
 	};
 
     //private function for parsing api connections in sdk connection object
-	var _parseConnections = function(connections, relationClass) {
+	var _parseConnections = function(connections, relationClass, metadata) {
 		var connectionObjects = [];
 		if (!connections) connections = [];
 		connections.forEach(function(c) {
-			connectionObjects.push(global.Appacitive.Connection._create(c, true, relationClass));
+			connectionObjects.push(global.Appacitive.Connection._create(_extend(c, { __meta : metadata }), true, relationClass));
 		});
 		return connectionObjects;
 	};
@@ -279,7 +298,7 @@
 			args: [attrs.relation, attrs.ids.join(','), attrs.fields],
 			options: options,
 			onSuccess: function(d) {
-				request.promise.fulfill(_parseConnections(d.connections, attrs.entity));
+				request.promise.fulfill(_parseConnections(d.connections, attrs.entity, d.__meta));
 			}
 		});
 			

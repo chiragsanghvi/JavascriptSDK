@@ -116,10 +116,10 @@
 	};
 
 	//private function for parsing objects
-	var _parseObjects = function(objects, typeClass) {
+	var _parseObjects = function(objects, typeClass, metadata) {
 		var tmpObjects = [];
 		objects.forEach(function(a) {
-			var obj = global.Appacitive.Object._create(a, true, typeClass);
+			var obj = global.Appacitive.Object._create(_extend(a, { __meta : metadata }), true, typeClass);
 			tmpObjects.push(obj);
 		});
 		return tmpObjects;
@@ -204,7 +204,7 @@
 			args: [attrs.type, attrs.ids.join(','), attrs.fields],
 			options: options,
 			onSuccess: function(d) {
-				request.promise.fulfill(_parseObjects(d.objects, attrs.entity));
+				request.promise.fulfill(_parseObjects(d.objects, attrs.entity, d.__meta));
 			}
 		});
 			

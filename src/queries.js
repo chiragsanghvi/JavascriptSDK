@@ -271,12 +271,12 @@
 			}
 		};
 
-		var _parse = function(entities) {
+		var _parse = function(entities, metadata) {
 			var entityObjects = [];
 			if (!entities) entities = [];
 			var eType = (_etype === 'object') ? 'Object' : 'Connection';
 
-			return global.Appacitive[eType]._parseResult(entities, options.entity);
+			return global.Appacitive[eType]._parseResult(entities, options.entity, metadata);
 		};
 
 		this.fetch = function(opts) {
@@ -284,7 +284,7 @@
 
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-			   self.results = _parse(d[_etype + 's']);
+			   self.results = _parse(d[_etype + 's'], d.__meta);
 			   self._setPaging(d.paginginfo);
 
 			   promise.fulfill(self.results, d.paginginfo);
@@ -308,7 +308,7 @@
 	     */
 	    this.collection = function(items, opts) {
 			opts = opts || {};
-			items = items || [];
+			items = items;
 			if (_type.isObject(items)) opts = items, items = null;
 
 			if (!items) items = this.results ? this.results : [];
@@ -326,7 +326,7 @@
 			}
 
 			return new Appacitive.Collection(items, _extend(opts, {
-				model: this.model,
+				model: model,
 				query: this
 			}));
 	    };
@@ -432,13 +432,13 @@
 		};
 
 
-		var parseNodes = function(nodes, endpointA) {
+		var parseNodes = function(nodes, endpointA, nodeMeta, edgeMeta) {
 			var objects = [];
 			nodes.forEach(function(o) {
 				var edge = o.__edge;
 				delete o.__edge;
 
-				var tmpObject = global.Appacitive.Object._create(o, true);
+				var tmpObject = global.Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
 
 				if (edge) {
 					edge.__endpointa = endpointA;
@@ -448,7 +448,7 @@
 						type: o.__type
 					};
 					delete edge.label;
-					tmpObject.connection = global.Appacitive.Connection._create(edge, true);
+					tmpObject.connection = global.Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
 				}
 				objects.push(tmpObject);
 			});
@@ -464,7 +464,7 @@
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
 			    var _parse = parseNodes;
-			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent });
+			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent }, d.__nodemeta, d.__edgemeta);
 		   	    self._setPaging(d.paginginfo);
 
 		   	    promise.fulfill(self.results, d.paginginfo);   
@@ -571,7 +571,7 @@
 
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-				inner.results = d.connection ? [global.Appacitive.Connection._create(d.connection, true, options.entity)] :  null
+				inner.results = d.connection ? [global.Appacitive.Connection._create(_extend({ __meta: d.__meta }, d.connection), true, options.entity)] :  null
 				promise.fulfill(inner.results ? inner.results[0] : null);
 			};
 			request.promise = promise;
@@ -727,7 +727,7 @@
 					break;
 				}
 			}
-			var parseChildren = function(obj, parentLabel, parentId) {
+			var parseChildren = function(obj, parentLabel, parentId, nodeMeta, edgeMeta) {
 				var props = [];
 				obj.forEach(function(o) {
 					var children = o.__children;
@@ -736,11 +736,11 @@
 					var edge = o.__edge;
 					delete o.__edge;
 
-					var tmpObject = global.Appacitive.Object._create(o, true);
+					var tmpObject = global.Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
 					tmpObject.children = {};
 					for (var key in children) {
 						tmpObject.children[key] = [];
-						tmpObject.children[key] = parseChildren(children[key].values, children[key].parent, tmpObject.id);
+						tmpObject.children[key] = parseChildren(children[key].values, children[key].parent, tmpObject.id, children[key].__nodemeta, children[key].__edgemeta);
 					}
 
 					if (edge) {
@@ -753,19 +753,19 @@
 							label: edge.__label
 						};
 						delete edge.__label;
-						tmpObject.connection = global.Appacitive.Connection._create(edge, true);
+						tmpObject.connection = global.Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
 					}
 					props.push(tmpObject);
 				});
 				return props;
 			};
-			return parseChildren(root.values);
+			return parseChildren(root.values, null, null, root.__nodemeta);
 		};
 
 
 		this.collection = function(items, opts) {
 			opts = opts || {};
-			items = items || [];
+			items = items;
 			if (_type.isObject(items)) opts = items, items = null;
 
 			if (!items) items = this.results ? ths.results : [];
@@ -777,7 +777,7 @@
 			}
 
 			return new Appacitive.Collection(items, _extend(opts, {
-				model: this.model,
+				model: model,
 				query: this
 			}));
 	    };

@@ -237,8 +237,11 @@ asyncTest('Verify object fetched via the collection returned via getConnectedObj
 		var connectedSchool = existingObjects[0];
 		equal(connectedSchool.get('__id'), school.get('__id'), 'Correct connected object returned');
 
+		var a = connectedSchool.toJSON(); delete a.__meta;
+		var b = school.toJSON(); delete b.__meta;
+
 		//Verify object fetched via the objects returned via getConnectedObjects is correct object
-		deepEqual(connectedSchool.toJSON(), school.toJSON(), 'Correct connected object returned: ' + JSON.stringify(connectedSchool.getObject()));
+		deepEqual(a, b, 'Correct connected object returned: ' + JSON.stringify(connectedSchool.getObject()));
 
 		start();
 	}, function() {

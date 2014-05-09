@@ -370,7 +370,7 @@
     return child;
   };
 
-  var methods = ['forEach', 'each', 'map' ,'find', 'filter', 'every', 'some', 'indexOf', 'lastIndexOf', 'isEmpty'];
+  var methods = ['forEach', 'each', 'map' ,'find', 'filter', 'every', 'some', 'indexOf', 'lastIndexOf', 'isEmpty', 'difference', 'without', 'reduce'];
 
   // Mix in each Underscore method as a proxy to `Collection#models`.
   methods.each(function(method) {

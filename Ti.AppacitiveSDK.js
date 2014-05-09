@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed May  7 16:12:21 IST 2014
+ * Build time 	: Fri May  9 11:14:25 IST 2014
  */
 "use strict";
 
@@ -118,6 +118,42 @@ if (!('each' in Array.prototype)) {
             callback.apply(that, [this[i]]);
         }
     }
+}
+if (!('difference' in Array.prototype)) {
+    Array.prototype.difference = function(a) {
+        return this.filter(function(i) {return a.indexOf(i) < 0;});
+    };
+}
+if (!('without' in Array.prototype)) {
+    Array.prototype.without = function() {
+        return this.difference(Array.prototype.slice.call(arguments, 0));
+    };
+}
+if ( 'function' !== typeof Array.prototype.reduce ) {
+    Array.prototype.reduce = function( callback /*, initialValue*/ ) {
+        'use strict';
+        if ( null === this || 'undefined' === typeof this ) {
+            throw new TypeError('Array.prototype.reduce called on null or undefined' );
+        }
+        if ( 'function' !== typeof callback ) {
+            throw new TypeError( callback + ' is not a function' );
+        }
+        var t = Object( this ), len = t.length >>> 0, k = 0, value;
+        if ( arguments.length >= 2 ) {
+            value = arguments[1];
+        } else {
+            while ( k < len && ! k in t ) k++; 
+            if ( k >= len )
+                throw new TypeError('Reduce of empty array with no initial value');
+            value = t[ k++ ];
+        }
+        for ( ; k < len ; k++ ) {
+            if ( k in t ) {
+                value = callback( value, t[k], k, t );
+            }
+        }
+        return value;
+    };
 }
 
 var _lookupIterator = function(value, context) {
@@ -256,12 +292,16 @@ _type['isNumeric'] = function(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 };
 
+_type['isDate'] =  function(n) {
+    return n instanceof Date;
+};
+
 var _clone = function(obj) {
     if (!_type.isObject(obj)) return obj;
     return _type.isArray(obj) ? obj.slice() : _extend({}, obj);
 };
 
-Array.prototype.removeAll = function(obj){
+Array.prototype.removeAll = function(obj) {
     // Return null if no objects were found and removed
     var destroyed = null;
 
@@ -322,7 +362,7 @@ Array.prototype.equals = function (array, strict) {
             if (!this[i].equals(array[i], strict))
                 return false;
         }
-        else if (strict && this[i] != array[i]) {
+        else if (strict && !_type.isEqual(this[i], array[i])) {
             // Warning - two different object instances will never be equal: {x:20} != {x:20}
             return false;
         }
@@ -331,7 +371,108 @@ Array.prototype.equals = function (array, strict) {
         }
     }
     return true;
-};// monolithic file
+};
+
+// Internal recursive comparison function for `isEqual`.
+var eq = function(a, b, aStack, bStack) {
+  var toString = Object.prototype.toString;
+
+  var _has = function(obj, key) {
+    return Object.prototype.hasOwnProperty.call(obj, key);
+  }
+
+  // Identical objects are equal. `0 === -0`, but they aren't identical.
+  // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
+  if (a === b) return a !== 0 || 1 / a == 1 / b;
+  // A strict comparison is necessary because `null == undefined`.
+  if (a == null || b == null) return a === b;
+  
+  // Compare `[[Class]]` names.
+  var className = toString.call(a);
+  if (className != toString.call(b)) return false;
+  switch (className) {
+    // Strings, numbers, dates, and booleans are compared by value.
+    case '[object String]':
+      // Primitives and their corresponding object wrappers are equivalent; thus, `"5"` is
+      // equivalent to `new String("5")`.
+      return a == String(b);
+    case '[object Number]':
+      // `NaN`s are equivalent, but non-reflexive. An `egal` comparison is performed for
+      // other numeric values.
+      return a != +a ? b != +b : (a == 0 ? 1 / a == 1 / b : a == +b);
+    case '[object Date]':
+    case '[object Boolean]':
+      // Coerce dates and booleans to numeric primitive values. Dates are compared by their
+      // millisecond representations. Note that invalid dates with millisecond representations
+      // of `NaN` are not equivalent.
+      return +a == +b;
+  }
+
+  if (typeof a != 'object' || typeof b != 'object') return false;
+
+  if (a instanceof global.Appacitive.GeoCoord && b instanceof global.Appacitive.GeoCoord)
+    return (a.toString() == b.toString());
+
+  // Assume equality for cyclic structures. The algorithm for detecting cyclic
+  // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
+  var length = aStack.length;
+  while (length--) {
+    // Linear search. Performance is inversely proportional to the number of
+    // unique nested structures.
+    if (aStack[length] == a) return bStack[length] == b;
+  }
+  // Objects with different constructors are not equivalent, but `Object`s
+  // from different frames are.
+  var aCtor = a.constructor, bCtor = b.constructor;
+  if (aCtor !== bCtor && !(_types.isFunction(aCtor) && (aCtor instanceof aCtor) &&
+                           _types.isFunction(bCtor) && (bCtor instanceof bCtor))
+                      && ('constructor' in a && 'constructor' in b)) {
+    return false;
+  }
+  // Add the first object to the stack of traversed objects.
+  aStack.push(a);
+  bStack.push(b);
+  var size = 0, result = true;
+  // Recursively compare objects and arrays.
+  if (className == '[object Array]') {
+    // Compare array lengths to determine if a deep comparison is necessary.
+    size = a.length;
+    result = size == b.length;
+    if (result) {
+      // Deep compare the contents, ignoring non-numeric properties.
+      while (size--) {
+        if (!(result = eq(a[size], b[size], aStack, bStack))) break;
+      }
+    }
+  } else {
+    // Deep compare objects.
+    for (var key in a) {
+      if (_has(a, key)) {
+        // Count the expected number of properties.
+        size++;
+        // Deep compare each member.
+        if (!(result = _has(b, key) && eq(a[key], b[key], aStack, bStack))) break;
+      }
+    }
+    // Ensure that both objects contain the same number of properties.
+    if (result) {
+      for (key in b) {
+        if (_has(b, key) && !(size--)) break;
+      }
+      result = !size;
+    }
+  }
+  // Remove the first object from the stack of traversed objects.
+  aStack.pop();
+  bStack.pop();
+  return result;
+};
+
+// Perform a deep comparison to check if two objects are equal.
+_type.isEqual = function(a, b) {
+  return eq(a, b, [], []);
+};
+// monolithic file
 
 var global = {};
 
@@ -1925,7 +2066,8 @@ Depends on  NOTHING
 	"use strict";
 
 	global.Appacitive.config = {
-		apiBaseUrl: 'https://apis.appacitive.com/v1.0/'
+		apiBaseUrl: 'https://apis.appacitive.com/v1.0/',
+		metadata: true
 	};
 
 	if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
@@ -3190,12 +3332,12 @@ Depends on  NOTHING
 			}
 		};
 
-		var _parse = function(entities) {
+		var _parse = function(entities, metadata) {
 			var entityObjects = [];
 			if (!entities) entities = [];
 			var eType = (_etype === 'object') ? 'Object' : 'Connection';
 
-			return global.Appacitive[eType]._parseResult(entities, options.entity);
+			return global.Appacitive[eType]._parseResult(entities, options.entity, metadata);
 		};
 
 		this.fetch = function(opts) {
@@ -3203,7 +3345,7 @@ Depends on  NOTHING
 
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-			   self.results = _parse(d[_etype + 's']);
+			   self.results = _parse(d[_etype + 's'], d.__meta);
 			   self._setPaging(d.paginginfo);
 
 			   promise.fulfill(self.results, d.paginginfo);
@@ -3227,7 +3369,7 @@ Depends on  NOTHING
 	     */
 	    this.collection = function(items, opts) {
 			opts = opts || {};
-			items = items || [];
+			items = items;
 			if (_type.isObject(items)) opts = items, items = null;
 
 			if (!items) items = this.results ? this.results : [];
@@ -3245,7 +3387,7 @@ Depends on  NOTHING
 			}
 
 			return new Appacitive.Collection(items, _extend(opts, {
-				model: this.model,
+				model: model,
 				query: this
 			}));
 	    };
@@ -3351,13 +3493,13 @@ Depends on  NOTHING
 		};
 
 
-		var parseNodes = function(nodes, endpointA) {
+		var parseNodes = function(nodes, endpointA, nodeMeta, edgeMeta) {
 			var objects = [];
 			nodes.forEach(function(o) {
 				var edge = o.__edge;
 				delete o.__edge;
 
-				var tmpObject = global.Appacitive.Object._create(o, true);
+				var tmpObject = global.Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
 
 				if (edge) {
 					edge.__endpointa = endpointA;
@@ -3367,7 +3509,7 @@ Depends on  NOTHING
 						type: o.__type
 					};
 					delete edge.label;
-					tmpObject.connection = global.Appacitive.Connection._create(edge, true);
+					tmpObject.connection = global.Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
 				}
 				objects.push(tmpObject);
 			});
@@ -3383,7 +3525,7 @@ Depends on  NOTHING
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
 			    var _parse = parseNodes;
-			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent });
+			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent }, d.__nodemeta, d.__edgemeta);
 		   	    self._setPaging(d.paginginfo);
 
 		   	    promise.fulfill(self.results, d.paginginfo);   
@@ -3490,7 +3632,7 @@ Depends on  NOTHING
 
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-				inner.results = d.connection ? [global.Appacitive.Connection._create(d.connection, true, options.entity)] :  null
+				inner.results = d.connection ? [global.Appacitive.Connection._create(_extend({ __meta: d.__meta }, d.connection), true, options.entity)] :  null
 				promise.fulfill(inner.results ? inner.results[0] : null);
 			};
 			request.promise = promise;
@@ -3646,7 +3788,7 @@ Depends on  NOTHING
 					break;
 				}
 			}
-			var parseChildren = function(obj, parentLabel, parentId) {
+			var parseChildren = function(obj, parentLabel, parentId, nodeMeta, edgeMeta) {
 				var props = [];
 				obj.forEach(function(o) {
 					var children = o.__children;
@@ -3655,11 +3797,11 @@ Depends on  NOTHING
 					var edge = o.__edge;
 					delete o.__edge;
 
-					var tmpObject = global.Appacitive.Object._create(o, true);
+					var tmpObject = global.Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
 					tmpObject.children = {};
 					for (var key in children) {
 						tmpObject.children[key] = [];
-						tmpObject.children[key] = parseChildren(children[key].values, children[key].parent, tmpObject.id);
+						tmpObject.children[key] = parseChildren(children[key].values, children[key].parent, tmpObject.id, children[key].__nodemeta, children[key].__edgemeta);
 					}
 
 					if (edge) {
@@ -3672,19 +3814,19 @@ Depends on  NOTHING
 							label: edge.__label
 						};
 						delete edge.__label;
-						tmpObject.connection = global.Appacitive.Connection._create(edge, true);
+						tmpObject.connection = global.Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
 					}
 					props.push(tmpObject);
 				});
 				return props;
 			};
-			return parseChildren(root.values);
+			return parseChildren(root.values, null, null, root.__nodemeta);
 		};
 
 
 		this.collection = function(items, opts) {
 			opts = opts || {};
-			items = items || [];
+			items = items;
 			if (_type.isObject(items)) opts = items, items = null;
 
 			if (!items) items = this.results ? ths.results : [];
@@ -3696,7 +3838,7 @@ Depends on  NOTHING
 			}
 
 			return new Appacitive.Collection(items, _extend(opts, {
-				model: this.model,
+				model: model,
 				query: this
 			}));
 	    };
@@ -3799,6 +3941,152 @@ var extend = function(protoProps, staticProps) {
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
+	//Fields on which set operation is allowed
+	var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
+
+	var _allowObjectEncode = ["__endpointa", "__endpointb"];
+
+	var __privateMeta = { "__utcdatecreated": "datetime", "__utclastupdateddate": "datetime" };
+
+	var isString = function(val) {
+		return (_type.isString(val) || _type.isNumber(val) || _type.isBoolean(val));
+	};
+
+	var isGeocode = function(val) {
+		return (val instanceof Appacitive.GeoCoord);
+	};
+
+	var isEncodable = function(val) {
+		return (isString(val) || _type.isDate(val) || isGeocode(val));
+	};
+
+	var getMeta = function(attrs) {
+		attrs = attrs || {};
+		var meta = {};
+		for (var m in attrs.__meta) {
+			attrs.__meta[m].forEach(function(p) {
+				meta[p] = m;
+			});
+		}
+
+		return meta;
+	};
+
+	var _types = {
+		"integer": function(value) { 
+			if (value) {
+				var res = parseInt(value);
+				if (!isNaN(res)) return res;
+			}
+			return value;
+		}, "decimal": function(value) { 
+			if (value) {
+				var res = parseFloat(value);
+				if (!isNaN(res)) return res;
+			}
+			return value;
+		}, "boolean": function(value) { 
+			if (_type.isBoolean(value)) return value;
+			if (value !== undefined && value !== null && (value.toString().toLowerCase() === 'true' || value === true || value > 0)) return true;
+			return false;
+		}, "date": function(value) { 
+			if (_type.isDate(value)) return value;
+			if (value) {
+				var res = global.Appacitive.Date.parseISODate(value);
+				if (res) return res;
+			}
+			return value;
+		}, "datetime": function(value) { 
+			if (_type.isDate(value)) return value;
+			if (value) {
+				var res = global.Appacitive.Date.parseISODate(value);
+				if (res) return res;
+			}
+			return value;
+		}, "time": function(value) { 
+			if (_type.isDate(value)) return value;
+			if (value) {
+				var res = global.Appacitive.Date.parseISOTime(value);
+				if (res) return res;
+			}
+			return value;
+		}, "string": function(value) { 
+			if (value) return value.toString();
+			return value;
+		}, "geocode": function(value) {
+
+			if (isGeocode(value)) return value;
+
+			// value is not string or its length is 0, return false
+			if (!_type.isString(value) || value.trim().length == 0) return false;
+			  
+			// Split value string by ,
+			var split = value.split(',');
+
+			// split length is not equal to 2 so return false
+			if (split.length !== 2 ) return false;
+
+			// validate the value
+			return new global.Appacitive.GeoCoord(split[0], split[1]);
+		}
+	};
+
+	_types["long"] = _types["integer"];
+	_types["geography"] = _types["geocode"];
+	_types["text"] = _types["string"];
+	_types["bool"] = _types["boolean"];
+
+	global.Appacitive.cast = _types;
+
+	var encode = function(value) {
+		if (_type.isNullOrUndefined(value)) return null; 
+	 	else if (isString(value)) return ( value + '');
+	 	else if (_type.isDate(value)) return global.Appacitive.Date.toISOString(value);
+	 	else if (_type.isObject(value)) {
+	 		if (isGeocode(value)) return value.toString();
+	 		return (value.toJSON ? value.toJSON() : value);
+		}
+		return value;
+	};
+
+	global.Appacitive._encode = function(attrs) {
+		var object = {};
+		for (var key in attrs) {
+			var value = attrs[key];
+			if (_type.isArray(value)) {
+				object[key] = [];
+				value.forEach(function(v) {
+					var val = encode(v);
+					if (val) object[key].push(val);
+				});
+			} else {
+				object[key] = encode(attrs[key]);
+			}
+		}
+		return object;
+	};
+
+	global.Appacitive._decode = function(attrs) {
+		var object = {}, meta = _extend({}, __privateMeta, getMeta(attrs));
+		delete attrs.__meta;
+		for (var key in attrs) {
+			if (_type.isArray(attrs[key])) {
+				object[key] = [];
+				attrs[key].forEach(function(v) {
+					var val = (meta[key]) ? _types[meta[key]](v) : v;
+					object[key].push(val);
+				});
+			} else if (_type.isString(attrs[key])) {
+				object[key] = (meta[key]) ? _types[meta[key]](attrs[key]) : attrs[key];
+			} else {
+				object[key] = attrs[key];
+			}
+		}
+		return object;
+	};
+
 	//base object for objects and connections
 	/**
 	* @constructor
@@ -3809,79 +4097,71 @@ var extend = function(protoProps, staticProps) {
 
 		optns = optns || {};
 
+		objectOptions = objectOptions || {};
+
+	    this.meta = {};
+
+	    //set default meta
+	    objectOptions.__meta = _extend(this.meta, objectOptions.__meta);
+
 		if (optns && optns.parse) objectOptions = this.parse(objectOptions);
 		
 		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _extend({}, this.defaults, objectOptions);
 		
 	    if (optns && optns.collection) this.collection = optns.collection;
 	    
+	    objectOptions = Appacitive._decode(objectOptions);
+
+		var that = this;
+
+		//Copy properties from source to destination object
+		var _copy = function(src, des) {
+			src.__meta = _extend(that.meta, src.__meta);
+			that.meta = src.__meta;
+			var obj = Appacitive._decode(src);
+			for (var property in obj) {
+
+				if (property == that.idAttribute) that.id = obj[property];
+
+				if (_atomicProps[property]) delete _atomicProps[property];
+				if (_multivaluedProps[property]) delete _multivaluedProps[property];
+				if (_setOps[property]) delete _setOps[property];
+
+				if (isEncodable(obj[property])) des[property] = obj[property];
+				else if (_type.isObject(obj[property])) des[property] = _extend({}, des[property], obj[property]);
+				else if (_type.isArray(obj[property])) {
+					
+					des[property] = [];
+				
+					obj[property].forEach(function(v) {
+						if (isEncodable(v) || property == '__link') des[property].push(v);
+						else throw new Error("Multivalued property cannot add object or array as property of object");
+					});
+
+				} else {
+					des[property] = obj[property];
+				}
+			}
+		};
+
+		this.base = global.Appacitive.Object.prototype;
+
+		var __cid = parseInt(Math.random() * 100000000, 10);
+
+		// Set client id
+		this.cid = __cid;
+
+		// Set id attribute
+		this.idAttribute = '__id';
+
 		//atomic properties
 		var _atomicProps = {};
 
 		//mutlivalued properties
 		var _multivaluedProps = {};
 
+		//list of properties on whom set operations performed
 	    var _setOps = {};
-
-		//Copy properties from source to destination object
-		var _copy = function(src, des) {
-			for (var property in src) {
-
-				if (property == '__id') that.id = src[property];
-
-				if (_atomicProps[property]) delete _atomicProps[property];
-				if (_multivaluedProps[property]) delete _multivaluedProps[property];
-				if (_setOps[property]) delete _setOps[property];
-
-				if (_type.isString(src[property])) {
-					des[property] = src[property];
-				} else if(src[property] instanceof Date){
-					des[property] = global.Appacitive.Date.toISOString(src[property]);
-				} else if (_type.isObject(src[property]))  {
-					
-					if (src[property] instanceof global.Appacitive.GeoCoord) {
-		 				des[property] = src[property].toString();
-		 			} else {
-
-						if (!des[property]) des[property] = {};
-
-						for (var p in src[property]) {
-							des[property][p] = src[property][p];
-						}
-					}
-				} else if (_type.isArray(src[property])) {
-					des[property] = [];
-				
-					src[property].forEach(function(v) {
-						if (_type.isString(v)) { des[property].push(v); }
-			 			else if (_type.isNumber(v) || _type.isBoolean(v)) { des[property].push(value + ''); }
-			 			else if (v instanceof Date) des[property].push(global.Appacitive.Date.toISOString(v));
-			 			else if (property == '__link') des[property].push(v);
-			 			else throw new Error("Multivalued property cannot have values of property as an object");
-					});
-
-					if (property !== '__tags' || property !== '__link') {
-						des[property].push = function(v) {
-						  	var len = this.length;
-						  	if (_type.isString(v)) { this[len] = v; }
-				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
-				 			else if (v instanceof Date) {
-			 					this[len] = global.Appacitive.Date.toISOString(v);
-			 				} else {
-			 					throw new Error("Multivalued property cannot have values of property as an object");
-			 				} 
-			 				return this;
-						}
-					}
-				} else {
-					des[property] = src[property];
-				}
-			}
-		};
-
-		var that = this;
-
-		this.base = this.prototype;
 
 		var raw = {};
 		_copy(objectOptions, raw);
@@ -3890,7 +4170,10 @@ var extend = function(protoProps, staticProps) {
 		//will be used in case of creating an appacitive object for internal purpose
 		if (optns.setSnapShot) _copy(object, _snapshot);
 		
-		if (!_snapshot.__id && raw.__id) _snapshot.__id = raw.__id;
+		if (!_snapshot[this.idAttribute] && raw[this.idAttribute]) _snapshot[this.idAttribute] = raw[this.idAttribute];
+
+		// Set id property
+		this.id = _snapshot[this.idAttribute];
 
 		//Check whether __type or __relationtype is mentioned and set type property
 		if (raw.__type) { 
@@ -3905,14 +4188,6 @@ var extend = function(protoProps, staticProps) {
 			this.className = raw.__relationtype;
 		}
 
-		var __cid = parseInt(Math.random() * 100000000, 10);
-
-		this.cid = __cid;
-
-		this.idAttribute = '__id';
-
-		this.id = _snapshot.__id
-
 		//attributes
 		if (!object.__attributes) object.__attributes = {};
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
@@ -3922,18 +4197,16 @@ var extend = function(protoProps, staticProps) {
 		if (!object.__tags) object.__tags = [];
 		if (!_snapshot.__tags) _snapshot.__tags = [];
 
+		//set attributes property
 		this.attributes = object;
 
 		//fields to be returned
 		var _fields = '';
 
 		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link", "__acls"];
+		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link", "__acls", "__meta"];
 		
-		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
-
-		/* parse api output to get error info
-		   TODO: define error objects in future depending on codes and messages */
+		// parse api output to get error info
 		var _getOutpuStatus = function(data) {
 			data = data || {};
 			data.message = data.message || 'Server error';
@@ -3941,18 +4214,17 @@ var extend = function(protoProps, staticProps) {
 			return data;
 		};
 
-		this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
+		// converts object to json representation for data transfer
+		this.toJSON = this.getObject = function() { 
+			return Appacitive._encode(_extend({ __meta: this.meta }, object)); 
+		};
 
 		this.properties = function() {
-			var properties = this.attributes();
+			var properties = _extend({}, this.attributes);
 			delete properties.__attributes;
 			delete properties.__tags;
 			return properties;
 		};
-
-	    this.parse = function(resp, options) {
-	      return resp;
-	    };
 
 		// accessor function for the object's attributes
 		this.attr = function() {
@@ -4082,18 +4354,25 @@ var extend = function(protoProps, staticProps) {
 			try {
 
 				var addItem = function(item) {
-					var val;
-					if (_type.isString(item)) { val = item; }
-		 			else if (_type.isNumber(item) || _type.isBoolean(item)) { val = item + ''; }
-		 			else throw new Error("Multivalued property cannot have values of property as an object");
+					var val = item;
+					if (!isEncodable(val)) throw new Error("Multivalued property cannot have values of property as an object");
 
 	 				if (object[key] && _type.isArray(object[key])) {
 
-	 					var index = object[key].indexOf(val);
 	 					if (op == 'additems') {
 	 						object[key].push(val);
-	 					} else if (index == -1 && op == 'adduniqueitems') {
-	 						object[key].push(val);
+	 					} else if (op == 'adduniqueitems') {
+	 						var index = -1;
+
+ 							object[key].find(function(o, i) {  
+ 								if (_type.isEqual(o, val)) {
+ 									index = i;
+ 									return true;
+ 								} 
+ 								return false;
+ 							});
+	 						
+	 						if (index == -1) object[key].push(val);
 	 					} else if (op == 'removeitems') {
 	 						object[key].removeAll(val);
 	 					}
@@ -4135,25 +4414,33 @@ var extend = function(protoProps, staticProps) {
 			return setMutliItems.apply(this, [key, value, 'removeitems', options]);
 		};
 
-		var hasChanged = function(property, prevValue, currValue) {
+		var hasChanged = function(property, prevValue, currValue, isInternal) {
 			var changed = undefined;
 
-			if (currValue != prevValue) {
+			if (!_type.isEqual(currValue ,prevValue)) {
 				if (property == '__tags') {
 					var changedTags = _getChangedTags();
-					if (changedTags) changed = changedTags; 
+					if (changedTags && changedTags.length > 0) changed = changedTags; 
 				} else if (property == '__attributes') {
 					var attrs = _getChangedAttributes();
-					if (attrs) changed = attrs;
+					if (!Object.isEmpty(attrs)) changed = attrs;
 				} else {
 					if (_type.isArray(currValue)) {
 						if (_multivaluedProps[property] && !_setOps[property]) {
-							changed = _multivaluedProps[property];
+							if (isInternal) {
+								changed = _multivaluedProps[property];
+							} else {
+								changed = currValue;
+							}
 						} else if (!currValue.equals(prevValue)) {
 							changed = currValue;
 						} 
 					} else if (_atomicProps[property] && !_setOps[property]) {
-						changed = { incrementby : _atomicProps[property].value };
+						if (isInternal) {
+							changed = { incrementby : _atomicProps[property].value };
+						} else {
+							changed = currValue;
+						}
 					} else {
 						changed = currValue;
 					}
@@ -4165,14 +4452,14 @@ var extend = function(protoProps, staticProps) {
 
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
-			var changeSet = JSON.parse(JSON.stringify(_snapshot));
+			var changeSet = _extend({}, _snapshot);
 
 			for (var p in changeSet) {
 				if (p[0] == '$') delete changeSet[p];
 			}
 
 			for (var property in object) {
-				var changed = hasChanged(property, changeSet[property], object[property]);
+				var changed = hasChanged(property, changeSet[property], object[property], isInternal);
 
 				if (changed == undefined) {
 					delete changeSet[property];
@@ -4188,6 +4475,7 @@ var extend = function(protoProps, staticProps) {
 				});
 			} catch(e) {}
 
+			if (isInternal) changeSet = Appacitive._encode(changeSet);
 
 			var changedTags = _getChangedTags();
 			if (isInternal) {
@@ -4223,7 +4511,6 @@ var extend = function(protoProps, staticProps) {
 
 		this.changed = function() {
 			if (this.isNew()) return this.toJSON();
-			
 			return _getChanged();
 		};
 
@@ -4241,14 +4528,13 @@ var extend = function(protoProps, staticProps) {
 		this.changedAttributes  = function() {
 			if (this.isNew()) return this.toJSON();
 
-			var changeSet = _getChanged(true);
-			
 			if (arguments.length === 0) {
-				return changeSet;
+				return _getChanged();
 			} else if (arguments.length == 1 && _type.isArray(arguments[0]) && arguments[0].length) {
 				var attrs = {};
 				arguments[0].forEach(function(c) {
-					if (changeSet[c]) attrs.push(changeSet[c]);
+					var value = hasChanged(c);
+					if (value != undefined) attrs.push(value);
 				});
 				return attrs;
 			}
@@ -4266,7 +4552,7 @@ var extend = function(protoProps, staticProps) {
 
 		this.previousAttributes = function() { 
 			if (this.isNew()) return null; 
-			return _snapshot; 
+			return _extend({}, _snapshot); 
 		};
 
 		this.fields = function() {
@@ -4277,58 +4563,6 @@ var extend = function(protoProps, staticProps) {
 				return this;
 			} else {
 				return _fields;
-			}
-		};
-
-		var _types = {
-			"integer": function(value) { 
-				if (value) {
-					var res = parseInt(value);
-					if (!isNaN(res)) return res;
-				}
-				return value;
-			}, "decimal": function(value) { 
-				if (value) {
-					var res = parseFloat(value);
-					if (!isNaN(res)) return res;
-				}
-				return value;
-			}, "boolean": function(value) { 
-				if (value !== undefined && value !== null && (value.toString().toLowerCase() === 'true' || value === true || value > 0)) return true;
-				return false;
-			}, "date": function(value) { 
-				if (value) {
-					var res = global.Appacitive.Date.parseISODate(value);
-					if (res) return res;
-				}
-				return value;
-			}, "datetime": function(value) { 
-				if (value) {
-					var res = global.Appacitive.Date.parseISODate(value);
-					if (res) return res;
-				}
-				return value;
-			}, "time": function(value) { 
-				if (value) {
-					var res = global.Appacitive.Date.parseISOTime(value);
-					if (res) return res;
-				}
-				return value;
-			}, "string": function(value) { 
-				if (value) return value.toString();
-				return value;
-			}, "geocode": function(value) {
-				// value is not string or its length is 0, return false
-				if (!_type.isString(value) || value.trim().length == 0) return false;
-				  
-				// Split value string by ,
-				var split = value.split(',');
-
-				// split length is not equal to 2 so return false
-				if (split.length !== 2 ) return false;
-
-				// validate the value
-				return new global.Appacitive.GeoCoord(split[0], split[1]);
 			}
 		};
 
@@ -4350,15 +4584,6 @@ var extend = function(protoProps, staticProps) {
 			var res = this.get(key, type);
 			if (res !== undefined) return res;
 			return value;
-		};
-
-		var getDateValue = function(type, value) {
-			if (type == 'date') {
-	 			return global.Appacitive.Date.toISODate(value);
-	 		} else if (type == 'time') {
-	 			return global.Appacitive.Date.toISOTime(value);
-	 		} 
-	 		return global.Appacitive.Date.toISOString(value);
 		};
 
 		var triggerChangeEvent = function(key, options) {
@@ -4390,55 +4615,27 @@ var extend = function(protoProps, staticProps) {
 
 			try {
 
-			 	if (value == undefined || value == null) { object[key] = null;}
-			 	else if (_type.isString(value)) { object[key] = value; }
-			 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
-			 	else if (value instanceof Date) {
-			 		object[key] = getDateValue(oType, value);
-			 	} else if (_type.isObject(value)) {
-			 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
-			 		 	object[key] = value;
-			 		} else {
-			 			if (value instanceof global.Appacitive.GeoCoord) {
-			 				object[key] = value.toString();
-			 			} else {
-			 				throw new Error("Property cannot have value as an object");
-			 			}
-			 		}
+			 	if (_type.isNullOrUndefined(value)) { object[key] = null;}
+			 	else if (isEncodable(value)) { object[key] = value; }
+			 	else if (_type.isObject(value)) {
+			 		if (_allowObjectSetOperations.indexOf(key) !== -1) object[key] = value;
+			 		else throw new Error("Property cannot have value as an object");
 				} else if (_type.isArray(value)) {
 					object[key] = [];
 
 					value.forEach(function(v) {
-						if (_type.isString(v)) { object[key].push(v); }
-			 			else if (_type.isNumber(v) || _type.isBoolean(v)) { object[key].push(v + ''); }
-			 			else if (value instanceof Date) throw new Error("Multivalued property cannot have values of property as date");
-			 			else throw new Error("Multivalued property cannot have values of property as an object");
+						if (isEncodable(v)) object[key].push(v);
+						else throw new Error("Multivalued property cannot have values of property as an object");
 					});
-
-					if (key !== 'tags' || key !== '__link') {
-						object[key].push = function(v) {
-						  	var len = this.length;
-						  	if (_type.isString(v)) { this[len] = v; }
-				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
-				 			else if (value instanceof Date) throw new Error("Multivalued property cannot have values of property as date");
-			 				else throw new Error("Multivalued property cannot have values of property as an object");
-			 			
-			 				return this; 
-						}
-					}
 				}
 
 				delete _atomicProps[key];
 				delete _multivaluedProps[key];
 				delete _setOps[key];
 
-				if (object[key] !== _snapshot[key]) {
-					if ((_type.isArray(object[key]) && !object[key].equals(_snapshot[key])) || _type.isString(object[key]) || _type.isObject(object[key])) {
-						_setOps[key] = true;
-					}
-				}
-
-				if (key == '__id') that.id = value; 
+				if (!_type.isEqual(object[key], _snapshot[key])) _setOps[key] = true;
+			
+				if (key == that.idAttribute) that.id = value; 
 
 			 	return this;
 			} catch(e) {
@@ -4481,7 +4678,7 @@ var extend = function(protoProps, staticProps) {
 					var changedValue = hasChanged(attr, _snapshot[attr], object[attr]);
 					if (changedValue || (_ignoreTheseFields.indexOf(attr) != -1)) {
 						changed = true;
-						var value = changedValue || object[key];
+						var value = object[key];
 						// Trigger relevant attribute change event.
 					    that.trigger('change:' + key, that, value, {});
 					}
@@ -4529,8 +4726,8 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.clone = function() {
-			if (this.type == 'object') return global.Appacitive.Object._create(this.toJSON());
-			return new global.Appacitive.connection._create(this.toJSON());
+			if (this.type == 'object') return global.Appacitive.Object._create(_extend({ __meta: this.meta }, this.toJSON()));
+			return new global.Appacitive.connection._create(_extend({ __meta: this.meta }, this.toJSON()));
 		};
 
 		this.copy = function(properties, setSnapShot) { 
@@ -4628,7 +4825,9 @@ var extend = function(protoProps, staticProps) {
 				type = object.__type.toLowerCase()
 			}
 
-			var clonedObject = JSON.parse(JSON.stringify(object));
+			var clonedObject = that.toJSON();
+
+			delete clonedObject.__meta;
 
 			//remove __revision and aggregate poprerties
 			for (var p in clonedObject) {
@@ -4659,17 +4858,15 @@ var extend = function(protoProps, staticProps) {
 					if (data && data[type]) {
 						savedState = data[type];
 
-						_snapshot = savedState;
-						
-						object.__id = savedState.__id;
-						that.id = savedState.__id;
+						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, savedState));
 
+						that.id = object[that.idAttribute] = savedState[that.idAttribute];
+						
 						_merge();
 
 						if (that.type == 'connection') that.parseConnection();
 
-
-						that.trigger('change:__id', that, object.__id, { });
+						that.trigger('change:__id', that, that.id, { });
 
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
@@ -4722,8 +4919,8 @@ var extend = function(protoProps, staticProps) {
 					onSuccess: function(data) {
 						if (data && data[type]) {
 							
-							_snapshot = data[type];
-							
+							_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
+
 							_merge();
 							
 							delete that.created;
@@ -4773,8 +4970,9 @@ var extend = function(protoProps, staticProps) {
 				entity: that,
 				onSuccess: function(data) {
 					if (data && data[type]) {
-						_snapshot = data[type];
+						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
 						_copy(_snapshot, object);
+
 						if (that._aclFactory) that._aclFactory._rollback();
 						if (data.connection) {
 							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
@@ -4815,7 +5013,7 @@ var extend = function(protoProps, staticProps) {
 
 			if (!opts.wait) triggerDestroy(opts);
 
-			// if the object does not have __id set, 
+			// if the object does not have id set, 
 	        // just call success
 	        // else delete the object
 
@@ -4832,9 +5030,11 @@ var extend = function(protoProps, staticProps) {
 				options: opts,
 				entity: this,
 				onSuccess: function(data) {
-					request.promise.fulfill(data);
 
 					if (data && data.status) {
+						object = {};
+						_snapshot = {};
+						
 						if (opts.wait) triggerDestroy(opts);
 						request.promise.fulfill(data.status);
 					} else {
@@ -4897,6 +5097,9 @@ var extend = function(protoProps, staticProps) {
 		return JSON.stringify(this.getObject());
 	};
 
+	global.Appacitive.BaseObject.prototype.parse = function(resp, options) {
+      	return resp;
+    };
 
 	global.Appacitive.Events.mixin(global.Appacitive.BaseObject.prototype);
 
@@ -5154,6 +5357,7 @@ var extend = function(protoProps, staticProps) {
 			return chAcls;
 		};
 
+		this.toJSON = this.getChanged;
 
 		this.merge = function() {
 			changed = [];
@@ -5336,10 +5540,10 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//private function for parsing objects
-	var _parseObjects = function(objects, typeClass) {
+	var _parseObjects = function(objects, typeClass, metadata) {
 		var tmpObjects = [];
 		objects.forEach(function(a) {
-			var obj = global.Appacitive.Object._create(a, true, typeClass);
+			var obj = global.Appacitive.Object._create(_extend(a, { __meta : metadata }), true, typeClass);
 			tmpObjects.push(obj);
 		});
 		return tmpObjects;
@@ -5424,7 +5628,7 @@ var extend = function(protoProps, staticProps) {
 			args: [attrs.type, attrs.ids.join(','), attrs.fields],
 			options: options,
 			onSuccess: function(d) {
-				request.promise.fulfill(_parseObjects(d.objects, attrs.entity));
+				request.promise.fulfill(_parseObjects(d.objects, attrs.entity, d.__meta));
 			}
 		});
 			
@@ -5492,8 +5696,9 @@ var extend = function(protoProps, staticProps) {
 (function (global) {
 
 	"use strict";
-
+    
 	var _parseEndpoint = function(endpoint, type, base) {
+
 		var result = { label: endpoint.label };
 		if (endpoint.objectid)  result.objectid = endpoint.objectid;
 		if (endpoint.object) {
@@ -5502,7 +5707,7 @@ var extend = function(protoProps, staticProps) {
 				// stick the whole object if there is no __id
 				// else just stick the __id
 				if (endpoint.object.id) result.objectid = endpoint.object.id;
-				else result.object = endpoint.object.getObject();
+				else  result.object = endpoint.object.getObject();
 			} else if (_type.isObject(endpoint.object)) {
 				// provided a raw object
 				// if there is an __id, just add that
@@ -5515,6 +5720,19 @@ var extend = function(protoProps, staticProps) {
 		} else {
 			if (!result.objectid && !result.object) throw new Error('Incorrectly configured endpoints provided to parseConnection');
 		}
+
+		result.toJSON = function() {
+			var d = _extend({}, this);
+			if (d.object) {
+				d.object = endpoint.object.toJSON();
+				if (endpoint.object._aclFactory) {
+					var acls = endpoint.object._aclFactory.toJSON();
+					if (acls) d.object.__acls = acls;
+				}
+			}
+			delete d.toJSON;
+			return d
+		};		
 
 		base["endpoint" + type] = endpoint;
 		return result;
@@ -5531,6 +5749,11 @@ var extend = function(protoProps, staticProps) {
 				else 
 					base['endpoint' + type].object = global.Appacitive.Object._create(endpoint.object, true);
 			}
+
+			if (base["endpoint" + type]._aclFactory) {
+				base["endpoint" + type]._aclFactory.merge();
+			}
+
 			base["endpoint" + type].objectid = endpoint.object.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
@@ -5670,11 +5893,11 @@ var extend = function(protoProps, staticProps) {
 	};
 
     //private function for parsing api connections in sdk connection object
-	var _parseConnections = function(connections, relationClass) {
+	var _parseConnections = function(connections, relationClass, metadata) {
 		var connectionObjects = [];
 		if (!connections) connections = [];
 		connections.forEach(function(c) {
-			connectionObjects.push(global.Appacitive.Connection._create(c, true, relationClass));
+			connectionObjects.push(global.Appacitive.Connection._create(_extend(c, { __meta : metadata }), true, relationClass));
 		});
 		return connectionObjects;
 	};
@@ -5770,7 +5993,7 @@ var extend = function(protoProps, staticProps) {
 			args: [attrs.relation, attrs.ids.join(','), attrs.fields],
 			options: options,
 			onSuccess: function(d) {
-				request.promise.fulfill(_parseConnections(d.connections, attrs.entity));
+				request.promise.fulfill(_parseConnections(d.connections, attrs.entity, d.__meta));
 			}
 		});
 			
@@ -6188,6 +6411,7 @@ var extend = function(protoProps, staticProps) {
 			onSuccess: function(data) {
 				if (data && data.user) {
 					if (provider) data.user.__authType = provider;
+					_extend(data.user, { __meta: data.__meta });
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
 					global.Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
 					request.promise.fulfill({ user : _authenticatedUser, token: data.token });
@@ -6293,6 +6517,7 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	var _getUserByIdType = function(op, args, options) {
+		options = options || {};
 		var request = new global.Appacitive._Request({
 			method: 'GET',
 			type: 'user',
@@ -6300,7 +6525,7 @@ var extend = function(protoProps, staticProps) {
 			options: options,
 			args: args,
 			onSuccess: function(data) {
-				if (data && data.user) request.promise.fulfill(new global.Appacitive.User(data.user));
+				if (data && data.user) request.promise.fulfill(new global.Appacitive.User(_extend(data.user, { __meta: data.__meta }),  _extend(options, { setSnapShot: true })));
 				else request.promise.reject(data.status);
 			}
 		});
@@ -6366,6 +6591,8 @@ var extend = function(protoProps, staticProps) {
 		
 		if (!token) throw new Error("Please specify token");
 
+		options = options || {};
+
 		var request = new global.Appacitive._Request({
 			method: 'POST',
 			type: 'user',
@@ -6373,8 +6600,8 @@ var extend = function(protoProps, staticProps) {
 			options: options,
 			data: {},
 			args: [token],
-			onSuccess: function(a) {
-				request.promise.fulfill(a.user);
+			onSuccess: function(data) {
+				request.promise.fulfill(new global.Appacitive.User(_extend(data.user, { __meta: data.__meta }), _extend(options, { setSnapShot: true })));
 			}
 		});
 		return request.send();
@@ -6757,7 +6984,7 @@ var extend = function(protoProps, staticProps) {
     return child;
   };
 
-  var methods = ['forEach', 'each', 'map' ,'find', 'filter', 'every', 'some', 'indexOf', 'lastIndexOf', 'isEmpty'];
+  var methods = ['forEach', 'each', 'map' ,'find', 'filter', 'every', 'some', 'indexOf', 'lastIndexOf', 'isEmpty', 'difference', 'without', 'reduce'];
 
   // Mix in each Underscore method as a proxy to `Collection#models`.
   methods.each(function(method) {
