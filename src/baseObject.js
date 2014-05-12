@@ -179,6 +179,7 @@
 		var _copy = function(src, des) {
 			src.__meta = _extend(that.meta, src.__meta);
 			that.meta = src.__meta;
+			_mergePrivateFields(src);
 			var obj = Appacitive._decode(src);
 			for (var property in obj) {
 
@@ -204,6 +205,22 @@
 				}
 			}
 		};
+
+		var _mergePrivateFields = function(attrs, del) {
+            var privateProps = ["id", "__id", "__utclastupdateddate", "__utcdatecreated", "__createdby", "__updatedby"];
+            var map = { "id": "id", "__id" : "id", "__utclastupdateddate": "lastUpdatedAt", "__utcdatecreated": "createdAt", "__createdby": "createdBy", "__updatedby": "lastUpdatedBy" };
+            privateProps.forEach(function(prop) {
+                if (attrs[prop]) {
+                    if ((prop === "__utcdatecreated" || prop === "__utclastupdateddate") && !_type.isDate(attrs[prop])) {
+                        that[map[prop]] = global.Appacitive.Date.parseISODate(attrs[prop]);
+                    }  else {
+                        that[map[prop]] = attrs[prop];
+                    }
+
+                    if (del) delete attrs[prop];
+                }
+            });
+        };
 
 		this.base = global.Appacitive.Object.prototype;
 
@@ -264,6 +281,9 @@
 		//fields to be returned
 		var _fields = '';
 
+		//Set private property value in main object
+		_mergePrivateFields(this.attributes);
+
 		//Fileds to be ignored while update operation
 		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link", "__acls", "__meta"];
 		
@@ -277,9 +297,12 @@
 
 		// converts object to json representation for data transfer
 		this.toJSON = this.getObject = function() { 
-			return Appacitive._encode(_extend({ __meta: this.meta }, object)); 
+			var obj = Appacitive._encode(_extend({ __meta: this.meta }, object)); 
+			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
+            return obj;
 		};
 
+		// Returns all properties of this object
 		this.properties = function() {
 			var properties = _extend({}, this.attributes);
 			delete properties.__attributes;
@@ -726,6 +749,8 @@
 		    // Check for changes of `id`.
 			if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
 
+			_mergePrivateFields(attrs);
+
 			var changed = false;
 
 			// For each `set` attribute, update or delete the current value.
@@ -782,8 +807,7 @@
 		};
 
 		this.isNew = function() {
-			if (this.id && this.id.length) return false;
-			return true;
+			return !this.has(this.idAttribute);
 		};
 
 		this.clone = function() {
@@ -804,6 +828,7 @@
 		this.mergeWithPrevious = function() {
 			_copy(object, _snapshot);
 			if (that._aclFactory) that._aclFactory.merge();
+			_mergePrivateFields(_snapshot);
 			_removeTags = [];
 			_atomicProps = {};
 			_multivaluedProps = {};
@@ -814,6 +839,7 @@
 		var _merge = function() {
 			_copy(_snapshot, object);
 			if (that._aclFactory) that._aclFactory.merge();
+			_mergePrivateFields(object);
 			_removeTags = [];
 			_atomicProps = {};
 			_multivaluedProps = {};
@@ -925,8 +951,11 @@
 						
 						_merge();
 
-						if (that.type == 'connection') that.parseConnection();
-
+						if (that.type == 'connection') {
+							if (object.__endpointa.object) object.__endpointa.object.__meta = data.__ameta;
+							if (object.__endpointb.object) object.__endpointb.object.__meta = data.__bmeta;
+							that.parseConnection();
+						}
 						that.trigger('change:__id', that, that.id, { });
 
 						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
@@ -1033,6 +1062,7 @@
 					if (data && data[type]) {
 						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
 						_copy(_snapshot, object);
+						_mergePrivateFields(object);
 
 						if (that._aclFactory) that._aclFactory._rollback();
 						if (data.connection) {
@@ -1161,6 +1191,11 @@
 	global.Appacitive.BaseObject.prototype.parse = function(resp, options) {
       	return resp;
     };
+
+    // Get the HTML-escaped value of an attribute.
+    global.Appacitive.BaseObject.prototype.escape = function(attr) {
+      return _.escape(this.get(attr));
+    },
 
 	global.Appacitive.Events.mixin(global.Appacitive.BaseObject.prototype);
 
