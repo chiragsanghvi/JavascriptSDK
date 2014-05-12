@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.6.9 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.7.0 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon May 12 19:30:05 IST 2014
+ * Build time 	: Mon May 12 21:39:52 IST 2014
  */
 "use strict";
 
@@ -5561,7 +5561,7 @@ var extend = function(protoProps, staticProps) {
 
 		this.typeName = attrs.__type;
 
-		this._aclFactory = new Appacitive._Acl(options.__acls, options.setSnapShot);
+		this._aclFactory = new global.Appacitive._Acl(options.__acls, options.setSnapShot);
 
 		this.acls = this._aclFactory.acls;
 

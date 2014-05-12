@@ -45,7 +45,7 @@
 
 		this.typeName = attrs.__type;
 
-		this._aclFactory = new Appacitive._Acl(options.__acls, options.setSnapShot);
+		this._aclFactory = new global.Appacitive._Acl(options.__acls, options.setSnapShot);
 
 		this.acls = this._aclFactory.acls;
 
