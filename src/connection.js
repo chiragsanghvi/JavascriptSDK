@@ -2,12 +2,14 @@
 
 	"use strict";
     
+    var Appacitive = global.Appacitive;
+
 	var _parseEndpoint = function(endpoint, type, base) {
 
 		var result = { label: endpoint.label };
 		if (endpoint.objectid)  result.objectid = endpoint.objectid;
 		if (endpoint.object) {
-			if (endpoint.object instanceof global.Appacitive.Object) {
+			if (endpoint.object instanceof Appacitive.Object) {
 				// provided an instance of Appacitive.ObjectCollection
 				// stick the whole object if there is no __id
 				// else just stick the __id
@@ -20,7 +22,7 @@
 				if (endpoint.object.__id) result.objectid = endpoint.object.__id;
 				else result.object = endpoint.object;
 
-				endpoint.object =  global.Appacitive.Object._create(endpoint.object);
+				endpoint.object =  Appacitive.Object._create(endpoint.object);
 			} 
 		} else {
 			if (!result.objectid && !result.object) throw new Error('Incorrectly configured endpoints provided to parseConnection');
@@ -47,12 +49,12 @@
 		if ( endpoint.object && _type.isObject(endpoint.object)) {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
-				base['endpoint' + type].object = global.Appacitive.Object._create(endpoint.object, true);
+				base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
 			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].object && base['endpoint' + type].object instanceof global.Appacitive.Object)
+				if (base['endpoint' + type] && base['endpoint' + type].object && base['endpoint' + type].object instanceof Appacitive.Object)
 					base["endpoint" + type].object.copy(endpoint.object, true);
 				else 
-					base['endpoint' + type].object = global.Appacitive.Object._create(endpoint.object, true);
+					base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
 			}
 
 			if (base["endpoint" + type]._aclFactory) {
@@ -67,7 +69,7 @@
 		}
 	};
 
-	global.Appacitive.Connection = function(attrs, options) {
+	Appacitive.Connection = function(attrs, options) {
 		attrs = attrs || {};
 		options = options || {};
 
@@ -90,7 +92,7 @@
 			delete attrs.endpoints;
 		}
 
-		global.Appacitive.BaseObject.call(this, attrs, options);
+		Appacitive.BaseObject.call(this, attrs, options);
 		this.type = 'connection';
 		this.getConnection = this.getObject;
 
@@ -137,11 +139,11 @@
 		return this;
 	};
 
-	global.Appacitive.Connection.prototype = new global.Appacitive.BaseObject();
+	Appacitive.Connection.prototype = new Appacitive.BaseObject();
 
-	global.Appacitive.Connection.prototype.constructor = global.Appacitive.Connection;
+	Appacitive.Connection.prototype.constructor = Appacitive.Connection;
 
-	global.Appacitive.Connection.extend = function(relationName, protoProps, staticProps) {
+	Appacitive.Connection.extend = function(relationName, protoProps, staticProps) {
     	
     	if (_type.isObject(relationName)) {
     		staticProps = protoProps;
@@ -159,7 +161,7 @@
 	    protoProps = protoProps || {};
 	    protoProps.className = relationName;
 
-	    entity = global.Appacitive._extend(global.Appacitive.Connection, protoProps, staticProps);
+	    entity = Appacitive._extend(Appacitive.Connection, protoProps, staticProps);
 
 	    // Do not allow extending a class.
 	    delete entity.extend;
@@ -182,15 +184,15 @@
 	    }
 	    var entity = __relationMap[className];
 	    if (!entity) {
-	      entity = global.Appacitive.Connection.extend(className);
+	      entity = Appacitive.Connection.extend(className);
 	      __relationMap[className] = entity;
 	    }
 	    return entity;
 	};
 
-	global.Appacitive.Connection._getClass = _getClass;
+	Appacitive.Connection._getClass = _getClass;
 
-	global.Appacitive.Connection._create = function(attributes, setSnapshot, relationClass) {
+	Appacitive.Connection._create = function(attributes, setSnapshot, relationClass) {
 	    var entity;
 		if (this.className) entity = this;
 		else entity = (relationClass) ? relationClass : _getClass(attributes.__relationtype);
@@ -202,15 +204,15 @@
 		var connectionObjects = [];
 		if (!connections) connections = [];
 		connections.forEach(function(c) {
-			connectionObjects.push(global.Appacitive.Connection._create(_extend(c, { __meta : metadata }), true, relationClass));
+			connectionObjects.push(Appacitive.Connection._create(_extend(c, { __meta : metadata }), true, relationClass));
 		});
 		return connectionObjects;
 	};
 
-	global.Appacitive.Connection._parseResult = _parseConnections;
+	Appacitive.Connection._parseResult = _parseConnections;
 
 
-	global.Appacitive.Connection.prototype.setupConnection = function(endpointA, endpointB) {
+	Appacitive.Connection.prototype.setupConnection = function(endpointA, endpointB) {
 		
 		// validate the endpoints
 		if (!endpointA || (!endpointA.objectid &&  !endpointA.object) || !endpointA.label || !endpointB || (!endpointB.objectid && !endpointB.object) || !endpointB.label) {
@@ -246,7 +248,7 @@
 
 	};
 
-	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(attrs, options) {
+	Appacitive.Connection.prototype.get = Appacitive.Connection.get = function(attrs, options) {
 		attrs = attrs || {};
 		if (_type.isString(attrs) && this.className) {
 			attrs = {
@@ -261,17 +263,17 @@
 		
 		if (!attrs.relation) throw new Error("Specify relation");
 		if (!attrs.id) throw new Error("Specify id to fetch");
-		var obj = global.Appacitive.Connection._create({ __relationtype: attrs.relation, __id: attrs.id });
+		var obj = Appacitive.Connection._create({ __relationtype: attrs.relation, __id: attrs.id });
 		obj.fields = attrs.fields;
 		return obj.fetch(options);
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
-	global.Appacitive.Connection.multiGet = function(attrs, options) {
+	Appacitive.Connection.multiGet = function(attrs, options) {
 		attrs = attrs || {};
 		
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			if (attrs[0] instanceof global.Appacitive.Connection) {
+			if (attrs[0] instanceof Appacitive.Connection) {
 				models = attrs;
 				attrs = { 
 					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
@@ -291,7 +293,7 @@
 		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'GET',
 			type: 'connection',
 			op: 'getMultiGetUrl',
@@ -306,14 +308,14 @@
 	};
 
 	//takes relationame, and array of connections ids
-	global.Appacitive.Connection.multiDelete = function(attrs, options) {
+	Appacitive.Connection.multiDelete = function(attrs, options) {
 		attrs = attrs || {};
 		options = options || {};
 		var models = [];
 		if (this.className) attrs.relation = this.className;
 
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			if (attrs[0] instanceof global.Appacitive.Connection) {
+			if (attrs[0] instanceof Appacitive.Connection) {
 				models = attrs;
 				attrs = { 
 					relation:  models[0].className ,
@@ -329,7 +331,7 @@
 		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			data: { idlist : attrs.ids },
 			type: 'connection',
@@ -351,37 +353,37 @@
 
 	
 	//takes relation type and returns all connections for it
-	global.Appacitive.Connection.findAll = global.Appacitive.Connection.findAllQuery = function(options) {
+	Appacitive.Connection.findAll = Appacitive.Connection.findAllQuery = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
 			options.entity = this;
 		}
-		return new global.Appacitive.Queries.FindAllQuery(options);
+		return new Appacitive.Queries.FindAllQuery(options);
 	};
 
 	//takes 1 objectid and multiple aricleids and returns connections between both 
-	global.Appacitive.Connection.interconnectsQuery = global.Appacitive.Connection.getInterconnects = function(options) {
-		return new global.Appacitive.Queries.InterconnectsQuery(options);
+	Appacitive.Connection.interconnectsQuery = Appacitive.Connection.getInterconnects = function(options) {
+		return new Appacitive.Queries.InterconnectsQuery(options);
 	};
 
 	//takes 2 objectids and returns connections between them
-	global.Appacitive.Connection.betweenObjectsQuery = global.Appacitive.Connection.getBetweenObjects = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options);
+	Appacitive.Connection.betweenObjectsQuery = Appacitive.Connection.getBetweenObjects = function(options) {
+		return new Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options);
 	};
 
 	//takes 2 objects and returns connections between them of particluar relationtype
-	global.Appacitive.Connection.betweenObjectsForRelationQuery = global.Appacitive.Connection.getBetweenObjectsForRelation = function(options) {
+	Appacitive.Connection.betweenObjectsForRelationQuery = Appacitive.Connection.getBetweenObjectsForRelation = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
 			options.entity = this;
 		}
-		return new global.Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery(options);
+		return new Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery(options);
 	};
 
-	global.Appacitive.Connection.saveAll = function(objects, options) {
-		return global.Appacitive.BaseObject._saveAll(objects, options, 'Connection');
+	Appacitive.Connection.saveAll = function(objects, options) {
+		return Appacitive.BaseObject._saveAll(objects, options, 'Connection');
 	};
 
 })(global);

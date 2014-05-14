@@ -28,6 +28,7 @@ var global = {};
 	_initialize();
 
 
+	var Appacitive = global.Appacitive;
 
 	// httpBuffer class, stores a queue of the requests
 	// and fires them. Global level pre and post processing 
@@ -128,12 +129,12 @@ var global = {};
 			if (request.data) body.b = request.data;
 			delete request.data;
 			
-			if (global.Appacitive.config.debug) {
+			if (Appacitive.config.debug) {
 				if (request.url.indexOf('?') === -1) request.url = request.url + '?debug=true';
 				else request.url = request.url + '&debug=true';
 			}
 
-			if (global.Appacitive.config.metadata) {
+			if (Appacitive.config.metadata) {
 				if (request.url.indexOf('?') === -1) request.url = request.url + '?metadata=true';
 				else request.url = request.url + '&metadata=true';
 			}
@@ -217,29 +218,38 @@ var global = {};
 
 	var _XMLHttpRequest = null;
 
-	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
+	_XMLHttpRequest = (Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
 
 	var _XDomainRequest = function(request) {
-		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
+		var promise = Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
 		var xdr = new XDomainRequest();
 	    xdr.onload = function() {
   			var response = xdr.responseText;
-			try {
-				var contentType = xdr.contentType;
-				if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
+			var contentType = xdr.contentType;
+			
+			if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
+				try {
 					var jData = response;
-					if (!global.Appacitive.runtime.isBrowser) {
+					if (!Appacitive.runtime.isBrowser) {
 						if (jData[0] != "{") {
 							jData = jData.substr(1, jData.length - 1);
 						}
 					}
 					response = JSON.parse(jData);
+				} catch(e) {
+					return promise.reject(xdr, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response ));
 				}
-			} catch(e) {}
+			} 
             promise.fulfill(response, this);       
 	    };
 	    xdr.onerror = xdr.ontimeout = function() {
-	       promise.reject(xdr);
+	    	// Let's fake a real error message.
+			xdr.responseText = JSON.stringify({
+				code: Appacitive.Error.XDomainRequest,
+				message: "IE's XDomainRequest does not supply error info."
+			});
+			xdr.status = Appacitive.Error.XDomainRequest;
+	       	promise.reject(xdr);
 	    };
 	    xdr.onprogress = function() {};
 	    if (request.url.indexOf('?') === -1)
@@ -264,7 +274,7 @@ var global = {};
 	    if (!request.onError || !_type.isFunction(request.onError)) request.onError = function() {};
 	    
 
-		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
+		var promise = Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
 		
 		var doNotStringify = true;
 		request.headers.forEach(function(r){
@@ -298,21 +308,24 @@ var global = {};
 		    	if (this.readyState == 4) {
 			    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
 						var response = this.responseText;
-						try {
-							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
-							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
+						
+						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
+						if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
+							try {
 								var jData = response;
-								if (!global.Appacitive.runtime.isBrowser) {
+								if (!Appacitive.runtime.isBrowser) {
 									if (jData[0] != "{") {
 										jData = jData.substr(1, jData.length - 1);
 									}
 								}
 								response = JSON.parse(jData);
+							} catch(e) {
+								return promise.reject(this, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response, response.headers["TransactionId"] ));
 							}
-						} catch(e) {}
+						}
 			            promise.fulfill(response, this);
 			        } else {
-			        	promise.reject(this);
+			        	promise.reject(this, new Appacitive.Error(Appacitive.Error.ConnectionFailed, this.responseText, response.headers["TransactionId"]));
 			        }
 		    	}
 		    };
@@ -321,7 +334,7 @@ var global = {};
 		    for (var x = 0; x < request.headers.length; x += 1)
 				xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
 			
-			if (!global.Appacitive.runtime.isBrowser)
+			if (!Appacitive.runtime.isBrowser)
 				xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
 		    
 		    xhr.send(data);
@@ -379,10 +392,11 @@ var global = {};
 				data: request.data,
 				onSuccess: function(data, xhr) {
 					if (!data) {
-					 	that.onError(request, { responseText: JSON.stringify({ code:'400', message: 'Invalid request' }) });
+					 	that.onError(request, { responseText: { code:'400', message: 'Invalid request' } });
 						return;
 					}
 					try { data = JSON.parse(data);} catch(e) {}
+					
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
 
@@ -393,21 +407,25 @@ var global = {};
 						data = data.status || data;
 						data.message = data.message || 'Bad Request';
 						data.code = data.code || '400';
-						that.onError(request, { responseText: JSON.stringify(data) });
+						that.onError(request, { responseText: data });
 					}
 				},
-				onError: function(xhr) {
+				onError: function(xhr, error) {
 					var data = {};
-					data.message = xhr.responseText || 'Bad Request';
-					data.code = xhr.status || '400';
-					
-					that.onError(request, { responseText: JSON.stringify(data) });
+
+					if (error) {
+						data = Appacitive.Error.toJSON(error);
+					} else {
+						data.message = xhr.responseText || 'Bad Request';
+						data.code = xhr.status || '400';
+					}
+					that.onError(request, { responseText: data });
 				}
 			});
 		};
 
 		_super.send = function (request, callbacks, states) {
-			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
+			if (!Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
 			if (_type.isFunction(request.beforeSend)) {
 				request.beforeSend(request);
 			}
@@ -424,7 +442,7 @@ var global = {};
 	var HttpProvider = function () {
 
 		// actual http provider
-		//var _inner = global.Appacitive.runtime.isBrowser ? new JQueryHttpTransport() : new NodeHttpTransport();
+		//var _inner = Appacitive.runtime.isBrowser ? new JQueryHttpTransport() : new NodeHttpTransport();
 		var _inner = new BasicHttpTransport();
 
 		// the http buffer
@@ -454,7 +472,7 @@ var global = {};
 		// the method used to send the requests
 		this.send = function (request) {
 			
-			request.promise = (global.Appacitive.Promise.is(request.promise)) ? request.promise : new global.Appacitive.Promise.buildPromise({ error: request.onError });
+			request.promise = (Appacitive.Promise.is(request.promise)) ? request.promise : new Appacitive.Promise.buildPromise({ error: request.onError });
 
 			_buffer.enqueueRequest(request);
 
@@ -480,18 +498,9 @@ var global = {};
 
 		// the error handler
 		this.onError = function (request, response) {
-			var error;
-			if (response && response.responseText) {
-			    try {
-			        error = JSON.parse(response.responseText);
-			    } catch (e) { }
-			} else {
-			    response = { responseText: '' };
-			}
-
-		    error = error || { code: response.status, message: response.responseText, referenceid: response.headers["TransactionId"] };
-		    global.Appacitive.logs.logRequest(request, error, error, 'error');
-		    request.promise.reject(error, request.entity);
+			var error = response.responseText;
+		    Appacitive.logs.logRequest(request, error, error, 'error');
+		    request.promise.reject(new Appacitive.Error(error), request.entity);
 		};
 		_inner.onError = this.onError;
 
@@ -504,14 +513,14 @@ var global = {};
 					request.onSuccess(response);
 				}
 			}
-			global.Appacitive.logs.logRequest(request, response, response ? response.status : null, 'successful');
+			Appacitive.logs.logRequest(request, response, response ? response.status : null, 'successful');
 		};
 		_inner.onResponse = this.onResponse;
 	};
 
 	// create the http provider and the request
-	global.Appacitive.http = new HttpProvider();
-	global.Appacitive.HttpRequest = HttpRequest;
+	Appacitive.http = new HttpProvider();
+	Appacitive.HttpRequest = HttpRequest;
 
 	/* PLUGIN: Http Utilities */
 
@@ -519,36 +528,38 @@ var global = {};
 	// handles session and shits
 	(function (global) {
 
-		if (!global.Appacitive) return;
-		if (!global.Appacitive.http) return;
+		var Appacitive = global.Appacitive;
 
-		global.Appacitive.http.addProcessor({
+		if (!Appacitive) return;
+		if (!Appacitive.http) return;
+
+		Appacitive.http.addProcessor({
 			pre: function (request) {
 				return request;
 			},
 			post: function (response, request) {
 				try {
-					var _valid = global.Appacitive.Session.isSessionValid(response);
+					var _valid = Appacitive.Session.isSessionValid(response);
 					if (!_valid.status) {
 						if (_valid.isSession) {
-							if (global.Appacitive.Session.get() !== null) {
-								global.Appacitive.Session.resetSession();
+							if (Appacitive.Session.get() !== null) {
+								Appacitive.Session.resetSession();
 							}
-							global.Appacitive.http.send(request);
+							Appacitive.http.send(request);
 						}
 					} else {
 
 						if (response && ((response.status && response.status.code && (response.status.code == '19036' || response.status.code == '421')) || (response.code && (response.code == '19036' || response.code == '421')))) {
-							global.Appacitive.Users.logout();
+							Appacitive.Users.logout();
 						} else {
-							global.Appacitive.Session.incrementExpiry();
+							Appacitive.Session.incrementExpiry();
 						}
 					}
 				} catch(e){}
 			}
 		});
 
-		global.Appacitive.http.addProcessor({
+		Appacitive.http.addProcessor({
 			pre: function (req) {
 				return { start: new Date().getTime(), request: req };
 			},

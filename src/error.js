@@ -5,10 +5,28 @@
     var Appacitive = global.Appacitive;
 
     Appacitive.Error = function(status) {
-        status = status || {};
+        if (_type.isString(arguments[0]) || _type.isNumber(arguments[0])) {
+            status = {
+                code: arguments[0],
+                message: arguments[1],
+                referenceId: arguments[2],
+                additionalMessages: arguments[3]
+            }
+        }
+
         this.code = status.code || "400";
         this.message = status.message || "Unknown Error";
-        if (status.referenceId) this.referenceId = status.referenceId;
+        if (status.referenceId) this.referenceId = status.referenceid || status.referenceId;
+        if (status.additionalmessages) this.additionalMessages = status.additionalmessages || additionalMessages;
+    };
+
+    Appacitive.Error.toJSON = function(error) {
+        return {
+            code: error.code,
+            message: error.message,
+            referenceId: error.referenceId,
+            additionalmessages: error.additionalMessages
+        };
     };
 
     _extend(Appacitive.Error, {
@@ -31,13 +49,9 @@
 
         //SDK Internal Error codes
 
-        Unknown_cause: 100,
-        NoHttpClassFound: 600,
-        NotImplemented: 700,
-        FunctionNotFound: 800,
+        UnknownCause: 100,
         InvalidParameters: 900,
-        No_Connection: 1001,
-        NotInitialized: 1001,
+        ConnectionFailed: 1001,
         InvalidQuery: 1003,
         IvalidClassName: 1004,
         MissingId: 1005,

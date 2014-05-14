@@ -2,6 +2,8 @@
 
     "use strict";
 
+    var Appacitive = global.Appacitive;
+
     /**
      * @param {...string} var_args
      */
@@ -97,9 +99,9 @@
      */
     var UrlFactory = function () {
 
-        global.Appacitive.bag = global.Appacitive.bag || {};
+        Appacitive.bag = Appacitive.bag || {};
         
-        var baseUrl = (global.Appacitive.config || { apiBaseUrl: '' }).apiBaseUrl;
+        var baseUrl = (Appacitive.config || { apiBaseUrl: '' }).apiBaseUrl;
         
         var _getFields = function(fields) {
             if (typeof fields === 'object' && fields.length > 0 && (typeof fields[0] === 'string' || typeof fields[0] === 'number')) fields = fields.join(',');
@@ -405,7 +407,7 @@
 
     };
 
-    global.Appacitive.storage = global.Appacitive.storage || {};
-    global.Appacitive.storage.urlFactory = new UrlFactory();
+    Appacitive.storage = Appacitive.storage || {};
+    Appacitive.storage.urlFactory = new UrlFactory();
 
 })(global);

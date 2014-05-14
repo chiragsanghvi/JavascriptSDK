@@ -2,10 +2,12 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	var User = function(options, setSnapshot) {
 		options = options || {};
 		options.__type = 'user';
-		global.Appacitive.Object.call(this, options, setSnapshot);
+		Appacitive.Object.call(this, options, setSnapshot);
 		return this;
 	};
 
@@ -23,7 +25,7 @@
 		
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getUpdatePasswordUrl',
@@ -43,12 +45,12 @@
 
 		if (!this.get('__id')) {
 			this.set('__link', link);
-			return global.Appacitive.Promise.buildPromise(options).fulfill(this);
+			return Appacitive.Promise.buildPromise(options).fulfill(this);
 		}
 
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getLinkAccountUrl',
@@ -73,27 +75,27 @@
 		if (!user) throw new Error('Cannot set null object as user');
 		var userObject = user;
 		
-		if (!(userObject instanceof global.Appacitive.User)) userObject = new global.Appacitive.User(user, true); 
+		if (!(userObject instanceof Appacitive.User)) userObject = new Appacitive.User(user, true); 
 		else if (!userObject.get('__id') || userObject.get('__id').length === 0) throw new Error('Specify user __id');
 		else user = userObject.toJSON(); 
 
-		global.Appacitive.localStorage.set('Appacitive-User', user);
+		Appacitive.localStorage.set('Appacitive-User', user);
 
 		if (!expiry) expiry = 86400000;
 		_authenticatedUser = userObject;
 
-		if (token) global.Appacitive.Session.setUserAuthHeader(token, expiry);
+		if (token) Appacitive.Session.setUserAuthHeader(token, expiry);
 
-		_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
+		_authenticatedUser.logout = function(callback) { return Appacitive.Users.logout(callback); };
 
 		_authenticatedUser.updatePassword = function(oldPassword, newPassword, options) {
 			return _updatePassword.apply(this, [oldPassword, newPassword, options]);
 		};
 
-		_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
+		_authenticatedUser.logout = function(callback) { return Appacitive.Users.logout(callback); };
 
-		global.Appacitive.eventManager.clearAndSubscribe('type.user.' + userObject.get('__id') + '.updated', function(sender, args) {
-			global.Appacitive.localStorage.set('Appacitive-User', args.object.getObject());
+		Appacitive.eventManager.clearAndSubscribe('type.user.' + userObject.get('__id') + '.updated', function(sender, args) {
+			Appacitive.localStorage.set('Appacitive-User', args.object.getObject());
 		});
 
 		return _authenticatedUser;
@@ -116,12 +118,12 @@
 		var userId = this.get('__id');
 		
 		if (!userId || !_type.isString(userId) || userId.length === 0) {
-			return global.Appacitive.Promise.buildPromise(options).fulfill(this.linkedAccounts(), this);
+			return Appacitive.Promise.buildPromise(options).fulfill(this.linkedAccounts(), this);
 		}
 
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'GET',
 			type: 'user',
 			op: 'getGetAllLinkedAccountsUrl',
@@ -144,11 +146,11 @@
 		if (!userId || !_type.isString(userId) || userId.length === 0) {
 			if (onSuccess && _type.isFunction(onSuccess)) onSuccess();
 		}
-		if (!coords || !(coords instanceof global.Appacitive.GeoCoord)) throw new Error("Invalid coordinates provided");
+		if (!coords || !(coords instanceof Appacitive.GeoCoord)) throw new Error("Invalid coordinates provided");
 
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getCheckinUrl',
@@ -210,7 +212,7 @@
 
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getDelinkAccountUrl',
@@ -244,27 +246,27 @@
 	};
 
 	User.prototype.clone = function() {
-		return new global.Appacitive.User(this.getObject());
+		return new Appacitive.User(this.getObject());
 	};
 
-	global.Appacitive.User = global.Appacitive.Object.extend('user', User.prototype);
+	Appacitive.User = Appacitive.Object.extend('user', User.prototype);
 
 	//Remove article static properties
-	delete global.Appacitive.User._create;
-	delete global.Appacitive.User._parseResult;
-	delete global.Appacitive.User.multiDelete;
+	delete Appacitive.User._create;
+	delete Appacitive.User._parseResult;
+	delete Appacitive.User.multiDelete;
 
 	User.deleteUser = function(userId, options) {
 		if (!userId) throw new Error('Specify userid for user delete');
-		return new global.Appacitive.Object({ __type: 'user', __id: userId }).destroyWithConnections(options);
+		return new Appacitive.Object({ __type: 'user', __id: userId }).destroyWithConnections(options);
 	};
 
 	User.deleteCurrentUser = function(options) {
 		
-		var promise = global.Appacitive.Promise.buildPromise(options);
+		var promise = Appacitive.Promise.buildPromise(options);
 
 		var _callback = function() {
-			global.Appacitive.Session.removeUserAuthHeader();
+			Appacitive.Session.removeUserAuthHeader();
 			promise.fulfill();
 		};
 
@@ -291,7 +293,7 @@
 		if (!user.username || !user.password || !user.firstname || user.username.length === 0 || user.password.length === 0 || user.firstname.length === 0) 
 			throw new Error('username, password and firstname are mandatory');
 
-		return new global.Appacitive.User(user).save(options);
+		return new Appacitive.User(user).save(options);
 	};
 
 	User.createUser = User.createNewUser;
@@ -299,7 +301,7 @@
 	//method to allow user to signup and then login 
 	User.signup = function(user, options) {
 		var that = this;
-		var promise = global.Appacitive.Promise.buildPromise(options);
+		var promise = Appacitive.Promise.buildPromise(options);
 
 		this.createUser(user).then(function() {
 			that.login(user.username, user.password).then(function() {
@@ -320,7 +322,7 @@
 		if (!authRequest.expiry) authRequest.expiry = 86400000;
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getAuthenticateUserUrl',
@@ -331,7 +333,7 @@
 					if (provider) data.user.__authType = provider;
 					_extend(data.user, { __meta: data.__meta });
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					global.Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
+					Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
 					request.promise.fulfill({ user : _authenticatedUser, token: data.token });
 				} else {
 					request.promise.reject(data.status);
@@ -401,14 +403,14 @@
 
 	User.validateCurrentUser = function(avoidApiCall, callback) {
 
-		var promise = global.Appacitive.Promise.buildPromise({ success: callback });
+		var promise = Appacitive.Promise.buildPromise({ success: callback });
 
 		if (callback && _type.isBoolean(callback)) {
 			avoidApiCall = callback;
 			callback = function() {}; 
 		}
 
-		var token = global.Appacitive.localStorage.get('Appacitive-UserToken');
+		var token = Appacitive.localStorage.get('Appacitive-UserToken');
 
 		if (!token) {
 			promise.fulfill(false);
@@ -436,14 +438,14 @@
 
 	var _getUserByIdType = function(op, args, options) {
 		options = options || {};
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'GET',
 			type: 'user',
 			op: op,
 			options: options,
 			args: args,
 			onSuccess: function(data) {
-				if (data && data.user) request.promise.fulfill(new global.Appacitive.User(_extend(data.user, { __meta: data.__meta }),  _extend(options, { setSnapShot: true })));
+				if (data && data.user) request.promise.fulfill(new Appacitive.User(_extend(data.user, { __meta: data.__meta }),  _extend(options, { setSnapShot: true })));
 				else request.promise.reject(data.status);
 			}
 		});
@@ -452,7 +454,7 @@
 
 	User.getUserByToken = function(token, options) {
 		if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
-		global.Appacitive.Session.setUserAuthHeader(token, 0, true);
+		Appacitive.Session.setUserAuthHeader(token, 0, true);
 		return _getUserByIdType("getUserByTokenUrl", [token], options);
 	};
 
@@ -463,7 +465,7 @@
 
 	User.logout = function(makeApiCall, options) {
 		_authenticatedUser = null;
-		return global.Appacitive.Session.removeUserAuthHeader(makeApiCall, options);
+		return Appacitive.Session.removeUserAuthHeader(makeApiCall, options);
 	};
 
 	User.sendResetPasswordEmail = function(username, subject, options) {
@@ -473,7 +475,7 @@
 
 		var passwordResetOptions = { username: username, subject: subject };
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getSendResetPasswordEmailUrl',
@@ -491,7 +493,7 @@
 		if (!token) throw new Error("Please specify token");
 		if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getResetPasswordUrl',
@@ -511,7 +513,7 @@
 
 		options = options || {};
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getValidateResetPasswordUrl',
@@ -519,14 +521,14 @@
 			data: {},
 			args: [token],
 			onSuccess: function(data) {
-				request.promise.fulfill(new global.Appacitive.User(_extend(data.user, { __meta: data.__meta }), _extend(options, { setSnapShot: true })));
+				request.promise.fulfill(new Appacitive.User(_extend(data.user, { __meta: data.__meta }), _extend(options, { setSnapShot: true })));
 			}
 		});
 		return request.send();
 	};
 
-	global.Appacitive.Users = global.Appacitive.User;
+	Appacitive.Users = Appacitive.User;
 
-    global.Appacitive.Events.mixin(global.Appacitive.User);
+    Appacitive.Events.mixin(Appacitive.User);
 
 })(global);

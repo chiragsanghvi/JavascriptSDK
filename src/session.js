@@ -2,6 +2,8 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	/**
 	 * @constructor
 	 */
@@ -29,7 +31,7 @@
 		this.onSessionCreated = function() {};
 
 		this.recreate = function(options) {
-			return global.Appacitive.Session.create(options);
+			return Appacitive.Session.create(options);
 		};
 
 		this.create = function(options) {
@@ -41,7 +43,7 @@
 
 			_sRequest.apikey = _apikey;
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'PUT',
 				type: 'application',
 				op: 'getSessionCreateUrl',
@@ -49,20 +51,20 @@
 				data: _sRequest,
 				onSuccess: function(data) {
 					_sessionKey = data.session.sessionkey;
-					global.Appacitive.Session.useApiKey = false;
+					Appacitive.Session.useApiKey = false;
 					request.promise.fulfill(data);
-					global.Appacitive.Session.onSessionCreated();
+					Appacitive.Session.onSessionCreated();
 				}
 			});
 			return request.send();
 		};
 
-		global.Appacitive.http.addProcessor({
+		Appacitive.http.addProcessor({
 			pre: function(request) {
 				request.options = request.options || {};
-				if (global.Appacitive.Session.useApiKey) {
+				if (Appacitive.Session.useApiKey) {
 					var key = _apikey;
-					if ((request.options.useMasterKey || (global.Appacitive.useMasterKey && !request.options.useMasterKey )) && _type.isString(_masterKey) && _masterKey.length > 0) {
+					if ((request.options.useMasterKey || (Appacitive.useMasterKey && !request.options.useMasterKey )) && _type.isString(_masterKey) && _masterKey.length > 0) {
 						key = _masterKey;
 					} else if (_type.isString(request.options.apikey)) {
 						key = request.options.apikey;
@@ -113,9 +115,9 @@
 						if (!expiry) expiry = -1;
 						if (expiry == -1) expiry = null;
 
-						global.Appacitive.localStorage.set('Appacitive-UserToken', authToken);
-						global.Appacitive.localStorage.set('Appacitive-UserTokenExpiry', expiry);
-						global.Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
+						Appacitive.localStorage.set('Appacitive-UserToken', authToken);
+						Appacitive.localStorage.set('Appacitive-UserTokenExpiry', expiry);
+						Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 					}
 				}
 			} catch(e) {}
@@ -123,24 +125,24 @@
 
 		this.incrementExpiry = function() {
 			try {
-				if (global.Appacitive.runtime.isBrowser && authEnabled) {
-					global.Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
+				if (Appacitive.runtime.isBrowser && authEnabled) {
+					Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 				}
 			} catch(e) {}
 		};
 
 		this.removeUserAuthHeader = function(makeApiCall, options) {
 
-			var promise = global.Appacitive.Promise.buildPromise(options);
+			var promise = Appacitive.Promise.buildPromise(options);
 
-			if (!makeApiCall) global.Appacitive.User.trigger('logout', {});
+			if (!makeApiCall) Appacitive.User.trigger('logout', {});
 			
-			global.Appacitive.localStorage.remove('Appacitive-User');
+			Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
 
-					var _request = new global.Appacitive.HttpRequest(options);
-		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
+					var _request = new Appacitive.HttpRequest(options);
+		            _request.url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
 		            _request.type = 'user';
@@ -149,23 +151,23 @@
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
-		            	global.Appacitive.User.trigger('logout', {});
-			        	global.Appacitive.localStorage.remove('Appacitive-UserToken');
-		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
-		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
+		            	Appacitive.User.trigger('logout', {});
+			        	Appacitive.localStorage.remove('Appacitive-UserToken');
+		 				Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+		 				Appacitive.localStorage.remove('Appacitive-UserTokenDate');
 						promise.fulfill();  
 		            };
 
-		 	        global.Appacitive.http.send(_request);
+		 	        Appacitive.http.send(_request);
 
 		 	        return promise;
 				} catch (e){}
 			} else {
 				authEnabled = false;
 				_authToken = null;
-				global.Appacitive.localStorage.remove('Appacitive-UserToken');
- 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
- 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
+				Appacitive.localStorage.remove('Appacitive-UserToken');
+ 				Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+ 				Appacitive.localStorage.remove('Appacitive-UserTokenDate');
 				return promise.fulfill();
 			}
 		};
@@ -232,19 +234,19 @@
 		};
 	};
 
-	global.Appacitive.Session = new SessionManager();
+	Appacitive.Session = new SessionManager();
 
-	global.Appacitive.getAppPrefix = function(str) {
-		return global.Appacitive.Session.environment() + '/' + global.Appacitive.appId + '/' + str;
+	Appacitive.getAppPrefix = function(str) {
+		return Appacitive.Session.environment() + '/' + Appacitive.appId + '/' + str;
 	};
 
-	global.Appacitive.initialize = function(options) {
+	Appacitive.initialize = function(options) {
 		
 		options = options || {};
 
-		if (global.Appacitive.Session.initialized) return;
+		if (Appacitive.Session.initialized) return;
 		
-		if (options.masterKey && options.masterKey.length > 0) global.Appacitive.Session.setMasterKey(options.masterKey);
+		if (options.masterKey && options.masterKey.length > 0) Appacitive.Session.setMasterKey(options.masterKey);
 
 		if (!options.apikey || options.apikey.length === 0) {
 			if (options.masterKey) options.apikey = options.masterKey;
@@ -254,43 +256,43 @@
 		if (!options.appId || options.appId.length === 0) throw new Error("appId is mandatory");
 
 		
-		global.Appacitive.Session.setApiKey( options.apikey);
-		global.Appacitive.Session.environment(options.env || 'sandbox' );
-		global.Appacitive.useApiKey = true;
-		global.Appacitive.appId = options.appId;
+		Appacitive.Session.setApiKey( options.apikey);
+		Appacitive.Session.environment(options.env || 'sandbox' );
+		Appacitive.useApiKey = true;
+		Appacitive.appId = options.appId;
   		
-  		global.Appacitive.Session.initialized = true;
-  		global.Appacitive.Session.persistUserToken = options.persistUserToken;
+  		Appacitive.Session.initialized = true;
+  		Appacitive.Session.persistUserToken = options.persistUserToken;
   		
-		if (options.debug) global.Appacitive.config.debug = true;
+		if (options.debug) Appacitive.config.debug = true;
 
-		if (_type.isFunction(options.apiLog)) global.Appacitive.logs.apiLog = options.apiLog;
-		if (_type.isFunction(options.apiErrorLog)) global.Appacitive.logs.apiErrorLog = options.apiErrorLog;
-		if (_type.isFunction(options.exceptionLog)) global.Appacitive.logs.exceptionLog = options.exceptionLog;
+		if (_type.isFunction(options.apiLog)) Appacitive.logs.apiLog = options.apiLog;
+		if (_type.isFunction(options.apiErrorLog)) Appacitive.logs.apiErrorLog = options.apiErrorLog;
+		if (_type.isFunction(options.exceptionLog)) Appacitive.logs.exceptionLog = options.exceptionLog;
 
   		if (options.userToken) {
 
 			if (options.expiry == -1)  options.expiry = null;
 			else if (!options.expiry)  options.expiry = 3600;
 
-			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
+			Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
 
 			if (options.user) {
-				global.Appacitive.Users.setCurrentUser(options.user);	
+				Appacitive.Users.setCurrentUser(options.user);	
 			} else {
 				//read user from from localstorage and set it;
-				var user = global.Appacitive.localStorage.get('Appacitive-User');	
-				if (user) global.Appacitive.Users.setCurrentUser(user);
+				var user = Appacitive.localStorage.get('Appacitive-User');	
+				if (user) Appacitive.Users.setCurrentUser(user);
 			}
 
 		} else {
 
-			if (global.Appacitive.runtime.isBrowser) {
+			if (Appacitive.runtime.isBrowser) {
 				//read usertoken from localstorage and set it
-				var token = global.Appacitive.localStorage.get('Appacitive-UserToken');
+				var token = Appacitive.localStorage.get('Appacitive-UserToken');
 				if (token) { 
-					var expiry = global.Appacitive.localStorage.get('Appacitive-UserTokenExpiry');
-					var expiryDate = global.Appacitive.localStorage.get('Appacitive-UserTokenDate');
+					var expiry = Appacitive.localStorage.get('Appacitive-UserTokenExpiry');
+					var expiryDate = Appacitive.localStorage.get('Appacitive-UserTokenDate');
 					
 					if (!expiry) expiry = -1;
 					if (expiryDate && expiry > 0) {
@@ -298,15 +300,15 @@
 					}
 					if (expiry == -1) expiry = null;
 					//read usertoken and user from from localstorage and set it;
-					var user = global.Appacitive.localStorage.get('Appacitive-User');	
-					if (user) global.Appacitive.Users.setCurrentUser(user, token, expiry);
+					var user = Appacitive.localStorage.get('Appacitive-User');	
+					if (user) Appacitive.Users.setCurrentUser(user, token, expiry);
 				}
 			}
 		}			
 	};
 
-	global.Appacitive.reset = function() {
-		global.Appacitive.Session.reset();
+	Appacitive.reset = function() {
+		Appacitive.Session.reset();
 	};
 
 } (global));
@@ -318,12 +320,14 @@
 
 	"use strict";
 
-	if (!global.Appacitive) return;
-	if (!global.Appacitive.http) return;
+	var Appacitive = global.Appacitive;
 
-	global.Appacitive.http.addProcessor({
+	if (!Appacitive) return;
+	if (!Appacitive.http) return;
+
+	Appacitive.http.addProcessor({
 		pre: function(req) {
-			var env = global.Appacitive.Session.environment()
+			var env = Appacitive.Session.environment()
 			req.options = req.options || {};
 			if (_type.isString(req.options.env)) env = req.options.env;
 			req.headers.push({ key: 'e', value: env });
@@ -331,6 +335,6 @@
 	});
 
 
-   global.Appacitive.Events.mixin(global.Appacitive);
+   Appacitive.Events.mixin(Appacitive);
 
 })(global);

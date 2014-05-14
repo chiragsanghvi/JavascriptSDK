@@ -2,12 +2,14 @@
 
 "use strict";
 
-if (global.Appacitive.runtime.isBrowser) {
+var Appacitive = global.Appacitive;
+
+if (Appacitive.runtime.isBrowser) {
 
 	var _cookieManager = function () {
 
 		this.setCookie = function (name, value, minutes, erase) {
-			name = global.Appacitive.getAppPrefix(name);
+			name = Appacitive.getAppPrefix(name);
 			var expires = '';
 			if (minutes) {
 				var date = new Date();
@@ -17,7 +19,7 @@ if (global.Appacitive.runtime.isBrowser) {
 
 			if (!erase) {
 				//for now lets make this a session cookie if it is not an erase
-				if (!global.Appacitive.Session.persistUserToken) expires = '';
+				if (!Appacitive.Session.persistUserToken) expires = '';
 				else expires = "; expires=" +  new Date("2020-12-31").toGMTString();
 			} else {
 				expires = '; expires=Thu, 01-Jan-1970 00:00:01 GMT';
@@ -29,7 +31,7 @@ if (global.Appacitive.runtime.isBrowser) {
 		};
 
 		this.readCookie = function (name) {
-			name = global.Appacitive.getAppPrefix(name);
+			name = Appacitive.getAppPrefix(name);
 			var nameEQ = name + "=";
 			var ca = document.cookie.split(';');
 			for (var i=0; i < ca.length; i++) {
@@ -46,25 +48,25 @@ if (global.Appacitive.runtime.isBrowser) {
 
 	};
 
-	global.Appacitive.Cookie = new _cookieManager();
+	Appacitive.Cookie = new _cookieManager();
 
 } else {
 	var _cookieManager = function () {
 
 	        this.setCookie = function (name, value) {
-	                global.Appacitive.localStorage.set( 'cookie/' + name, value);
+	                Appacitive.localStorage.set( 'cookie/' + name, value);
 	        };
 
 	        this.readCookie = function (name) {
-	                return global.Appacitive.localStorage.get( 'cookie/' + name);
+	                return Appacitive.localStorage.get( 'cookie/' + name);
 	        };
 
 	        this.eraseCookie = function (name) {
-	                global.Appacitive.localStorage.remove( 'cookie/' + name);
+	                Appacitive.localStorage.remove( 'cookie/' + name);
 	        };
 
 	};
-	global.Appacitive.Cookie = new _cookieManager();
+	Appacitive.Cookie = new _cookieManager();
 }
 
 })(global);

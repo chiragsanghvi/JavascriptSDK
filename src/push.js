@@ -2,13 +2,15 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	var _pushManager = function() {
 
 		this.send = function(args, options) {
 			
 			if (!args) throw new Error("Please specify push options");
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'POST',
 				type: 'push',
 				op: 'getPushUrl',
@@ -26,7 +28,7 @@
 
 			if (!notificationId) throw new Error("Please specify notification id");
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'GET',
 				type: 'push',
 				op: 'getGetNotificationUrl',
@@ -48,7 +50,7 @@
 				pagingInfo.psize = pagingInfo.psize || 20;
 			}
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'GET',
 				type: 'push',
 				op: 'getGetAllNotificationsUrl',
@@ -63,6 +65,6 @@
 
 	};
 
-	global.Appacitive.Push = new _pushManager();
+	Appacitive.Push = new _pushManager();
 
 })(global);

@@ -2,6 +2,8 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	var _facebook = function() {
 
 		var _accessToken = null;
@@ -85,6 +87,6 @@
 		};
 	};
 
-	global.Appacitive.Facebook = new _facebook();
+	Appacitive.Facebook = new _facebook();
 
 })(global);

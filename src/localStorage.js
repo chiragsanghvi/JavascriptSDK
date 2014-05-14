@@ -2,11 +2,13 @@
 
 	"use strict";
 
-	if (global.Appacitive.runtime.isBrowser) {
+	var Appacitive = global.Appacitive;
+
+	if (Appacitive.runtime.isBrowser) {
 
 		var A_LocalStorage = function() {
 
-			var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
+			var _localStorage = (Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
 
 			var isLocalStorageSupported = function() {
 				var testKey = 'test';
@@ -30,10 +32,10 @@
 			    }
 
 				if (!isLocalStorageSupported()) {
-					global.Appacitive.Cookie.setCookie(key, value);
+					Appacitive.Cookie.setCookie(key, value);
 					return this;
 				} else {
-					key = global.Appacitive.getAppPrefix(key);
+					key = Appacitive.getAppPrefix(key);
 				    
 				    _localStorage[key] = value;
 				    return this;
@@ -46,9 +48,9 @@
 				var value;
 
 				if (!isLocalStorageSupported()) {
-					value = global.Appacitive.Cookie.readCookie(key);
+					value = Appacitive.Cookie.readCookie(key);
 				} else {
-					key = global.Appacitive.getAppPrefix(key);
+					key = Appacitive.getAppPrefix(key);
 					value = _localStorage.getItem(key);
 			   	}
 
@@ -67,14 +69,14 @@
 			this.remove = function(key) {
 				if (!key) return;
 				if (!isLocalStorageSupported()) {
-					global.Appacitive.Cookie.eraseCookie(key);
+					Appacitive.Cookie.eraseCookie(key);
 					return;
 				}
-				key = global.Appacitive.getAppPrefix(key);
+				key = Appacitive.getAppPrefix(key);
 				try { delete _localStorage[key]; } catch(e){}
 			};
 		};
-		global.Appacitive.localStorage = new A_LocalStorage();
+		Appacitive.localStorage = new A_LocalStorage();
 
 	} else {
 		var A_LocalStorage = function() {
@@ -85,7 +87,7 @@
                 value = value || '';
                 if (!key || _type.isString(key)) return false;
 
-                key = global.Appacitive.getAppPrefix(key);
+                key = Appacitive.getAppPrefix(key);
 
                 _localStorage[key] = value;
                 return this;
@@ -94,7 +96,7 @@
             this.get = function(key) {
                 if (!key || _type.isString(key)) return null;
 
-                key = global.Appacitive.getAppPrefix(key);
+                key = Appacitive.getAppPrefix(key);
 
                 var value = _localStorage[key];
 	            if (!value) { return null; }
@@ -104,11 +106,11 @@
             
             this.remove = function(key) {
                 if (!key || _type.isString(key)) return;
-                key = global.Appacitive.getAppPrefix(key);
+                key = Appacitive.getAppPrefix(key);
                 try { delete _localStorage[key]; } catch(e){}
             };
         };
 
-        global.Appacitive.localStorage = new A_LocalStorage();
+        Appacitive.localStorage = new A_LocalStorage();
 	}
 })(global);

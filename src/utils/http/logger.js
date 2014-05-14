@@ -2,7 +2,9 @@
 
     "use strict";
 
-    global.Appacitive.logs = {};
+    var Appacitive = global.Appacitive;
+
+    Appacitive.logs = {};
 
     var invoke = function(callback, log) {
     	setTimeout(function() {
@@ -10,7 +12,7 @@
 	    }, 0);
 	};
 
-	global.Appacitive.logs.logRequest = function(request, response, status, type) {
+	Appacitive.logs.logRequest = function(request, response, status, type) {
 		response = response || {};
 		status = status || {};
 		var body = {};
@@ -49,21 +51,21 @@
 	    }
 
     	if (type == 'error') {
-    		if (global.Appacitive.runtime.isBrowser) console.dir(log);
+    		if (Appacitive.runtime.isBrowser) console.dir(log);
 
-		    if (_type.isFunction(global.Appacitive.logs.apiErrorLog)) {
-		    	invoke(global.Appacitive.logs.apiErrorLog, log);
+		    if (_type.isFunction(Appacitive.logs.apiErrorLog)) {
+		    	invoke(Appacitive.logs.apiErrorLog, log);
 		    }
 	    }
 
-	    if (_type.isFunction(global.Appacitive.logs.apiLog)) {
-	    	invoke(global.Appacitive.logs.apiLog, log);
+	    if (_type.isFunction(Appacitive.logs.apiLog)) {
+	    	invoke(Appacitive.logs.apiLog, log);
 	    }
 	};    
 
-	global.Appacitive.logs.logException = function(error) {  
-		if (_type.isFunction(global.Appacitive.logs.exceptionLog)) {
-			invoke(global.Appacitive.logs.exceptionLog, error);
+	Appacitive.logs.logException = function(error) {  
+		if (_type.isFunction(Appacitive.logs.exceptionLog)) {
+			invoke(Appacitive.logs.exceptionLog, error);
 		}
 	};
 

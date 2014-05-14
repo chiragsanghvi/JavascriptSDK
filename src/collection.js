@@ -1,6 +1,8 @@
   (function(global) {
 
-  global.Appacitive.Collection = function(models, options) {
+  var Appacitive = global.Appacitive;
+
+  Appacitive.Collection = function(models, options) {
     options || (options = {});
     if (options.model) this.model = options.model;
     if (!this.model) throw new Error("Please specify model for collection");
@@ -12,10 +14,10 @@
     if (models) this.reset(models, { silent: true });
   };
 
-  global.Appacitive.Events.mixin(global.Appacitive.Collection.prototype);
+  Appacitive.Events.mixin(Appacitive.Collection.prototype);
 
   // Define the Collection's inheritable methods.
-  _extend(global.Appacitive.Collection.prototype, {
+  _extend(Appacitive.Collection.prototype, {
     
     models: [],
 
@@ -137,12 +139,12 @@
      * fetch from this collection.
      */
     get: function(id) {
-      return id && this._byId[(id instanceof global.Appacitive.BaseObject) ? id.id : id];
+      return id && this._byId[(id instanceof Appacitive.BaseObject) ? id.id : id];
     },
 
     query: function(query) {
       if (query) {
-        if ((query instanceof global.Appacitive.Query) || (query instanceof global.Appacitive.Queries.GraphAPI)) { 
+        if ((query instanceof Appacitive.Query) || (query instanceof Appacitive.Queries.GraphAPI)) { 
           this._query = query;
           return this;
         } else {
@@ -241,9 +243,9 @@
       options = _clone(options) || {};
       
       var collection = this;
-      var query = this.query() || new global.Appacitive.Query(this.model);
+      var query = this.query() || new Appacitive.Query(this.model);
       
-      var promise = global.Appacitive.Promise.buildPromise(options);
+      var promise = Appacitive.Promise.buildPromise(options);
 
       query.fetch(options).then(function(results) {
         if (options.add) collection.add(results, _extend({ setSnapShot: true }, options));
@@ -262,7 +264,7 @@
       
       var collection = this;
       
-      var promise = global.Appacitive.Promise.buildPromise(options);
+      var promise = Appacitive.Promise.buildPromise(options);
 
       var ids = options.ids || [];
 
@@ -272,7 +274,7 @@
 
       args[this.model.type || this.model.relation] = this.model.className;
 
-      global.Appacitive.Object.multiGet(args).then(function(results) {
+      Appacitive.Object.multiGet(args).then(function(results) {
         if (options.add) collection.add(results, options);
         else collection.reset(results, options);
         promise.fulfill(collection);
@@ -315,7 +317,7 @@
      * Prepare a model or hash of attributes to be added to this collection.
      */
     _prepareModel: function(model) {
-      if (!(model instanceof global.Appacitive.BaseObject)) {
+      if (!(model instanceof Appacitive.BaseObject)) {
         model = new this.model(model);
       }
 
@@ -360,12 +362,12 @@
     }
   });
 
-  global.Appacitive.Collection.extend = function(protoProps, classProps) {
+  Appacitive.Collection.extend = function(protoProps, classProps) {
     if (protoProps && protoProps.query) {
       protoProps._query = protoProps.query;
       delete protoProps.query;
     }
-    var child = global.Appacitive._extend(this, protoProps, classProps);
+    var child = Appacitive._extend(this, protoProps, classProps);
     child.extend = this.extend;
     return child;
   };
@@ -374,7 +376,7 @@
 
   // Mix in each Underscore method as a proxy to `Collection#models`.
   methods.each(function(method) {
-    global.Appacitive.Collection.prototype[method] = function() {
+    Appacitive.Collection.prototype[method] = function() {
       var args = Array.prototype.slice.call(arguments);
       return Array.prototype[method].apply(this.models, args);
     };

@@ -55,21 +55,21 @@
 		}, "date": function(value) { 
 			if (_type.isDate(value)) return value;
 			if (value) {
-				var res = global.Appacitive.Date.parseISODate(value);
+				var res = Appacitive.Date.parseISODate(value);
 				if (res) return res;
 			}
 			return value;
 		}, "datetime": function(value) { 
 			if (_type.isDate(value)) return value;
 			if (value) {
-				var res = global.Appacitive.Date.parseISODate(value);
+				var res = Appacitive.Date.parseISODate(value);
 				if (res) return res;
 			}
 			return value;
 		}, "time": function(value) { 
 			if (_type.isDate(value)) return value;
 			if (value) {
-				var res = global.Appacitive.Date.parseISOTime(value);
+				var res = Appacitive.Date.parseISOTime(value);
 				if (res) return res;
 			}
 			return value;
@@ -90,7 +90,7 @@
 			if (split.length !== 2 ) return false;
 
 			// validate the value
-			return new global.Appacitive.GeoCoord(split[0], split[1]);
+			return new Appacitive.GeoCoord(split[0], split[1]);
 		}
 	};
 
@@ -99,12 +99,12 @@
 	_types["text"] = _types["string"];
 	_types["bool"] = _types["boolean"];
 
-	global.Appacitive.cast = _types;
+	Appacitive.cast = _types;
 
 	var encode = function(value) {
 		if (_type.isNullOrUndefined(value)) return null; 
 	 	else if (isString(value)) return ( value + '');
-	 	else if (_type.isDate(value)) return global.Appacitive.Date.toISOString(value);
+	 	else if (_type.isDate(value)) return Appacitive.Date.toISOString(value);
 	 	else if (_type.isObject(value)) {
 	 		if (isGeocode(value)) return value.toString();
 	 		return (value.toJSON ? value.toJSON() : value);
@@ -112,7 +112,7 @@
 		return value;
 	};
 
-	global.Appacitive._encode = function(attrs) {
+	Appacitive._encode = function(attrs) {
 		var object = {};
 		for (var key in attrs) {
 			var value = attrs[key];
@@ -129,7 +129,7 @@
 		return object;
 	};
 
-	global.Appacitive._decode = function(attrs) {
+	Appacitive._decode = function(attrs) {
 		var object = {}, meta = _extend({}, __privateMeta, getMeta(attrs));
 		delete attrs.__meta;
 		for (var key in attrs) {
@@ -212,7 +212,7 @@
             privateProps.forEach(function(prop) {
                 if (attrs[prop]) {
                     if ((prop === "__utcdatecreated" || prop === "__utclastupdateddate") && !_type.isDate(attrs[prop])) {
-                        that[map[prop]] = global.Appacitive.Date.parseISODate(attrs[prop]);
+                        that[map[prop]] = Appacitive.Date.parseISODate(attrs[prop]);
                     }  else {
                         that[map[prop]] = attrs[prop];
                     }
@@ -222,7 +222,7 @@
             });
         };
 
-		this.base = global.Appacitive.Object.prototype;
+		this.base = Appacitive.Object.prototype;
 
 		var __cid = parseInt(Math.random() * 100000000, 10);
 
@@ -811,8 +811,8 @@
 		};
 
 		this.clone = function() {
-			if (this.type == 'object') return global.Appacitive.Object._create(_extend({ __meta: this.meta }, this.toJSON()));
-			return new global.Appacitive.connection._create(_extend({ __meta: this.meta }, this.toJSON()));
+			if (this.type == 'object') return Appacitive.Object._create(_extend({ __meta: this.meta }, this.toJSON()));
+			return new Appacitive.connection._create(_extend({ __meta: this.meta }, this.toJSON()));
 		};
 
 		this.copy = function(properties, setSnapShot) { 
@@ -931,7 +931,7 @@
 
 			if (Object.isEmpty(clonedObject.__attributes)) delete clonedObject.__attributes;
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'PUT',
 				type: type,
 				op: 'getCreateUrl',
@@ -958,7 +958,7 @@
 						}
 						that.trigger('change:__id', that, that.id, { });
 
-						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
+						Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
 
@@ -968,7 +968,7 @@
 					} else {
 						if (!options.silent) that.trigger('error', that, data.status, options);
 
-						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, { error: data.status });
+						Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, { error: data.status });
 						request.promise.reject(data.status, that);
 					}
 				}
@@ -980,7 +980,7 @@
 		// to update the object
 		var _update = function(options, promise) {
 
-			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(options);
+			if (!Appacitive.Promise.is(promise)) promise = Appacitive.Promise.buildPromise(options);
 
 			var changeSet = _getChanged(true);
 
@@ -998,7 +998,7 @@
 					args.splice(0, 1);
 				}
 
-				var request = new global.Appacitive._Request({
+				var request = new Appacitive._Request({
 					method: 'POST',
 					type: type,
 					op: 'getUpdateUrl',
@@ -1017,14 +1017,14 @@
 
 							if (!options.silent) that.trigger('sync', that, data[type], options);
 
-							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
+							Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
 							request.promise.fulfill(that);
 						} else {
 							data = data || {};
 							data.status =  data.status || {};
 							data.status = _getOutpuStatus(data.status);
 							if (!options.silent) that.trigger('error', that, data.status, options);
-							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updateFailed', that, { object : data.status });
+							Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updateFailed', that, { object : data.status });
 							request.promise.reject(data.status, that);
 						}
 					}
@@ -1051,7 +1051,7 @@
 				type = object.__type.toLowerCase();
 			}
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'GET',
 				type: type,
 				op: 'getGetUrl',
@@ -1073,7 +1073,7 @@
 
 						if (!options.silent) that.trigger('sync', that, data[type], options);
 
-						global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
+						Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
@@ -1108,12 +1108,12 @@
 	        // just call success
 	        // else delete the object
 
-	        if (!that.id) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
+	        if (!that.id) return new Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
 			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
 			
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'DELETE',
 				type: type,
 				op: 'getDeleteUrl',
@@ -1164,9 +1164,9 @@
 		return this._destroyWithConnections.apply(this, arguments);
 	};
 
-	global.Appacitive.BaseObject = _BaseObject;
+	Appacitive.BaseObject = _BaseObject;
 
-	global.Appacitive.BaseObject._saveAll = function(objects, options, type) {
+	Appacitive.BaseObject._saveAll = function(objects, options, type) {
 	    var unsavedObjects = [], tasks = [];
 	    
     	options = options || [];
@@ -1174,7 +1174,7 @@
 		if (!_type.isArray(objects)) throw new Error("Provide an array of objects for Object.saveAll");	    
 
 	    objects.forEach(function(o) {
-	    	if (!(o instanceof global.Appacitive.BaseObject) && _type.isObject(o)) o = new global.Appacitive[type](o);
+	    	if (!(o instanceof Appacitive.BaseObject) && _type.isObject(o)) o = new Appacitive[type](o);
 	    	if (unsavedObjects.find(function(x) { return x.id == o.id; })) return;
 	    	unsavedObjects.push(o);
 
@@ -1184,19 +1184,19 @@
 	    return Appacitive.Promise.when(tasks);
 	};
 
-	global.Appacitive.BaseObject.prototype.toString = function() {
+	Appacitive.BaseObject.prototype.toString = function() {
 		return JSON.stringify(this.getObject());
 	};
 
-	global.Appacitive.BaseObject.prototype.parse = function(resp, options) {
+	Appacitive.BaseObject.prototype.parse = function(resp, options) {
       	return resp;
     };
 
     // Get the HTML-escaped value of an attribute.
-    global.Appacitive.BaseObject.prototype.escape = function(attr) {
+    Appacitive.BaseObject.prototype.escape = function(attr) {
       return _.escape(this.get(attr));
     },
 
-	global.Appacitive.Events.mixin(global.Appacitive.BaseObject.prototype);
+	Appacitive.Events.mixin(Appacitive.BaseObject.prototype);
 
 })(global);

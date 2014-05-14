@@ -2,6 +2,8 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	var _emailManager = function() {
 
 		var config = {
@@ -23,7 +25,7 @@
 
 		var _sendEmail = function (email, options) {
 			
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'POST',
 				type: 'email',
 				op: 'getSendEmailUrl',
@@ -134,6 +136,6 @@
 
 	};
 
-	global.Appacitive.Email = new _emailManager();
+	Appacitive.Email = new _emailManager();
 
 })(global);

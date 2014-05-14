@@ -2,6 +2,8 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	var A_LocalStorage = function() {
 
 		var _localStorage = Ti.App.Properties;
@@ -15,7 +17,7 @@
 			      value = JSON.stringify(value);
 			    } catch(e){}
 		    }
-		    key = global.Appacitive.getAppPrefix(key);
+		    key = Appacitive.getAppPrefix(key);
 
 			_localStorage.setString(key, value);
 			return this;
@@ -24,7 +26,7 @@
 		this.get = function(key) {
 			if (!key) return null;
 
-			key = global.Appacitive.getAppPrefix(key);
+			key = Appacitive.getAppPrefix(key);
 
 			var value = _localStorage.getString(key);
 		   	if (!value) { return null; }
@@ -41,11 +43,11 @@
 		
 		this.remove = function(key) {
 			if (!key) return;
-			key = global.Appacitive.getAppPrefix(key);
+			key = Appacitive.getAppPrefix(key);
 			try { _localStorage.removeProperty(key); } catch(e){}
 		};
 	};
 
-	global.Appacitive.localStorage = new A_LocalStorage();
+	Appacitive.localStorage = new A_LocalStorage();
 
 })(global);

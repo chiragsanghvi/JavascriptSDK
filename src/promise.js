@@ -19,9 +19,11 @@
 
     "use strict";
 
+    var Appacitive = global.Appacitive;
+
     var setImmediate;
 
-    if (global.Appacitive.runtime.isNode) {
+    if (Appacitive.runtime.isNode) {
         setImmediate = process.nextTick;
     } else {
         setImmediate = setTimeout;
@@ -65,7 +67,7 @@
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
                     var err = {name: error.name, message: error.message, stack: error.stack};
-                    global.Appacitive.logs.logException(err);
+                    Appacitive.logs.logException(err);
                     
                     if (promise.calls.length == 0) throw error;
                     else promise.reject(error);
@@ -223,6 +225,6 @@
         return new Promise().fulfill();
     };
 
-    global.Appacitive.Promise = Promise;
+    Appacitive.Promise = Promise;
 
 })(global);

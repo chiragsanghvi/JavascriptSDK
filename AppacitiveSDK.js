@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon May 12 21:39:52 IST 2014
+ * Build time 	: Wed May 14 15:33:18 IST 2014
  */
 "use strict";
 
@@ -502,6 +502,7 @@ var global = {};
 	_initialize();
 
 
+	var Appacitive = global.Appacitive;
 
 	// httpBuffer class, stores a queue of the requests
 	// and fires them. Global level pre and post processing 
@@ -602,12 +603,12 @@ var global = {};
 			if (request.data) body.b = request.data;
 			delete request.data;
 			
-			if (global.Appacitive.config.debug) {
+			if (Appacitive.config.debug) {
 				if (request.url.indexOf('?') === -1) request.url = request.url + '?debug=true';
 				else request.url = request.url + '&debug=true';
 			}
 
-			if (global.Appacitive.config.metadata) {
+			if (Appacitive.config.metadata) {
 				if (request.url.indexOf('?') === -1) request.url = request.url + '?metadata=true';
 				else request.url = request.url + '&metadata=true';
 			}
@@ -691,29 +692,38 @@ var global = {};
 
 	var _XMLHttpRequest = null;
 
-	_XMLHttpRequest = (global.Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
+	_XMLHttpRequest = (Appacitive.runtime.isBrowser) ?  XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
 
 	var _XDomainRequest = function(request) {
-		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
+		var promise = Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
 		var xdr = new XDomainRequest();
 	    xdr.onload = function() {
   			var response = xdr.responseText;
-			try {
-				var contentType = xdr.contentType;
-				if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
+			var contentType = xdr.contentType;
+			
+			if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
+				try {
 					var jData = response;
-					if (!global.Appacitive.runtime.isBrowser) {
+					if (!Appacitive.runtime.isBrowser) {
 						if (jData[0] != "{") {
 							jData = jData.substr(1, jData.length - 1);
 						}
 					}
 					response = JSON.parse(jData);
+				} catch(e) {
+					return promise.reject(xdr, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response ));
 				}
-			} catch(e) {}
+			} 
             promise.fulfill(response, this);       
 	    };
 	    xdr.onerror = xdr.ontimeout = function() {
-	       promise.reject(xdr);
+	    	// Let's fake a real error message.
+			xdr.responseText = JSON.stringify({
+				code: Appacitive.Error.XDomainRequest,
+				message: "IE's XDomainRequest does not supply error info."
+			});
+			xdr.status = Appacitive.Error.XDomainRequest;
+	       	promise.reject(xdr);
 	    };
 	    xdr.onprogress = function() {};
 	    if (request.url.indexOf('?') === -1)
@@ -738,7 +748,7 @@ var global = {};
 	    if (!request.onError || !_type.isFunction(request.onError)) request.onError = function() {};
 	    
 
-		var promise = global.Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
+		var promise = Appacitive.Promise.buildPromise({ success: request.onSuccess, error: request.onError });
 		
 		var doNotStringify = true;
 		request.headers.forEach(function(r){
@@ -772,21 +782,24 @@ var global = {};
 		    	if (this.readyState == 4) {
 			    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
 						var response = this.responseText;
-						try {
-							var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
-							if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
+						
+						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
+						if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
+							try {
 								var jData = response;
-								if (!global.Appacitive.runtime.isBrowser) {
+								if (!Appacitive.runtime.isBrowser) {
 									if (jData[0] != "{") {
 										jData = jData.substr(1, jData.length - 1);
 									}
 								}
 								response = JSON.parse(jData);
+							} catch(e) {
+								return promise.reject(this, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response, response.headers["TransactionId"] ));
 							}
-						} catch(e) {}
+						}
 			            promise.fulfill(response, this);
 			        } else {
-			        	promise.reject(this);
+			        	promise.reject(this, new Appacitive.Error(Appacitive.Error.ConnectionFailed, this.responseText, response.headers["TransactionId"]));
 			        }
 		    	}
 		    };
@@ -795,7 +808,7 @@ var global = {};
 		    for (var x = 0; x < request.headers.length; x += 1)
 				xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
 			
-			if (!global.Appacitive.runtime.isBrowser)
+			if (!Appacitive.runtime.isBrowser)
 				xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK'); 
 		    
 		    xhr.send(data);
@@ -853,10 +866,11 @@ var global = {};
 				data: request.data,
 				onSuccess: function(data, xhr) {
 					if (!data) {
-					 	that.onError(request, { responseText: JSON.stringify({ code:'400', message: 'Invalid request' }) });
+					 	that.onError(request, { responseText: { code:'400', message: 'Invalid request' } });
 						return;
 					}
 					try { data = JSON.parse(data);} catch(e) {}
+					
 					// execute the callbacks first
 					_executeCallbacks(data, callbacks, states);
 
@@ -867,21 +881,25 @@ var global = {};
 						data = data.status || data;
 						data.message = data.message || 'Bad Request';
 						data.code = data.code || '400';
-						that.onError(request, { responseText: JSON.stringify(data) });
+						that.onError(request, { responseText: data });
 					}
 				},
-				onError: function(xhr) {
+				onError: function(xhr, error) {
 					var data = {};
-					data.message = xhr.responseText || 'Bad Request';
-					data.code = xhr.status || '400';
-					
-					that.onError(request, { responseText: JSON.stringify(data) });
+
+					if (error) {
+						data = Appacitive.Error.toJSON(error);
+					} else {
+						data.message = xhr.responseText || 'Bad Request';
+						data.code = xhr.status || '400';
+					}
+					that.onError(request, { responseText: data });
 				}
 			});
 		};
 
 		_super.send = function (request, callbacks, states) {
-			if (!global.Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
+			if (!Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
 			if (_type.isFunction(request.beforeSend)) {
 				request.beforeSend(request);
 			}
@@ -898,7 +916,7 @@ var global = {};
 	var HttpProvider = function () {
 
 		// actual http provider
-		//var _inner = global.Appacitive.runtime.isBrowser ? new JQueryHttpTransport() : new NodeHttpTransport();
+		//var _inner = Appacitive.runtime.isBrowser ? new JQueryHttpTransport() : new NodeHttpTransport();
 		var _inner = new BasicHttpTransport();
 
 		// the http buffer
@@ -928,7 +946,7 @@ var global = {};
 		// the method used to send the requests
 		this.send = function (request) {
 			
-			request.promise = (global.Appacitive.Promise.is(request.promise)) ? request.promise : new global.Appacitive.Promise.buildPromise({ error: request.onError });
+			request.promise = (Appacitive.Promise.is(request.promise)) ? request.promise : new Appacitive.Promise.buildPromise({ error: request.onError });
 
 			_buffer.enqueueRequest(request);
 
@@ -954,18 +972,9 @@ var global = {};
 
 		// the error handler
 		this.onError = function (request, response) {
-			var error;
-			if (response && response.responseText) {
-			    try {
-			        error = JSON.parse(response.responseText);
-			    } catch (e) { }
-			} else {
-			    response = { responseText: '' };
-			}
-
-		    error = error || { code: response.status, message: response.responseText, referenceid: response.headers["TransactionId"] };
-		    global.Appacitive.logs.logRequest(request, error, error, 'error');
-		    request.promise.reject(error, request.entity);
+			var error = response.responseText;
+		    Appacitive.logs.logRequest(request, error, error, 'error');
+		    request.promise.reject(new Appacitive.Error(error), request.entity);
 		};
 		_inner.onError = this.onError;
 
@@ -978,14 +987,14 @@ var global = {};
 					request.onSuccess(response);
 				}
 			}
-			global.Appacitive.logs.logRequest(request, response, response ? response.status : null, 'successful');
+			Appacitive.logs.logRequest(request, response, response ? response.status : null, 'successful');
 		};
 		_inner.onResponse = this.onResponse;
 	};
 
 	// create the http provider and the request
-	global.Appacitive.http = new HttpProvider();
-	global.Appacitive.HttpRequest = HttpRequest;
+	Appacitive.http = new HttpProvider();
+	Appacitive.HttpRequest = HttpRequest;
 
 	/* PLUGIN: Http Utilities */
 
@@ -993,36 +1002,38 @@ var global = {};
 	// handles session and shits
 	(function (global) {
 
-		if (!global.Appacitive) return;
-		if (!global.Appacitive.http) return;
+		var Appacitive = global.Appacitive;
 
-		global.Appacitive.http.addProcessor({
+		if (!Appacitive) return;
+		if (!Appacitive.http) return;
+
+		Appacitive.http.addProcessor({
 			pre: function (request) {
 				return request;
 			},
 			post: function (response, request) {
 				try {
-					var _valid = global.Appacitive.Session.isSessionValid(response);
+					var _valid = Appacitive.Session.isSessionValid(response);
 					if (!_valid.status) {
 						if (_valid.isSession) {
-							if (global.Appacitive.Session.get() !== null) {
-								global.Appacitive.Session.resetSession();
+							if (Appacitive.Session.get() !== null) {
+								Appacitive.Session.resetSession();
 							}
-							global.Appacitive.http.send(request);
+							Appacitive.http.send(request);
 						}
 					} else {
 
 						if (response && ((response.status && response.status.code && (response.status.code == '19036' || response.status.code == '421')) || (response.code && (response.code == '19036' || response.code == '421')))) {
-							global.Appacitive.Users.logout();
+							Appacitive.Users.logout();
 						} else {
-							global.Appacitive.Session.incrementExpiry();
+							Appacitive.Session.incrementExpiry();
 						}
 					}
 				} catch(e){}
 			}
 		});
 
-		global.Appacitive.http.addProcessor({
+		Appacitive.http.addProcessor({
 			pre: function (req) {
 				return { start: new Date().getTime(), request: req };
 			},
@@ -1040,7 +1051,9 @@ var global = {};
 
     "use strict";
 
-    global.Appacitive.logs = {};
+    var Appacitive = global.Appacitive;
+
+    Appacitive.logs = {};
 
     var invoke = function(callback, log) {
     	setTimeout(function() {
@@ -1048,7 +1061,7 @@ var global = {};
 	    }, 0);
 	};
 
-	global.Appacitive.logs.logRequest = function(request, response, status, type) {
+	Appacitive.logs.logRequest = function(request, response, status, type) {
 		response = response || {};
 		status = status || {};
 		var body = {};
@@ -1087,27 +1100,29 @@ var global = {};
 	    }
 
     	if (type == 'error') {
-    		if (global.Appacitive.runtime.isBrowser) console.dir(log);
+    		if (Appacitive.runtime.isBrowser) console.dir(log);
 
-		    if (_type.isFunction(global.Appacitive.logs.apiErrorLog)) {
-		    	invoke(global.Appacitive.logs.apiErrorLog, log);
+		    if (_type.isFunction(Appacitive.logs.apiErrorLog)) {
+		    	invoke(Appacitive.logs.apiErrorLog, log);
 		    }
 	    }
 
-	    if (_type.isFunction(global.Appacitive.logs.apiLog)) {
-	    	invoke(global.Appacitive.logs.apiLog, log);
+	    if (_type.isFunction(Appacitive.logs.apiLog)) {
+	    	invoke(Appacitive.logs.apiLog, log);
 	    }
 	};    
 
-	global.Appacitive.logs.logException = function(error) {  
-		if (_type.isFunction(global.Appacitive.logs.exceptionLog)) {
-			invoke(global.Appacitive.logs.exceptionLog, error);
+	Appacitive.logs.logException = function(error) {  
+		if (_type.isFunction(Appacitive.logs.exceptionLog)) {
+			invoke(Appacitive.logs.exceptionLog, error);
 		}
 	};
 
 })(global);(function (global) {
 
     "use strict";
+
+    var Appacitive = global.Appacitive;
 
     /**
      * @param {...string} var_args
@@ -1204,9 +1219,9 @@ var global = {};
      */
     var UrlFactory = function () {
 
-        global.Appacitive.bag = global.Appacitive.bag || {};
+        Appacitive.bag = Appacitive.bag || {};
         
-        var baseUrl = (global.Appacitive.config || { apiBaseUrl: '' }).apiBaseUrl;
+        var baseUrl = (Appacitive.config || { apiBaseUrl: '' }).apiBaseUrl;
         
         var _getFields = function(fields) {
             if (typeof fields === 'object' && fields.length > 0 && (typeof fields[0] === 'string' || typeof fields[0] === 'number')) fields = fields.join(',');
@@ -1512,8 +1527,8 @@ var global = {};
 
     };
 
-    global.Appacitive.storage = global.Appacitive.storage || {};
-    global.Appacitive.storage.urlFactory = new UrlFactory();
+    Appacitive.storage = Appacitive.storage || {};
+    Appacitive.storage.urlFactory = new UrlFactory();
 
 })(global);
 
@@ -1537,9 +1552,11 @@ var global = {};
 
     "use strict";
 
+    var Appacitive = global.Appacitive;
+
     var setImmediate;
 
-    if (global.Appacitive.runtime.isNode) {
+    if (Appacitive.runtime.isNode) {
         setImmediate = process.nextTick;
     } else {
         setImmediate = setTimeout;
@@ -1583,7 +1600,7 @@ var global = {};
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
                     var err = {name: error.name, message: error.message, stack: error.stack};
-                    global.Appacitive.logs.logException(err);
+                    Appacitive.logs.logException(err);
                     
                     if (promise.calls.length == 0) throw error;
                     else promise.reject(error);
@@ -1741,7 +1758,7 @@ var global = {};
         return new Promise().fulfill();
     };
 
-    global.Appacitive.Promise = Promise;
+    Appacitive.Promise = Promise;
 
 })(global);/**
 Depends on  NOTHING
@@ -1750,6 +1767,8 @@ Depends on  NOTHING
 (function(global) {
 
     "use strict";
+
+    var Appacitive = global.Appacitive;
 
     /**
      * @constructor
@@ -1863,7 +1882,7 @@ Depends on  NOTHING
 
     };
 
-    global.Appacitive.eventManager = new EventManager();
+    Appacitive.eventManager = new EventManager();
 
 })(global);/**
  * Standalone extraction of Backbone.Events, no external dependency required.
@@ -2137,14 +2156,16 @@ Depends on  NOTHING
 (function(global) {
 
     "use strict";
+
+    var Appacitive = global.Appacitive;
 	
     var getUrl = function(options) {
-    	var ctx = global.Appacitive.storage.urlFactory[options.type];
+    	var ctx = Appacitive.storage.urlFactory[options.type];
 
     	var description =  options.op.replace('get','').replace('Url', '') + ' ' + options.type;
 
     	return { 
-    		url:  global.Appacitive.config.apiBaseUrl + ctx[options.op].apply(ctx, options.args || []),
+    		url:  Appacitive.config.apiBaseUrl + ctx[options.op].apply(ctx, options.args || []),
     		description: description
     	};
     };
@@ -2153,9 +2174,9 @@ Depends on  NOTHING
 
 		if (!options || !_type.isObject(options)) throw new Error("Please specify request options");
 
-		this.promise = global.Appacitive.Promise.buildPromise(options.options);
+		this.promise = Appacitive.Promise.buildPromise(options.options);
 
-		var request = this.request = new global.Appacitive.HttpRequest();
+		var request = this.request = new Appacitive.HttpRequest();
 		
 		var tmp = getUrl(options);
 
@@ -2181,14 +2202,171 @@ Depends on  NOTHING
     };
 
     _request.prototype.send = function() {
-    	return global.Appacitive.http.send(this.request);
+    	return Appacitive.http.send(this.request);
     };
 
-    global.Appacitive._Request = _request;
+    Appacitive._Request = _request;
 
-})(global);(function (global) {
+})(global);var ArrayProto = Array.prototype;
+var ObjectProto = Object.prototype;
+
+var each = function(obj, iterator, context) {
+    if (obj == null) return;
+    if (ArrayProto.forEach && obj.forEach === ArrayProto.forEach) {
+      obj.forEach(iterator, context);
+    } else if (obj.length === +obj.length) {
+      for (var i = 0, l = obj.length; i < l; i++) {
+        if (iterator.call(context, obj[i], i, obj) === {}) return;
+      }
+    } else {
+      for (var key in obj) {
+        if (ObjectProto.hasOwnProperty.call(obj, key)) {
+          if (iterator.call(context, obj[key], key, obj) === {}) return;
+        }
+      }
+    }
+};
+
+  // Extend a given object with all the properties in passed-in object(s).
+var _extend = function(obj) {
+    each(ArrayProto.slice.call(arguments, 1), function(source) {
+      if (source) {
+        for (var prop in source) {
+          obj[prop] = source[prop];
+        }
+      }
+    });
+    return obj;
+};
+
+// Helper function to correctly set up the prototype chain, for subclasses.
+// Similar to `goog.inherits`, but uses a hash of prototype properties and
+// class properties to be extended.
+var extend = function(protoProps, staticProps) {
+    var parent = this;
+    var child;
+
+    // The constructor function for the new subclass is either defined by you
+    // (the "constructor" property in your `extend` definition), or defaulted
+    // by us to simply call the parent's constructor.
+    if (_type.isObject(protoProps) && protoProps.hasOwnProperty('constructor')) {
+      child = protoProps.constructor;
+    } else {
+      child = function(){ 
+        return parent.apply(this, arguments); 
+      };
+    }
+
+    // Add static properties to the constructor function, if supplied.
+    _extend(child, parent, staticProps);
+    
+    // Set the prototype chain to inherit from `parent`, without calling
+    // `parent`'s constructor function.
+    var Surrogate = function(){ this.constructor = child; };
+    Surrogate.prototype = parent.prototype;
+    child.prototype = new Surrogate;
+
+    // Add prototype properties (instance properties) to the subclass,
+    // if supplied.
+    if (protoProps) _extend(child.prototype, protoProps);
+
+    // Set a convenience property in case the parent's prototype is needed
+    // later.
+    child.__super__ = parent.prototype;
+
+    return child;
+};
+
+(function (global) {
+
+  "use strict";
+
+  global.Appacitive._extend = function(parent, protoProps, staticProps) {
+    return extend.apply(parent, [protoProps, staticProps]);
+  };
+
+})(global);
+(function (global) {
+
+    "use strict";
+
+    var Appacitive = global.Appacitive;
+
+    Appacitive.Error = function(status) {
+        if (_type.isString(arguments[0]) || _type.isNumber(arguments[0])) {
+            status = {
+                code: arguments[0],
+                message: arguments[1],
+                referenceId: arguments[2],
+                additionalMessages: arguments[3]
+            }
+        }
+
+        this.code = status.code || "400";
+        this.message = status.message || "Unknown Error";
+        if (status.referenceId) this.referenceId = status.referenceid || status.referenceId;
+        if (status.additionalmessages) this.additionalMessages = status.additionalmessages || additionalMessages;
+    };
+
+    Appacitive.Error.toJSON = function(error) {
+        return {
+            code: error.code,
+            message: error.message,
+            referenceId: error.referenceId,
+            additionalmessages: error.additionalMessages
+        };
+    };
+
+    _extend(Appacitive.Error, {
+    
+        // Appacitive Status codes
+
+        BadRequest: "400",
+        AccessControl: "401",
+        PaymentRequired: "402",
+        UsageLimitReached: "403",
+        NotFound: "404",
+        Duplicate: "435",
+        MvccFailure: "409",
+        PreconditionFailed: "412",
+        ApiAuthenticationError: "420",
+        IdentityFailures: "421",
+        IncorrectConfiguration: "436",
+        InternalServerError: "500",
+        DataAccessFailure: "512",
+
+        //SDK Internal Error codes
+
+        UnknownCause: 100,
+        InvalidParameters: 900,
+        ConnectionFailed: 1001,
+        InvalidQuery: 1003,
+        IvalidClassName: 1004,
+        MissingId: 1005,
+        IvalidKeyName: 1006,
+        InvalidJson: 1007,
+        ObjectNotFound: 1008,
+        ProvideType: 1009,
+        ProvideRelation: 1010,
+        ProvideLabel: 1011,    
+        InvalidAccessName: 1020,
+        InvalidScript: 1016,
+        InvalidFileData: 1030,
+        MissingUsername: 2001,
+        MissingPassword: 2002,
+        DuplicateUsername: 2003,
+        MissingEmail: 2004,
+        AccountLinked: 2005,
+        MissingLinkType: 2006,
+        XDomainRequest: 5000
+    });
+
+})(global);
+(function (global) {
 
 	"use strict";
+
+	var Appacitive = global.Appacitive;
 
 	/**
 	 * @constructor
@@ -2217,7 +2395,7 @@ Depends on  NOTHING
 		this.onSessionCreated = function() {};
 
 		this.recreate = function(options) {
-			return global.Appacitive.Session.create(options);
+			return Appacitive.Session.create(options);
 		};
 
 		this.create = function(options) {
@@ -2229,7 +2407,7 @@ Depends on  NOTHING
 
 			_sRequest.apikey = _apikey;
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'PUT',
 				type: 'application',
 				op: 'getSessionCreateUrl',
@@ -2237,20 +2415,20 @@ Depends on  NOTHING
 				data: _sRequest,
 				onSuccess: function(data) {
 					_sessionKey = data.session.sessionkey;
-					global.Appacitive.Session.useApiKey = false;
+					Appacitive.Session.useApiKey = false;
 					request.promise.fulfill(data);
-					global.Appacitive.Session.onSessionCreated();
+					Appacitive.Session.onSessionCreated();
 				}
 			});
 			return request.send();
 		};
 
-		global.Appacitive.http.addProcessor({
+		Appacitive.http.addProcessor({
 			pre: function(request) {
 				request.options = request.options || {};
-				if (global.Appacitive.Session.useApiKey) {
+				if (Appacitive.Session.useApiKey) {
 					var key = _apikey;
-					if ((request.options.useMasterKey || (global.Appacitive.useMasterKey && !request.options.useMasterKey )) && _type.isString(_masterKey) && _masterKey.length > 0) {
+					if ((request.options.useMasterKey || (Appacitive.useMasterKey && !request.options.useMasterKey )) && _type.isString(_masterKey) && _masterKey.length > 0) {
 						key = _masterKey;
 					} else if (_type.isString(request.options.apikey)) {
 						key = request.options.apikey;
@@ -2301,9 +2479,9 @@ Depends on  NOTHING
 						if (!expiry) expiry = -1;
 						if (expiry == -1) expiry = null;
 
-						global.Appacitive.localStorage.set('Appacitive-UserToken', authToken);
-						global.Appacitive.localStorage.set('Appacitive-UserTokenExpiry', expiry);
-						global.Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
+						Appacitive.localStorage.set('Appacitive-UserToken', authToken);
+						Appacitive.localStorage.set('Appacitive-UserTokenExpiry', expiry);
+						Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 					}
 				}
 			} catch(e) {}
@@ -2311,24 +2489,24 @@ Depends on  NOTHING
 
 		this.incrementExpiry = function() {
 			try {
-				if (global.Appacitive.runtime.isBrowser && authEnabled) {
-					global.Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
+				if (Appacitive.runtime.isBrowser && authEnabled) {
+					Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 				}
 			} catch(e) {}
 		};
 
 		this.removeUserAuthHeader = function(makeApiCall, options) {
 
-			var promise = global.Appacitive.Promise.buildPromise(options);
+			var promise = Appacitive.Promise.buildPromise(options);
 
-			if (!makeApiCall) global.Appacitive.User.trigger('logout', {});
+			if (!makeApiCall) Appacitive.User.trigger('logout', {});
 			
-			global.Appacitive.localStorage.remove('Appacitive-User');
+			Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
 
-					var _request = new global.Appacitive.HttpRequest(options);
-		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
+					var _request = new Appacitive.HttpRequest(options);
+		            _request.url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
 		            _request.type = 'user';
@@ -2337,23 +2515,23 @@ Depends on  NOTHING
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
-		            	global.Appacitive.User.trigger('logout', {});
-			        	global.Appacitive.localStorage.remove('Appacitive-UserToken');
-		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
-		 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
+		            	Appacitive.User.trigger('logout', {});
+			        	Appacitive.localStorage.remove('Appacitive-UserToken');
+		 				Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+		 				Appacitive.localStorage.remove('Appacitive-UserTokenDate');
 						promise.fulfill();  
 		            };
 
-		 	        global.Appacitive.http.send(_request);
+		 	        Appacitive.http.send(_request);
 
 		 	        return promise;
 				} catch (e){}
 			} else {
 				authEnabled = false;
 				_authToken = null;
-				global.Appacitive.localStorage.remove('Appacitive-UserToken');
- 				global.Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
- 				global.Appacitive.localStorage.remove('Appacitive-UserTokenDate');
+				Appacitive.localStorage.remove('Appacitive-UserToken');
+ 				Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+ 				Appacitive.localStorage.remove('Appacitive-UserTokenDate');
 				return promise.fulfill();
 			}
 		};
@@ -2420,19 +2598,19 @@ Depends on  NOTHING
 		};
 	};
 
-	global.Appacitive.Session = new SessionManager();
+	Appacitive.Session = new SessionManager();
 
-	global.Appacitive.getAppPrefix = function(str) {
-		return global.Appacitive.Session.environment() + '/' + global.Appacitive.appId + '/' + str;
+	Appacitive.getAppPrefix = function(str) {
+		return Appacitive.Session.environment() + '/' + Appacitive.appId + '/' + str;
 	};
 
-	global.Appacitive.initialize = function(options) {
+	Appacitive.initialize = function(options) {
 		
 		options = options || {};
 
-		if (global.Appacitive.Session.initialized) return;
+		if (Appacitive.Session.initialized) return;
 		
-		if (options.masterKey && options.masterKey.length > 0) global.Appacitive.Session.setMasterKey(options.masterKey);
+		if (options.masterKey && options.masterKey.length > 0) Appacitive.Session.setMasterKey(options.masterKey);
 
 		if (!options.apikey || options.apikey.length === 0) {
 			if (options.masterKey) options.apikey = options.masterKey;
@@ -2442,43 +2620,43 @@ Depends on  NOTHING
 		if (!options.appId || options.appId.length === 0) throw new Error("appId is mandatory");
 
 		
-		global.Appacitive.Session.setApiKey( options.apikey);
-		global.Appacitive.Session.environment(options.env || 'sandbox' );
-		global.Appacitive.useApiKey = true;
-		global.Appacitive.appId = options.appId;
+		Appacitive.Session.setApiKey( options.apikey);
+		Appacitive.Session.environment(options.env || 'sandbox' );
+		Appacitive.useApiKey = true;
+		Appacitive.appId = options.appId;
   		
-  		global.Appacitive.Session.initialized = true;
-  		global.Appacitive.Session.persistUserToken = options.persistUserToken;
+  		Appacitive.Session.initialized = true;
+  		Appacitive.Session.persistUserToken = options.persistUserToken;
   		
-		if (options.debug) global.Appacitive.config.debug = true;
+		if (options.debug) Appacitive.config.debug = true;
 
-		if (_type.isFunction(options.apiLog)) global.Appacitive.logs.apiLog = options.apiLog;
-		if (_type.isFunction(options.apiErrorLog)) global.Appacitive.logs.apiErrorLog = options.apiErrorLog;
-		if (_type.isFunction(options.exceptionLog)) global.Appacitive.logs.exceptionLog = options.exceptionLog;
+		if (_type.isFunction(options.apiLog)) Appacitive.logs.apiLog = options.apiLog;
+		if (_type.isFunction(options.apiErrorLog)) Appacitive.logs.apiErrorLog = options.apiErrorLog;
+		if (_type.isFunction(options.exceptionLog)) Appacitive.logs.exceptionLog = options.exceptionLog;
 
   		if (options.userToken) {
 
 			if (options.expiry == -1)  options.expiry = null;
 			else if (!options.expiry)  options.expiry = 3600;
 
-			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
+			Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
 
 			if (options.user) {
-				global.Appacitive.Users.setCurrentUser(options.user);	
+				Appacitive.Users.setCurrentUser(options.user);	
 			} else {
 				//read user from from localstorage and set it;
-				var user = global.Appacitive.localStorage.get('Appacitive-User');	
-				if (user) global.Appacitive.Users.setCurrentUser(user);
+				var user = Appacitive.localStorage.get('Appacitive-User');	
+				if (user) Appacitive.Users.setCurrentUser(user);
 			}
 
 		} else {
 
-			if (global.Appacitive.runtime.isBrowser) {
+			if (Appacitive.runtime.isBrowser) {
 				//read usertoken from localstorage and set it
-				var token = global.Appacitive.localStorage.get('Appacitive-UserToken');
+				var token = Appacitive.localStorage.get('Appacitive-UserToken');
 				if (token) { 
-					var expiry = global.Appacitive.localStorage.get('Appacitive-UserTokenExpiry');
-					var expiryDate = global.Appacitive.localStorage.get('Appacitive-UserTokenDate');
+					var expiry = Appacitive.localStorage.get('Appacitive-UserTokenExpiry');
+					var expiryDate = Appacitive.localStorage.get('Appacitive-UserTokenDate');
 					
 					if (!expiry) expiry = -1;
 					if (expiryDate && expiry > 0) {
@@ -2486,15 +2664,15 @@ Depends on  NOTHING
 					}
 					if (expiry == -1) expiry = null;
 					//read usertoken and user from from localstorage and set it;
-					var user = global.Appacitive.localStorage.get('Appacitive-User');	
-					if (user) global.Appacitive.Users.setCurrentUser(user, token, expiry);
+					var user = Appacitive.localStorage.get('Appacitive-User');	
+					if (user) Appacitive.Users.setCurrentUser(user, token, expiry);
 				}
 			}
 		}			
 	};
 
-	global.Appacitive.reset = function() {
-		global.Appacitive.Session.reset();
+	Appacitive.reset = function() {
+		Appacitive.Session.reset();
 	};
 
 } (global));
@@ -2506,12 +2684,14 @@ Depends on  NOTHING
 
 	"use strict";
 
-	if (!global.Appacitive) return;
-	if (!global.Appacitive.http) return;
+	var Appacitive = global.Appacitive;
 
-	global.Appacitive.http.addProcessor({
+	if (!Appacitive) return;
+	if (!Appacitive.http) return;
+
+	Appacitive.http.addProcessor({
 		pre: function(req) {
-			var env = global.Appacitive.Session.environment()
+			var env = Appacitive.Session.environment()
 			req.options = req.options || {};
 			if (_type.isString(req.options.env)) env = req.options.env;
 			req.headers.push({ key: 'e', value: env });
@@ -2519,7 +2699,7 @@ Depends on  NOTHING
 	});
 
 
-   global.Appacitive.Events.mixin(global.Appacitive);
+   Appacitive.Events.mixin(Appacitive);
 
 })(global);
 (function (global) {
@@ -3120,7 +3300,9 @@ Depends on  NOTHING
 
 	"use strict";
 
-	global.Appacitive.Queries = {};
+	var Appacitive = global.Appacitive;
+
+	Appacitive.Queries = {};
 
 	// basic query for contains pagination
 	/** 
@@ -3346,13 +3528,13 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return {
-				url: global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString(),
+				url: Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString(),
 				description: 'FindAll ' + _entityType + ' ' + _etype + 's'
 			}
 		};
 
 		this.toRequest = function(options) {
-			var r = new global.Appacitive.HttpRequest();
+			var r = new Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
 			r.options = options;
@@ -3394,11 +3576,11 @@ Depends on  NOTHING
 			if (!entities) entities = [];
 			var eType = (_etype === 'object') ? 'Object' : 'Connection';
 
-			return global.Appacitive[eType]._parseResult(entities, options.entity, metadata);
+			return Appacitive[eType]._parseResult(entities, options.entity, metadata);
 		};
 
 		this.fetch = function(opts) {
-			var promise = global.Appacitive.Promise.buildPromise(opts);
+			var promise = Appacitive.Promise.buildPromise(opts);
 
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
@@ -3409,7 +3591,7 @@ Depends on  NOTHING
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 
 		/**
@@ -3433,14 +3615,14 @@ Depends on  NOTHING
 
 			var model = options.entity;
 
-			if (!model && items.length > 0 && items[0] instanceof global.Appacitive.BaseObject) {
+			if (!model && items.length > 0 && items[0] instanceof Appacitive.BaseObject) {
 				var eType = items[0].type == 'object'  ? 'Object' : 'Connection';
-				model = global.Appacitive[eType]._getClass(items[0].className);
+				model = Appacitive[eType]._getClass(items[0].className);
 			}
 
 			if (!model) {
 				var eType = (_etype === 'object') ? 'Object' : 'Connection';
-				model = global.Appacitive[eType]._getClass(this[eType]);
+				model = Appacitive[eType]._getClass(this[eType]);
 			}
 
 			return new Appacitive.Collection(items, _extend(opts, {
@@ -3464,7 +3646,7 @@ Depends on  NOTHING
 		};
 
 		this.count = function(options) {
-			var promise = global.Appacitive.Promise.buildPromise(options);
+			var promise = Appacitive.Promise.buildPromise(options);
 
 			var _queryRequest = this.toRequest(options);
 			_queryRequest.onSuccess = function(data) {
@@ -3481,19 +3663,19 @@ Depends on  NOTHING
 			};
 			_queryRequest.promise = promise;
 			_queryRequest.entity = this;
-			return global.Appacitive.http.send(_queryRequest);
+			return Appacitive.http.send(_queryRequest);
 		};
 	};
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Query = BasicQuery;
+	Appacitive.Query = BasicQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.FindAllQuery = function(options) {
+	Appacitive.Queries.FindAllQuery = function(options) {
 
 		options = options || {};
 
@@ -3506,14 +3688,14 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
+	Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.FindAllQuery.prototype.constructor = global.Appacitive.Queries.FindAllQuery;
+	Appacitive.Queries.FindAllQuery.prototype.constructor = Appacitive.Queries.FindAllQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.ConnectedObjectsQuery = function(options) {
+	Appacitive.Queries.ConnectedObjectsQuery = function(options) {
 
 		options = options || {};
 
@@ -3531,7 +3713,7 @@ Depends on  NOTHING
 		this.objectId = options.objectId;
 		this.relation = options.relation;
 		this.type = type;
-		if (options.object instanceof global.Appacitive.Object) this.object = options.object;
+		if (options.object instanceof Appacitive.Object) this.object = options.object;
 
 		this.returnEdge = true;
 		if (options.returnEdge !== undefined && options.returnEdge !== null && !options.returnEdge && !this.prev) this.returnEdge = false;
@@ -3543,7 +3725,7 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return {
-				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
+				url: Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
 						this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge,
 				description: 'GetConnectedObjects for relation ' + this.relation + ' of type ' + this.type + ' for object ' + this.objectId
 			}; 
@@ -3556,7 +3738,7 @@ Depends on  NOTHING
 				var edge = o.__edge;
 				delete o.__edge;
 
-				var tmpObject = global.Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
+				var tmpObject = Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
 
 				if (edge) {
 					edge.__endpointa = endpointA;
@@ -3566,7 +3748,7 @@ Depends on  NOTHING
 						type: o.__type
 					};
 					delete edge.label;
-					tmpObject.connection = global.Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
+					tmpObject.connection = Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
 				}
 				objects.push(tmpObject);
 			});
@@ -3577,7 +3759,7 @@ Depends on  NOTHING
 		};
 
 		this.fetch = function(opts) {
-			var promise = global.Appacitive.Promise.buildPromise(opts);
+			var promise = Appacitive.Promise.buildPromise(opts);
 			
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
@@ -3589,20 +3771,20 @@ Depends on  NOTHING
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 
 		return this;
 	};
 
-	global.Appacitive.Queries.ConnectedObjectsQuery.prototype = new BasicQuery();
+	Appacitive.Queries.ConnectedObjectsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.ConnectedObjectsQuery.prototype.constructor = global.Appacitive.Queries.ConnectedObjectsQuery;
+	Appacitive.Queries.ConnectedObjectsQuery.prototype.constructor = Appacitive.Queries.ConnectedObjectsQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GetConnectionsQuery = function(options) {
+	Appacitive.Queries.GetConnectionsQuery = function(options) {
 
 		options = options || {};
 
@@ -3621,7 +3803,7 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return {
-				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
+				url: Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
 				this.getQueryString() + 
 				'&objectid=' + this.objectId +
 				'&label=' + this.label,
@@ -3632,14 +3814,14 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsQuery.prototype = new BasicQuery();
+	Appacitive.Queries.GetConnectionsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.GetConnectionsQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsQuery;
+	Appacitive.Queries.GetConnectionsQuery.prototype.constructor = Appacitive.Queries.GetConnectionsQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery = function(options, queryType) {
+	Appacitive.Queries.GetConnectionsBetweenObjectsQuery = function(options, queryType) {
 
 		options = options || {};
 
@@ -3660,7 +3842,7 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return {
-				url: global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
+				url: Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
 							+ this.getQueryString() + this.label,
 				description: 'FindConnectionBetween for relation ' + this.relation + ' between object ids '  + this.objectAId + ' and ' + this.objectBId
 			};
@@ -3669,32 +3851,32 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype = new BasicQuery();
+	Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery;
+	Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype.constructor = Appacitive.Queries.GetConnectionsBetweenObjectsQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery = function(options) {
+	Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery = function(options) {
 		
 		options = options || {};
 		
 		if (!options.relation) throw new Error('Specify relation for GetConnectionsBetweenObjectsForRelationQuery query');
 		
-		var inner = new global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options, 'GetConnectionsBetweenObjectsForRelationQuery');
+		var inner = new Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options, 'GetConnectionsBetweenObjectsForRelationQuery');
 
 		inner.fetch = function(opts) {
-			var promise = global.Appacitive.Promise.buildPromise(opts);
+			var promise = Appacitive.Promise.buildPromise(opts);
 
 			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-				inner.results = d.connection ? [global.Appacitive.Connection._create(_extend({ __meta: d.__meta }, d.connection), true, options.entity)] :  null
+				inner.results = d.connection ? [Appacitive.Connection._create(_extend({ __meta: d.__meta }, d.connection), true, options.entity)] :  null
 				promise.fulfill(inner.results ? inner.results[0] : null);
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 
 		return inner;
@@ -3703,7 +3885,7 @@ Depends on  NOTHING
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.InterconnectsQuery = function(options) {
+	Appacitive.Queries.InterconnectsQuery = function(options) {
 
 		options = options || {};
 
@@ -3721,7 +3903,7 @@ Depends on  NOTHING
 		this.objectBIds = options.objectBIds;
 		
 		this.toRequest = function(options) {
-			var r = new global.Appacitive.HttpRequest();
+			var r = new Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
 			r.options = options;
@@ -3736,7 +3918,7 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return {
-				url: global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString(),
+				url: Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString(),
 				description: 'GetInterConnections between objects'
 			};
 		};
@@ -3744,15 +3926,15 @@ Depends on  NOTHING
 		return this;
 	};
 
-	global.Appacitive.Queries.InterconnectsQuery.prototype = new BasicQuery();
+	Appacitive.Queries.InterconnectsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.InterconnectsQuery.prototype.constructor = global.Appacitive.Queries.InterconnectsQuery;
+	Appacitive.Queries.InterconnectsQuery.prototype.constructor = Appacitive.Queries.InterconnectsQuery;
 
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphQuery = function(name, placeholders) {
+	Appacitive.Queries.GraphQuery = function(name, placeholders) {
 		
 		if (!name || name.length === 0) throw new Error("Specify name of filter query");
 		
@@ -3768,7 +3950,7 @@ Depends on  NOTHING
 		}
 		
 		this.toRequest = function(options) {
-			var r = new global.Appacitive.HttpRequest();
+			var r = new Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
 			r.options = options;
@@ -3780,13 +3962,13 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return {
-				url: global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter',
+				url: Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter',
 				description: 'Filter Query with name ' + this.name
 			};
 		};
 
 		this.fetch = function(options) {
-			var promise = global.Appacitive.Promise.buildPromise(options);
+			var promise = Appacitive.Promise.buildPromise(options);
 
 			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
@@ -3794,7 +3976,7 @@ Depends on  NOTHING
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 
 	};
@@ -3802,7 +3984,7 @@ Depends on  NOTHING
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphAPI = function(name, ids, placeholders) {
+	Appacitive.Queries.GraphAPI = function(name, ids, placeholders) {
 
 		if (!name || name.length === 0) throw new Error("Specify name of project query");
 		if (!ids || !ids.length) throw new Error("Specify ids to project");
@@ -3820,7 +4002,7 @@ Depends on  NOTHING
 		}
 
 		this.toRequest = function(options) {
-			var r = new global.Appacitive.HttpRequest();
+			var r = new Appacitive.HttpRequest();
 			var obj = this.toUrl();
 			r.url = obj.url;
 			r.description = obj.description;
@@ -3832,7 +4014,7 @@ Depends on  NOTHING
 
 		this.toUrl = function() {
 			return {
-				url: global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project',
+				url: Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project',
 				description: 'Project Query with name ' + this.name
 			};
 		};
@@ -3854,7 +4036,7 @@ Depends on  NOTHING
 					var edge = o.__edge;
 					delete o.__edge;
 
-					var tmpObject = global.Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
+					var tmpObject = Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
 					tmpObject.children = {};
 					for (var key in children) {
 						tmpObject.children[key] = [];
@@ -3871,7 +4053,7 @@ Depends on  NOTHING
 							label: edge.__label
 						};
 						delete edge.__label;
-						tmpObject.connection = global.Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
+						tmpObject.connection = Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
 					}
 					props.push(tmpObject);
 				});
@@ -3890,8 +4072,8 @@ Depends on  NOTHING
 
 			var model;
 
-			if (items.length > 0 && items[0] instanceof global.Appacitive.BaseObject) {
-				model = global.Appacitive.Object._getClass(items[0].className);
+			if (items.length > 0 && items[0] instanceof Appacitive.BaseObject) {
+				model = Appacitive.Object._getClass(items[0].className);
 			}
 
 			return new Appacitive.Collection(items, _extend(opts, {
@@ -3902,7 +4084,7 @@ Depends on  NOTHING
 
 		this.fetch = function(options) {
 			
-			var promise = global.Appacitive.Promise.buildPromise(options);
+			var promise = Appacitive.Promise.buildPromise(options);
 
 			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
@@ -3911,90 +4093,11 @@ Depends on  NOTHING
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 	};
 
-})(global);var ArrayProto = Array.prototype;
-var ObjectProto = Object.prototype;
-
-var each = function(obj, iterator, context) {
-    if (obj == null) return;
-    if (ArrayProto.forEach && obj.forEach === ArrayProto.forEach) {
-      obj.forEach(iterator, context);
-    } else if (obj.length === +obj.length) {
-      for (var i = 0, l = obj.length; i < l; i++) {
-        if (iterator.call(context, obj[i], i, obj) === {}) return;
-      }
-    } else {
-      for (var key in obj) {
-        if (ObjectProto.hasOwnProperty.call(obj, key)) {
-          if (iterator.call(context, obj[key], key, obj) === {}) return;
-        }
-      }
-    }
-};
-
-  // Extend a given object with all the properties in passed-in object(s).
-var _extend = function(obj) {
-    each(ArrayProto.slice.call(arguments, 1), function(source) {
-      if (source) {
-        for (var prop in source) {
-          obj[prop] = source[prop];
-        }
-      }
-    });
-    return obj;
-};
-
-// Helper function to correctly set up the prototype chain, for subclasses.
-// Similar to `goog.inherits`, but uses a hash of prototype properties and
-// class properties to be extended.
-var extend = function(protoProps, staticProps) {
-    var parent = this;
-    var child;
-
-    // The constructor function for the new subclass is either defined by you
-    // (the "constructor" property in your `extend` definition), or defaulted
-    // by us to simply call the parent's constructor.
-    if (_type.isObject(protoProps) && protoProps.hasOwnProperty('constructor')) {
-      child = protoProps.constructor;
-    } else {
-      child = function(){ 
-        return parent.apply(this, arguments); 
-      };
-    }
-
-    // Add static properties to the constructor function, if supplied.
-    _extend(child, parent, staticProps);
-    
-    // Set the prototype chain to inherit from `parent`, without calling
-    // `parent`'s constructor function.
-    var Surrogate = function(){ this.constructor = child; };
-    Surrogate.prototype = parent.prototype;
-    child.prototype = new Surrogate;
-
-    // Add prototype properties (instance properties) to the subclass,
-    // if supplied.
-    if (protoProps) _extend(child.prototype, protoProps);
-
-    // Set a convenience property in case the parent's prototype is needed
-    // later.
-    child.__super__ = parent.prototype;
-
-    return child;
-};
-
-(function (global) {
-
-  "use strict";
-
-  global.Appacitive._extend = function(parent, protoProps, staticProps) {
-    return extend.apply(parent, [protoProps, staticProps]);
-  };
-
-})(global);
-(function (global) {
+})(global);(function (global) {
 
 	"use strict";
 
@@ -4051,21 +4154,21 @@ var extend = function(protoProps, staticProps) {
 		}, "date": function(value) { 
 			if (_type.isDate(value)) return value;
 			if (value) {
-				var res = global.Appacitive.Date.parseISODate(value);
+				var res = Appacitive.Date.parseISODate(value);
 				if (res) return res;
 			}
 			return value;
 		}, "datetime": function(value) { 
 			if (_type.isDate(value)) return value;
 			if (value) {
-				var res = global.Appacitive.Date.parseISODate(value);
+				var res = Appacitive.Date.parseISODate(value);
 				if (res) return res;
 			}
 			return value;
 		}, "time": function(value) { 
 			if (_type.isDate(value)) return value;
 			if (value) {
-				var res = global.Appacitive.Date.parseISOTime(value);
+				var res = Appacitive.Date.parseISOTime(value);
 				if (res) return res;
 			}
 			return value;
@@ -4086,7 +4189,7 @@ var extend = function(protoProps, staticProps) {
 			if (split.length !== 2 ) return false;
 
 			// validate the value
-			return new global.Appacitive.GeoCoord(split[0], split[1]);
+			return new Appacitive.GeoCoord(split[0], split[1]);
 		}
 	};
 
@@ -4095,12 +4198,12 @@ var extend = function(protoProps, staticProps) {
 	_types["text"] = _types["string"];
 	_types["bool"] = _types["boolean"];
 
-	global.Appacitive.cast = _types;
+	Appacitive.cast = _types;
 
 	var encode = function(value) {
 		if (_type.isNullOrUndefined(value)) return null; 
 	 	else if (isString(value)) return ( value + '');
-	 	else if (_type.isDate(value)) return global.Appacitive.Date.toISOString(value);
+	 	else if (_type.isDate(value)) return Appacitive.Date.toISOString(value);
 	 	else if (_type.isObject(value)) {
 	 		if (isGeocode(value)) return value.toString();
 	 		return (value.toJSON ? value.toJSON() : value);
@@ -4108,7 +4211,7 @@ var extend = function(protoProps, staticProps) {
 		return value;
 	};
 
-	global.Appacitive._encode = function(attrs) {
+	Appacitive._encode = function(attrs) {
 		var object = {};
 		for (var key in attrs) {
 			var value = attrs[key];
@@ -4125,7 +4228,7 @@ var extend = function(protoProps, staticProps) {
 		return object;
 	};
 
-	global.Appacitive._decode = function(attrs) {
+	Appacitive._decode = function(attrs) {
 		var object = {}, meta = _extend({}, __privateMeta, getMeta(attrs));
 		delete attrs.__meta;
 		for (var key in attrs) {
@@ -4208,7 +4311,7 @@ var extend = function(protoProps, staticProps) {
             privateProps.forEach(function(prop) {
                 if (attrs[prop]) {
                     if ((prop === "__utcdatecreated" || prop === "__utclastupdateddate") && !_type.isDate(attrs[prop])) {
-                        that[map[prop]] = global.Appacitive.Date.parseISODate(attrs[prop]);
+                        that[map[prop]] = Appacitive.Date.parseISODate(attrs[prop]);
                     }  else {
                         that[map[prop]] = attrs[prop];
                     }
@@ -4218,7 +4321,7 @@ var extend = function(protoProps, staticProps) {
             });
         };
 
-		this.base = global.Appacitive.Object.prototype;
+		this.base = Appacitive.Object.prototype;
 
 		var __cid = parseInt(Math.random() * 100000000, 10);
 
@@ -4807,8 +4910,8 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.clone = function() {
-			if (this.type == 'object') return global.Appacitive.Object._create(_extend({ __meta: this.meta }, this.toJSON()));
-			return new global.Appacitive.connection._create(_extend({ __meta: this.meta }, this.toJSON()));
+			if (this.type == 'object') return Appacitive.Object._create(_extend({ __meta: this.meta }, this.toJSON()));
+			return new Appacitive.connection._create(_extend({ __meta: this.meta }, this.toJSON()));
 		};
 
 		this.copy = function(properties, setSnapShot) { 
@@ -4927,7 +5030,7 @@ var extend = function(protoProps, staticProps) {
 
 			if (Object.isEmpty(clonedObject.__attributes)) delete clonedObject.__attributes;
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'PUT',
 				type: type,
 				op: 'getCreateUrl',
@@ -4954,7 +5057,7 @@ var extend = function(protoProps, staticProps) {
 						}
 						that.trigger('change:__id', that, that.id, { });
 
-						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
+						Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
 
@@ -4964,7 +5067,7 @@ var extend = function(protoProps, staticProps) {
 					} else {
 						if (!options.silent) that.trigger('error', that, data.status, options);
 
-						global.Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, { error: data.status });
+						Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, { error: data.status });
 						request.promise.reject(data.status, that);
 					}
 				}
@@ -4976,7 +5079,7 @@ var extend = function(protoProps, staticProps) {
 		// to update the object
 		var _update = function(options, promise) {
 
-			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(options);
+			if (!Appacitive.Promise.is(promise)) promise = Appacitive.Promise.buildPromise(options);
 
 			var changeSet = _getChanged(true);
 
@@ -4994,7 +5097,7 @@ var extend = function(protoProps, staticProps) {
 					args.splice(0, 1);
 				}
 
-				var request = new global.Appacitive._Request({
+				var request = new Appacitive._Request({
 					method: 'POST',
 					type: type,
 					op: 'getUpdateUrl',
@@ -5013,14 +5116,14 @@ var extend = function(protoProps, staticProps) {
 
 							if (!options.silent) that.trigger('sync', that, data[type], options);
 
-							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
+							Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
 							request.promise.fulfill(that);
 						} else {
 							data = data || {};
 							data.status =  data.status || {};
 							data.status = _getOutpuStatus(data.status);
 							if (!options.silent) that.trigger('error', that, data.status, options);
-							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updateFailed', that, { object : data.status });
+							Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updateFailed', that, { object : data.status });
 							request.promise.reject(data.status, that);
 						}
 					}
@@ -5047,7 +5150,7 @@ var extend = function(protoProps, staticProps) {
 				type = object.__type.toLowerCase();
 			}
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'GET',
 				type: type,
 				op: 'getGetUrl',
@@ -5069,7 +5172,7 @@ var extend = function(protoProps, staticProps) {
 
 						if (!options.silent) that.trigger('sync', that, data[type], options);
 
-						global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
+						Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
@@ -5104,12 +5207,12 @@ var extend = function(protoProps, staticProps) {
 	        // just call success
 	        // else delete the object
 
-	        if (!that.id) return new global.Appacitive.Promise.buildPromise(opts).fulfill();
+	        if (!that.id) return new Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
 			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
 			
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'DELETE',
 				type: type,
 				op: 'getDeleteUrl',
@@ -5160,9 +5263,9 @@ var extend = function(protoProps, staticProps) {
 		return this._destroyWithConnections.apply(this, arguments);
 	};
 
-	global.Appacitive.BaseObject = _BaseObject;
+	Appacitive.BaseObject = _BaseObject;
 
-	global.Appacitive.BaseObject._saveAll = function(objects, options, type) {
+	Appacitive.BaseObject._saveAll = function(objects, options, type) {
 	    var unsavedObjects = [], tasks = [];
 	    
     	options = options || [];
@@ -5170,7 +5273,7 @@ var extend = function(protoProps, staticProps) {
 		if (!_type.isArray(objects)) throw new Error("Provide an array of objects for Object.saveAll");	    
 
 	    objects.forEach(function(o) {
-	    	if (!(o instanceof global.Appacitive.BaseObject) && _type.isObject(o)) o = new global.Appacitive[type](o);
+	    	if (!(o instanceof Appacitive.BaseObject) && _type.isObject(o)) o = new Appacitive[type](o);
 	    	if (unsavedObjects.find(function(x) { return x.id == o.id; })) return;
 	    	unsavedObjects.push(o);
 
@@ -5180,20 +5283,20 @@ var extend = function(protoProps, staticProps) {
 	    return Appacitive.Promise.when(tasks);
 	};
 
-	global.Appacitive.BaseObject.prototype.toString = function() {
+	Appacitive.BaseObject.prototype.toString = function() {
 		return JSON.stringify(this.getObject());
 	};
 
-	global.Appacitive.BaseObject.prototype.parse = function(resp, options) {
+	Appacitive.BaseObject.prototype.parse = function(resp, options) {
       	return resp;
     };
 
     // Get the HTML-escaped value of an attribute.
-    global.Appacitive.BaseObject.prototype.escape = function(attr) {
+    Appacitive.BaseObject.prototype.escape = function(attr) {
       return _.escape(this.get(attr));
     },
 
-	global.Appacitive.Events.mixin(global.Appacitive.BaseObject.prototype);
+	Appacitive.Events.mixin(Appacitive.BaseObject.prototype);
 
 })(global);
 (function (global) {
@@ -5272,6 +5375,8 @@ var extend = function(protoProps, staticProps) {
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	var accessTypes = ['allow', 'deny'];
 
 	var states = ['create', 'read', 'update', 'delete', 'manageaccess'];
@@ -5287,7 +5392,7 @@ var extend = function(protoProps, staticProps) {
 		return res;
 	};
 
-	global.Appacitive._Acl = function(o, setSnapshot) {
+	Appacitive._Acl = function(o, setSnapshot) {
 
 		var acls = o || [];		
 
@@ -5308,7 +5413,7 @@ var extend = function(protoProps, staticProps) {
 		var setPermission = function(access, type, sid, permissions) {
 			if (!sid) throw new Error("Specify valid user or usergroup");
 
-			if ((sid instanceof global.Appacitive.Object) && sid.typeName == 'user' && !sid.isNew()) {
+			if ((sid instanceof Appacitive.Object) && sid.typeName == 'user' && !sid.isNew()) {
 				sid = sid.id;
 			} 
 
@@ -5476,7 +5581,7 @@ var extend = function(protoProps, staticProps) {
 			members.forEach(function(m) {
 				if (!m) return;
 
-				if ((m instanceof global.Appacitive.Object)  && m.typeName == 'user' && !m.isNew()) {
+				if ((m instanceof Appacitive.Object)  && m.typeName == 'user' && !m.isNew()) {
 					cmd[op].push(m.id);
 				} else {
 					cmd[op].push(m);
@@ -5486,7 +5591,7 @@ var extend = function(protoProps, staticProps) {
 
 			if (cmd[op].length == 0) throw new Error("Please specify valid members as second argument");
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'POST',
 				type: 'usergroup',
 				op: 'getUpdateUrl',
@@ -5511,14 +5616,16 @@ var extend = function(protoProps, staticProps) {
 		};
 	};
 
-	global.Appacitive.Group = new _groupManager();
+	Appacitive.Group = new _groupManager();
 
 })(global);
 	(function (global) {
 
 	"use strict";
 
-	global.Appacitive.Object = function(attrs, options) {
+	var Appacitive = global.Appacitive;
+
+	Appacitive.Object = function(attrs, options) {
 		attrs = attrs || {};
 		options = options || {};
 
@@ -5530,7 +5637,7 @@ var extend = function(protoProps, staticProps) {
 
 		if (_type.isBoolean(options)) options = { setSnapShot: true };
 
-		global.Appacitive.BaseObject.call(this, attrs, options);
+		Appacitive.BaseObject.call(this, attrs, options);
 
 		this.type = 'object';
 		this.getObject = this.getObject;
@@ -5561,7 +5668,7 @@ var extend = function(protoProps, staticProps) {
 
 		this.typeName = attrs.__type;
 
-		this._aclFactory = new global.Appacitive._Acl(options.__acls, options.setSnapShot);
+		this._aclFactory = new Appacitive._Acl(options.__acls, options.setSnapShot);
 
 		this.acls = this._aclFactory.acls;
 
@@ -5572,11 +5679,11 @@ var extend = function(protoProps, staticProps) {
 		return this;
 	};
 
-	global.Appacitive.Object.prototype = new global.Appacitive.BaseObject();
+	Appacitive.Object.prototype = new Appacitive.BaseObject();
 
-	global.Appacitive.Object.prototype.constructor = global.Appacitive.Object;
+	Appacitive.Object.prototype.constructor = Appacitive.Object;
 
-	global.Appacitive.Object.extend = function(typeName, protoProps, staticProps) {
+	Appacitive.Object.extend = function(typeName, protoProps, staticProps) {
     	
     	if (_type.isObject(typeName)) {
     		staticProps = protoProps;
@@ -5593,7 +5700,7 @@ var extend = function(protoProps, staticProps) {
 	    protoProps = protoProps || {};
 	    protoProps.className = typeName;
 
-	    entity = global.Appacitive._extend(global.Appacitive.Object, protoProps, staticProps);
+	    entity = Appacitive._extend(Appacitive.Object, protoProps, staticProps);
 
 	    // Do not allow extending a class.
 	    delete entity.extend;
@@ -5616,15 +5723,15 @@ var extend = function(protoProps, staticProps) {
 	    }
 	    var entity = __typeMap[className];
 	    if (!entity) {
-	      entity = global.Appacitive.Object.extend(className);
+	      entity = Appacitive.Object.extend(className);
 	      __typeMap[className] = entity;
 	    }
 	    return entity;
 	};
 
-	global.Appacitive.Object._getClass = _getClass;
+	Appacitive.Object._getClass = _getClass;
 
-	global.Appacitive.Object._create = function(attributes, setSnapshot, typeClass) {
+	Appacitive.Object._create = function(attributes, setSnapshot, typeClass) {
 		var entity;
 		if (this.className) entity = this;
 		else entity = (typeClass) ? typeClass : _getClass(attributes.__type);
@@ -5635,22 +5742,22 @@ var extend = function(protoProps, staticProps) {
 	var _parseObjects = function(objects, typeClass, metadata) {
 		var tmpObjects = [];
 		objects.forEach(function(a) {
-			var obj = global.Appacitive.Object._create(_extend(a, { __meta : metadata }), true, typeClass);
+			var obj = Appacitive.Object._create(_extend(a, { __meta : metadata }), true, typeClass);
 			tmpObjects.push(obj);
 		});
 		return tmpObjects;
 	};
 
-	global.Appacitive.Object._parseResult = _parseObjects;
+	Appacitive.Object._parseResult = _parseObjects;
 
-	global.Appacitive.Object.multiDelete = function(attrs, options) {
+	Appacitive.Object.multiDelete = function(attrs, options) {
 		attrs = attrs || {};
 		options = options || {};
 		var models = [];
 		if (this.className) attrs.type = this.className;
 
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			if (attrs[0] instanceof global.Appacitive.Object) {
+			if (attrs[0] instanceof Appacitive.Object) {
 				models = attrs;
 				attrs = { 
 					type:  models[0].className ,
@@ -5667,7 +5774,7 @@ var extend = function(protoProps, staticProps) {
 		if (attrs.type.toLowerCase() === 'user' || attrs.type.toLowerCase() === 'device') throw new Error("Cannot delete user and devices using multidelete");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			data: { idlist : attrs.ids },
 			type: 'object',
@@ -5689,10 +5796,10 @@ var extend = function(protoProps, staticProps) {
 
 
 	//takes typename and array of objectids and returns an array of Appacitive object objects
-	global.Appacitive.Object.multiGet = function(attrs, options) {
+	Appacitive.Object.multiGet = function(attrs, options) {
 		attrs = attrs || {};
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			if (attrs[0] instanceof global.Appacitive.Object) {
+			if (attrs[0] instanceof Appacitive.Object) {
 				models = attrs;
 				attrs = { 
 					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
@@ -5713,7 +5820,7 @@ var extend = function(protoProps, staticProps) {
 		if (!attrs.type || !_type.isString(attrs.type) || attrs.type.length === 0) throw new Error("Specify valid type");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'GET',
 			type: 'object',
 			op: 'getMultiGetUrl',
@@ -5728,7 +5835,7 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes object id , type and fields and returns that object
-	global.Appacitive.Object.get = function(attrs, options) {
+	Appacitive.Object.get = function(attrs, options) {
 		attrs = attrs || {};
 		
 		if (_type.isString(attrs) && this.className) {
@@ -5745,43 +5852,43 @@ var extend = function(protoProps, staticProps) {
 		if (!attrs.type) throw new Error("Specify type");
 		if (!attrs.id) throw new Error("Specify id to fetch");
 
-		var obj = global.Appacitive.Object._create({ __type: attrs.type, __id: attrs.id });
+		var obj = Appacitive.Object._create({ __type: attrs.type, __id: attrs.id });
 		obj.fields = attrs.fields;
 
 		return obj.fetch(attrs, options);
 	};
 
     //takes relation type and returns query for it
-	global.Appacitive.Object.prototype.getConnections = function(options) {
+	Appacitive.Object.prototype.getConnections = function(options) {
 		if (this.isNew()) throw new Error("Cannot fetch connections for new object");
 		options.objectId = this.get('__id');
-		return new global.Appacitive.Queries.GetConnectionsQuery(options);
+		return new Appacitive.Queries.GetConnectionsQuery(options);
 	};
 
 	//takes relation type and returns a query for it
-	global.Appacitive.Object.prototype.getConnectedObjects = function(options) {
+	Appacitive.Object.prototype.getConnectedObjects = function(options) {
 		if (this.isNew()) throw new Error("Cannot fetch connections for new object");
 		options = options || {};
 		if (_type.isString(options)) options = { relation: options };
 		options.type = this.get('__type');
 		options.objectId = this.get('__id');
 		options.object = this;
-		return new global.Appacitive.Queries.ConnectedObjectsQuery(options);
+		return new Appacitive.Queries.ConnectedObjectsQuery(options);
 	};
-	global.Appacitive.Object.prototype.fetchConnectedObjects = global.Appacitive.Object.prototype.getConnectedObjects;
+	Appacitive.Object.prototype.fetchConnectedObjects = Appacitive.Object.prototype.getConnectedObjects;
 	
 	// takes type and return a query for it
-	global.Appacitive.Object.findAll = global.Appacitive.Object.findAllQuery = function(options) {
+	Appacitive.Object.findAll = Appacitive.Object.findAllQuery = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.type = this.className;
 			options.entity = this;
 		}
-		return new global.Appacitive.Queries.FindAllQuery(options);
+		return new Appacitive.Queries.FindAllQuery(options);
 	};
 
-	global.Appacitive.Object.saveAll = function(objects, options) {
-		return global.Appacitive.BaseObject._saveAll(objects, options, 'Object');
+	Appacitive.Object.saveAll = function(objects, options) {
+		return Appacitive.BaseObject._saveAll(objects, options, 'Object');
 	};
  
 })(global);
@@ -5789,12 +5896,14 @@ var extend = function(protoProps, staticProps) {
 
 	"use strict";
     
+    var Appacitive = global.Appacitive;
+
 	var _parseEndpoint = function(endpoint, type, base) {
 
 		var result = { label: endpoint.label };
 		if (endpoint.objectid)  result.objectid = endpoint.objectid;
 		if (endpoint.object) {
-			if (endpoint.object instanceof global.Appacitive.Object) {
+			if (endpoint.object instanceof Appacitive.Object) {
 				// provided an instance of Appacitive.ObjectCollection
 				// stick the whole object if there is no __id
 				// else just stick the __id
@@ -5807,7 +5916,7 @@ var extend = function(protoProps, staticProps) {
 				if (endpoint.object.__id) result.objectid = endpoint.object.__id;
 				else result.object = endpoint.object;
 
-				endpoint.object =  global.Appacitive.Object._create(endpoint.object);
+				endpoint.object =  Appacitive.Object._create(endpoint.object);
 			} 
 		} else {
 			if (!result.objectid && !result.object) throw new Error('Incorrectly configured endpoints provided to parseConnection');
@@ -5834,12 +5943,12 @@ var extend = function(protoProps, staticProps) {
 		if ( endpoint.object && _type.isObject(endpoint.object)) {
 			if (!base['endpoint' + type]) {
 				base["endpoint" + type] = {};
-				base['endpoint' + type].object = global.Appacitive.Object._create(endpoint.object, true);
+				base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
 			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].object && base['endpoint' + type].object instanceof global.Appacitive.Object)
+				if (base['endpoint' + type] && base['endpoint' + type].object && base['endpoint' + type].object instanceof Appacitive.Object)
 					base["endpoint" + type].object.copy(endpoint.object, true);
 				else 
-					base['endpoint' + type].object = global.Appacitive.Object._create(endpoint.object, true);
+					base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
 			}
 
 			if (base["endpoint" + type]._aclFactory) {
@@ -5854,7 +5963,7 @@ var extend = function(protoProps, staticProps) {
 		}
 	};
 
-	global.Appacitive.Connection = function(attrs, options) {
+	Appacitive.Connection = function(attrs, options) {
 		attrs = attrs || {};
 		options = options || {};
 
@@ -5877,7 +5986,7 @@ var extend = function(protoProps, staticProps) {
 			delete attrs.endpoints;
 		}
 
-		global.Appacitive.BaseObject.call(this, attrs, options);
+		Appacitive.BaseObject.call(this, attrs, options);
 		this.type = 'connection';
 		this.getConnection = this.getObject;
 
@@ -5924,11 +6033,11 @@ var extend = function(protoProps, staticProps) {
 		return this;
 	};
 
-	global.Appacitive.Connection.prototype = new global.Appacitive.BaseObject();
+	Appacitive.Connection.prototype = new Appacitive.BaseObject();
 
-	global.Appacitive.Connection.prototype.constructor = global.Appacitive.Connection;
+	Appacitive.Connection.prototype.constructor = Appacitive.Connection;
 
-	global.Appacitive.Connection.extend = function(relationName, protoProps, staticProps) {
+	Appacitive.Connection.extend = function(relationName, protoProps, staticProps) {
     	
     	if (_type.isObject(relationName)) {
     		staticProps = protoProps;
@@ -5946,7 +6055,7 @@ var extend = function(protoProps, staticProps) {
 	    protoProps = protoProps || {};
 	    protoProps.className = relationName;
 
-	    entity = global.Appacitive._extend(global.Appacitive.Connection, protoProps, staticProps);
+	    entity = Appacitive._extend(Appacitive.Connection, protoProps, staticProps);
 
 	    // Do not allow extending a class.
 	    delete entity.extend;
@@ -5969,15 +6078,15 @@ var extend = function(protoProps, staticProps) {
 	    }
 	    var entity = __relationMap[className];
 	    if (!entity) {
-	      entity = global.Appacitive.Connection.extend(className);
+	      entity = Appacitive.Connection.extend(className);
 	      __relationMap[className] = entity;
 	    }
 	    return entity;
 	};
 
-	global.Appacitive.Connection._getClass = _getClass;
+	Appacitive.Connection._getClass = _getClass;
 
-	global.Appacitive.Connection._create = function(attributes, setSnapshot, relationClass) {
+	Appacitive.Connection._create = function(attributes, setSnapshot, relationClass) {
 	    var entity;
 		if (this.className) entity = this;
 		else entity = (relationClass) ? relationClass : _getClass(attributes.__relationtype);
@@ -5989,15 +6098,15 @@ var extend = function(protoProps, staticProps) {
 		var connectionObjects = [];
 		if (!connections) connections = [];
 		connections.forEach(function(c) {
-			connectionObjects.push(global.Appacitive.Connection._create(_extend(c, { __meta : metadata }), true, relationClass));
+			connectionObjects.push(Appacitive.Connection._create(_extend(c, { __meta : metadata }), true, relationClass));
 		});
 		return connectionObjects;
 	};
 
-	global.Appacitive.Connection._parseResult = _parseConnections;
+	Appacitive.Connection._parseResult = _parseConnections;
 
 
-	global.Appacitive.Connection.prototype.setupConnection = function(endpointA, endpointB) {
+	Appacitive.Connection.prototype.setupConnection = function(endpointA, endpointB) {
 		
 		// validate the endpoints
 		if (!endpointA || (!endpointA.objectid &&  !endpointA.object) || !endpointA.label || !endpointB || (!endpointB.objectid && !endpointB.object) || !endpointB.label) {
@@ -6033,7 +6142,7 @@ var extend = function(protoProps, staticProps) {
 
 	};
 
-	global.Appacitive.Connection.prototype.get = global.Appacitive.Connection.get = function(attrs, options) {
+	Appacitive.Connection.prototype.get = Appacitive.Connection.get = function(attrs, options) {
 		attrs = attrs || {};
 		if (_type.isString(attrs) && this.className) {
 			attrs = {
@@ -6048,17 +6157,17 @@ var extend = function(protoProps, staticProps) {
 		
 		if (!attrs.relation) throw new Error("Specify relation");
 		if (!attrs.id) throw new Error("Specify id to fetch");
-		var obj = global.Appacitive.Connection._create({ __relationtype: attrs.relation, __id: attrs.id });
+		var obj = Appacitive.Connection._create({ __relationtype: attrs.relation, __id: attrs.id });
 		obj.fields = attrs.fields;
 		return obj.fetch(options);
 	};
 
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
-	global.Appacitive.Connection.multiGet = function(attrs, options) {
+	Appacitive.Connection.multiGet = function(attrs, options) {
 		attrs = attrs || {};
 		
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			if (attrs[0] instanceof global.Appacitive.Connection) {
+			if (attrs[0] instanceof Appacitive.Connection) {
 				models = attrs;
 				attrs = { 
 					ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
@@ -6078,7 +6187,7 @@ var extend = function(protoProps, staticProps) {
 		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'GET',
 			type: 'connection',
 			op: 'getMultiGetUrl',
@@ -6093,14 +6202,14 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	//takes relationame, and array of connections ids
-	global.Appacitive.Connection.multiDelete = function(attrs, options) {
+	Appacitive.Connection.multiDelete = function(attrs, options) {
 		attrs = attrs || {};
 		options = options || {};
 		var models = [];
 		if (this.className) attrs.relation = this.className;
 
 		if (_type.isArray(attrs) && attrs.length > 0) {
-			if (attrs[0] instanceof global.Appacitive.Connection) {
+			if (attrs[0] instanceof Appacitive.Connection) {
 				models = attrs;
 				attrs = { 
 					relation:  models[0].className ,
@@ -6116,7 +6225,7 @@ var extend = function(protoProps, staticProps) {
 		if (!attrs.relation || !_type.isString(attrs.relation) || attrs.relation.length === 0) throw new Error("Specify valid relation");
 		if (!attrs.ids || attrs.ids.length === 0) throw new Error("Specify ids to delete");
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			data: { idlist : attrs.ids },
 			type: 'connection',
@@ -6138,37 +6247,37 @@ var extend = function(protoProps, staticProps) {
 
 	
 	//takes relation type and returns all connections for it
-	global.Appacitive.Connection.findAll = global.Appacitive.Connection.findAllQuery = function(options) {
+	Appacitive.Connection.findAll = Appacitive.Connection.findAllQuery = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
 			options.entity = this;
 		}
-		return new global.Appacitive.Queries.FindAllQuery(options);
+		return new Appacitive.Queries.FindAllQuery(options);
 	};
 
 	//takes 1 objectid and multiple aricleids and returns connections between both 
-	global.Appacitive.Connection.interconnectsQuery = global.Appacitive.Connection.getInterconnects = function(options) {
-		return new global.Appacitive.Queries.InterconnectsQuery(options);
+	Appacitive.Connection.interconnectsQuery = Appacitive.Connection.getInterconnects = function(options) {
+		return new Appacitive.Queries.InterconnectsQuery(options);
 	};
 
 	//takes 2 objectids and returns connections between them
-	global.Appacitive.Connection.betweenObjectsQuery = global.Appacitive.Connection.getBetweenObjects = function(options) {
-		return new global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options);
+	Appacitive.Connection.betweenObjectsQuery = Appacitive.Connection.getBetweenObjects = function(options) {
+		return new Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options);
 	};
 
 	//takes 2 objects and returns connections between them of particluar relationtype
-	global.Appacitive.Connection.betweenObjectsForRelationQuery = global.Appacitive.Connection.getBetweenObjectsForRelation = function(options) {
+	Appacitive.Connection.betweenObjectsForRelationQuery = Appacitive.Connection.getBetweenObjectsForRelation = function(options) {
 		options = options || {};
 		if (this.className) {
 			options.relation = this.className;
 			options.entity = this;
 		}
-		return new global.Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery(options);
+		return new Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery(options);
 	};
 
-	global.Appacitive.Connection.saveAll = function(objects, options) {
-		return global.Appacitive.BaseObject._saveAll(objects, options, 'Connection');
+	Appacitive.Connection.saveAll = function(objects, options) {
+		return Appacitive.BaseObject._saveAll(objects, options, 'Connection');
 	};
 
 })(global);
@@ -6176,10 +6285,12 @@ var extend = function(protoProps, staticProps) {
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	var User = function(options, setSnapshot) {
 		options = options || {};
 		options.__type = 'user';
-		global.Appacitive.Object.call(this, options, setSnapshot);
+		Appacitive.Object.call(this, options, setSnapshot);
 		return this;
 	};
 
@@ -6197,7 +6308,7 @@ var extend = function(protoProps, staticProps) {
 		
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getUpdatePasswordUrl',
@@ -6217,12 +6328,12 @@ var extend = function(protoProps, staticProps) {
 
 		if (!this.get('__id')) {
 			this.set('__link', link);
-			return global.Appacitive.Promise.buildPromise(options).fulfill(this);
+			return Appacitive.Promise.buildPromise(options).fulfill(this);
 		}
 
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getLinkAccountUrl',
@@ -6247,27 +6358,27 @@ var extend = function(protoProps, staticProps) {
 		if (!user) throw new Error('Cannot set null object as user');
 		var userObject = user;
 		
-		if (!(userObject instanceof global.Appacitive.User)) userObject = new global.Appacitive.User(user, true); 
+		if (!(userObject instanceof Appacitive.User)) userObject = new Appacitive.User(user, true); 
 		else if (!userObject.get('__id') || userObject.get('__id').length === 0) throw new Error('Specify user __id');
 		else user = userObject.toJSON(); 
 
-		global.Appacitive.localStorage.set('Appacitive-User', user);
+		Appacitive.localStorage.set('Appacitive-User', user);
 
 		if (!expiry) expiry = 86400000;
 		_authenticatedUser = userObject;
 
-		if (token) global.Appacitive.Session.setUserAuthHeader(token, expiry);
+		if (token) Appacitive.Session.setUserAuthHeader(token, expiry);
 
-		_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
+		_authenticatedUser.logout = function(callback) { return Appacitive.Users.logout(callback); };
 
 		_authenticatedUser.updatePassword = function(oldPassword, newPassword, options) {
 			return _updatePassword.apply(this, [oldPassword, newPassword, options]);
 		};
 
-		_authenticatedUser.logout = function(callback) { return global.Appacitive.Users.logout(callback); };
+		_authenticatedUser.logout = function(callback) { return Appacitive.Users.logout(callback); };
 
-		global.Appacitive.eventManager.clearAndSubscribe('type.user.' + userObject.get('__id') + '.updated', function(sender, args) {
-			global.Appacitive.localStorage.set('Appacitive-User', args.object.getObject());
+		Appacitive.eventManager.clearAndSubscribe('type.user.' + userObject.get('__id') + '.updated', function(sender, args) {
+			Appacitive.localStorage.set('Appacitive-User', args.object.getObject());
 		});
 
 		return _authenticatedUser;
@@ -6290,12 +6401,12 @@ var extend = function(protoProps, staticProps) {
 		var userId = this.get('__id');
 		
 		if (!userId || !_type.isString(userId) || userId.length === 0) {
-			return global.Appacitive.Promise.buildPromise(options).fulfill(this.linkedAccounts(), this);
+			return Appacitive.Promise.buildPromise(options).fulfill(this.linkedAccounts(), this);
 		}
 
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'GET',
 			type: 'user',
 			op: 'getGetAllLinkedAccountsUrl',
@@ -6318,11 +6429,11 @@ var extend = function(protoProps, staticProps) {
 		if (!userId || !_type.isString(userId) || userId.length === 0) {
 			if (onSuccess && _type.isFunction(onSuccess)) onSuccess();
 		}
-		if (!coords || !(coords instanceof global.Appacitive.GeoCoord)) throw new Error("Invalid coordinates provided");
+		if (!coords || !(coords instanceof Appacitive.GeoCoord)) throw new Error("Invalid coordinates provided");
 
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getCheckinUrl',
@@ -6384,7 +6495,7 @@ var extend = function(protoProps, staticProps) {
 
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getDelinkAccountUrl',
@@ -6418,27 +6529,27 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	User.prototype.clone = function() {
-		return new global.Appacitive.User(this.getObject());
+		return new Appacitive.User(this.getObject());
 	};
 
-	global.Appacitive.User = global.Appacitive.Object.extend('user', User.prototype);
+	Appacitive.User = Appacitive.Object.extend('user', User.prototype);
 
 	//Remove article static properties
-	delete global.Appacitive.User._create;
-	delete global.Appacitive.User._parseResult;
-	delete global.Appacitive.User.multiDelete;
+	delete Appacitive.User._create;
+	delete Appacitive.User._parseResult;
+	delete Appacitive.User.multiDelete;
 
 	User.deleteUser = function(userId, options) {
 		if (!userId) throw new Error('Specify userid for user delete');
-		return new global.Appacitive.Object({ __type: 'user', __id: userId }).destroyWithConnections(options);
+		return new Appacitive.Object({ __type: 'user', __id: userId }).destroyWithConnections(options);
 	};
 
 	User.deleteCurrentUser = function(options) {
 		
-		var promise = global.Appacitive.Promise.buildPromise(options);
+		var promise = Appacitive.Promise.buildPromise(options);
 
 		var _callback = function() {
-			global.Appacitive.Session.removeUserAuthHeader();
+			Appacitive.Session.removeUserAuthHeader();
 			promise.fulfill();
 		};
 
@@ -6465,7 +6576,7 @@ var extend = function(protoProps, staticProps) {
 		if (!user.username || !user.password || !user.firstname || user.username.length === 0 || user.password.length === 0 || user.firstname.length === 0) 
 			throw new Error('username, password and firstname are mandatory');
 
-		return new global.Appacitive.User(user).save(options);
+		return new Appacitive.User(user).save(options);
 	};
 
 	User.createUser = User.createNewUser;
@@ -6473,7 +6584,7 @@ var extend = function(protoProps, staticProps) {
 	//method to allow user to signup and then login 
 	User.signup = function(user, options) {
 		var that = this;
-		var promise = global.Appacitive.Promise.buildPromise(options);
+		var promise = Appacitive.Promise.buildPromise(options);
 
 		this.createUser(user).then(function() {
 			that.login(user.username, user.password).then(function() {
@@ -6494,7 +6605,7 @@ var extend = function(protoProps, staticProps) {
 		if (!authRequest.expiry) authRequest.expiry = 86400000;
 		var that = this;
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getAuthenticateUserUrl',
@@ -6505,7 +6616,7 @@ var extend = function(protoProps, staticProps) {
 					if (provider) data.user.__authType = provider;
 					_extend(data.user, { __meta: data.__meta });
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
-					global.Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
+					Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
 					request.promise.fulfill({ user : _authenticatedUser, token: data.token });
 				} else {
 					request.promise.reject(data.status);
@@ -6575,14 +6686,14 @@ var extend = function(protoProps, staticProps) {
 
 	User.validateCurrentUser = function(avoidApiCall, callback) {
 
-		var promise = global.Appacitive.Promise.buildPromise({ success: callback });
+		var promise = Appacitive.Promise.buildPromise({ success: callback });
 
 		if (callback && _type.isBoolean(callback)) {
 			avoidApiCall = callback;
 			callback = function() {}; 
 		}
 
-		var token = global.Appacitive.localStorage.get('Appacitive-UserToken');
+		var token = Appacitive.localStorage.get('Appacitive-UserToken');
 
 		if (!token) {
 			promise.fulfill(false);
@@ -6610,14 +6721,14 @@ var extend = function(protoProps, staticProps) {
 
 	var _getUserByIdType = function(op, args, options) {
 		options = options || {};
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'GET',
 			type: 'user',
 			op: op,
 			options: options,
 			args: args,
 			onSuccess: function(data) {
-				if (data && data.user) request.promise.fulfill(new global.Appacitive.User(_extend(data.user, { __meta: data.__meta }),  _extend(options, { setSnapShot: true })));
+				if (data && data.user) request.promise.fulfill(new Appacitive.User(_extend(data.user, { __meta: data.__meta }),  _extend(options, { setSnapShot: true })));
 				else request.promise.reject(data.status);
 			}
 		});
@@ -6626,7 +6737,7 @@ var extend = function(protoProps, staticProps) {
 
 	User.getUserByToken = function(token, options) {
 		if (!token || !_type.isString(token) || token.length === 0) throw new Error("Please specify valid token");
-		global.Appacitive.Session.setUserAuthHeader(token, 0, true);
+		Appacitive.Session.setUserAuthHeader(token, 0, true);
 		return _getUserByIdType("getUserByTokenUrl", [token], options);
 	};
 
@@ -6637,7 +6748,7 @@ var extend = function(protoProps, staticProps) {
 
 	User.logout = function(makeApiCall, options) {
 		_authenticatedUser = null;
-		return global.Appacitive.Session.removeUserAuthHeader(makeApiCall, options);
+		return Appacitive.Session.removeUserAuthHeader(makeApiCall, options);
 	};
 
 	User.sendResetPasswordEmail = function(username, subject, options) {
@@ -6647,7 +6758,7 @@ var extend = function(protoProps, staticProps) {
 
 		var passwordResetOptions = { username: username, subject: subject };
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getSendResetPasswordEmailUrl',
@@ -6665,7 +6776,7 @@ var extend = function(protoProps, staticProps) {
 		if (!token) throw new Error("Please specify token");
 		if (!newPassword || newPassword.length === 0) throw new Error("Please specify password");
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getResetPasswordUrl',
@@ -6685,7 +6796,7 @@ var extend = function(protoProps, staticProps) {
 
 		options = options || {};
 
-		var request = new global.Appacitive._Request({
+		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',
 			op: 'getValidateResetPasswordUrl',
@@ -6693,20 +6804,22 @@ var extend = function(protoProps, staticProps) {
 			data: {},
 			args: [token],
 			onSuccess: function(data) {
-				request.promise.fulfill(new global.Appacitive.User(_extend(data.user, { __meta: data.__meta }), _extend(options, { setSnapShot: true })));
+				request.promise.fulfill(new Appacitive.User(_extend(data.user, { __meta: data.__meta }), _extend(options, { setSnapShot: true })));
 			}
 		});
 		return request.send();
 	};
 
-	global.Appacitive.Users = global.Appacitive.User;
+	Appacitive.Users = Appacitive.User;
 
-    global.Appacitive.Events.mixin(global.Appacitive.User);
+    Appacitive.Events.mixin(Appacitive.User);
 
 })(global);
   (function(global) {
 
-  global.Appacitive.Collection = function(models, options) {
+  var Appacitive = global.Appacitive;
+
+  Appacitive.Collection = function(models, options) {
     options || (options = {});
     if (options.model) this.model = options.model;
     if (!this.model) throw new Error("Please specify model for collection");
@@ -6718,10 +6831,10 @@ var extend = function(protoProps, staticProps) {
     if (models) this.reset(models, { silent: true });
   };
 
-  global.Appacitive.Events.mixin(global.Appacitive.Collection.prototype);
+  Appacitive.Events.mixin(Appacitive.Collection.prototype);
 
   // Define the Collection's inheritable methods.
-  _extend(global.Appacitive.Collection.prototype, {
+  _extend(Appacitive.Collection.prototype, {
     
     models: [],
 
@@ -6843,12 +6956,12 @@ var extend = function(protoProps, staticProps) {
      * fetch from this collection.
      */
     get: function(id) {
-      return id && this._byId[(id instanceof global.Appacitive.BaseObject) ? id.id : id];
+      return id && this._byId[(id instanceof Appacitive.BaseObject) ? id.id : id];
     },
 
     query: function(query) {
       if (query) {
-        if ((query instanceof global.Appacitive.Query) || (query instanceof global.Appacitive.Queries.GraphAPI)) { 
+        if ((query instanceof Appacitive.Query) || (query instanceof Appacitive.Queries.GraphAPI)) { 
           this._query = query;
           return this;
         } else {
@@ -6947,9 +7060,9 @@ var extend = function(protoProps, staticProps) {
       options = _clone(options) || {};
       
       var collection = this;
-      var query = this.query() || new global.Appacitive.Query(this.model);
+      var query = this.query() || new Appacitive.Query(this.model);
       
-      var promise = global.Appacitive.Promise.buildPromise(options);
+      var promise = Appacitive.Promise.buildPromise(options);
 
       query.fetch(options).then(function(results) {
         if (options.add) collection.add(results, _extend({ setSnapShot: true }, options));
@@ -6968,7 +7081,7 @@ var extend = function(protoProps, staticProps) {
       
       var collection = this;
       
-      var promise = global.Appacitive.Promise.buildPromise(options);
+      var promise = Appacitive.Promise.buildPromise(options);
 
       var ids = options.ids || [];
 
@@ -6978,7 +7091,7 @@ var extend = function(protoProps, staticProps) {
 
       args[this.model.type || this.model.relation] = this.model.className;
 
-      global.Appacitive.Object.multiGet(args).then(function(results) {
+      Appacitive.Object.multiGet(args).then(function(results) {
         if (options.add) collection.add(results, options);
         else collection.reset(results, options);
         promise.fulfill(collection);
@@ -7021,7 +7134,7 @@ var extend = function(protoProps, staticProps) {
      * Prepare a model or hash of attributes to be added to this collection.
      */
     _prepareModel: function(model) {
-      if (!(model instanceof global.Appacitive.BaseObject)) {
+      if (!(model instanceof Appacitive.BaseObject)) {
         model = new this.model(model);
       }
 
@@ -7066,12 +7179,12 @@ var extend = function(protoProps, staticProps) {
     }
   });
 
-  global.Appacitive.Collection.extend = function(protoProps, classProps) {
+  Appacitive.Collection.extend = function(protoProps, classProps) {
     if (protoProps && protoProps.query) {
       protoProps._query = protoProps.query;
       delete protoProps.query;
     }
-    var child = global.Appacitive._extend(this, protoProps, classProps);
+    var child = Appacitive._extend(this, protoProps, classProps);
     child.extend = this.extend;
     return child;
   };
@@ -7080,7 +7193,7 @@ var extend = function(protoProps, staticProps) {
 
   // Mix in each Underscore method as a proxy to `Collection#models`.
   methods.each(function(method) {
-    global.Appacitive.Collection.prototype[method] = function() {
+    Appacitive.Collection.prototype[method] = function() {
       var args = Array.prototype.slice.call(arguments);
       return Array.prototype[method].apply(this.models, args);
     };
@@ -7092,6 +7205,8 @@ var extend = function(protoProps, staticProps) {
 
  	"use strict";
 
+ 	var Appacitive = global.Appacitive;
+ 	
     var _browserFacebook = function() {
 
 		var _accessToken = null;
@@ -7160,7 +7275,7 @@ var extend = function(protoProps, staticProps) {
 			
 			try {
 				FB.logout(function() {
-					global.Appacitive.Users.logout();
+					Appacitive.Users.logout();
 					promise.fulfill();
 				});
 			} catch(e) {
@@ -7232,17 +7347,19 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.logout = function() {
-			global.Appacitive.Facebook.accessToken = "";
+			Appacitive.Facebook.accessToken = "";
 			return new Appacitive.Promise().fulfill();
 		};
 	};
 
-	global.Appacitive.Facebook = global.Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
+	Appacitive.Facebook = Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
 
 })(global);
 (function (global) {
 
 	"use strict";
+
+	var Appacitive = global.Appacitive;
 
 	var _emailManager = function() {
 
@@ -7265,7 +7382,7 @@ var extend = function(protoProps, staticProps) {
 
 		var _sendEmail = function (email, options) {
 			
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'POST',
 				type: 'email',
 				op: 'getSendEmailUrl',
@@ -7376,12 +7493,14 @@ var extend = function(protoProps, staticProps) {
 
 	};
 
-	global.Appacitive.Email = new _emailManager();
+	Appacitive.Email = new _emailManager();
 
 })(global);
 (function (global) {
 
 	"use strict";
+
+	var Appacitive = global.Appacitive;
 
 	var _pushManager = function() {
 
@@ -7389,7 +7508,7 @@ var extend = function(protoProps, staticProps) {
 			
 			if (!args) throw new Error("Please specify push options");
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'POST',
 				type: 'push',
 				op: 'getPushUrl',
@@ -7407,7 +7526,7 @@ var extend = function(protoProps, staticProps) {
 
 			if (!notificationId) throw new Error("Please specify notification id");
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'GET',
 				type: 'push',
 				op: 'getGetNotificationUrl',
@@ -7429,7 +7548,7 @@ var extend = function(protoProps, staticProps) {
 				pagingInfo.psize = pagingInfo.psize || 20;
 			}
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'GET',
 				type: 'push',
 				op: 'getGetAllNotificationsUrl',
@@ -7444,12 +7563,14 @@ var extend = function(protoProps, staticProps) {
 
 	};
 
-	global.Appacitive.Push = new _pushManager();
+	Appacitive.Push = new _pushManager();
 
 })(global);
 (function (global) {
 
   "use strict";
+
+  var Appacitive = global.Appacitive;
 
   var _file = function(ops) {
       
@@ -7460,7 +7581,7 @@ var extend = function(protoProps, staticProps) {
       var that = this;
 
       var _getUrls = function(url, onSuccess, promise, description, options) {
-          var request = new global.Appacitive.HttpRequest();
+          var request = new Appacitive.HttpRequest();
           request.url = url;
           request.method = 'GET';
           request.description = description;
@@ -7468,11 +7589,11 @@ var extend = function(protoProps, staticProps) {
           request.promise = promise;
           request.entity = that;
           request.options = options;
-          global.Appacitive.http.send(request); 
+          Appacitive.http.send(request); 
       };
 
       var _upload = function(url, file, type, onSuccess, promise) {
-          var request = new global.Appacitive.HttpRequest();
+          var request = new Appacitive.HttpRequest();
           request.url = url;
           request.method = 'PUT';
           request.log = false;
@@ -7503,9 +7624,9 @@ var extend = function(protoProps, staticProps) {
           }
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
           
-          var promise = global.Appacitive.Promise.buildPromise(options);
+          var promise = Appacitive.Promise.buildPromise(options);
 
-          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
+          var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
          
           _getUrls(url, function(response) {
                 _upload(response.url, that.fileData, that.contentType, function() {
@@ -7530,9 +7651,9 @@ var extend = function(protoProps, staticProps) {
           }
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
           
-          var promise = global.Appacitive.Promise.buildPromise(options);
+          var promise = Appacitive.Promise.buildPromise(options);
 
-          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUpdateUrl(that.fileId, that.contentType);
+          var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getUpdateUrl(that.fileId, that.contentType);
           
           _getUrls(url, function(response) {
               _upload(response.url, that.fileData, that.contentType, function() {
@@ -7552,10 +7673,10 @@ var extend = function(protoProps, staticProps) {
       this.destroy = function(options) {
           if (!this.fileId) throw new Error('Please specify fileId to delete');
 
-          var promise = global.Appacitive.Promise.buildPromise(options);
+          var promise = Appacitive.Promise.buildPromise(options);
 
-          var request = new global.Appacitive.HttpRequest();
-          request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);
+          var request = new Appacitive.HttpRequest();
+          request.url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);
           request.method = 'DELETE';
           request.description = 'Delete file with id ' + this.fileId;
           request.onSuccess = function(response) {
@@ -7564,7 +7685,7 @@ var extend = function(protoProps, staticProps) {
           request.promise = promise;
           request.entity = that;
           request.options= options;
-          return global.Appacitive.http.send(request); 
+          return Appacitive.http.send(request); 
       };
 
       this.getDownloadUrl = function(expiry, options) {
@@ -7575,9 +7696,9 @@ var extend = function(protoProps, staticProps) {
             expiry = -1;
           }
           
-          var promise = global.Appacitive.Promise.buildPromise(options);
+          var promise = Appacitive.Promise.buildPromise(options);
 
-          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getDownloadUrl(this.fileId, expiry);
+          var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getDownloadUrl(this.fileId, expiry);
  
           _getUrls(url, function(response) {
               that.url = response.uri;
@@ -7590,9 +7711,9 @@ var extend = function(protoProps, staticProps) {
       this.getUploadUrl = function(options) {
           if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
 
-          var promise = global.Appacitive.Promise.buildPromise(options);
+          var promise = Appacitive.Promise.buildPromise(options);
 
-          var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');
+          var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');
 
           _getUrls(url, function(response) {
               that.url = response.url;
@@ -7603,21 +7724,23 @@ var extend = function(protoProps, staticProps) {
       };
   };
 
-  global.Appacitive.File = _file;
+  Appacitive.File = _file;
 
 }(global));
 (function (global) {
   
   "use strict";
 
-  global.Appacitive.Date = {};
+  var Appacitive = global.Appacitive;
+  
+  Appacitive.Date = {};
 
   var pad = function (n) {
       if (n < 10) return '0' + n;
       return n;
   };
 
-  global.Appacitive.Date.parseISODate = function (str) {
+  Appacitive.Date.parseISODate = function (str) {
     try {
         var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
 
@@ -7644,7 +7767,7 @@ var extend = function(protoProps, staticProps) {
     } catch(e) {return null;}
   };
 
-  global.Appacitive.Date.toISOString = function (date) {
+  Appacitive.Date.toISOString = function (date) {
     try {
       date = date.toISOString();
       date = date.replace('Z','0000Z');
@@ -7652,12 +7775,12 @@ var extend = function(protoProps, staticProps) {
     } catch(e) { return null;}
   };
 
-  global.Appacitive.Date.toISODate = function(date) {
+  Appacitive.Date.toISODate = function(date) {
     if (date instanceof Date) return String.format("{0}-{1}-{2}", date.getFullYear(), pad((date.getMonth() + 1)), pad(date.getDate()));
     throw new Error("Invalid date provided Appacitive.Date.toISODate method");
   };
 
-  global.Appacitive.Date.toISOTime = function(date) {
+  Appacitive.Date.toISOTime = function(date) {
     var padMilliseconds = function (n) {
                 if (n < 10) return n + '000000';
            else if (n < 100) return n + '00000';
@@ -7671,7 +7794,7 @@ var extend = function(protoProps, staticProps) {
     throw new Error("Invalid date provided Appacitive.Date.toISOTime method");
   };
 
-  global.Appacitive.Date.parseISOTime = function(str) {
+  Appacitive.Date.parseISOTime = function(str) {
     try {
       var date = new Date();
     
@@ -7709,11 +7832,13 @@ var extend = function(protoProps, staticProps) {
 
 	"use strict";
 
-	if (global.Appacitive.runtime.isBrowser) {
+	var Appacitive = global.Appacitive;
+
+	if (Appacitive.runtime.isBrowser) {
 
 		var A_LocalStorage = function() {
 
-			var _localStorage = (global.Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
+			var _localStorage = (Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
 
 			var isLocalStorageSupported = function() {
 				var testKey = 'test';
@@ -7737,10 +7862,10 @@ var extend = function(protoProps, staticProps) {
 			    }
 
 				if (!isLocalStorageSupported()) {
-					global.Appacitive.Cookie.setCookie(key, value);
+					Appacitive.Cookie.setCookie(key, value);
 					return this;
 				} else {
-					key = global.Appacitive.getAppPrefix(key);
+					key = Appacitive.getAppPrefix(key);
 				    
 				    _localStorage[key] = value;
 				    return this;
@@ -7753,9 +7878,9 @@ var extend = function(protoProps, staticProps) {
 				var value;
 
 				if (!isLocalStorageSupported()) {
-					value = global.Appacitive.Cookie.readCookie(key);
+					value = Appacitive.Cookie.readCookie(key);
 				} else {
-					key = global.Appacitive.getAppPrefix(key);
+					key = Appacitive.getAppPrefix(key);
 					value = _localStorage.getItem(key);
 			   	}
 
@@ -7774,14 +7899,14 @@ var extend = function(protoProps, staticProps) {
 			this.remove = function(key) {
 				if (!key) return;
 				if (!isLocalStorageSupported()) {
-					global.Appacitive.Cookie.eraseCookie(key);
+					Appacitive.Cookie.eraseCookie(key);
 					return;
 				}
-				key = global.Appacitive.getAppPrefix(key);
+				key = Appacitive.getAppPrefix(key);
 				try { delete _localStorage[key]; } catch(e){}
 			};
 		};
-		global.Appacitive.localStorage = new A_LocalStorage();
+		Appacitive.localStorage = new A_LocalStorage();
 
 	} else {
 		var A_LocalStorage = function() {
@@ -7792,7 +7917,7 @@ var extend = function(protoProps, staticProps) {
                 value = value || '';
                 if (!key || _type.isString(key)) return false;
 
-                key = global.Appacitive.getAppPrefix(key);
+                key = Appacitive.getAppPrefix(key);
 
                 _localStorage[key] = value;
                 return this;
@@ -7801,7 +7926,7 @@ var extend = function(protoProps, staticProps) {
             this.get = function(key) {
                 if (!key || _type.isString(key)) return null;
 
-                key = global.Appacitive.getAppPrefix(key);
+                key = Appacitive.getAppPrefix(key);
 
                 var value = _localStorage[key];
 	            if (!value) { return null; }
@@ -7811,24 +7936,26 @@ var extend = function(protoProps, staticProps) {
             
             this.remove = function(key) {
                 if (!key || _type.isString(key)) return;
-                key = global.Appacitive.getAppPrefix(key);
+                key = Appacitive.getAppPrefix(key);
                 try { delete _localStorage[key]; } catch(e){}
             };
         };
 
-        global.Appacitive.localStorage = new A_LocalStorage();
+        Appacitive.localStorage = new A_LocalStorage();
 	}
 })(global);
 (function (global) {
 
 "use strict";
 
-if (global.Appacitive.runtime.isBrowser) {
+var Appacitive = global.Appacitive;
+
+if (Appacitive.runtime.isBrowser) {
 
 	var _cookieManager = function () {
 
 		this.setCookie = function (name, value, minutes, erase) {
-			name = global.Appacitive.getAppPrefix(name);
+			name = Appacitive.getAppPrefix(name);
 			var expires = '';
 			if (minutes) {
 				var date = new Date();
@@ -7838,7 +7965,7 @@ if (global.Appacitive.runtime.isBrowser) {
 
 			if (!erase) {
 				//for now lets make this a session cookie if it is not an erase
-				if (!global.Appacitive.Session.persistUserToken) expires = '';
+				if (!Appacitive.Session.persistUserToken) expires = '';
 				else expires = "; expires=" +  new Date("2020-12-31").toGMTString();
 			} else {
 				expires = '; expires=Thu, 01-Jan-1970 00:00:01 GMT';
@@ -7850,7 +7977,7 @@ if (global.Appacitive.runtime.isBrowser) {
 		};
 
 		this.readCookie = function (name) {
-			name = global.Appacitive.getAppPrefix(name);
+			name = Appacitive.getAppPrefix(name);
 			var nameEQ = name + "=";
 			var ca = document.cookie.split(';');
 			for (var i=0; i < ca.length; i++) {
@@ -7867,25 +7994,25 @@ if (global.Appacitive.runtime.isBrowser) {
 
 	};
 
-	global.Appacitive.Cookie = new _cookieManager();
+	Appacitive.Cookie = new _cookieManager();
 
 } else {
 	var _cookieManager = function () {
 
 	        this.setCookie = function (name, value) {
-	                global.Appacitive.localStorage.set( 'cookie/' + name, value);
+	                Appacitive.localStorage.set( 'cookie/' + name, value);
 	        };
 
 	        this.readCookie = function (name) {
-	                return global.Appacitive.localStorage.get( 'cookie/' + name);
+	                return Appacitive.localStorage.get( 'cookie/' + name);
 	        };
 
 	        this.eraseCookie = function (name) {
-	                global.Appacitive.localStorage.remove( 'cookie/' + name);
+	                Appacitive.localStorage.remove( 'cookie/' + name);
 	        };
 
 	};
-	global.Appacitive.Cookie = new _cookieManager();
+	Appacitive.Cookie = new _cookieManager();
 }
 
 })(global);

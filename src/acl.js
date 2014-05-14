@@ -2,6 +2,8 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	var accessTypes = ['allow', 'deny'];
 
 	var states = ['create', 'read', 'update', 'delete', 'manageaccess'];
@@ -17,7 +19,7 @@
 		return res;
 	};
 
-	global.Appacitive._Acl = function(o, setSnapshot) {
+	Appacitive._Acl = function(o, setSnapshot) {
 
 		var acls = o || [];		
 
@@ -38,7 +40,7 @@
 		var setPermission = function(access, type, sid, permissions) {
 			if (!sid) throw new Error("Specify valid user or usergroup");
 
-			if ((sid instanceof global.Appacitive.Object) && sid.typeName == 'user' && !sid.isNew()) {
+			if ((sid instanceof Appacitive.Object) && sid.typeName == 'user' && !sid.isNew()) {
 				sid = sid.id;
 			} 
 
@@ -206,7 +208,7 @@
 			members.forEach(function(m) {
 				if (!m) return;
 
-				if ((m instanceof global.Appacitive.Object)  && m.typeName == 'user' && !m.isNew()) {
+				if ((m instanceof Appacitive.Object)  && m.typeName == 'user' && !m.isNew()) {
 					cmd[op].push(m.id);
 				} else {
 					cmd[op].push(m);
@@ -216,7 +218,7 @@
 
 			if (cmd[op].length == 0) throw new Error("Please specify valid members as second argument");
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'POST',
 				type: 'usergroup',
 				op: 'getUpdateUrl',
@@ -241,7 +243,7 @@
 		};
 	};
 
-	global.Appacitive.Group = new _groupManager();
+	Appacitive.Group = new _groupManager();
 
 })(global);
 	
