@@ -140,7 +140,7 @@
         var promise = new Promise();
 
         /* If no task found then simply fulfill the promise */
-        if (!task) {
+        if (!task || (_type.isArray(task) && task.length == 0)) {
             promise.fulfill(values);
             return promise;
         }

@@ -210,10 +210,10 @@
 
 				if ((m instanceof Appacitive.Object)  && m.typeName == 'user' && !m.isNew()) {
 					cmd[op].push(m.id);
-				} else {
+				} else if (_type.isString(m)) {
 					cmd[op].push(m);
 				}
-			})
+			});
 
 
 			if (cmd[op].length == 0) throw new Error("Please specify valid members as second argument");

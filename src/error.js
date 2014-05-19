@@ -50,26 +50,12 @@
         //SDK Internal Error codes
 
         UnknownCause: 100,
-        InvalidParameters: 900,
+        InvalidParameters: '400',
         ConnectionFailed: 1001,
-        InvalidQuery: 1003,
-        IvalidClassName: 1004,
-        MissingId: 1005,
-        IvalidKeyName: 1006,
+        MissingId: '404',
         InvalidJson: 1007,
-        ObjectNotFound: 1008,
-        ProvideType: 1009,
-        ProvideRelation: 1010,
-        ProvideLabel: 1011,    
-        InvalidAccessName: 1020,
-        InvalidScript: 1016,
-        InvalidFileData: 1030,
-        MissingUsername: 2001,
-        MissingPassword: 2002,
-        DuplicateUsername: 2003,
-        MissingEmail: 2004,
-        AccountLinked: 2005,
-        MissingLinkType: 2006,
+        DuplicateUsername: '435',
+        DuplicateValue: '435',
         XDomainRequest: 5000
     });
 

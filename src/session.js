@@ -273,7 +273,7 @@
   		if (options.userToken) {
 
 			if (options.expiry == -1)  options.expiry = null;
-			else if (!options.expiry)  options.expiry = 3600;
+			else if (!options.expiry)  options.expiry = 8450000;
 
 			Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
 
