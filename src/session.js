@@ -36,7 +36,7 @@
 
 		this.create = function(options) {
 
-			if (!this.initialized) throw new Error("Intialize Appacitive SDK");
+			if (!this.initialized) throw new Error("Initialize Appacitive SDK");
 
 			// create the session
 			var _sRequest = new _sessionRequest();
@@ -238,6 +238,21 @@
 
 	Appacitive.getAppPrefix = function(str) {
 		return Appacitive.Session.environment() + '/' + Appacitive.appId + '/' + str;
+	};
+
+	Appacitive.ping = function(options) {
+		if (!Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
+
+		var request = new Appacitive._Request({
+			method: 'GET',
+			type: 'ping',
+			op: 'getPingUrl',
+			options: options,
+			onSuccess: function(data) {
+				return request.promise.fulfill(data.status);
+			}
+		});
+		return request.send();
 	};
 
 	Appacitive.initialize = function(options) {

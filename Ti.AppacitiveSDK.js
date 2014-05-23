@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.7.1 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.7.3 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon May 19 17:23:25 IST 2014
+ * Build time 	: Thu May 22 16:01:34 IST 2014
  */
 "use strict";
 
@@ -1523,6 +1523,13 @@ var global = {};
             getUpdateUrl: function(groupId) {
                 return String.Format('{0}/{1}/members', this.usergroupServiceUrl, groupId);
             }
+        };
+        this.ping = {
+            pingServiceUrl: 'ping',
+
+            getPingUrl: function() {
+                return String.Format('{0}/', this.pingServiceUrl);
+            }
         }
 
     };
@@ -2386,7 +2393,7 @@ var extend = function(protoProps, staticProps) {
 
 		this.create = function(options) {
 
-			if (!this.initialized) throw new Error("Intialize Appacitive SDK");
+			if (!this.initialized) throw new Error("Initialize Appacitive SDK");
 
 			// create the session
 			var _sRequest = new _sessionRequest();
@@ -2588,6 +2595,21 @@ var extend = function(protoProps, staticProps) {
 
 	Appacitive.getAppPrefix = function(str) {
 		return Appacitive.Session.environment() + '/' + Appacitive.appId + '/' + str;
+	};
+
+	Appacitive.ping = function(options) {
+		if (!Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
+
+		var request = new Appacitive._Request({
+			method: 'GET',
+			type: 'ping',
+			op: 'getPingUrl',
+			options: options,
+			onSuccess: function(data) {
+				return request.promise.fulfill(data.status);
+			}
+		});
+		return request.send();
 	};
 
 	Appacitive.initialize = function(options) {
@@ -3624,7 +3646,7 @@ var extend = function(protoProps, staticProps) {
 		if (options.object instanceof Appacitive.Object) this.object = options.object;
 
 		this.returnEdge = true;
-		if (options.returnEdge !== undefined && options.returnEdge !== null && !options.returnEdge && !this.prev) this.returnEdge = false;
+		if (options.returnEdge !== undefined && options.returnEdge !== null && !options.returnEdge) this.returnEdge = false;
 		
 		this.label = '';
 		var self = this;
@@ -4769,7 +4791,7 @@ var extend = function(protoProps, staticProps) {
 			if (options && !options.silent) {
 				for (attr in attrs) {
 					var changedValue = hasChanged(attr, _snapshot[attr], object[attr]);
-					if (changedValue || (_ignoreTheseFields.indexOf(attr) != -1)) {
+					if ((changedValue != undefined) || (_ignoreTheseFields.indexOf(attr) != -1)) {
 						changed = true;
 						var value = object[key];
 						// Trigger relevant attribute change event.

@@ -403,6 +403,13 @@
             getUpdateUrl: function(groupId) {
                 return String.format('{0}/{1}/members', this.usergroupServiceUrl, groupId);
             }
+        };
+        this.ping = {
+            pingServiceUrl: 'ping',
+
+            getPingUrl: function() {
+                return String.format('{0}/', this.pingServiceUrl);
+            }
         }
 
     };

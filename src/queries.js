@@ -418,7 +418,7 @@
 		if (options.object instanceof Appacitive.Object) this.object = options.object;
 
 		this.returnEdge = true;
-		if (options.returnEdge !== undefined && options.returnEdge !== null && !options.returnEdge && !this.prev) this.returnEdge = false;
+		if (options.returnEdge !== undefined && options.returnEdge !== null && !options.returnEdge) this.returnEdge = false;
 		
 		this.label = '';
 		var self = this;

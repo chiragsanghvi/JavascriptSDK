@@ -307,6 +307,7 @@
         this.getValue = function() {
             if (this.type === 'number' || _type.isBoolean(this.value) || _type.isNumber(this.value)) return this.value;  
             else if (this.type === 'object' && _type.isDate(this.value)) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            else if (this.type == 'object' && this.value instanceof Appacitive.GeoCoord) return value.toString();
             else return "'" + this.value.toString() + "'"
         };
     };

@@ -762,7 +762,7 @@
 			if (options && !options.silent) {
 				for (attr in attrs) {
 					var changedValue = hasChanged(attr, _snapshot[attr], object[attr]);
-					if (changedValue || (_ignoreTheseFields.indexOf(attr) != -1)) {
+					if ((changedValue != undefined) || (_ignoreTheseFields.indexOf(attr) != -1)) {
 						changed = true;
 						var value = object[key];
 						// Trigger relevant attribute change event.
