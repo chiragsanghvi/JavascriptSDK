@@ -6,6 +6,8 @@ Depends on  NOTHING
 
     "use strict";
 
+    var Appacitive = global.Appacitive;
+
     /**
      * @constructor
     */
@@ -118,6 +120,6 @@ Depends on  NOTHING
 
     };
 
-    global.Appacitive.eventManager = new EventManager();
+    Appacitive.eventManager = new EventManager();
 
 })(global);

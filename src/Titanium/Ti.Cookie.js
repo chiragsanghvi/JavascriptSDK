@@ -2,22 +2,24 @@
 
 "use strict";
 
+var Appacitive = global.Appacitive;
+
 var cookieManager = function () {
 
 	this.setCookie = function (name, value) {
-		global.Appacitive.localStorage.set(name, value);
+		Appacitive.localStorage.set(name, value);
 	};
 
 	this.readCookie = function (name) {
-		return global.Appacitive.localStorage.get(name);
+		return Appacitive.localStorage.get(name);
 	};
 
 	this.eraseCookie = function (name) {
-		global.Appacitive.localStorage.remove(name);
+		Appacitive.localStorage.remove(name);
 	};
 
 };
 
-global.Appacitive.Cookie = new cookieManager();
+Appacitive.Cookie = new cookieManager();
 
 })(global);

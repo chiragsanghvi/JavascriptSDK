@@ -52,6 +52,21 @@ asyncTest('Verify signup for user', function() {
 	});
 });
 
+asyncTest('Verify create user with location', function() {
+	var user = testConstants.user;
+	user.username = 'DeepClone #' + parseInt(Math.random() * 10000);
+	var location = new Appacitive.GeoCoord(10, 10);
+	user.location = location;
+	Appacitive.Users.createUser(user).then(function(user) {
+		ok(true, 'User created successfully');
+		equal(location.toString(), user.get('location').toString(), 'Matching geolocation');
+		start();
+	}, function(d) {
+		ok(false, 'Error returned: ' + JSON.stringify(d));
+		start();
+	});
+});
+
 asyncTest('Verify current usertoken validation with cookie only', function() {
 	Appacitive.Users.validateCurrentUser(true).then(function(status) {
     	ok(status, 'User validated successfully with cookie ');

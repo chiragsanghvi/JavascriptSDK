@@ -2,6 +2,8 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	/**
 	 * @constructor
 	 */
@@ -20,139 +22,166 @@
 			this.windowtime = 240;
 		};
 
-		var _sessionKey = null, _appName = null, _options = null, _apikey = null, _authToken = null, authEnabled = false;
+		var _sessionKey = null, _appName = null, _options = null, _apikey = null, _authToken = null, authEnabled = false, _masterKey;
 
-		this.useApiKey = true ;
+		this.useApiKey = true;
+
+		this.useMasterKey = false;
 
 		this.onSessionCreated = function() {};
 
-		this.recreate = function(callbacks) {
-			return global.Appacitive.Session.create(callbacks);
+		this.recreate = function(options) {
+			return Appacitive.Session.create(options);
 		};
 
-		this.create = function(callbacks) {
+		this.create = function(options) {
 
-			if (!this.initialized) throw new Error("Intialize Appacitive SDK");
+			if (!this.initialized) throw new Error("Initialize Appacitive SDK");
 
 			// create the session
 			var _sRequest = new _sessionRequest();
 
 			_sRequest.apikey = _apikey;
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'PUT',
 				type: 'application',
 				op: 'getSessionCreateUrl',
-				callbacks: callbacks,
+				options: options,
 				data: _sRequest,
 				onSuccess: function(data) {
 					_sessionKey = data.session.sessionkey;
-					global.Appacitive.Session.useApiKey = false;
+					Appacitive.Session.useApiKey = false;
 					request.promise.fulfill(data);
-					global.Appacitive.Session.onSessionCreated();
+					Appacitive.Session.onSessionCreated();
 				}
 			});
 			return request.send();
 		};
 
-		global.Appacitive.http.addProcessor({
+		Appacitive.http.addProcessor({
 			pre: function(request) {
-				if (global.Appacitive.Session.useApiKey) {
-					request.headers.push({ key: 'ak', value: _apikey });
+				request.options = request.options || {};
+				if (Appacitive.Session.useApiKey) {
+					var key = _apikey;
+					if ((request.options.useMasterKey || (Appacitive.useMasterKey && !request.options.useMasterKey )) && _type.isString(_masterKey) && _masterKey.length > 0) {
+						key = _masterKey;
+					} else if (_type.isString(request.options.apikey)) {
+						key = request.options.apikey;
+					}
+					request.headers.push({ key: 'ak', value: key });
 				} else {
 					request.headers.push({ key: 'as', value: _sessionKey });
 				}
 
 				if (authEnabled === true) {
-					var userAuthHeader = request.headers.filter(function (uah) {
-						return uah.key == 'ut';
+					var ind = -1;
+					var userAuthHeader = request.headers.filter(function (uah, i) {
+						if (uah.key == 'ut') {
+							ind = i;
+							return true;
+						}
+						return false;
 					});
-					if (userAuthHeader.length == 1) {
-						request.headers.forEach(function (uah) {
-							if (uah.key == 'ut') {
-								uah.value = _authToken;
-							}
-						});
+
+					if (request.options.ignoreUserToken) {
+						if (ind != -1) request.headers.splice(ind, 1);
 					} else {
-						request.headers.push({ key: 'ut', value: _authToken });
+						var token = _authToken;
+						
+						if (_type.isString(request.options.userToken) && request.options.userToken.length > 0)
+							token = request.options.userToken;
+
+						if (userAuthHeader.length == 1) {
+							request.headers.forEach(function (uah) {
+								if (uah.key == 'ut') {
+									uah.value = token;
+								}
+							});
+						} else {
+							request.headers.push({ key: 'ut', value: token });
+						}
 					}
 				}
 			}
 		});
 
-		this.setUserAuthHeader = function(authToken, expiry, doNotSetCookie) {
+		this.setUserAuthHeader = function(authToken, expiry, doNotSetInStorage) {
 			try {
 				if (authToken) {
 					authEnabled = true;
 					_authToken = authToken;
-					if (!doNotSetCookie) {
-						if(!expiry) expiry = 60;
+					if (!doNotSetInStorage) {
+						if (!expiry) expiry = -1;
 						if (expiry == -1) expiry = null;
-						global.Appacitive.Cookie.setCookie('Appacitive-UserToken', authToken, expiry);
-						global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
+
+						Appacitive.localStorage.set('Appacitive-UserToken', authToken);
+						Appacitive.localStorage.set('Appacitive-UserTokenExpiry', expiry);
+						Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 					}
 				}
 			} catch(e) {}
 		};
 
 		this.incrementExpiry = function() {
-			return;
-			/*try {
-				if (global.Appacitive.runtime.isBrowser && authEnabled) {
-					var expiry = global.Appacitive.Cookie.readCookie('Appacitive-UserTokenExpiry');
-					
-					if (!expiry) expiry = 60;
-					if (expiry == -1) expiry = null;
-					
-					global.Appacitive.Cookie.setCookie('Appacitive-UserToken', _authToken, expiry);
-					global.Appacitive.Cookie.setCookie('Appacitive-UserTokenExpiry', expiry ? expiry : -1, expiry);
+			try {
+				if (Appacitive.runtime.isBrowser && authEnabled) {
+					Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
 				}
-			} catch(e) {}*/
+			} catch(e) {}
 		};
 
-		this.removeUserAuthHeader = function(makeApiCall) {
+		this.removeUserAuthHeader = function(makeApiCall, options) {
+
+			var promise = Appacitive.Promise.buildPromise(options);
+
+			if (!makeApiCall) Appacitive.User.trigger('logout', {});
 			
-			global.Appacitive.localStorage.remove('Appacitive-User');
+			Appacitive.localStorage.remove('Appacitive-User');
 		 	if (_authToken && makeApiCall) {
 				try {
-					var promise = new global.Appacitive.Promise();
 
-					var _request = new global.Appacitive.HttpRequest();
-		            _request.url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
+					var _request = new Appacitive.HttpRequest(options);
+		            _request.url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.user.getInvalidateTokenUrl(_authToken);
 		            _request.method = 'POST';
 		            _request.data = {};
+		            _request.type = 'user';
+		            _request.options = options;
+		            _request.description = 'InvalidateToken user';
 		            _request.onSuccess = _request.onError = function() {
 		            	authEnabled = false;
 		            	_authToken = null;
-		            	global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-		 				global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
+		            	Appacitive.User.trigger('logout', {});
+			        	Appacitive.localStorage.remove('Appacitive-UserToken');
+		 				Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+		 				Appacitive.localStorage.remove('Appacitive-UserTokenDate');
 						promise.fulfill();  
 		            };
 
-		 	        global.Appacitive.http.send(_request);
+		 	        Appacitive.http.send(_request);
 
 		 	        return promise;
 				} catch (e){}
 			} else {
 				authEnabled = false;
 				_authToken = null;
-				global.Appacitive.Cookie.eraseCookie('Appacitive-UserToken');
-		 		global.Appacitive.Cookie.eraseCookie('Appacitive-UserTokenExpiry');
-				return global.Appacitive.Promise().fulfill();
+				Appacitive.localStorage.remove('Appacitive-UserToken');
+ 				Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
+ 				Appacitive.localStorage.remove('Appacitive-UserTokenDate');
+				return promise.fulfill();
 			}
 		};
 
 		this.isSessionValid = function(response) {
-			if (!response) return true;
 			if (response.status) {
 				if (response.status.code) {
-					if (response.status.code == '19027' || response.status.code == '19002') {
-						return { status: false, isSession: (response.status.code == '19027') ? true : false };
+					if (response.status.code == '420' || response.status.code == '19027' || response.status.code == '19002') {
+						return { status: false, isSession: (response.status.code == '19027' || response.status.code == '420') ? true : false };
 					}
 				}
 			} else if (response.code) {
-				if (response.code == '19027' || response.code == '19002') {
-					return { status: false, isSession: (response.code == '19027') ? true : false };
+				if (response.code == '420' || response.code == '19027' || response.code == '19002') {
+					return { status: false, isSession: (response.code == '19027' || response.code == '420') ? true : false };
 				}
 			}
 			return { status: true };
@@ -181,6 +210,18 @@
 			}
 		};
 
+		this.setMasterKey = function(key) {
+			_masterKey = key;
+		};
+
+		this.reset = function() {
+			this.removeUserAuthHeader();
+			_sessionKey = null, _appName = null, _options = null, _apikey = null, _authToken = null, authEnabled = false, _masterKey = null;
+			this.initialized = false;
+			this.useApiKey = false;
+			this.useMasterKey = false;
+		};
+
 		// the name of the environment, simple public property
 		var _env = 'sandbox';
 		this.environment = function() {
@@ -193,82 +234,122 @@
 		};
 	};
 
-	global.Appacitive.Session = new SessionManager();
+	Appacitive.Session = new SessionManager();
 
-	global.Appacitive.getAppPrefix = function(str) {
-		return global.Appacitive.Session.environment() + '/' + global.Appacitive.appId + '/' + str;
+	Appacitive.getAppPrefix = function(str) {
+		return Appacitive.Session.environment() + '/' + Appacitive.appId + '/' + str;
 	};
 
-	global.Appacitive.initialize = function(options) {
+	Appacitive.ping = function(options) {
+		if (!Appacitive.Session.initialized) throw new Error("Initialize Appacitive SDK");
+
+		var request = new Appacitive._Request({
+			method: 'GET',
+			type: 'ping',
+			op: 'getPingUrl',
+			options: options,
+			onSuccess: function(data) {
+				return request.promise.fulfill(data.status);
+			}
+		});
+		return request.send();
+	};
+
+	Appacitive.initialize = function(options) {
 		
 		options = options || {};
 
-		if (global.Appacitive.Session.initialized) return;
+		if (Appacitive.Session.initialized) return;
 		
-		if (!options.apikey || options.apikey.length === 0) throw new Error("apikey is mandatory");
-		
+		if (options.masterKey && options.masterKey.length > 0) Appacitive.Session.setMasterKey(options.masterKey);
+
+		if (!options.apikey || options.apikey.length === 0) {
+			if (options.masterKey) options.apikey = options.masterKey;
+		    else throw new Error("apikey is mandatory");
+		}
+
 		if (!options.appId || options.appId.length === 0) throw new Error("appId is mandatory");
 
+		
+		Appacitive.Session.setApiKey( options.apikey);
+		Appacitive.Session.environment(options.env || 'sandbox' );
+		Appacitive.useApiKey = true;
+		Appacitive.appId = options.appId;
+  		
+  		Appacitive.Session.initialized = true;
+  		Appacitive.Session.persistUserToken = options.persistUserToken;
+  		
+		if (options.debug) Appacitive.config.debug = true;
 
-		global.Appacitive.Session.setApiKey( options.apikey) ;
-		global.Appacitive.Session.environment(options.env || 'sandbox' );
-		global.Appacitive.useApiKey = true;
-		global.Appacitive.appId = options.appId;
-  		
-  		global.Appacitive.Session.initialized = true;
-  		global.Appacitive.Session.persistUserToken = options.persistUserToken;
-  		
-		if (options.debug) global.Appacitive.config.debug = true;
-		if (options.log) global.Appacitive.log = [];
+		if (_type.isFunction(options.apiLog)) Appacitive.logs.apiLog = options.apiLog;
+		if (_type.isFunction(options.apiErrorLog)) Appacitive.logs.apiErrorLog = options.apiErrorLog;
+		if (_type.isFunction(options.exceptionLog)) Appacitive.logs.exceptionLog = options.exceptionLog;
 
   		if (options.userToken) {
 
 			if (options.expiry == -1)  options.expiry = null;
-			else if (!options.expiry)  options.expiry = 3600;
+			else if (!options.expiry)  options.expiry = 8450000;
 
-			global.Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
+			Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
 
 			if (options.user) {
-				global.Appacitive.Users.setCurrentUser(options.user);	
+				Appacitive.Users.setCurrentUser(options.user);	
 			} else {
 				//read user from from localstorage and set it;
-				var user = global.Appacitive.localStorage.get('Appacitive-User');	
-				if (user) global.Appacitive.Users.setCurrentUser(user);
+				var user = Appacitive.localStorage.get('Appacitive-User');	
+				if (user) Appacitive.Users.setCurrentUser(user);
 			}
 
 		} else {
 
-			if (global.Appacitive.runtime.isBrowser) {
-				//read usertoken from cookie and set it
-				var token = global.Appacitive.Cookie.readCookie('Appacitive-UserToken');
+			if (Appacitive.runtime.isBrowser) {
+				//read usertoken from localstorage and set it
+				var token = Appacitive.localStorage.get('Appacitive-UserToken');
 				if (token) { 
-					var expiry = global.Appacitive.Cookie.readCookie('Appacitive-UserTokenExpiry');
-					if (!expiry) expiry = 60;
+					var expiry = Appacitive.localStorage.get('Appacitive-UserTokenExpiry');
+					var expiryDate = Appacitive.localStorage.get('Appacitive-UserTokenDate');
 					
-					//read usertoken from cookie and user from from localstorage and set it;
-					var user = global.Appacitive.localStorage.get('Appacitive-User');	
-					if (user) global.Appacitive.Users.setCurrentUser(user, token, expiry);
+					if (!expiry) expiry = -1;
+					if (expiryDate && expiry > 0) {
+						if (new Date(expiryDate + (expiry * 1000)) < new Date()) return;
+					}
+					if (expiry == -1) expiry = null;
+					//read usertoken and user from from localstorage and set it;
+					var user = Appacitive.localStorage.get('Appacitive-User');	
+					if (user) Appacitive.Users.setCurrentUser(user, token, expiry);
 				}
 			}
 		}			
+	};
+
+	Appacitive.reset = function() {
+		Appacitive.Session.reset();
 	};
 
 } (global));
 
 
 // compulsory http plugin
-// attaches the appacitive environment headers
+// attaches the appacitive environment headers and other event plugins
 (function (global){
 
 	"use strict";
 
-	if (!global.Appacitive) return;
-	if (!global.Appacitive.http) return;
+	var Appacitive = global.Appacitive;
 
-	global.Appacitive.http.addProcessor({
+	if (!Appacitive) return;
+	if (!Appacitive.http) return;
+
+	Appacitive.http.addProcessor({
 		pre: function(req) {
-			req.headers.push({ key: 'e', value: global.Appacitive.Session.environment() });
+			var env = Appacitive.Session.environment()
+			req.options = req.options || {};
+			if (_type.isString(req.options.env)) env = req.options.env;
+			req.headers.push({ key: 'e', value: env });
 		}
 	});
+
+
+   Appacitive.Events.mixin(Appacitive);
 
 })(global);

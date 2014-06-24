@@ -2,19 +2,21 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
 	var _pushManager = function() {
 
-		this.send = function(options, callbacks) {
+		this.send = function(args, options) {
 			
-			if (!options) throw new Error("Please specify push options");
+			if (!args) throw new Error("Please specify push options");
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'POST',
 				type: 'push',
 				op: 'getPushUrl',
-				callbacks: callbacks,
-				data: options,
-				entity: options,
+				options: options,
+				data: args,
+				entity: args,
 				onSuccess: function(d) {
 					request.promise.fulfill(d.id);
 				}
@@ -22,16 +24,16 @@
 			return request.send();
 		};
 
-		this.getNotification = function(notificationId, callbacks) {
+		this.getNotification = function(notificationId, options) {
 
 			if (!notificationId) throw new Error("Please specify notification id");
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'GET',
 				type: 'push',
 				op: 'getGetNotificationUrl',
 				args: [notificationId],
-				callbacks: callbacks,
+				options: options,
 				onSuccess: function(d) {
 					request.promise.fulfill(d.pushnotification);
 				}
@@ -39,7 +41,7 @@
 			return request.send();
 		};
 
-		this.getAllNotifications = function(pagingInfo, callbacks) {
+		this.getAllNotifications = function(pagingInfo, options) {
 			
 			if (!pagingInfo)
 				pagingInfo = { pnum: 1, psize: 20 };
@@ -48,12 +50,12 @@
 				pagingInfo.psize = pagingInfo.psize || 20;
 			}
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'GET',
 				type: 'push',
 				op: 'getGetAllNotificationsUrl',
 				args: [pagingInfo],
-				callbacks: callbacks,
+				options: options,
 				onSuccess: function(d) {
 					request.promise.fulfill(d.pushnotifications, d.paginginfo);
 				}
@@ -63,6 +65,6 @@
 
 	};
 
-	global.Appacitive.Push = new _pushManager();
+	Appacitive.Push = new _pushManager();
 
 })(global);

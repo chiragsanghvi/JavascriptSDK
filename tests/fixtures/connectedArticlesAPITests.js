@@ -41,6 +41,10 @@ asyncTest('Verify created connection is fetched when fetching connected objects'
 		return profile.getConnectedObjects({ relation: 'myschool' }).fetch();
 	}).then(function(objects) {
 		
+		if (objects.length == 0) {
+			return new Appacitive.Promise().reject();
+		}
+
 		//verify objects returned are not changed
 		if (objects[0].hasChanged()) {
 			ok(false, 'Object has not changed');
@@ -57,7 +61,7 @@ asyncTest('Verify created connection is fetched when fetching connected objects'
 		}
 
 		var existingConnections = objects.filter(function (_c) {
-			return _c.connection.id() == conn.id();
+			return _c.connection.id == conn.id;
 		});
 
 		//Verify connection is returned via the getConnectedObjects
@@ -107,7 +111,7 @@ asyncTest('Verify created connection is fetched when fetching connections for an
 	}).then(function(connections) {
 		
 		var existingConnections = connections.filter(function (_c) {
-			return _c.id() == conn.id();
+			return _c.id == conn.id;
 		});
 
 		//Verify connection is returned via the get connections
@@ -161,7 +165,7 @@ asyncTest('Verify created connection is fetched when fetching connection between
 	}).then(function(connection) {
 		
 		//Verify connection is returned via the getBetweenObjects
-		equal(connection.id(), conn.id() , 'Connection fetched between 2 objects');
+		equal(connection.id, conn.id , 'Connection fetched between 2 objects');
 		start();
 	}, function() {
 		if (conn.isNew()) {
@@ -204,6 +208,10 @@ asyncTest('Verify object fetched via the collection returned via getConnectedObj
 		return profile.getConnectedObjects({ relation: 'myschool' }).fetch();
 	}).then(function(objects) {
 		
+		if (objects.length == 0) {
+			return new Appacitive.Promise().reject();
+		}
+		
 		//verify objects returned are not changed
 		if (objects[0].hasChanged()) {
 			ok(false, 'Object has not changed');
@@ -219,7 +227,7 @@ asyncTest('Verify object fetched via the collection returned via getConnectedObj
 		}
 
 		var existingObjects = objects.filter(function (_a) {
-			return _a.connection.id() == conn.id();
+			return _a.connection.id == conn.id;
 		});
 
 		//Verify connection is returned via the getConnectedObjects
@@ -229,8 +237,11 @@ asyncTest('Verify object fetched via the collection returned via getConnectedObj
 		var connectedSchool = existingObjects[0];
 		equal(connectedSchool.get('__id'), school.get('__id'), 'Correct connected object returned');
 
+		var a = connectedSchool.toJSON(); delete a.__meta;
+		var b = school.toJSON(); delete b.__meta;
+
 		//Verify object fetched via the objects returned via getConnectedObjects is correct object
-		deepEqual(connectedSchool.toJSON(), school.toJSON(), 'Correct connected object returned: ' + JSON.stringify(connectedSchool.getObject()));
+		deepEqual(a, b, 'Correct connected object returned: ' + JSON.stringify(connectedSchool.getObject()));
 
 		start();
 	}, function() {

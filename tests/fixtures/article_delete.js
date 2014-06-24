@@ -32,7 +32,7 @@ asyncTest('Delete saved object', function() {
 		start();
 	}, function() {
 		if (object.created) {
-			ok(false, 'Deleting saved object with id ' + object.id() + ' failed');
+			ok(false, 'Deleting saved object with id ' + object.id + ' failed');
 			start();
 		} else {
 			ok(false, 'Object create failed');

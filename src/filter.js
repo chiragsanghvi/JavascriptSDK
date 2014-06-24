@@ -232,7 +232,7 @@
         _filter.call(this);
 
         options = options || {};
-        if (!options.tags || _type.isArray(options.tags) || options.tags.length === 0) throw new Error("Specify valid tags");
+        if (!options.tags || !_type.isArray(options.tags) || options.tags.length === 0) throw new Error("Specify valid tags");
 
         this.tags = options.tags;
         this.operator = options.operator;
@@ -305,10 +305,10 @@
         }
 
         this.getValue = function() {
-            if (this.type === 'string') return "'" + this.value + "'";
-            else if (this.type === 'number' || _type.isBoolean(this.value))return this.value;  
-            else if (this.type === 'object' && this.value instanceof date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
-            else return this.value.toString();
+            if (this.type === 'number' || _type.isBoolean(this.value) || _type.isNumber(this.value)) return this.value;  
+            else if (this.type === 'object' && _type.isDate(this.value)) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
+            else if (this.type == 'object' && this.value instanceof Appacitive.GeoCoord) return value.toString();
+            else return "'" + this.value.toString() + "'"
         };
     };
 
@@ -352,91 +352,26 @@
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isEqualTo });
         };
 
-        context.equalToNumber = function(value){
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isEqualTo });
-        };
-
-        context.equalToDate = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isEqualTo });
-        };
-
-        context.equalToTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isEqualTo });
-        };
-
-        context.equalToDateTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isEqualTo });
-        };
-
 
         /* Helper functions for GreaterThan */
         context.greaterThan = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isGreaterThan });
-        };
-
-        context.greaterThanDate = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isGreaterThan });
-        };
-
-        context.greaterThanTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isGreaterThan });
-        };
-
-        context.greaterThanDateTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isGreaterThan });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThan });
         };
 
 
         /* Helper functions for GreaterThanEqualTo */
         context.greaterThanEqualTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isGreaterThanEqualTo });
-        };
-
-        context.greaterThanEqualToDate = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isGreaterThanEqualTo });
-        };
-
-        context.greaterThanEqualToTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isGreaterThanEqualTo });
-        };
-
-        context.greaterThanEqualToDateTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isGreaterThanEqualTo });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThanEqualTo });
         };
 
         /* Helper functions for LessThan */
         context.lessThan = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isLessThan });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThan });
         };
-
-        context.lessThanDate = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isLessThan });
-        };
-
-        context.lessThanTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isLessThan });
-        };
-
-        context.lessThanDateTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isLessThan });
-        };
-
 
         /* Helper functions for LessThanEqualTo */
         context.lessThanEqualTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value, 'number'), operator: _operators.isLessThanEqualTo });
-        };
-
-        context.lessThanEqualToDate = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateFieldValue(value), operator: _operators.isLessThanEqualTo });
-        };
-
-        context.lessThanEqualToTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _timeFieldValue(value), operator: _operators.isLessThanEqualTo });
-        };
-
-        context.lessThanEqualToDateTime = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _dateTimeFieldValue(value), operator: _operators.isLessThanEqualTo });
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThanEqualTo });
         };
 
         /* Helper functions for string operations */
@@ -462,19 +397,7 @@
 
         /* Helper functions for between */
         context.between = function(val1, val2) {
-            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1, 'number'), val2: new _primitiveFieldValue(val2, 'number'), operator: _operators.between });
-        };
-
-        context.betweenDate = function(val1, val2) {
-            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _dateFieldValue(val1), val2: new _dateFieldValue(val2), operator: _operators.between });
-        };
-
-        context.betweenTime = function(val1, val2) {
-            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _timeFieldValue(val1), val2: new _timeFieldValue(val2), operator: _operators.between });
-        };
-
-        context.betweenDateTime = function(val1, val2) {
-            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _dateTimeFieldValue(val1), val2: new _dateTimeFieldValue(val2), operator: _operators.between });
+            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1), val2: new _primitiveFieldValue(val2), operator: _operators.between });
         };
 
         /*Helper functionf for geolocation search */

@@ -2,14 +2,16 @@
   
   "use strict";
 
-  global.Appacitive.Date = {};
+  var Appacitive = global.Appacitive;
+  
+  Appacitive.Date = {};
 
   var pad = function (n) {
       if (n < 10) return '0' + n;
       return n;
   };
 
-  global.Appacitive.Date.parseISODate = function (str) {
+  Appacitive.Date.parseISODate = function (str) {
     try {
         var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
 
@@ -36,7 +38,7 @@
     } catch(e) {return null;}
   };
 
-  global.Appacitive.Date.toISOString = function (date) {
+  Appacitive.Date.toISOString = function (date) {
     try {
       date = date.toISOString();
       date = date.replace('Z','0000Z');
@@ -44,12 +46,12 @@
     } catch(e) { return null;}
   };
 
-  global.Appacitive.Date.toISODate = function(date) {
+  Appacitive.Date.toISODate = function(date) {
     if (date instanceof Date) return String.format("{0}-{1}-{2}", date.getFullYear(), pad((date.getMonth() + 1)), pad(date.getDate()));
     throw new Error("Invalid date provided Appacitive.Date.toISODate method");
   };
 
-  global.Appacitive.Date.toISOTime = function(date) {
+  Appacitive.Date.toISOTime = function(date) {
     var padMilliseconds = function (n) {
                 if (n < 10) return n + '000000';
            else if (n < 100) return n + '00000';
@@ -63,7 +65,7 @@
     throw new Error("Invalid date provided Appacitive.Date.toISOTime method");
   };
 
-  global.Appacitive.Date.parseISOTime = function(str) {
+  Appacitive.Date.parseISOTime = function(str) {
     try {
       var date = new Date();
     

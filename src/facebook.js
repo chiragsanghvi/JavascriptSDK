@@ -2,6 +2,8 @@
 
  	"use strict";
 
+ 	var Appacitive = global.Appacitive;
+ 	
     var _browserFacebook = function() {
 
 		var _accessToken = null;
@@ -70,7 +72,7 @@
 			
 			try {
 				FB.logout(function() {
-					global.Appacitive.Users.logout();
+					Appacitive.Users.logout();
 					promise.fulfill();
 				});
 			} catch(e) {
@@ -142,11 +144,11 @@
 		};
 
 		this.logout = function() {
-			global.Appacitive.Facebook.accessToken = "";
+			Appacitive.Facebook.accessToken = "";
 			return new Appacitive.Promise().fulfill();
 		};
 	};
 
-	global.Appacitive.Facebook = global.Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
+	Appacitive.Facebook = Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
 
 })(global);

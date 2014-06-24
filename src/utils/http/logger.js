@@ -2,65 +2,71 @@
 
     "use strict";
 
-    global.Appacitive.logs = [];
+    var Appacitive = global.Appacitive;
 
-    global.Appacitive.logs.errors = [];
+    Appacitive.logs = {};
 
-    global.Appacitive.logs.exceptions = []; 
+    var invoke = function(callback, log) {
+    	setTimeout(function() {
+	    	try { callback.call({}, log); } catch(e) {}
+	    }, 0);
+	};
 
-	global.Appacitive.logs.logRequest = function(request, response, status, type) {
-		if (global.Appacitive.log) {
-			response = response || {};
-			status = status || {};
-			var body = JSON.parse(request.data);
-	    	var log = {
-	    		status: type,
-	    		referenceId: status.referenceid,
-	    		date: new Date().toISOString(),
-	    		method: body['m'],
-	    		url: request.url,
-	    		responseTime : request.timeTakenInMilliseconds,
-	    		headers: {},
-	    		request: null,
-	    		response: response
-			};
+	Appacitive.logs.logRequest = function(request, response, status, type) {
+		response = response || {};
+		status = status || {};
+		var body = {};
+		try {
+			body = JSON.parse(request.data) ;
+			if (!_type.isObject(body)) body = {};
+		} catch(e) {}
 
-			if (request.headers) {
-				request.headers.forEach(function(h) {
-					log.headers[h.key] = h.value;
-				});
-			}
+    	var log = {
+    		status: type,
+    		referenceId: status.referenceid,
+    		date: new Date().toISOString(),
+    		method: body['m'],
+    		url: decodeURIComponent(request.url),
+    		responseTime : request.timeTakenInMilliseconds,
+    		headers: {},
+    		request: null,
+    		response: response,
+    		description: request.description
+		};
 
-			if (request.prevHeaders) {
-				request.prevHeaders.forEach(function(h) {
-					log.headers[h.key] = h.value;
-				});
-			}
+		if (request.headers) {
+			request.headers.forEach(function(h) {
+				log.headers[h.key] = h.value;
+			});
+		}
 
-			if (log.method !== 'GET') {
-		    	log.request = body['b'];
+		if (request.prevHeaders) {
+			request.prevHeaders.forEach(function(h) {
+				log.headers[h.key] = h.value;
+			});
+		}
+
+		if (log.method !== 'GET') {
+	    	log.request = body['b'];
+	    }
+
+    	if (type == 'error') {
+    		if (Appacitive.runtime.isBrowser) console.dir(log);
+
+		    if (_type.isFunction(Appacitive.logs.apiErrorLog)) {
+		    	invoke(Appacitive.logs.apiErrorLog, log);
 		    }
-	    	
-	    	if (type == 'error') {
-	    		console.dir(log);
-	    		this.errors.push(log);
-		    }
-		    this.push(log);
+	    }
+
+	    if (_type.isFunction(Appacitive.logs.apiLog)) {
+	    	invoke(Appacitive.logs.apiLog, log);
 	    }
 	};    
 
-	var getLogs = function(log, method) {
-		var logs = [];
-		log.forEach(function(l) { if (l.method == method) logs.push(l); });
-		return logs;
+	Appacitive.logs.logException = function(error) {  
+		if (_type.isFunction(Appacitive.logs.exceptionLog)) {
+			invoke(Appacitive.logs.exceptionLog, error);
+		}
 	};
-
-	global.Appacitive.logs.getPutLogs = function() { return getLogs(this, 'PUT'); };
-
-	global.Appacitive.logs.getGetLogs = function() { return getLogs(this, 'GET'); };
-
-	global.Appacitive.logs.getPostLogs = function() { return getLogs(this, 'POST'); };
-
-	global.Appacitive.logs.getDeleteLogs = function() { return getLogs(this, 'DELETE'); };
 
 })(global);

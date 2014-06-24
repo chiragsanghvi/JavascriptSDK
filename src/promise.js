@@ -19,9 +19,11 @@
 
     "use strict";
 
+    var Appacitive = global.Appacitive;
+
     var setImmediate;
 
-    if (global.Appacitive.runtime.isNode) {
+    if (Appacitive.runtime.isNode) {
         setImmediate = process.nextTick;
     } else {
         setImmediate = setTimeout;
@@ -64,10 +66,9 @@
                 try {
                     value = then[state].apply(promise, this.value);  
                 } catch(error) {
-                    if (global.Appacitive.log) {
-                        global.Appacitive.logs.exceptions.push(error);
-                        console.log(JSON.stringify({name: error.name, message: error.message, stack: error.stack}, null, 2));
-                    }   
+                    var err = {name: error.name, message: error.message, stack: error.stack};
+                    Appacitive.logs.logException(err);
+                    
                     if (promise.calls.length == 0) throw error;
                     else promise.reject(error);
                 }
@@ -139,7 +140,7 @@
         var promise = new Promise();
 
         /* If no task found then simply fulfill the promise */
-        if (!task) {
+        if (!task || (_type.isArray(task) && task.length == 0)) {
             promise.fulfill(values);
             return promise;
         }
@@ -150,9 +151,9 @@
             if (numDone == total) {
                 if (!promise.state) {
                     if (reasons.length > 0) {
-                        promise.reject(reasons, values);
+                        promise.reject(reasons, values ? values : []);
                     } else {
-                        promise.fulfill(values);
+                        promise.fulfill(values ? values : []);
                     }
                 }
             }
@@ -215,6 +216,15 @@
         return promise;
     };
 
-    global.Appacitive.Promise = Promise;
+    Promise._continueUntil = function(iterator, func) {
+        if (_type.isFunction(iterator) && iterator()) {
+            return func().then(function() {
+                return Promise._continueUntil(iterator, func);
+            });
+        }
+        return new Promise().fulfill();
+    };
+
+    Appacitive.Promise = Promise;
 
 })(global);

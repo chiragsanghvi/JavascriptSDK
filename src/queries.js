@@ -2,7 +2,9 @@
 
 	"use strict";
 
-	global.Appacitive.Queries = {};
+	var Appacitive = global.Appacitive;
+
+	Appacitive.Queries = {};
 
 	// basic query for contains pagination
 	/** 
@@ -96,20 +98,23 @@
 		
 		var self = this;
 
-		//define getter for type (object/connection)
+		// 
+		if (options.entity) this.entity = options.entity;
+
+		// define getter for type (object/connection)
 		this.type = function() { return _etype; };
 
-		//define getter for basetype (type/relation)
+		// define getter for basetype (type/relation)
 		this.entityType = function() { return _entityType; };
 
-		//define getter for querytype (basic,connectedobjects etc)
+		// define getter for querytype (basic,connectedobjects etc)
 		this.queryType = function() { return _queryType; };
 
-		//define getter for pagequery 
+		// define getter for pagequery 
 		this.pageQuery = function() { return _pageQuery; };
 
 		
-		//define getter and setter for pageNumber
+		// define getter and setter for pageNumber
 		this.pageNumber =  function() { 
 			if (arguments.length === 1) {
 				_pageQuery.pageNumber(arguments[0]);
@@ -118,7 +123,7 @@
 			return _pageQuery.pageNumber(); 
 		};
 
-		//define getter and setter for pageSize
+		// define getter and setter for pageSize
 		this.pageSize =  function() { 
 			if (arguments.length === 1) {
 				_pageQuery.pageSize(arguments[0]);
@@ -127,10 +132,10 @@
 			return _pageQuery.pageSize(); 
 		};
 
-		//define getter for sortquery
+		// define getter for sortquery
 		this.sortQuery = function() { return _sortQuery; };
 
-		//define getter and setter for orderby
+		// define getter and setter for orderby
 		this.orderBy =  function() { 
 			if (arguments.length === 1) {
 				_sortQuery.orderBy(arguments[0]);
@@ -139,7 +144,7 @@
 			return _sortQuery.orderBy(); 
 		};
 
-		//define getter and setter for isAscending
+		// define getter and setter for isAscending
 		this.isAscending =  function() { 
 			if (arguments.length === 1) {
 				_sortQuery.isAscending(arguments[0]);
@@ -148,7 +153,7 @@
 			return _sortQuery.isAscending(); 
 		};
 
-		//define getter and setter for filter
+		// define getter and setter for filter
 		this.filter =  function() { 
 			if (arguments.length === 1) {
 				_filter = arguments[0];
@@ -157,7 +162,7 @@
 			return _filter; 
 		};		
 		
-		//define getter and setter for freetext
+		// define getter and setter for freetext
 		this.freeText =  function() { 
 			if (arguments.length === 1) {
 				var value = arguments[0];
@@ -168,7 +173,7 @@
 			return _freeText; 
 		};		
 		
-		
+		// define fields
 		this.fields = function() {
 			if (arguments.length === 1) {
 				var value = arguments[0];
@@ -180,7 +185,7 @@
 			}
 		};
 
-		//set filters , freetext and fields
+		// set filters , freetext and fields
 		this.filter(options.filter || '');
 		this.freeText(options.freeText || '');
 		this.fields(options.fields || '');
@@ -224,12 +229,18 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString();
+			return {
+				url: Appacitive.config.apiBaseUrl + _etype + '/' + _entityType + '/find/all?' + this.getQueryString(),
+				description: 'FindAll ' + _entityType + ' ' + _etype + 's'
+			}
 		};
 
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+		this.toRequest = function(options) {
+			var r = new Appacitive.HttpRequest();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.options = options;
+			r.description = obj.description;
             r.method = 'get';
 			return r;
 		};
@@ -262,53 +273,84 @@
 			}
 		};
 
-		var _parse = function(entities) {
+		var _parse = function(entities, metadata) {
 			var entityObjects = [];
 			if (!entities) entities = [];
 			var eType = (_etype === 'object') ? 'Object' : 'Connection';
-			
-			if (_entityType && _entityType.toLowerCase() == 'user') eType = 'User';
-			
-			entities.forEach(function(e) {
-				entityObjects.push(new global.Appacitive[eType](e, true));
-			});
 
-			return entityObjects;
+			return Appacitive[eType]._parseResult(entities, options.entity, metadata);
 		};
 
-		this.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.fetch = function(opts) {
+			var promise = Appacitive.Promise.buildPromise(opts);
 
-			var request = this.toRequest();
+			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-			   self.results = _parse(d[_etype + 's']);
+			   self.results = _parse(d[_etype + 's'], d.__meta);
 			   self._setPaging(d.paginginfo);
 
 			   promise.fulfill(self.results, d.paginginfo);
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 
-		this.fetchNext = function(callbacks) {
+		/**
+	     * Returns a new instance of Appacitive.Collection backed by this query.
+	     * @param {Array} items An array of instances of <code>Appacitive.Object</code>
+	     *     with which to start this Collection.
+	     * @param {Object} options An optional object with Backbone-style options.
+	     * Valid options are:<ul>
+	     *   <li>model: The Appacitive.Object subclass that this collection contains.
+	     *   <li>query: An instance of Appacitive.Queries to use when fetching items.
+	     *   <li>comparator: A string property name or function to sort by.
+	     * </ul>
+	     * @return {Appacitive.Collection}
+	     */
+	    this.collection = function(items, opts) {
+			opts = opts || {};
+			items = items;
+			if (_type.isObject(items)) opts = items, items = null;
+
+			if (!items) items = this.results ? this.results : [];
+
+			var model = options.entity;
+
+			if (!model && items.length > 0 && items[0] instanceof Appacitive.BaseObject) {
+				var eType = items[0].type == 'object'  ? 'Object' : 'Connection';
+				model = Appacitive[eType]._getClass(items[0].className);
+			}
+
+			if (!model) {
+				var eType = (_etype === 'object') ? 'Object' : 'Connection';
+				model = Appacitive[eType]._getClass(this[eType]);
+			}
+
+			return new Appacitive.Collection(items, _extend(opts, {
+				model: model,
+				query: this
+			}));
+	    };
+
+		this.fetchNext = function(options) {
 			var pNum = this.pageNumber();
 			this.pageNumber(++pNum);
-			return this.fetch(callbacks);
+			return this.fetch(options);
 		};
 
-		this.fetchPrev = function(callbacks) {
+		this.fetchPrev = function(options) {
 			var pNum = this.pageNumber();
 			pNum -= 1;
 			if (pNum <= 0) pNum = 1;
 			this.pageNumber(pNum);
-			return this.fetch(callbacks);
+			return this.fetch(options);
 		};
 
-		this.count = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.count = function(options) {
+			var promise = Appacitive.Promise.buildPromise(options);
 
-			var _queryRequest = this.toRequest();
+			var _queryRequest = this.toRequest(options);
 			_queryRequest.onSuccess = function(data) {
 				data = data || {};
 				var pagingInfo = data.paginginfo;
@@ -323,35 +365,39 @@
 			};
 			_queryRequest.promise = promise;
 			_queryRequest.entity = this;
-			return global.Appacitive.http.send(_queryRequest);
+			return Appacitive.http.send(_queryRequest);
 		};
 	};
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.FindAllQuery = function(options) {
+	Appacitive.Query = BasicQuery;
+
+	/** 
+	* @constructor
+	**/
+	Appacitive.Queries.FindAllQuery = function(options) {
 
 		options = options || {};
 
-		if ((!options.type && !options.relation) || (options.type && options.relation)) 
-		    throw new Error('Specify either type or relation for basic filter query');
+		if (!options.type && !options.relation) throw new Error('Specify either type or relation for basic filter query');
 
-		options.queryType = 'BasicFilterQuery';
+		options.queryType = 'FindAllQuery';
 
 		BasicQuery.call(this, options);
 
 		return this;
 	};
 
-	global.Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
+	Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.FindAllQuery.prototype.constructor = global.Appacitive.Queries.FindAllQuery;
+	Appacitive.Queries.FindAllQuery.prototype.constructor = Appacitive.Queries.FindAllQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.ConnectedObjectsQuery = function(options) {
+	Appacitive.Queries.ConnectedObjectsQuery = function(options) {
 
 		options = options || {};
 
@@ -369,37 +415,34 @@
 		this.objectId = options.objectId;
 		this.relation = options.relation;
 		this.type = type;
-		if (options.object instanceof global.Appacitive.Object) this.object = options.object;
+		if (options.object instanceof Appacitive.Object) this.object = options.object;
 
 		this.returnEdge = true;
-		if (options.returnEdge !== undefined && options.returnEdge !== null && !options.returnEdge && !this.prev) this.returnEdge = false;
+		if (options.returnEdge !== undefined && options.returnEdge !== null && !options.returnEdge) this.returnEdge = false;
 		
 		this.label = '';
 		var self = this;
 
 		if (_type.isString(options.label) && options.label.length > 0) this.label = '&label=' + options.label;
 
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
-			r.method = 'get';
-			return r;
-		};
-
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
-				this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge;
+			return {
+				url: Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/' + this.type + '/' + this.objectId + '/find?' +
+						this.getQueryString() + this.label + '&returnEdge=' + this.returnEdge,
+				description: 'GetConnectedObjects for relation ' + this.relation + ' of type ' + this.type + ' for object ' + this.objectId
+			}; 
 		};
 
 
-		var parseNodes = function(nodes, endpointA) {
+		var parseNodes = function(nodes, endpointA, nodeMeta, edgeMeta) {
 			var objects = [];
 			nodes.forEach(function(o) {
-				var tmpObject = null;
-				if (o.__edge) {
-					var edge = o.__edge;
-					delete o.__edge;
+				var edge = o.__edge;
+				delete o.__edge;
 
+				var tmpObject = Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
+
+				if (edge) {
 					edge.__endpointa = endpointA;
 					edge.__endpointb = {
 						objectid: o.__id,
@@ -407,12 +450,7 @@
 						type: o.__type
 					};
 					delete edge.label;
-
-					var connection = new global.Appacitive.Connection(edge, true);
-					tmpObject = new global.Appacitive.Object(o, true);
-					tmpObject.connection = connection;
-				} else {
-					tmpObject = new global.Appacitive.Object(o, true);
+					tmpObject.connection = Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
 				}
 				objects.push(tmpObject);
 			});
@@ -422,35 +460,33 @@
 			return objects;
 		};
 
-		this.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.fetch = function(opts) {
+			var promise = Appacitive.Promise.buildPromise(opts);
 			
-			var request = this.toRequest();
+			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
 			    var _parse = parseNodes;
-			    if (self.prev) _parse = prevParseNodes;
-
-			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent });
+			    self.results = _parse(d.nodes ? d.nodes : [], { objectid : options.objectId, type: type, label: d.parent }, d.__nodemeta, d.__edgemeta);
 		   	    self._setPaging(d.paginginfo);
 
 		   	    promise.fulfill(self.results, d.paginginfo);   
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 
 		return this;
 	};
 
-	global.Appacitive.Queries.ConnectedObjectsQuery.prototype = new BasicQuery();
+	Appacitive.Queries.ConnectedObjectsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.ConnectedObjectsQuery.prototype.constructor = global.Appacitive.Queries.ConnectedObjectsQuery;
+	Appacitive.Queries.ConnectedObjectsQuery.prototype.constructor = Appacitive.Queries.ConnectedObjectsQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GetConnectionsQuery = function(options) {
+	Appacitive.Queries.GetConnectionsQuery = function(options) {
 
 		options = options || {};
 
@@ -467,33 +503,31 @@
 		this.relation = options.relation;
 		this.label = options.label;
 
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
-			r.method = 'get';
-			return r;
-		};
-
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
+			return {
+				url: Appacitive.config.apiBaseUrl + 'connection/' + this.relation + '/find/all?' +
 				this.getQueryString() + 
 				'&objectid=' + this.objectId +
-				'&label=' + this.label;
+				'&label=' + this.label,
+				description: 'FindAllConnections for relation ' + this.relation + ' from object id '  + this.objectId
+			};
 		};
 
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsQuery.prototype = new BasicQuery();
+	Appacitive.Queries.GetConnectionsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.GetConnectionsQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsQuery;
+	Appacitive.Queries.GetConnectionsQuery.prototype.constructor = Appacitive.Queries.GetConnectionsQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery = function(options, queryType) {
+	Appacitive.Queries.GetConnectionsBetweenObjectsQuery = function(options, queryType) {
 
 		options = options || {};
+
+		delete options.entity;
 
 		if (!options.objectAId || !_type.isString(options.objectAId) || options.objectAId.length === 0) throw new Error('Specify valid objectAId for GetConnectionsBetweenObjectsQuery query');
 		if (!options.objectBId || !_type.isString(options.objectBId) || options.objectBId.length === 0) throw new Error('Specify objectBId for GetConnectionsBetweenObjectsQuery query');
@@ -507,47 +541,44 @@
 		this.objectBId = options.objectBId;
 		this.label = (this.queryType() === 'GetConnectionsBetweenObjectsForRelationQuery' && options.label && _type.isString(options.label) && options.label.length > 0) ? '&label=' + options.label : '';
 		this.relation = (options.relation && _type.isString(options.relation) && options.relation.length > 0) ? options.relation + '/' : '';
-		
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
-			r.method = 'get';
-			return r;
-		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
-				+ this.getQueryString() + this.label;
+			return {
+				url: Appacitive.config.apiBaseUrl + 'connection/' + this.relation + 'find/' + this.objectAId + '/' + this.objectBId + '?'
+							+ this.getQueryString() + this.label,
+				description: 'FindConnectionBetween for relation ' + this.relation + ' between object ids '  + this.objectAId + ' and ' + this.objectBId
+			};
 		};
 
 		return this;
 	};
 
-	global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype = new BasicQuery();
+	Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype.constructor = global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery;
+	Appacitive.Queries.GetConnectionsBetweenObjectsQuery.prototype.constructor = Appacitive.Queries.GetConnectionsBetweenObjectsQuery;
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery = function(options) {
+	Appacitive.Queries.GetConnectionsBetweenObjectsForRelationQuery = function(options) {
 		
 		options = options || {};
 		
 		if (!options.relation) throw new Error('Specify relation for GetConnectionsBetweenObjectsForRelationQuery query');
 		
-		var inner = new global.Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options, 'GetConnectionsBetweenObjectsForRelationQuery');
+		var inner = new Appacitive.Queries.GetConnectionsBetweenObjectsQuery(options, 'GetConnectionsBetweenObjectsForRelationQuery');
 
-		inner.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		inner.fetch = function(opts) {
+			var promise = Appacitive.Promise.buildPromise(opts);
 
-			var request = this.toRequest();
+			var request = this.toRequest(opts);
 			request.onSuccess = function(d) {
-				promise.fulfill(d.connection ? new global.Appacitive.Connection(d.connection, true) :  null);
+				inner.results = d.connection ? [Appacitive.Connection._create(_extend({ __meta: d.__meta }, d.connection), true, options.entity)] :  null
+				promise.fulfill(inner.results ? inner.results[0] : null);
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 
 		return inner;
@@ -556,9 +587,11 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.InterconnectsQuery = function(options) {
+	Appacitive.Queries.InterconnectsQuery = function(options) {
 
 		options = options || {};
+
+		delete options.entity;
 
 		if (!options.objectAId || !_type.isString(options.objectAId) || options.objectAId.length === 0) throw new Error('Specify valid objectAId for InterconnectsQuery query');
 		if (!options.objectBIds || !_type.isArray(options.objectBIds) || !(options.objectBIds.length > 0)) throw new Error('Specify list of objectBIds for InterconnectsQuery query');
@@ -571,9 +604,12 @@
 		this.objectAId = options.objectAId;
 		this.objectBIds = options.objectBIds;
 		
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+		this.toRequest = function(options) {
+			var r = new Appacitive.HttpRequest();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.options = options;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = {
 				object1id: this.objectAId,
@@ -583,22 +619,25 @@
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString();
+			return {
+				url: Appacitive.config.apiBaseUrl + 'connection/interconnects?' + this.getQueryString(),
+				description: 'GetInterConnections between objects'
+			};
 		};
 
 		return this;
 	};
 
-	global.Appacitive.Queries.InterconnectsQuery.prototype = new BasicQuery();
+	Appacitive.Queries.InterconnectsQuery.prototype = new BasicQuery();
 
-	global.Appacitive.Queries.InterconnectsQuery.prototype.constructor = global.Appacitive.Queries.InterconnectsQuery;
+	Appacitive.Queries.InterconnectsQuery.prototype.constructor = Appacitive.Queries.InterconnectsQuery;
 
 
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphFilterQuery = function(name, placeholders) {
-
+	Appacitive.Queries.GraphQuery = function(name, placeholders) {
+		
 		if (!name || name.length === 0) throw new Error("Specify name of filter query");
 		
 		this.name = name;
@@ -612,28 +651,34 @@
 			}
 		}
 		
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+		this.toRequest = function(options) {
+			var r = new Appacitive.HttpRequest();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.options = options;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter';
+			return {
+				url: Appacitive.config.apiBaseUrl + 'search/' + this.name + '/filter',
+				description: 'Filter Query with name ' + this.name
+			};
 		};
 
-		this.fetch = function(callbacks) {
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
+		this.fetch = function(options) {
+			var promise = Appacitive.Promise.buildPromise(options);
 
-			var request = this.toRequest();
+			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
 		   		promise.fulfill(d.ids ? d.ids : []);
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 
 	};
@@ -641,7 +686,7 @@
 	/** 
 	* @constructor
 	**/
-	global.Appacitive.Queries.GraphProjectQuery = function(name, ids, placeholders) {
+	Appacitive.Queries.GraphAPI = function(name, ids, placeholders) {
 
 		if (!name || name.length === 0) throw new Error("Specify name of project query");
 		if (!ids || !ids.length) throw new Error("Specify ids to project");
@@ -649,6 +694,7 @@
 		this.name = name;
 		this.data = { ids: ids };
 		this.queryType = 'GraphProjectQuery';
+		var self = this;
 
 		if (placeholders) { 
 			this.data.placeholders = placeholders;
@@ -657,16 +703,22 @@
 			}
 		}
 
-		this.toRequest = function() {
-			var r = new global.Appacitive.HttpRequest();
-			r.url = this.toUrl();
+		this.toRequest = function(options) {
+			var r = new Appacitive.HttpRequest();
+			var obj = this.toUrl();
+			r.url = obj.url;
+			r.description = obj.description;
 			r.method = 'post';
 			r.data = this.data;
+			r.options = options;
 			return r;
 		};
 
 		this.toUrl = function() {
-			return global.Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project';
+			return {
+				url: Appacitive.config.apiBaseUrl + 'search/' + this.name + '/project',
+				description: 'Project Query with name ' + this.name
+			};
 		};
 
 		var _parseResult = function(result) {
@@ -677,7 +729,7 @@
 					break;
 				}
 			}
-			var parseChildren = function(obj, parentLabel, parentId) {
+			var parseChildren = function(obj, parentLabel, parentId, nodeMeta, edgeMeta) {
 				var props = [];
 				obj.forEach(function(o) {
 					var children = o.__children;
@@ -686,11 +738,11 @@
 					var edge = o.__edge;
 					delete o.__edge;
 
-					var tmpObject = new global.Appacitive.Object(o, true);
+					var tmpObject = Appacitive.Object._create(_extend({ __meta: nodeMeta }, o), true);
 					tmpObject.children = {};
 					for (var key in children) {
 						tmpObject.children[key] = [];
-						tmpObject.children[key] = parseChildren(children[key].values, children[key].parent, tmpObject.id);
+						tmpObject.children[key] = parseChildren(children[key].values, children[key].parent, tmpObject.id, children[key].__nodemeta, children[key].__edgemeta);
 					}
 
 					if (edge) {
@@ -699,30 +751,51 @@
 							label: parentLabel
 						};
 						edge.__endpointb = {
-							objectid: tmpObject.id(),
+							objectid: tmpObject.id,
 							label: edge.__label
 						};
 						delete edge.__label;
-						tmpObject.connection = new global.Appacitive.Connection(edge, true);
+						tmpObject.connection = Appacitive.Connection._create(_extend({ __meta: edgeMeta }, edge), true);
 					}
 					props.push(tmpObject);
 				});
 				return props;
 			};
-			return parseChildren(root.values);
+			return parseChildren(root.values, null, null, root.__nodemeta);
 		};
 
-		this.fetch = function(callbacks) {
-			
-			var promise = global.Appacitive.Promise.buildPromise(callbacks);
 
-			var request = this.toRequest();
+		this.collection = function(items, opts) {
+			opts = opts || {};
+			items = items;
+			if (_type.isObject(items)) opts = items, items = null;
+
+			if (!items) items = this.results ? ths.results : [];
+
+			var model;
+
+			if (items.length > 0 && items[0] instanceof Appacitive.BaseObject) {
+				model = Appacitive.Object._getClass(items[0].className);
+			}
+
+			return new Appacitive.Collection(items, _extend(opts, {
+				model: model,
+				query: this
+			}));
+	    };
+
+		this.fetch = function(options) {
+			
+			var promise = Appacitive.Promise.buildPromise(options);
+
+			var request = this.toRequest(options);
 			request.onSuccess = function(d) {
-		   		promise.fulfill(_parseResult(d));
+				self.results = _parseResult(d);
+		   		promise.fulfill(self.results);
 			};
 			request.promise = promise;
 			request.entity = this;
-			return global.Appacitive.http.send(request);
+			return Appacitive.http.send(request);
 		};
 	};
 

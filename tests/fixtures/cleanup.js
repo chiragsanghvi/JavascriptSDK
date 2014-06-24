@@ -18,7 +18,7 @@ asyncTest('Cleaning up objects of type user by fetching them using "users" filte
 	//Authenticate current user
     Appacitive.Users.login('chiragsanghvi', 'test123!@#').then(function(data) {
     	//Fetch all users except admin user
-    	var query = new Appacitive.Queries.GraphFilterQuery('users');
+    	var query = new Appacitive.Queries.GraphQuery('users');
     	return query.fetch();
     }).then(function(ids) {
     	total = ids.length;
@@ -42,6 +42,7 @@ asyncTest('Cleaning up objects of type user by fetching them using "users" filte
     		ok(false, 'Could not fetch objects for type user');
     	} else {
     		var numFailures = 0;
+    		data = data || [];
 			data.forEach(function(v) { if (v) ++numFailures; });
 			ok(false, 'Object delete failed for ' + numFailures + '/' + total +' objects');
     	}
@@ -71,6 +72,7 @@ asyncTest('Cleaning up objects of type school', function() {
 	}, function(reasons, values) {
 		if (tasks.length > 0) {
 			var deleted = 0;
+			values = values || [];
 			values.forEach(function(v) { if (v) ++deleted; });
 			ok(false, deleted + ' of ' + total + ' objects of school deleted.');
 		} else {
@@ -103,8 +105,8 @@ asyncTest('Cleaning up connections of relation myschool', function() {
 	}, function(reasons, values) {
 		if (tasks.length > 0) {
 			var deleted = 0;
+			values = values || [];
 			values.forEach(function(v) { if (v) ++deleted; });
-
 			ok(false, deleted + ' of ' + total + ' connections of myschool deleted.');
 		} else {
 			ok(false, 'Could not fetch connections for relation myschool');
@@ -126,7 +128,7 @@ asyncTest('Cleaning up connections of relation userprofile using multiDelete', f
 			return Appacitive.Promise().fulfill();
 		} else {
 			connections.forEach(function (con) {
-				ids.push(con.id());
+				ids.push(con.id);
 			});
 			return Appacitive.Connection.multiDelete({
 				relation: 'userprofile',
@@ -139,6 +141,7 @@ asyncTest('Cleaning up connections of relation userprofile using multiDelete', f
 	}, function(reasons, values) {
 		if (ids.length > 0) {
 			var deleted = 0;
+			values = values || [];
 			values.forEach(function(v) { if (v) ++deleted; });
 			ok(false, deleted + ' of ' + total + ' connections of userprofile.');
 		} else {
@@ -163,7 +166,7 @@ asyncTest('Cleaning up objects of type profile using multidelete', function() {
 			return Appacitive.Promise().fulfill();
 		} else {
 			objects.forEach(function (object) {
-				ids.push(object.id());
+				ids.push(object.id);
 			});
 			//Multidelete them
 			return Appacitive.Object.multiDelete({
@@ -177,6 +180,7 @@ asyncTest('Cleaning up objects of type profile using multidelete', function() {
 	}, function(reasons, values) {
 		if (ids.length > 0) {
 			var deleted = 0;
+			values = values || [];
 			values.forEach(function(v) { if (v) ++deleted; });
 			ok(false, deleted + ' of ' + total + ' objects of profile.');
 		} else {

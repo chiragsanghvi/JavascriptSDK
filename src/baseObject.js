@@ -2,113 +2,292 @@
 
 	"use strict";
 
+	var Appacitive = global.Appacitive;
+
+	//Fields on which set operation is allowed
+	var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
+
+	var _allowObjectEncode = ["__endpointa", "__endpointb"];
+
+	var __privateMeta = { "__utcdatecreated": "datetime", "__utclastupdateddate": "datetime" };
+
+	var isString = function(val) {
+		return (_type.isString(val) || _type.isNumber(val) || _type.isBoolean(val));
+	};
+
+	var isGeocode = function(val) {
+		return (val instanceof Appacitive.GeoCoord);
+	};
+
+	var isEncodable = function(val) {
+		return (isString(val) || _type.isDate(val) || isGeocode(val));
+	};
+
+	var getMeta = function(attrs) {
+		attrs = attrs || {};
+		var meta = {};
+		for (var m in attrs.__meta) {
+			attrs.__meta[m].forEach(function(p) {
+				meta[p] = m;
+			});
+		}
+
+		return meta;
+	};
+
+	var _types = {
+		"integer": function(value) { 
+			if (value) {
+				var res = parseInt(value);
+				if (!isNaN(res)) return res;
+			}
+			return value;
+		}, "decimal": function(value) { 
+			if (value) {
+				var res = parseFloat(value);
+				if (!isNaN(res)) return res;
+			}
+			return value;
+		}, "boolean": function(value) { 
+			if (_type.isBoolean(value)) return value;
+			if (value !== undefined && value !== null && (value.toString().toLowerCase() === 'true' || value === true || value > 0)) return true;
+			return false;
+		}, "date": function(value) { 
+			if (_type.isDate(value)) return value;
+			if (value) {
+				var res = Appacitive.Date.parseISODate(value);
+				if (res) return res;
+			}
+			return value;
+		}, "datetime": function(value) { 
+			if (_type.isDate(value)) return value;
+			if (value) {
+				var res = Appacitive.Date.parseISODate(value);
+				if (res) return res;
+			}
+			return value;
+		}, "time": function(value) { 
+			if (_type.isDate(value)) return value;
+			if (value) {
+				var res = Appacitive.Date.parseISOTime(value);
+				if (res) return res;
+			}
+			return value;
+		}, "string": function(value) { 
+			if (value) return value.toString();
+			return value;
+		}, "geocode": function(value) {
+
+			if (isGeocode(value)) return value;
+
+			// value is not string or its length is 0, return false
+			if (!_type.isString(value) || value.trim().length == 0) return false;
+			  
+			// Split value string by ,
+			var split = value.split(',');
+
+			// split length is not equal to 2 so return false
+			if (split.length !== 2 ) return false;
+
+			// validate the value
+			return new Appacitive.GeoCoord(split[0], split[1]);
+		}
+	};
+
+	_types["long"] = _types["integer"];
+	_types["geography"] = _types["geocode"];
+	_types["text"] = _types["string"];
+	_types["bool"] = _types["boolean"];
+
+	Appacitive.cast = _types;
+
+	var encode = function(value) {
+		if (_type.isNullOrUndefined(value)) return null; 
+	 	else if (isString(value)) return ( value + '');
+	 	else if (_type.isDate(value)) return Appacitive.Date.toISOString(value);
+	 	else if (_type.isObject(value)) {
+	 		if (isGeocode(value)) return value.toString();
+	 		return (value.toJSON ? value.toJSON() : value);
+		}
+		return value;
+	};
+
+	Appacitive._encode = function(attrs) {
+		var object = {};
+		for (var key in attrs) {
+			var value = attrs[key];
+			if (_type.isArray(value)) {
+				object[key] = [];
+				value.forEach(function(v) {
+					var val = encode(v);
+					if (val) object[key].push(val);
+				});
+			} else {
+				object[key] = encode(attrs[key]);
+			}
+		}
+		return object;
+	};
+
+	Appacitive._decode = function(attrs) {
+		var object = {}, meta = _extend({}, __privateMeta, getMeta(attrs));
+		delete attrs.__meta;
+		for (var key in attrs) {
+			if (_type.isArray(attrs[key])) {
+				object[key] = [];
+				attrs[key].forEach(function(v) {
+					var val = (meta[key]) ? _types[meta[key]](v) : v;
+					object[key].push(val);
+				});
+			} else if (_type.isString(attrs[key])) {
+				object[key] = (meta[key]) ? _types[meta[key]](attrs[key]) : attrs[key];
+			} else {
+				object[key] = attrs[key];
+			}
+		}
+		return object;
+	};
+
 	//base object for objects and connections
 	/**
 	* @constructor
 	**/
-	var _BaseObject = function(objectOptions, setSnapShot) {
+	var _BaseObject = function(objectOptions, optns) {
 
 		var _snapshot = {};
 
-		//Copy properties to current object
+		optns = optns || {};
+
+		objectOptions = objectOptions || {};
+
+	    this.meta = {};
+
+	    //set default meta
+	    objectOptions.__meta = _extend(this.meta, objectOptions.__meta);
+
+		if (optns && optns.parse) objectOptions = this.parse(objectOptions);
+		
+		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _extend({}, this.defaults, objectOptions);
+		
+	    if (optns && optns.collection) this.collection = optns.collection;
+	    
+	    objectOptions = Appacitive._decode(objectOptions);
+
+		var that = this;
+
+		//Copy properties from source to destination object
 		var _copy = function(src, des) {
-			for (var property in src) {
-				if (_type.isString(src[property])) {
-					des[property] = src[property];
-				} else if(src[property] instanceof Date){
-					des[property] = global.Appacitive.Date.toISOString(src[property]);
-				} else if (_type.isObject(src[property]))  {
+			src.__meta = _extend(that.meta, src.__meta);
+			that.meta = src.__meta;
+			_mergePrivateFields(src);
+			var obj = Appacitive._decode(src);
+			for (var property in obj) {
+
+				if (property == that.idAttribute) that.id = obj[property];
+
+				if (_atomicProps[property]) delete _atomicProps[property];
+				if (_multivaluedProps[property]) delete _multivaluedProps[property];
+				if (_setOps[property]) delete _setOps[property];
+
+				if (isEncodable(obj[property])) des[property] = obj[property];
+				else if (_type.isObject(obj[property])) des[property] = _extend({}, des[property], obj[property]);
+				else if (_type.isArray(obj[property])) {
 					
-					if (src[property] instanceof global.Appacitive.GeoCoord) {
-		 				des[property] = src[property].toString();
-		 			} else {
-
-						if (!des[property]) des[property] = {};
-
-						for (var p in src[property]) {
-							des[property][p] = src[property][p];
-						}
-					}
-				} else if (_type.isArray(src[property])) {
 					des[property] = [];
 				
-					src[property].forEach(function(v) {
-						if (_type.isString(v)) { des[property].push(v); }
-			 			else if (_type.isNumber(v) || _type.isBoolean(v)) { des[property].push(value + ''); }
-			 			else if (v instanceof Date) des[property].push(global.Appacitive.Date.toISOString(v));
-			 			else if (property == '__link') des[property].push(v);
-			 			else throw new Error("Multivalued property cannot have values of property as an object");
+					obj[property].forEach(function(v) {
+						if (isEncodable(v) || property == '__link') des[property].push(v);
+						else throw new Error("Multivalued property cannot add object or array as property of object");
 					});
 
-					if (property !== '__tags' || property !== '__link') {
-						des[property].push = function(v) {
-						  	var len = this.length;
-						  	if (_type.isString(v)) { this[len] = v; }
-				 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
-				 			else if (v instanceof Date) {
-			 					this[len] = global.Appacitive.Date.toISOString(v);
-			 				} else {
-			 					throw new Error("Multivalued property cannot have values of property as an object");
-			 				} 
-			 				return this;
-						}
-					}
 				} else {
-					des[property] = src[property];
+					des[property] = obj[property];
 				}
 			}
 		};
 
-		var that = this;
+		var _mergePrivateFields = function(attrs, del) {
+            var privateProps = ["id", "__id", "__utclastupdateddate", "__utcdatecreated", "__createdby", "__updatedby"];
+            var map = { "id": "id", "__id" : "id", "__utclastupdateddate": "lastUpdatedAt", "__utcdatecreated": "createdAt", "__createdby": "createdBy", "__updatedby": "lastUpdatedBy" };
+            privateProps.forEach(function(prop) {
+                if (attrs[prop]) {
+                    if ((prop === "__utcdatecreated" || prop === "__utclastupdateddate") && !_type.isDate(attrs[prop])) {
+                        that[map[prop]] = Appacitive.Date.parseISODate(attrs[prop]);
+                    }  else {
+                        that[map[prop]] = attrs[prop];
+                    }
+
+                    if (del) delete attrs[prop];
+                }
+            });
+        };
+
+		this.base = Appacitive.Object.prototype;
+
+		var __cid = parseInt(Math.random() * 100000000, 10);
+
+		// Set client id
+		this.cid = __cid;
+
+		// Set id attribute
+		this.idAttribute = '__id';
+
+		//atomic properties
+		var _atomicProps = {};
+
+		//mutlivalued properties
+		var _multivaluedProps = {};
+
+		//list of properties on whom set operations performed
+	    var _setOps = {};
 
 		var raw = {};
 		_copy(objectOptions, raw);
 		var object = raw;
 
 		//will be used in case of creating an appacitive object for internal purpose
-		if (setSnapShot) {
-			_copy(object, _snapshot);
-		}
+		if (optns.setSnapShot) _copy(object, _snapshot);
+		
+		if (!_snapshot[this.idAttribute] && raw[this.idAttribute]) _snapshot[this.idAttribute] = raw[this.idAttribute];
 
-		if (!_snapshot.__id && raw.__id) _snapshot.__id = raw.__id;
+		// Set id property
+		this.id = _snapshot[this.idAttribute];
 
 		//Check whether __type or __relationtype is mentioned and set type property
 		if (raw.__type) { 
 			raw.__type = raw.__type.toLowerCase();
 			this.entityType = 'type';
 			this.type = 'object';
+			this.className = raw.__type;
 		} else if (raw.__relationtype) {
 			raw.__relationtype = raw.__relationtype.toLowerCase();
 			this.entityType = 'relation';
 			this.type = 'connection';
+			this.className = raw.__relationtype;
 		}
-
-		var __cid = parseInt(Math.random() * 1000000, 10);
-
-		this.cid = __cid;
 
 		//attributes
 		if (!object.__attributes) object.__attributes = {};
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
-
-		//atomic properties
-		var _atomicProps = [];
 
 		//tags
 		var _removeTags = []; 
 		if (!object.__tags) object.__tags = [];
 		if (!_snapshot.__tags) _snapshot.__tags = [];
 
+		//set attributes property
+		this.attributes = object;
+
 		//fields to be returned
 		var _fields = '';
 
-		//Fileds to be ignored while update operation
-		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link"];
-		
-		var _allowObjectSetOperations = ["__link", "__endpointa", "__endpointb"];
+		//Set private property value in main object
+		_mergePrivateFields(this.attributes);
 
-		/* parse api output to get error info
-		   TODO: define error objects in future depending on codes and messages */
+		//Fileds to be ignored while update operation
+		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link", "__acls", "__meta"];
+		
+		// parse api output to get error info
 		var _getOutpuStatus = function(data) {
 			data = data || {};
 			data.message = data.message || 'Server error';
@@ -116,21 +295,19 @@
 			return data;
 		};
 
-		this.attributes = this.toJSON = this.getObject = function() { return JSON.parse(JSON.stringify(object)); };
+		// converts object to json representation for data transfer
+		this.toJSON = this.getObject = function() { 
+			var obj = Appacitive._encode(_extend({ __meta: this.meta }, object)); 
+			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
+            return obj;
+		};
 
+		// Returns all properties of this object
 		this.properties = function() {
-			var properties = this.attributes();
+			var properties = _extend({}, this.attributes);
 			delete properties.__attributes;
 			delete properties.__tags;
 			return properties;
-		};
-
-		this.id = function() {
-			if (arguments.length === 1) {
-				this.set('__id', arguments[0]);
-				return this;
-			}
-			return this.get('__id');	
 		};
 
 		// accessor function for the object's attributes
@@ -148,12 +325,14 @@
 				object.__attributes[arguments[0]] = arguments[1];
 			} else throw new Error('.attr() called with an incorrect number of arguments. 0, 1, 2 are supported.');
 
+			triggerChangeEvent('__attributes');
+
 			return object.__attributes;
 		};
 
 		//accessor function to get changed attributes
 		var _getChangedAttributes = function() {
-			if (!object.__attributes) return null;
+			if (!object.__attributes) return undefined;
 			if (!_snapshot.__attributes) return object.__attributes;
 
 			var isDirty = false;
@@ -169,7 +348,7 @@
 					delete changeSet[property];
 				}
 			}
-			if (!isDirty) return null;
+			if (!isDirty) return undefined;
 			return changeSet;
 		};
 
@@ -202,9 +381,16 @@
 		    object.__tags.push(tag);
 		    object.__tags = Array.distinct(object.__tags);
 
-		    if (!_removeTags || !_removeTags.length) return this;
+		    if (!_removeTags || !_removeTags.length) {
+		    	triggerChangeEvent('__tags');
+		     	return this;
+			} 
+
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
+
+			triggerChangeEvent('__tags');
+
 			return this;
 		};
 
@@ -214,14 +400,21 @@
 			_removeTags.push(tag);
 			_removeTags = Array.distinct(_removeTags);
 
-			if (!object.__tags || !object.__tags.length) return this;
+			if (!object.__tags || !object.__tags.length) {
+				triggerChangeEvent('__tags');
+				return this;
+			}
+
 			var index = object.__tags.indexOf(tag);
 			if (index != -1) object.__tags.splice(index, 1);
+
+			triggerChangeEvent('__tags');
+
 			return this;
 		};
 
 		var _getChangedTags = function() {
-			if (!object.__tags) return [];
+			if (!object.__tags) return undefined;
 			if (!_snapshot.__tags) return object.__tags;
 
 			var _tags = [];
@@ -229,29 +422,134 @@
 				if (_snapshot.__tags.indexOf(a) == -1)
 					_tags.push(a);
 			});
-			return _tags.length > 0 ? _tags : null;
+			return _tags.length > 0 ? _tags : undefined;
 		};
 
 		this.getChangedTags = _getChangedTags;
 
 		this.getRemovedTags = function() { return _removetags; };
 
+		var setMutliItems = function(key, value, op, options) {
+
+			if (!key || !_type.isString(key) ||  key.length === 0  || key.trim().indexOf('__') == 0 || key.trim().indexOf('$') === 0 || value == undefined || value == null) return this; 
+			
+			key = key.toLowerCase();
+
+			try {
+
+				var addItem = function(item) {
+					var val = item;
+					if (!isEncodable(val)) throw new Error("Multivalued property cannot have values of property as an object");
+
+	 				if (object[key] && _type.isArray(object[key])) {
+
+	 					if (op == 'additems') {
+	 						object[key].push(val);
+	 					} else if (op == 'adduniqueitems') {
+	 						var index = -1;
+
+ 							object[key].find(function(o, i) {  
+ 								if (_type.isEqual(o, val)) {
+ 									index = i;
+ 									return true;
+ 								} 
+ 								return false;
+ 							});
+	 						
+	 						if (index == -1) object[key].push(val);
+	 					} else if (op == 'removeitems') {
+	 						object[key].removeAll(val);
+	 					}
+	 				} else {
+	 					if (op != 'removeitems') object[key] = [val];
+	 				}
+
+	 				if (!_multivaluedProps[key]) _multivaluedProps[key] = { additems: [], adduniqueitems: [], removeitems: [] };
+
+	 				_multivaluedProps[key][op].push(val);
+				};
+
+				if (_type.isArray(value)) {
+					value.forEach(function(v) {
+						addItem(v);
+					});
+				} else {
+					addItem(value);
+				}
+
+			 	triggerChangeEvent(key, options);
+
+			} catch(e) {
+		 		throw new Error("Unable to add item to " + key);
+		 	}
+
+		 	return that; 
+		};
+
+		this.add = function(key, value, options) {
+			return setMutliItems.apply(this, [key, value, 'additems', options]);
+		};
+
+		this.addUnique = function(key, value, options) {
+			return setMutliItems.apply(this, [key, value, 'adduniqueitems', options]);
+		};
+
+		this.remove = function(key, value, options) {
+			return setMutliItems.apply(this, [key, value, 'removeitems', options]);
+		};
+
+		var hasChanged = function(property, prevValue, currValue, isInternal) {
+			var changed = undefined;
+
+			if (!_type.isEqual(currValue ,prevValue)) {
+				if (property == '__tags') {
+					var changedTags = _getChangedTags();
+					if (changedTags && changedTags.length > 0) changed = changedTags; 
+				} else if (property == '__attributes') {
+					var attrs = _getChangedAttributes();
+					if (!Object.isEmpty(attrs)) changed = attrs;
+				} else {
+					if (_type.isArray(currValue)) {
+						if (_multivaluedProps[property] && !_setOps[property]) {
+							if (isInternal) {
+								changed = _multivaluedProps[property];
+							} else {
+								changed = currValue;
+							}
+						} else if (!currValue.equals(prevValue)) {
+							changed = currValue;
+						} 
+					} else if (_atomicProps[property] && !_setOps[property]) {
+						if (isInternal) {
+							changed = { incrementby : _atomicProps[property].value };
+						} else {
+							changed = currValue;
+						}
+					} else {
+						changed = currValue;
+					}
+				}
+			} 
+
+			return changed;
+		};
+
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
-			var changeSet = JSON.parse(JSON.stringify(_snapshot));
+			var changeSet = _extend({}, _snapshot);
+
+			for (var p in changeSet) {
+				if (p[0] == '$') delete changeSet[p];
+			}
+
 			for (var property in object) {
-				if (object[property] == null || object[property] == undefined) {
-					changeSet[property] = null;
-					isDirty = true;
-				} else if (object[property] != _snapshot[property]) {
-					if (property == '__tags' || property == '__attributes') {
-						delete changeSet[property];
-					} else {
-						changeSet[property] = object[property];
-						isDirty = true;
-					}
-				} else if (object[property] == _snapshot[property]) {
+				var changed = hasChanged(property, changeSet[property], object[property], isInternal);
+
+				if (changed == undefined) {
 					delete changeSet[property];
+				} else {
+					isDirty = true;
+					changeSet[property] = changed;
 				}
 			}
 
@@ -261,9 +559,11 @@
 				});
 			} catch(e) {}
 
+			if (isInternal) changeSet = Appacitive._encode(changeSet);
+
 			var changedTags = _getChangedTags();
 			if (isInternal) {
-				if (changedTags) { 
+				if (changedTags && changedTags.length > 0) { 
 					changeSet["__addtags"] = changedTags; 
 					isDirty = true;
 				}
@@ -272,21 +572,21 @@
 				    isDirty = true;
 				}
 			} else {
-				if (changedTags) { 
-					changeSet["__addtags"] = changedTags; 
+				if (changedTags && changedTags.length > 0) { 
+					changeSet["__tags"] = changedTags; 
 					isDirty = true;
 				}
 			}
 
 			var attrs = _getChangedAttributes();
-			if (attrs) { 
+			if (attrs && !Object.isEmpty(attrs)) { 
 				changeSet["__attributes"] = attrs;
 				isDirty = true;
-			}
-			else delete changeSet["__attributes"];
+			} else delete changeSet["__attributes"];
 
-			for (var p in changeSet) {
-				if (p[0] == '$') delete changeSet[p];
+			if (that.type == 'object' && that._aclFactory) {
+				var acls = that._aclFactory.getChanged();
+				if (acls) changeSet['__acls'] = acls;
 			}
 
 			if (isDirty && !Object.isEmpty(changeSet)) return changeSet;
@@ -294,30 +594,31 @@
 		};
 
 		this.changed = function() {
+			if (this.isNew()) return this.toJSON();
 			return _getChanged();
 		};
 
 		this.hasChanged = function() {
-			var changeSet = _getChanged(true);
-			if (arguments.length === 0) {
-				return Object.isEmpty(changeSet) ? false : true;
-			} else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0) {
-				if (changeSet && changeSet[arguments[0]]) {
-					return true;
-				} return false;
-			}
+			if (this.isNew()) return true;
+
+			if (arguments.length === 0)
+				return Object.isEmpty(_getChanged(true)) ? false : true;
+			else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0)
+				return (hasChanged(arguments[0]) == undefined) ? false : true;
+			
 			return false;
 		};
 
 		this.changedAttributes  = function() {
-			var changeSet = _getChanged(true);
-			
+			if (this.isNew()) return this.toJSON();
+
 			if (arguments.length === 0) {
-				return changeSet;
+				return _getChanged();
 			} else if (arguments.length == 1 && _type.isArray(arguments[0]) && arguments[0].length) {
 				var attrs = {};
 				arguments[0].forEach(function(c) {
-					if (changeSet[c]) attrs.push(changeSet[c]);
+					var value = hasChanged(c);
+					if (value != undefined) attrs.push(value);
 				});
 				return attrs;
 			}
@@ -325,13 +626,18 @@
 		};
 
 		this.previous = function() {
+			if (this.isNew()) return null;
+
 			if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length) {
 				return _snapshot[arguments[0]];	
 			}
 			return null;
 		};
 
-		this.previousAttributes = function() { return _snapshot; };
+		this.previousAttributes = function() { 
+			if (this.isNew()) return null; 
+			return _extend({}, _snapshot); 
+		};
 
 		this.fields = function() {
 			if (arguments.length == 1) {
@@ -341,58 +647,6 @@
 				return this;
 			} else {
 				return _fields;
-			}
-		};
-
-		var _types = {
-			"integer": function(value) { 
-				if (value) {
-					var res = parseInt(value);
-					if (!isNaN(res)) return res;
-				}
-				return value;
-			}, "decimal": function(value) { 
-				if (value) {
-					var res = parseFloat(value);
-					if (!isNaN(res)) return res;
-				}
-				return value;
-			}, "boolean": function(value) { 
-				if (value !== undefined && value !== null && (value.toString().toLowerCase() === 'true' || value === true || value > 0)) return true;
-				return false;
-			}, "date": function(value) { 
-				if (value) {
-					var res = global.Appacitive.Date.parseISODate(value);
-					if (res) return res;
-				}
-				return value;
-			}, "datetime": function(value) { 
-				if (value) {
-					var res = global.Appacitive.Date.parseISODate(value);
-					if (res) return res;
-				}
-				return value;
-			}, "time": function(value) { 
-				if (value) {
-					var res = global.Appacitive.Date.parseISOTime(value);
-					if (res) return res;
-				}
-				return value;
-			}, "string": function(value) { 
-				if (value) return value.toString();
-				return value;
-			}, "geocode": function(value) {
-				// value is not string or its length is 0, return false
-				if (!_type.isString(value) || value.trim().length == 0) return false;
-				  
-				// Split value string by ,
-				var split = value.split(',');
-
-				// split length is not equal to 2 so return false
-				if (split.length !== 2 ) return false;
-
-				// validate the value
-				return new global.Appacitive.GeoCoord(split[0], split[1]);
 			}
 		};
 
@@ -416,54 +670,135 @@
 			return value;
 		};
 
-		this.set = function(key, value) {
+		var triggerChangeEvent = function(key, options) {
+			if (options && !options.silent) {
+				var changed = hasChanged(key, _snapshot[key], object[key]);
 
-			if(!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
-		 	
-		 	if (value == undefined || value == null) { object[key] = null;}
-		 	else if (_type.isString(value)) { object[key] = value; }
-		 	else if (_type.isNumber(value) || _type.isBoolean(value)) { object[key] = value + ''; }
-		 	else if (value instanceof Date) object[key] = global.Appacitive.Date.toISOString(value);
-		 	else if (_type.isObject(value)) {
-		 		if (_allowObjectSetOperations.indexOf(key) !== -1) {
-		 		 	object[key] = value;
-		 		} else {
-		 			if (value instanceof global.Appacitive.GeoCoord) {
-		 				object[key] = value.toString();
-		 			} else {
-		 				throw new Error("Property cannot have value as an object");
-		 			}
-		 		}
-			} else if(_type.isArray(value)) {
-				object[key] = [];
+				if (changed[key] != undefined || (_ignoreTheseFields.indexOf(key) != -1)) {
+					var value = changed[key] || object[key];
+					// Trigger all relevant attribute changes.
+				    that.trigger('change:' + key, that, value, {});
+				    if (!options.ignoreChange) that.trigger('change', that, options);
+				}
+			}
+		};
 
-				value.forEach(function(v) {
-					if (_type.isString(v)) { object[key].push(v); }
-		 			else if (_type.isNumber(v) || _type.isBoolean(v)) { object[key].push(v + ''); }
-		 			else if (v instanceof Date) object[key].push(global.Appacitive.Date.toISOString(v));
-	 				else throw new Error("Multivalued property cannot have values of property as an object");
-				});
+		var triggerDestroy = function(opts) {
+			if (opts && !opts.silent) that.trigger('destroy', that, that.collection, opts);
+      	};
 
-				if (key !== 'tags' || key !== '__link') {
-					object[key].push = function(v) {
-					  	var len = this.length;
-					  	if (_type.isString(v)) { this[len] = v; }
-			 			else if (_type.isNumber(v) || _type.isBoolean(v)) { this[len] = v + ''; }
-			 			else if (v instanceof Date) this[len] = global.Appacitive.Date.toISOString(v);
-		 				else throw new Error("Multivalued property cannot have values of property as an object");
-		 				return this; 
+      	var set = function(key, value, options) {
+
+      		if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
+			
+			options = options || {};
+
+			var oType = options.dataType;
+
+			key = key.toLowerCase();
+
+			try {
+
+			 	if (_type.isNullOrUndefined(value)) { object[key] = null;}
+			 	else if (isEncodable(value)) { object[key] = value; }
+			 	else if (_type.isObject(value)) {
+			 		if (_allowObjectSetOperations.indexOf(key) !== -1) object[key] = value;
+			 		else throw new Error("Property cannot have value as an object");
+				} else if (_type.isArray(value)) {
+					object[key] = [];
+
+					value.forEach(function(v) {
+						if (isEncodable(v)) object[key].push(v);
+						else throw new Error("Multivalued property cannot have values of property as an object");
+					});
+				}
+
+				delete _atomicProps[key];
+				delete _multivaluedProps[key];
+				delete _setOps[key];
+
+				if (!_type.isEqual(object[key], _snapshot[key])) _setOps[key] = true;
+			
+				if (key == that.idAttribute) that.id = value; 
+
+			 	return this;
+			} catch(e) {
+			 	throw new Error("Unable to set " + key);
+			} 
+      	};
+
+		this.set = function(key, val, options) {
+
+			var attr, attrs, unset, changes, silent, changing, prev, current;
+
+			if (key == null) return this;
+
+			// Handle both `"key", value` and `{key: value}` -style arguments.
+			if (key == null || typeof key === 'object') {
+				attrs = key;
+				options = val;
+			} else {
+				(attrs = {})[key] = val;
+			}
+
+			options || (options = {});
+
+		    // Run validation.
+		    if (!this._validate(attrs, options)) return false;
+
+		    // Check for changes of `id`.
+			if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
+
+			_mergePrivateFields(attrs);
+
+			var changed = false;
+
+			// For each `set` attribute, update or delete the current value.
+			for (attr in attrs) {
+				val = attrs[attr];
+				set.apply(this, [ attr, val, _extend({}, options, { ignoreChange: true }) ]);
+			}
+
+			if (options && !options.silent) {
+				for (attr in attrs) {
+					var changedValue = hasChanged(attr, _snapshot[attr], object[attr]);
+					if ((changedValue != undefined) || (_ignoreTheseFields.indexOf(attr) != -1)) {
+						changed = true;
+						var value = object[key];
+						// Trigger relevant attribute change event.
+					    that.trigger('change:' + key, that, value, {});
 					}
 				}
 			}
-		 	
+
+			if (changed) this.trigger('change', this, options);
+
+			return this;
+		};
+
+		this.unset = function(key, options) {
+			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
+			key = key.toLowerCase();
+		 	delete object[key];
+		 	triggerChangeEvent(key, options);
 		 	return this;
 		};
 
-		this.unset = function(key) {
-			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
-		 	try { delete object[key]; } catch(e) {}
-			return this;
-		};
+		// Run validation against the next complete set of model attributes,
+	    // returning `true` if all is well. Otherwise, fire an `"invalid"` event.
+	    this._validate = function(attrs, options) {
+			if (!options.validate || !this.validate || !_type.isFunction(this.validate)) return true;
+			attrs = _extend({}, this.attributes, attrs);
+			var error = this.validationError = this.validate(attrs, options) || null;
+			if (!error) return true;
+			this.trigger('invalid', this, error, _extend(options, {validationError: error}));
+			return false;
+	    };
+
+	     // Check if the model is currently in a valid state.
+	    this.isValid = function(options) {
+	    	return this._validate({}, _extend(options || {}, { validate: true }));
+	    };
 
 		this.has = function(key) {
 			if (!key || !_type.isString(key) ||  key.length === 0) return false; 
@@ -472,13 +807,12 @@
 		};
 
 		this.isNew = function() {
-			if (object.__id && object.__id.length) return false;
-			return true;
+			return !this.has(this.idAttribute);
 		};
 
 		this.clone = function() {
-			if (this.type == 'object') return new global.Appacitive.Object(this.toJSON());
-			return new global.Appacitive.connection(object);
+			if (this.type == 'object') return Appacitive.Object._create(_extend({ __meta: this.meta }, this.toJSON()));
+			return new Appacitive.connection._create(_extend({ __meta: this.meta }, this.toJSON()));
 		};
 
 		this.copy = function(properties, setSnapShot) { 
@@ -493,15 +827,23 @@
 
 		this.mergeWithPrevious = function() {
 			_copy(object, _snapshot);
+			if (that._aclFactory) that._aclFactory.merge();
+			_mergePrivateFields(_snapshot);
 			_removeTags = [];
-			_atomicProps.length = 0;
+			_atomicProps = {};
+			_multivaluedProps = {};
+			_setOps = {};
 			return this;
 		};
 
 		var _merge = function() {
 			_copy(_snapshot, object);
+			if (that._aclFactory) that._aclFactory.merge();
+			_mergePrivateFields(object);
 			_removeTags = [];
-			_atomicProps.length = 0;
+			_atomicProps = {};
+			_multivaluedProps = {};
+			_setOps = {};
 		};
 
 		this.rollback = function() {
@@ -510,22 +852,44 @@
 			return this;
 		};
 
-		var _atomic = function(key, amount, multiplier) {
+		var _atomic = function(key, amount, multiplier, options) {
 			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
 
-			if (!amount || isNaN(parseInt(amount))) amount = multiplier;
-			else amount = parseInt(amount) * multiplier;
+			key = key.toLowerCase();
 
-			_atomicProps.push({ key: key.toLowerCase(), amount: amount });
+			if (_type.isObject(object[key]) ||  _type.isArray(object[key])) {
+				throw new Error("Cannot increment/decrement array/object");
+			}
+
+			try {
+				if (_type.isObject(amount)) {
+					options = amount;
+					amount = multiplier;
+				} else {
+					if (!amount || isNaN(Number(amount))) amount = multiplier;
+					else amount = Number(amount) * multiplier;
+				}
+				object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
+
+				if (!that.isNew()) {
+					_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
+				}
+
+			} catch(e) {
+				throw new Error('Cannot perform increment/decrement operation');
+			}
+
+			triggerChangeEvent(key, options);
+
 			return that;
 		};
 
-		this.increment = function(key, amount) {
-			return _atomic(key, amount, 1);
+		this.increment = function(key, amount, options) {
+			return _atomic(key, amount, 1, options);
 		};
 
-		this.decrement = function(key, amount) {
-			return _atomic(key, amount, -1);
+		this.decrement = function(key, amount, options) {
+			return _atomic(key, amount, -1, options);
 		};
 
 		/* crud operations  */
@@ -533,52 +897,78 @@
 		/* save
 		   if the object has an id, then it has been created -> update
 		   else create */
-		this.save = function() {
-			if (object.__id) return _update.apply(this, arguments);
+		this._save = function() {
+			if (this.id) return _update.apply(this, arguments);
 			else return _create.apply(this, arguments);
 		};
 
 		// to create the object
-		var _create = function(callbacks) {
+		var _create = function(options) {
+
+			options = options || {};
 
 			var type = that.type;
-			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
+			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
 				type = object.__type.toLowerCase()
 			}
 
+			var clonedObject = that.toJSON();
+
+			delete clonedObject.__meta;
+
 			//remove __revision and aggregate poprerties
-			for (var p in object) {
-				if (p[0] == '$') delete object[p];
+			for (var p in clonedObject) {
+				if (p[0] == '$') delete clonedObject[p];
 			}
-			if (object["__revision"]) delete object["__revision"];
+			if (clonedObject["__revision"]) delete clonedObject["__revision"];
 			
-			var request = new global.Appacitive._Request({
+			if (type == 'object' && that._aclFactory) {
+				var acls = that._aclFactory.getChanged();
+				if (acls) clonedObject.__acls = acls;
+			}
+
+			if (clonedObject.__tags && clonedObject.__tags.length == 0) delete clonedObject.__tags;
+
+			if (Object.isEmpty(clonedObject.__attributes)) delete clonedObject.__attributes;
+
+			var request = new Appacitive._Request({
 				method: 'PUT',
 				type: type,
 				op: 'getCreateUrl',
-				args: [object.__type || object.__relationtype, _fields],
-				data: object,
-				callbacks: callbacks,
+				args: [this.className, _fields],
+				data: clonedObject,
+				options: options,
 				entity: that,
 				onSuccess: function(data) {
 					var savedState = null;
-					if (data && (data.object || data.connection || data.user || data.device)) {
-						savedState = data.object || data.connection || data.user || data.device;
-					}
-					if (data && savedState) {
-						_snapshot = savedState;
-						object.__id = savedState.__id;
+
+					if (data && data[type]) {
+						savedState = data[type];
+
+						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, savedState));
+
+						that.id = object[that.idAttribute] = savedState[that.idAttribute];
 						
 						_merge();
 
-						if (that.type == 'connection') that.parseConnection();
-						global.Appacitive.eventManager.fire(that.entityType + '.' + that.type + '.created', that, { object : that });
+						if (that.type == 'connection') {
+							if (object.__endpointa.object) object.__endpointa.object.__meta = data.__ameta;
+							if (object.__endpointb.object) object.__endpointb.object.__meta = data.__bmeta;
+							that.parseConnection();
+						}
+						that.trigger('change:__id', that, that.id, { });
+
+						Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
 
 						that.created = true;
 
+						if (!options.silent) that.trigger('sync', that, data[type], options);
+
 						request.promise.fulfill(that);
 					} else {
-						global.Appacitive.eventManager.fire(that.entityType + '.' + that.type + '.createFailed', that, { error: data.status });
+						if (!options.silent) that.trigger('error', that, data.status, options);
+
+						Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, { error: data.status });
 						request.promise.reject(data.status, that);
 					}
 				}
@@ -588,101 +978,72 @@
 		};
 
 		// to update the object
-		var _update = function(callbacks, promise) {
+		var _update = function(options, promise) {
 
-			if (!global.Appacitive.Promise.is(promise)) promise = global.Appacitive.Promise.buildPromise(callbacks);
+			if (!Appacitive.Promise.is(promise)) promise = Appacitive.Promise.buildPromise(options);
 
-			var cb = function(revision) {
-				var changeSet = _getChanged(true);
-				for (var p in changeSet) {
-					if (p[0] == '$') delete changeSet[p];
+			var changeSet = _getChanged(true);
+
+			options = options || {};
+
+			if (!Object.isEmpty(changeSet)) {
+
+				var type = that.type;
+				
+				var args = [that.className, (that.id) ? that.id : that.id, _fields];
+
+				// for User and Device objects
+				if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
+					type = object.__type.toLowerCase();
+					args.splice(0, 1);
 				}
 
-				if (!Object.isEmpty(changeSet)) {
-
-					var fields = _fields;
-
-					var _updateRequest = new global.Appacitive.HttpRequest();
-					var url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[that.type].getUpdateUrl(object.__type || object.__relationtype, (_snapshot.__id) ? _snapshot.__id : object.__id, fields, revision);
-					
-					var type = that.type;
-
-					// for User and Device objects
-					if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
-						type = object.__type.toLowerCase();
-						url = global.Appacitive.config.apiBaseUrl + global.Appacitive.storage.urlFactory[object.__type.toLowerCase()].getUpdateUrl(_snapshot.__id, fields, revision);
-					}
-					_updateRequest.url = url;
-					_updateRequest.method = 'post';
-					_updateRequest.data = changeSet;
-					_updateRequest.onSuccess = function(data) {
+				var request = new Appacitive._Request({
+					method: 'POST',
+					type: type,
+					op: 'getUpdateUrl',
+					args: args,
+					data: changeSet,
+					options: options,
+					entity: that,
+					onSuccess: function(data) {
 						if (data && data[type]) {
-							_snapshot = data[type];
 							
+							_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
+
 							_merge();
 							
 							delete that.created;
-							
-							global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updated', that, { object : that });
-							promise.fulfill(that);
-						} else {
-							if (data.status.code == '14008' && _atomicProps.length > 0) {
-								_update(callbacks, promise);
-							}  else {
-								global.Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + object.__id +  '.updateFailed', that, { object : data.status });
-								promise.reject(data.status, that);
-							}
-						}
-					};
-					_updateRequest.onError = function(err) {
-						err = _getOutpuStatus(err);
-						if (err.code == '14008' && _atomicProps.length > 0) {
-							_update(callbacks, promise);
-						} else {
-							promise.reject(err, that);
-						}
-					};
-					global.Appacitive.http.send(_updateRequest);
-				} else {
-					promise.fulfill(that);
-				}
-			};
 
-			if (_atomicProps.length > 0) {
-				var props = ['__revision'];
-				_atomicProps.forEach(function(p) { 
-					props.push(p.key); 
+							if (!options.silent) that.trigger('sync', that, data[type], options);
+
+							Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
+							request.promise.fulfill(that);
+						} else {
+							data = data || {};
+							data.status =  data.status || {};
+							data.status = _getOutpuStatus(data.status);
+							if (!options.silent) that.trigger('error', that, data.status, options);
+							Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updateFailed', that, { object : data.status });
+							request.promise.reject(data.status, that);
+						}
+					}
 				});
-
-				var args = { id: this.id(), fields: props };
 				
-				if (this.type == 'object') args.type = this.get('__type');
-				else args.relation = this.get('__type');
-
-				global.Appacitive[this.type == 'object' ? 'Article' : 'Connection']
-					.get(args)
-					.then(function(obj) {
-
-						obj = obj.toJSON();
-						_atomicProps.forEach(function(p) {
-							var value = _types['integer'](obj[p.key]);
-							if (!value) value = 0;
-							that.set(p.key, value + p.amount);
-						});
-
-						cb(obj.__revision);
-					}, function(err) {
-						promise.reject(err);
-					}); 
-			} else cb();
-
+				return request.send();
+			} else {
+				promise.fulfill(that);
+			}
+			
 			return promise;
 		};
 
-		var _fetch = function (callbacks) {
+		var _fetch = function (options) {
 
-			if (!object.__id) throw new Error('Please specify id for get operation');
+			if (!that.id) throw new Error('Please specify id for get operation');
 			
+			options = options || [];
+
 			var type = this.type;
 
 			// for User and Device objects
@@ -690,22 +1051,29 @@
 				type = object.__type.toLowerCase();
 			}
 
-			var request = new global.Appacitive._Request({
+			var request = new Appacitive._Request({
 				method: 'GET',
 				type: type,
 				op: 'getGetUrl',
-				args: [object.__type || object.__relationtype, object.__id, _fields],
-				callbacks: callbacks,
+				args: [this.className, that.id, _fields],
+				options: options,
 				entity: that,
 				onSuccess: function(data) {
 					if (data && data[type]) {
-						_snapshot = data[type];
+						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
 						_copy(_snapshot, object);
+						_mergePrivateFields(object);
+
+						if (that._aclFactory) that._aclFactory._rollback();
 						if (data.connection) {
 							if (!that.endpoints && (!that.endpointA || !that.endpointB)) {
 								that.setupConnection(object.__endpointa, object.__endpointb);
 							}
 						}
+
+						if (!options.silent) that.trigger('sync', that, data[type], options);
+
+						Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
@@ -719,51 +1087,116 @@
 		};
 
 		// fetch ( by id )
-		this.fetch = function(callbacks) {
-			return _fetch.apply(this ,[callbacks]);
+		this._fetch = function(options) {
+			return _fetch.apply(this ,[options]);
 		};
 
 		// delete the object
-		this.destroy = function(callbacks, deleteConnections) {
-          
-			if (_type.isBoolean(callbacks)) {
-				deleteConnections = callbacks;
-				callbacks = null;
-			} else if(!_type.isBoolean(deleteConnections)) {
-				deleteConnections = false;
+		this._destroy = function(opts) {
+          	opts = opts || {};
+
+			var deleteConnections = opts.deleteConnections;
+			
+			if (_type.isBoolean(opts)) {
+				deleteConnections = opts;
+				opts = {};
 			}
 
-			// if the object does not have __id set, 
+			if (!opts.wait) triggerDestroy(opts);
+
+			// if the object does not have id set, 
 	        // just call success
 	        // else delete the object
 
-	        if (!object['__id']) return new global.Appacitive.Promise.buildPromise(callbacks).fulfill();
+	        if (!that.id) return new Appacitive.Promise.buildPromise(opts).fulfill();
 
 	        var type = this.type;
-			if (object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
-				type = object.__type.toLowerCase()
-			}
-
-			var request = new global.Appacitive._Request({
+			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
+			
+			var request = new Appacitive._Request({
 				method: 'DELETE',
 				type: type,
 				op: 'getDeleteUrl',
-				args: [object.__type || object.__relationtype, object.__id, deleteConnections],
-				callbacks: callbacks,
+				args: [this.className, that.id, deleteConnections],
+				options: opts,
 				entity: this,
 				onSuccess: function(data) {
-					request.promise.fulfill(data);
+
+					if (data && data.status) {
+						object = {};
+						_snapshot = {};
+						
+						if (opts.wait) triggerDestroy(opts);
+						request.promise.fulfill(data.status);
+					} else {
+						data = data || {};
+						data.status =  data.status || {};
+						data.status = _getOutpuStatus(data.status);
+						request.promise.reject(data.status, that);
+					}
 				}
 			});
 			return request.send();
 		};
-		this.del = this.destroy;
+		this.del = this._destroy;
+
+		if (this.type == 'object') {
+			this._destroyWithConnections = function(options) {
+				return this.destroy(_extend({ deleteConnections: true}, options));
+			};
+		}
+
 	};
 
-	global.Appacitive.BaseObject = _BaseObject;
+	_BaseObject.prototype.save = function() {
+		return this._save.apply(this, arguments);
+	};
 
-	global.Appacitive.BaseObject.prototype.toString = function() {
+	_BaseObject.prototype.fetch = function() {
+		return this._fetch.apply(this, arguments);
+	};
+
+	_BaseObject.prototype.destroy = function() {
+		return this._destroy.apply(this, arguments);
+	};
+
+	_BaseObject.prototype.destroyWithConnections = function() {
+		return this._destroyWithConnections.apply(this, arguments);
+	};
+
+	Appacitive.BaseObject = _BaseObject;
+
+	Appacitive.BaseObject._saveAll = function(objects, options, type) {
+	    var unsavedObjects = [], tasks = [];
+	    
+    	options = options || [];
+
+		if (!_type.isArray(objects)) throw new Error("Provide an array of objects for Object.saveAll");	    
+
+	    objects.forEach(function(o) {
+	    	if (!(o instanceof Appacitive.BaseObject) && _type.isObject(o)) o = new Appacitive[type](o);
+	    	if (unsavedObjects.find(function(x) { return x.id == o.id; })) return;
+	    	unsavedObjects.push(o);
+
+	    	tasks.push(o.save());
+	    });
+
+	    return Appacitive.Promise.when(tasks);
+	};
+
+	Appacitive.BaseObject.prototype.toString = function() {
 		return JSON.stringify(this.getObject());
 	};
+
+	Appacitive.BaseObject.prototype.parse = function(resp, options) {
+      	return resp;
+    };
+
+    // Get the HTML-escaped value of an attribute.
+    Appacitive.BaseObject.prototype.escape = function(attr) {
+      return _.escape(this.get(attr));
+    },
+
+	Appacitive.Events.mixin(Appacitive.BaseObject.prototype);
 
 })(global);
