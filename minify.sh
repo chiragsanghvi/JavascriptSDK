@@ -42,9 +42,13 @@ echo "Done combining Ti.AppacitiveSDK.js"
 echo "================Minifying AppacitiveSDK.js============="
 
 in=AppacitiveSDK.js
-out=AppacitiveSDK.min.js
+out=SDK.min.js
 
 java -jar /usr/local/lib/compiler.jar --js $in --js_output_file $out
+
+cat src/copyright.txt SDK.min.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g" > AppacitiveSDK.min.js
+
+rm $out;
 
 echo "============Minified AppacitiveSDK.min.js=============="
 

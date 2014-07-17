@@ -72,7 +72,7 @@
 					}
 				}
 
-				if (access != 'inherit') {
+				if (access != 'dontcare') {
 					acl[access].push(p);
 				}
 
@@ -118,11 +118,11 @@
 			};
 
 			acls.resetUser = function(sids, permissions) {
-				return setPermissions.apply(this, ['inherit', 'user', sids, permissions]);
+				return setPermissions.apply(this, ['dontcare', 'user', sids, permissions]);
 			};
 
 			acls.resetGroup = function(sids, permissions) {
-				return setPermissions.apply(this, ['inherit', 'usergroup', sids, permissions]);
+				return setPermissions.apply(this, ['dontcare', 'usergroup', sids, permissions]);
 			};
 
 			acls.allowAnonymous = function(permissions) {
@@ -134,7 +134,7 @@
 			};
 
 			acls.resetAnonymous = function(permissions) {
-				return setPermissions.apply(this, ['inherit', 'usergroup', ['anonymous'], permissions]);
+				return setPermissions.apply(this, ['dontcare', 'usergroup', ['anonymous'], permissions]);
 			};
 
 			acls.allowLoggedIn = function(permissions) {
@@ -146,7 +146,7 @@
 			};
 
 			acls.resetLoggedIn = function(permissions) {
-				return setPermissions.apply(this, ['inherit', 'usergroup', ['anonymous'], permissions]);
+				return setPermissions.apply(this, ['dontcare', 'usergroup', ['anonymous'], permissions]);
 			};
 		};
 
@@ -160,7 +160,7 @@
 		this.getChanged = function() {
 			var chAcls = [];
 			changed.forEach(function(a) {
-				var acl = { sid: a.sid, type: a.type, allow: [], deny: [], inherit: [] };
+				var acl = { sid: a.sid, type: a.type, allow: [], deny: [], dontcare: [] };
 				states.forEach(function(s) {
 					if (a[s]) {
 						acl[a[s]].push(s);
@@ -171,7 +171,7 @@
 					if (acl[at].length == 0) delete acl[at];
 				});
 
-				if (acl['inherit'].length == 0) delete acl['inherit'];
+				if (acl['dontcare'].length == 0) delete acl['dontcare'];
 
 				chAcls.push(acl);
 			});

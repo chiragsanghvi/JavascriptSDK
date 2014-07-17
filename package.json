@@ -14,7 +14,7 @@
   "main": "./AppacitiveSDK.js",
   "readmeFilename": "README.md",
   "engines": [
-    "node >= 0.8.16"
+    "node >= 0.8.17"
   ],
   "dependencies": {
     "xmlhttprequest-with-globalagent": "x.x.x",
