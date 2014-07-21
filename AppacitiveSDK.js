@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.7.3 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.7.4 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Jun 24 13:44:16 IST 2014
+ * Build time 	: Mon Jul 21 10:54:26 IST 2014
  */
 "use strict";
 
@@ -5376,7 +5376,7 @@ var extend = function(protoProps, staticProps) {
 					}
 				}
 
-				if (access != 'inherit') {
+				if (access != 'dontcare') {
 					acl[access].push(p);
 				}
 
@@ -5422,11 +5422,11 @@ var extend = function(protoProps, staticProps) {
 			};
 
 			acls.resetUser = function(sids, permissions) {
-				return setPermissions.apply(this, ['inherit', 'user', sids, permissions]);
+				return setPermissions.apply(this, ['dontcare', 'user', sids, permissions]);
 			};
 
 			acls.resetGroup = function(sids, permissions) {
-				return setPermissions.apply(this, ['inherit', 'usergroup', sids, permissions]);
+				return setPermissions.apply(this, ['dontcare', 'usergroup', sids, permissions]);
 			};
 
 			acls.allowAnonymous = function(permissions) {
@@ -5438,7 +5438,7 @@ var extend = function(protoProps, staticProps) {
 			};
 
 			acls.resetAnonymous = function(permissions) {
-				return setPermissions.apply(this, ['inherit', 'usergroup', ['anonymous'], permissions]);
+				return setPermissions.apply(this, ['dontcare', 'usergroup', ['anonymous'], permissions]);
 			};
 
 			acls.allowLoggedIn = function(permissions) {
@@ -5450,7 +5450,7 @@ var extend = function(protoProps, staticProps) {
 			};
 
 			acls.resetLoggedIn = function(permissions) {
-				return setPermissions.apply(this, ['inherit', 'usergroup', ['anonymous'], permissions]);
+				return setPermissions.apply(this, ['dontcare', 'usergroup', ['anonymous'], permissions]);
 			};
 		};
 
@@ -5464,7 +5464,7 @@ var extend = function(protoProps, staticProps) {
 		this.getChanged = function() {
 			var chAcls = [];
 			changed.forEach(function(a) {
-				var acl = { sid: a.sid, type: a.type, allow: [], deny: [], inherit: [] };
+				var acl = { sid: a.sid, type: a.type, allow: [], deny: [], dontcare: [] };
 				states.forEach(function(s) {
 					if (a[s]) {
 						acl[a[s]].push(s);
@@ -5475,7 +5475,7 @@ var extend = function(protoProps, staticProps) {
 					if (acl[at].length == 0) delete acl[at];
 				});
 
-				if (acl['inherit'].length == 0) delete acl['inherit'];
+				if (acl['dontcare'].length == 0) delete acl['dontcare'];
 
 				chAcls.push(acl);
 			});
