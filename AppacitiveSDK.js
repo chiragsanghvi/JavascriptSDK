@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.7.5 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.7.6 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Aug 22 11:04:54 IST 2014
+ * Build time 	: Fri Aug 22 14:59:34 IST 2014
  */
 "use strict";
 
@@ -5601,7 +5601,11 @@ var extend = function(protoProps, staticProps) {
 						if (obj.children && !Object.isEmpty(obj.children)) {
 							tmp.children = {};
 							for (var c in obj.children) {
-								tmp.children[c] = parseChildren(obj.children[c]);
+								if (_type.isArray(obj.children[c])) {
+									tmp.children[c] = parseChildren(obj.children[c]);
+								} else {
+									tmp.children[c] = parseChildren([obj.children[c]])[0];
+								}
 							}
 						}
 						if (obj.connection) tmp.__connection = obj.connection.toJSON();
@@ -7031,15 +7035,27 @@ var extend = function(protoProps, staticProps) {
       
       var promise = Appacitive.Promise.buildPromise(options);
 
+      options = options || {};
+      if (_type.isArray(options)) {
+        if (options[0] instanceof Appacitive.Object) {
+          models = options;
+          options = { 
+            ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+          };
+        } else {
+          options = {
+            ids: options
+          };
+        }
+      }
+
       var ids = options.ids || [];
 
       if (ids.length == 0) return promise.fulfill(collection);
 
       var args = { ids: ids, fields : options.fields };
 
-      args[this.model.type || this.model.relation] = this.model.className;
-
-      Appacitive.Object.multiGet(args).then(function(results) {
+      this.model.multiGet(args).then(function(results) {
         if (options.add) collection.add(results, options);
         else collection.reset(results, options);
         promise.fulfill(collection);

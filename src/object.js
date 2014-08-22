@@ -31,7 +31,11 @@
 						if (obj.children && !Object.isEmpty(obj.children)) {
 							tmp.children = {};
 							for (var c in obj.children) {
-								tmp.children[c] = parseChildren(obj.children[c]);
+								if (_type.isArray(obj.children[c])) {
+									tmp.children[c] = parseChildren(obj.children[c]);
+								} else {
+									tmp.children[c] = parseChildren([obj.children[c]])[0];
+								}
 							}
 						}
 						if (obj.connection) tmp.__connection = obj.connection.toJSON();
