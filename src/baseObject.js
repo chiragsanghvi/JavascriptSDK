@@ -943,6 +943,9 @@
 					var savedState = null;
 
 					if (data && data[type]) {
+
+						if (optns && optns.parse) data[type] = this.parse(data[type]);
+
 						savedState = data[type];
 
 						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, savedState));
@@ -1008,7 +1011,9 @@
 					entity: that,
 					onSuccess: function(data) {
 						if (data && data[type]) {
-							
+
+							if (optns && optns.parse) data[type] = this.parse(data[type]);
+
 							_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
 
 							_merge();
@@ -1060,6 +1065,9 @@
 				entity: that,
 				onSuccess: function(data) {
 					if (data && data[type]) {
+
+						if (optns && optns.parse) data[type] = this.parse(data[type]);
+
 						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
 						_copy(_snapshot, object);
 						_mergePrivateFields(object);

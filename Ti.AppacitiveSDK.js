@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.7.4 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.7.5 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Jul 21 10:54:26 IST 2014
+ * Build time 	: Fri Aug 22 11:04:54 IST 2014
  */
 "use strict";
 
@@ -2988,6 +2988,7 @@ var extend = function(protoProps, staticProps) {
 
     var _operators = {
         isEqualTo: "==",
+        notEqualTo: "<>",
         isGreaterThan: ">",
         isGreaterThanEqualTo: ">=",
         isLessThan: "<",
@@ -3064,6 +3065,10 @@ var extend = function(protoProps, staticProps) {
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isEqualTo });
         };
 
+        /* Helper functions for NotEqualTo */
+        context.notEqualTo = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.notEqualTo });
+        };
 
         /* Helper functions for GreaterThan */
         context.greaterThan = function(value) {
@@ -3143,6 +3148,11 @@ var extend = function(protoProps, staticProps) {
 
         this.equalTo = function(value) {
             return _fieldFilters.equalTo(value);
+        };
+
+        /* Helper functions for NotEqualTo */
+        this.notEqualTo = function(value) {
+            return _fieldFilters.notEqualTo(value);
         };
 
         this.greaterThan = function(value) {
@@ -3601,11 +3611,6 @@ var extend = function(protoProps, staticProps) {
 	/** 
 	* @constructor
 	**/
-	Appacitive.Query = BasicQuery;
-
-	/** 
-	* @constructor
-	**/
 	Appacitive.Queries.FindAllQuery = function(options) {
 
 		options = options || {};
@@ -3622,6 +3627,11 @@ var extend = function(protoProps, staticProps) {
 	Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
 
 	Appacitive.Queries.FindAllQuery.prototype.constructor = Appacitive.Queries.FindAllQuery;
+
+	/** 
+	* @constructor
+	**/
+	Appacitive.Query = Appacitive.Queries.FindAllQuery;
 
 	/** 
 	* @constructor
@@ -4973,6 +4983,9 @@ var extend = function(protoProps, staticProps) {
 					var savedState = null;
 
 					if (data && data[type]) {
+
+						if (optns && optns.parse) data[type] = this.parse(data[type]);
+
 						savedState = data[type];
 
 						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, savedState));
@@ -5038,7 +5051,9 @@ var extend = function(protoProps, staticProps) {
 					entity: that,
 					onSuccess: function(data) {
 						if (data && data[type]) {
-							
+
+							if (optns && optns.parse) data[type] = this.parse(data[type]);
+
 							_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
 
 							_merge();
@@ -5090,6 +5105,9 @@ var extend = function(protoProps, staticProps) {
 				entity: that,
 				onSuccess: function(data) {
 					if (data && data[type]) {
+
+						if (optns && optns.parse) data[type] = this.parse(data[type]);
+
 						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
 						_copy(_snapshot, object);
 						_mergePrivateFields(object);
@@ -6756,7 +6774,6 @@ var extend = function(protoProps, staticProps) {
     if (!this.model) throw new Error("Please specify model for collection");
     if (options.comparator !== void 0) this.comparator = options.comparator;
     if (options.query) this.query(options.query);
-    else this.query(new Appacitive.Query(this.model));
     this._reset();
     this.initialize.apply(this, arguments);
     if (models) this.reset(models, { silent: true });

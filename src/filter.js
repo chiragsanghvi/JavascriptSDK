@@ -276,6 +276,7 @@
 
     var _operators = {
         isEqualTo: "==",
+        notEqualTo: "<>",
         isGreaterThan: ">",
         isGreaterThanEqualTo: ">=",
         isLessThan: "<",
@@ -352,6 +353,10 @@
             return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isEqualTo });
         };
 
+        /* Helper functions for NotEqualTo */
+        context.notEqualTo = function(value) {
+            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.notEqualTo });
+        };
 
         /* Helper functions for GreaterThan */
         context.greaterThan = function(value) {
@@ -431,6 +436,11 @@
 
         this.equalTo = function(value) {
             return _fieldFilters.equalTo(value);
+        };
+
+        /* Helper functions for NotEqualTo */
+        this.notEqualTo = function(value) {
+            return _fieldFilters.notEqualTo(value);
         };
 
         this.greaterThan = function(value) {

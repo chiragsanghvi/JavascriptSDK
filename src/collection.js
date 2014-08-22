@@ -8,7 +8,6 @@
     if (!this.model) throw new Error("Please specify model for collection");
     if (options.comparator !== void 0) this.comparator = options.comparator;
     if (options.query) this.query(options.query);
-    else this.query(new Appacitive.Query(this.model));
     this._reset();
     this.initialize.apply(this, arguments);
     if (models) this.reset(models, { silent: true });
