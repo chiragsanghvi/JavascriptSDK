@@ -31,15 +31,16 @@
 		result.toJSON = function() {
 			var d = _extend({}, this);
 			if (d.object) {
-				d.object = endpoint.object.toJSON();
+				d.object = endpoint.object.getObject();
 				if (endpoint.object._aclFactory) {
 					var acls = endpoint.object._aclFactory.toJSON();
 					if (acls) d.object.__acls = acls;
 				}
 			}
+            delete d.getObject
 			delete d.toJSON;
 			return d
-		};		
+		};				
 
 		base["endpoint" + type] = endpoint;
 		return result;

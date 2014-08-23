@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Aug 22 14:59:34 IST 2014
+ * Build time 	: Sat Aug 23 10:59:06 IST 2014
  */
 "use strict";
 
@@ -4147,7 +4147,7 @@ var extend = function(protoProps, staticProps) {
 	 	else if (_type.isDate(value)) return Appacitive.Date.toISOString(value);
 	 	else if (_type.isObject(value)) {
 	 		if (isGeocode(value)) return value.toString();
-	 		return (value.toJSON ? value.toJSON() : value);
+	 		return (value.getObject ? value.getObject() : value);
 		}
 		return value;
 	};
@@ -4200,6 +4200,8 @@ var extend = function(protoProps, staticProps) {
 
 		objectOptions = objectOptions || {};
 
+		objectOptions = _extend({}, objectOptions);
+		
 	    this.meta = {};
 
 	    //set default meta
@@ -4336,10 +4338,46 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		// converts object to json representation for data transfer
-		this.toJSON = this.getObject = function() { 
+		this.getObject  = function() { 
 			var obj = Appacitive._encode(_extend({ __meta: this.meta }, object)); 
 			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
             return obj;
+		};
+
+		var _toJSON = function() {
+			var obj = _extend({ __meta: this.meta }, object); 
+			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
+            return obj;
+		};
+
+		// converts object to json representation but not in an encoded form
+		this.toJSON  = function(recursive) { 
+			if (recursive  && this.type == 'object') {
+				var parseChildren = function(root) {
+					var objects = [];
+					root.forEach(function(obj) {
+						var tmp = obj.toJSON();
+						if (obj.children && !Object.isEmpty(obj.children)) {
+							tmp.children = {};
+							for (var c in obj.children) {
+								if (_type.isArray(obj.children[c])) {
+									tmp[c] = parseChildren(obj.children[c]);
+								} else {
+									tmp[c] = parseChildren([obj.children[c]])[0];
+								}
+								tmp.children[c] = tmp[c];
+							}
+						}
+						if (obj.connection) tmp.__connection = obj.connection.toJSON();
+						objects.push(tmp);
+					});
+					return objects;
+				};
+				return parseChildren([this])[0];
+			} else {
+				return _toJSON.apply(this);
+			}
+
 		};
 
 		// Returns all properties of this object
@@ -4851,8 +4889,8 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.clone = function() {
-			if (this.type == 'object') return Appacitive.Object._create(_extend({ __meta: this.meta }, this.toJSON()));
-			return new Appacitive.connection._create(_extend({ __meta: this.meta }, this.toJSON()));
+			if (this.type == 'object') return Appacitive.Object._create(_extend({ __meta: this.meta }, this.getObject()));
+			return new Appacitive.connection._create(_extend({ __meta: this.meta }, this.getObject()));
 		};
 
 		this.copy = function(properties, setSnapShot) { 
@@ -4952,7 +4990,7 @@ var extend = function(protoProps, staticProps) {
 				type = object.__type.toLowerCase()
 			}
 
-			var clonedObject = that.toJSON();
+			var clonedObject = that.getObject();
 
 			delete clonedObject.__meta;
 
@@ -5592,33 +5630,6 @@ var extend = function(protoProps, staticProps) {
 		this.getObject = this.getObject;
 		this.children = {};
 
-		this.toJSON = function(recursive) {
-			if (recursive) {
-				var parseChildren = function(root) {
-					var objects = [];
-					root.forEach(function(obj) {
-						var tmp = obj.getObject();
-						if (obj.children && !Object.isEmpty(obj.children)) {
-							tmp.children = {};
-							for (var c in obj.children) {
-								if (_type.isArray(obj.children[c])) {
-									tmp.children[c] = parseChildren(obj.children[c]);
-								} else {
-									tmp.children[c] = parseChildren([obj.children[c]])[0];
-								}
-							}
-						}
-						if (obj.connection) tmp.__connection = obj.connection.toJSON();
-						objects.push(tmp);
-					});
-					return objects;
-				};
-				return parseChildren([this])[0];
-			} else {
-				return this.getObject();
-			}
-		};
-
 		this.typeName = attrs.__type;
 
 		this._aclFactory = new Appacitive._Acl(options.__acls, options.setSnapShot);
@@ -5878,15 +5889,16 @@ var extend = function(protoProps, staticProps) {
 		result.toJSON = function() {
 			var d = _extend({}, this);
 			if (d.object) {
-				d.object = endpoint.object.toJSON();
+				d.object = endpoint.object.getObject();
 				if (endpoint.object._aclFactory) {
 					var acls = endpoint.object._aclFactory.toJSON();
 					if (acls) d.object.__acls = acls;
 				}
 			}
+            delete d.getObject
 			delete d.toJSON;
 			return d
-		};		
+		};				
 
 		base["endpoint" + type] = endpoint;
 		return result;
@@ -6313,7 +6325,7 @@ var extend = function(protoProps, staticProps) {
 		
 		if (!(userObject instanceof Appacitive.User)) userObject = new Appacitive.User(user, true); 
 		else if (!userObject.get('__id') || userObject.get('__id').length === 0) throw new Error('Specify user __id');
-		else user = userObject.toJSON(); 
+		else user = userObject.getObject(); 
 
 		Appacitive.localStorage.set('Appacitive-User', user);
 
@@ -6806,6 +6818,10 @@ var extend = function(protoProps, staticProps) {
       return this.models.map(function(model) { return model.toJSON(options); });
     },
 
+    getObject: function(options) {
+      return this.models.map(function(model) { return model.getObject(options); });
+    },
+
     add: function(models, options) {
       options = options || {};
       var i, index, length, model, cid, id, cids = {}, ids = {}, at = options.at, merge = options.merge, toAdd = [], sort = options.sort, existing;
@@ -6821,7 +6837,7 @@ var extend = function(protoProps, staticProps) {
         
         id = model.id;
         if (id && ((existing = ids[id]) || (existing = this._byId[id]))) {
-          existing.copy(model.toJSON(), options.setSnapShot);
+          existing.copy(model.getObject(), options.setSnapShot);
           existing.children = model.children;
         } else {
           ids[id] = model;

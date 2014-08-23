@@ -107,7 +107,7 @@
 	 	else if (_type.isDate(value)) return Appacitive.Date.toISOString(value);
 	 	else if (_type.isObject(value)) {
 	 		if (isGeocode(value)) return value.toString();
-	 		return (value.toJSON ? value.toJSON() : value);
+	 		return (value.getObject ? value.getObject() : value);
 		}
 		return value;
 	};
@@ -160,6 +160,8 @@
 
 		objectOptions = objectOptions || {};
 
+		objectOptions = _extend({}, objectOptions);
+		
 	    this.meta = {};
 
 	    //set default meta
@@ -296,10 +298,46 @@
 		};
 
 		// converts object to json representation for data transfer
-		this.toJSON = this.getObject = function() { 
+		this.getObject  = function() { 
 			var obj = Appacitive._encode(_extend({ __meta: this.meta }, object)); 
 			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
             return obj;
+		};
+
+		var _toJSON = function() {
+			var obj = _extend({ __meta: this.meta }, object); 
+			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
+            return obj;
+		};
+
+		// converts object to json representation but not in an encoded form
+		this.toJSON  = function(recursive) { 
+			if (recursive  && this.type == 'object') {
+				var parseChildren = function(root) {
+					var objects = [];
+					root.forEach(function(obj) {
+						var tmp = obj.toJSON();
+						if (obj.children && !Object.isEmpty(obj.children)) {
+							tmp.children = {};
+							for (var c in obj.children) {
+								if (_type.isArray(obj.children[c])) {
+									tmp[c] = parseChildren(obj.children[c]);
+								} else {
+									tmp[c] = parseChildren([obj.children[c]])[0];
+								}
+								tmp.children[c] = tmp[c];
+							}
+						}
+						if (obj.connection) tmp.__connection = obj.connection.toJSON();
+						objects.push(tmp);
+					});
+					return objects;
+				};
+				return parseChildren([this])[0];
+			} else {
+				return _toJSON.apply(this);
+			}
+
 		};
 
 		// Returns all properties of this object
@@ -811,8 +849,8 @@
 		};
 
 		this.clone = function() {
-			if (this.type == 'object') return Appacitive.Object._create(_extend({ __meta: this.meta }, this.toJSON()));
-			return new Appacitive.connection._create(_extend({ __meta: this.meta }, this.toJSON()));
+			if (this.type == 'object') return Appacitive.Object._create(_extend({ __meta: this.meta }, this.getObject()));
+			return new Appacitive.connection._create(_extend({ __meta: this.meta }, this.getObject()));
 		};
 
 		this.copy = function(properties, setSnapShot) { 
@@ -912,7 +950,7 @@
 				type = object.__type.toLowerCase()
 			}
 
-			var clonedObject = that.toJSON();
+			var clonedObject = that.getObject();
 
 			delete clonedObject.__meta;
 

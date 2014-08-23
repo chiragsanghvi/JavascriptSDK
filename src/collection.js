@@ -36,6 +36,10 @@
       return this.models.map(function(model) { return model.toJSON(options); });
     },
 
+    getObject: function(options) {
+      return this.models.map(function(model) { return model.getObject(options); });
+    },
+
     add: function(models, options) {
       options = options || {};
       var i, index, length, model, cid, id, cids = {}, ids = {}, at = options.at, merge = options.merge, toAdd = [], sort = options.sort, existing;
@@ -51,7 +55,7 @@
         
         id = model.id;
         if (id && ((existing = ids[id]) || (existing = this._byId[id]))) {
-          existing.copy(model.toJSON(), options.setSnapShot);
+          existing.copy(model.getObject(), options.setSnapShot);
           existing.children = model.children;
         } else {
           ids[id] = model;
