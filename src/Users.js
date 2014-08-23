@@ -77,7 +77,7 @@
 		
 		if (!(userObject instanceof Appacitive.User)) userObject = new Appacitive.User(user, true); 
 		else if (!userObject.get('__id') || userObject.get('__id').length === 0) throw new Error('Specify user __id');
-		else user = userObject.toJSON(); 
+		else user = userObject.getObject(); 
 
 		Appacitive.localStorage.set('Appacitive-User', user);
 

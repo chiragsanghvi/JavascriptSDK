@@ -372,11 +372,6 @@
 	/** 
 	* @constructor
 	**/
-	Appacitive.Query = BasicQuery;
-
-	/** 
-	* @constructor
-	**/
 	Appacitive.Queries.FindAllQuery = function(options) {
 
 		options = options || {};
@@ -393,6 +388,11 @@
 	Appacitive.Queries.FindAllQuery.prototype = new BasicQuery();
 
 	Appacitive.Queries.FindAllQuery.prototype.constructor = Appacitive.Queries.FindAllQuery;
+
+	/** 
+	* @constructor
+	**/
+	Appacitive.Query = Appacitive.Queries.FindAllQuery;
 
 	/** 
 	* @constructor

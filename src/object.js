@@ -22,29 +22,6 @@
 		this.getObject = this.getObject;
 		this.children = {};
 
-		this.toJSON = function(recursive) {
-			if (recursive) {
-				var parseChildren = function(root) {
-					var objects = [];
-					root.forEach(function(obj) {
-						var tmp = obj.getObject();
-						if (obj.children && !Object.isEmpty(obj.children)) {
-							tmp.children = {};
-							for (var c in obj.children) {
-								tmp.children[c] = parseChildren(obj.children[c]);
-							}
-						}
-						if (obj.connection) tmp.__connection = obj.connection.toJSON();
-						objects.push(tmp);
-					});
-					return objects;
-				};
-				return parseChildren([this])[0];
-			} else {
-				return this.getObject();
-			}
-		};
-
 		this.typeName = attrs.__type;
 
 		this._aclFactory = new Appacitive._Acl(options.__acls, options.setSnapShot);

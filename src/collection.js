@@ -8,7 +8,6 @@
     if (!this.model) throw new Error("Please specify model for collection");
     if (options.comparator !== void 0) this.comparator = options.comparator;
     if (options.query) this.query(options.query);
-    else this.query(new Appacitive.Query(this.model));
     this._reset();
     this.initialize.apply(this, arguments);
     if (models) this.reset(models, { silent: true });
@@ -37,6 +36,10 @@
       return this.models.map(function(model) { return model.toJSON(options); });
     },
 
+    getObject: function(options) {
+      return this.models.map(function(model) { return model.getObject(options); });
+    },
+
     add: function(models, options) {
       options = options || {};
       var i, index, length, model, cid, id, cids = {}, ids = {}, at = options.at, merge = options.merge, toAdd = [], sort = options.sort, existing;
@@ -52,7 +55,7 @@
         
         id = model.id;
         if (id && ((existing = ids[id]) || (existing = this._byId[id]))) {
-          existing.copy(model.toJSON(), options.setSnapShot);
+          existing.copy(model.getObject(), options.setSnapShot);
           existing.children = model.children;
         } else {
           ids[id] = model;
@@ -266,15 +269,27 @@
       
       var promise = Appacitive.Promise.buildPromise(options);
 
+      options = options || {};
+      if (_type.isArray(options)) {
+        if (options[0] instanceof Appacitive.Object) {
+          models = options;
+          options = { 
+            ids :  models.map(function(o) { return o.id; }).filter(function(o) { return o; }) 
+          };
+        } else {
+          options = {
+            ids: options
+          };
+        }
+      }
+
       var ids = options.ids || [];
 
       if (ids.length == 0) return promise.fulfill(collection);
 
       var args = { ids: ids, fields : options.fields };
 
-      args[this.model.type || this.model.relation] = this.model.className;
-
-      Appacitive.Object.multiGet(args).then(function(results) {
+      this.model.multiGet(args).then(function(results) {
         if (options.add) collection.add(results, options);
         else collection.reset(results, options);
         promise.fulfill(collection);
@@ -383,4 +398,3 @@
   });
 
 })(global);
-
