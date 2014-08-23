@@ -153,8 +153,9 @@
         } else {
           throw new Error("Cannot bind this query")
         }
-      }
-      else return this._query;
+      } else if (!this._query) this._query = new Appacitive.Query(this.model);
+      
+      return this._query;
     },
 
     /**

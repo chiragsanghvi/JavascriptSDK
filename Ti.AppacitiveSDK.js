@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.7.6 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.7.7 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Aug 23 11:05:45 IST 2014
+ * Build time 	: Sat Aug 23 11:13:28 IST 2014
  */
 "use strict";
 
@@ -6931,8 +6931,9 @@ var extend = function(protoProps, staticProps) {
         } else {
           throw new Error("Cannot bind this query")
         }
-      }
-      else return this._query;
+      } else if (!this._query) this._query = new Appacitive.Query(this.model);
+      
+      return this._query;
     },
 
     /**
