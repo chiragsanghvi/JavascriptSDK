@@ -265,6 +265,9 @@
             },
             getMultiDeleteUrl: function (typeName) {
                 return String.format('{0}/{1}/bulkdelete', this.objectServiceUrl, typeName);
+            },
+            getBatchUrl: function() {
+                return String.format('{0}/multi', this.objectServiceUrl);
             }
         };
         this.connection = {

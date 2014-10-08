@@ -45,25 +45,33 @@
 		return result;
 	};
 
-	var _convertEndpoint = function(endpoint, type, base) {
+	var _convertEndpoint = function(endpoint, type, base, isBatch) {
 		if ( endpoint.object && _type.isObject(endpoint.object)) {
-			if (!base['endpoint' + type]) {
-				base["endpoint" + type] = {};
-				base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
-			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].object && base['endpoint' + type].object instanceof Appacitive.Object)
-					base["endpoint" + type].object.copy(endpoint.object, true);
-				else 
-					base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
-			}
 
-			if (base["endpoint" + type]._aclFactory) {
-				base["endpoint" + type]._aclFactory.merge();
+			if (!isBatch) {
+
+				if (!base['endpoint' + type]) {
+					base["endpoint" + type] = {};
+					base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
+				} else {
+					if (base['endpoint' + type] && base['endpoint' + type].object && base['endpoint' + type].object instanceof Appacitive.Object)
+						base["endpoint" + type].object.copy(endpoint.object, true);
+					else 
+						base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
+				}
+
+				if (base["endpoint" + type]._aclFactory) {
+					base["endpoint" + type]._aclFactory.merge();
+				}
+
+				var object = base['endpoint' + type].object;
+				object.trigger('change:__id', object, object.id, {});
 			}
 
 			base["endpoint" + type].objectid = endpoint.object.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
+
 		} else {
 			base["endpoint" + type] = endpoint;
 		}
@@ -96,7 +104,7 @@
 		this.type = 'connection';
 		this.getConnection = this.getObject;
 
-		this.parseConnection = function() {
+		this.parseConnection = function(isBatch) {
 			
 			var typeA = 'A', typeB ='B';
 			if ( attrs.__endpointa.label.toLowerCase() === this.get('__endpointb').label.toLowerCase() ) {
@@ -106,8 +114,8 @@
 				}
 			}
 
-			_convertEndpoint(this.get('__endpointa'), typeA, this);
-			_convertEndpoint(this.get('__endpointb'), typeB, this);
+			_convertEndpoint(this.get('__endpointa'), typeA, this, isBatch);
+			_convertEndpoint(this.get('__endpointb'), typeB, this, isBatch);
 
 			this.endpoints = function() {
 				if (arguments.length === 1 && _type.isString(arguments[0])) {
