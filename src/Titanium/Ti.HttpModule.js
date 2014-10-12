@@ -225,7 +225,7 @@ var global = {};
 		var xdr = new XDomainRequest();
 	    xdr.onload = function() {
   			var response = xdr.responseText;
-			var contentType = xdr.contentType;
+			var contentType = xdr.contentType || '';
 			
 			if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 				try {
@@ -309,7 +309,7 @@ var global = {};
 			    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
 						var response = this.responseText;
 						
-						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
+						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type') || '';
 						if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 							try {
 								var jData = response;
@@ -500,6 +500,7 @@ var global = {};
 		this.onError = function (request, response) {
 			var error = response.responseText;
 		    Appacitive.logs.logRequest(request, error, error, 'error');
+		    if (request.entity && request.entity._triggerError) request.entity._triggerError(request.options, new Appacitive.Error(error));
 		    request.promise.reject(new Appacitive.Error(error), request.entity);
 		};
 		_inner.onError = this.onError;

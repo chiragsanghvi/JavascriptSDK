@@ -226,8 +226,12 @@ if (typeof console === 'undefined' || console === null) {
 var _type = function (o) {
 
     // handle null in old IE
-    if (o === null || typeof o === 'undefined' || o === 'undefined') {
+    if (o === null) {
         return 'null';
+    }
+
+    if (typeof o === 'undefined' || o === 'undefined') {
+        return 'undefined';
     }
 
     // handle DOM elements

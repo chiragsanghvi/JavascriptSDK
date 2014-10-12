@@ -8,6 +8,7 @@
 
 		var result = { label: endpoint.label };
 		if (endpoint.objectid)  result.objectid = endpoint.objectid;
+		
 		if (endpoint.object) {
 			if (endpoint.object instanceof Appacitive.Object) {
 				// provided an instance of Appacitive.ObjectCollection
@@ -46,7 +47,7 @@
 	};
 
 	var _convertEndpoint = function(endpoint, type, base, isBatch) {
-		if ( endpoint.object && _type.isObject(endpoint.object)) {
+		if (endpoint.object && _type.isObject(endpoint.object)) {
 
 			if (!isBatch) {
 
@@ -75,6 +76,19 @@
 		} else {
 			base["endpoint" + type] = endpoint;
 		}
+
+		endpoint.toJSON = function() {
+			var d = _extend({}, this);
+			if (d.object) {
+				d.object = base['endpoint' + type].object.toJSON();
+				if (base['endpoint' + type].object._aclFactory) {
+					var acls = base['endpoint' + type].object._aclFactory.toJSON();
+					if (acls) d.object.__acls = acls;
+				}
+			}
+			delete d.toJSON;
+			return d
+		};
 	};
 
 	Appacitive.Connection = function(attrs, options) {

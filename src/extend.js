@@ -18,7 +18,7 @@ var each = function(obj, iterator, context) {
     }
 };
 
-  // Extend a given object with all the properties in passed-in object(s).
+// Extend a given object with all the properties in passed-in object(s).
 var _extend = function(obj) {
     each(ArrayProto.slice.call(arguments, 1), function(source) {
       if (source) {
@@ -29,6 +29,35 @@ var _extend = function(obj) {
     });
     return obj;
 };
+
+var _reject = function(col, fn) {
+  return col.filter(function(v) {
+    return !fn(v);
+  });
+};
+
+// Deep Extend a given object with all the properties in passed-in object(s).
+var _deepExtend = function(obj) {
+  var slice = Array.prototype.slice;
+
+  each(slice.call(arguments, 1), function(source) {
+    for (var prop in source) {
+      if (_type.isArray(source[prop])) {
+        if (!_type.isArray(obj[prop]))  obj[prop] = [];
+        obj[prop] = _reject(_extend(obj[prop], source[prop]), function (item) { return _type.isNull(item);});
+      } else if (_type.isObject(source[prop]) && (!(source[prop] instanceof Appacitive.Object)) && (!(source[prop] instanceof Appacitive.Connection)) && (!(source[prop] instanceof Appacitive.GeoCoord))) {
+        if (!_type.isObject(obj[prop])){
+          obj[prop] = {};
+        } 
+        obj[prop] = _extend(obj[prop], source[prop]);
+      } else {
+        obj[prop] = source[prop];
+      }
+    }
+  });
+  return obj;
+};
+
 
 // Helper function to correctly set up the prototype chain, for subclasses.
 // Similar to `goog.inherits`, but uses a hash of prototype properties and

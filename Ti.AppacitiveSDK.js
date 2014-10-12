@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.7.7 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.7.8 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Aug 23 11:13:28 IST 2014
+ * Build time 	: Fri Oct 10 14:15:58 IST 2014
  */
 "use strict";
 
@@ -234,8 +234,12 @@ if (typeof console === 'undefined' || console === null) {
 var _type = function (o) {
 
     // handle null in old IE
-    if (o === null || typeof o === 'undefined' || o === 'undefined') {
+    if (o === null) {
         return 'null';
+    }
+
+    if (typeof o === 'undefined' || o === 'undefined') {
+        return 'undefined';
     }
 
     // handle DOM elements
@@ -699,7 +703,7 @@ var global = {};
 		var xdr = new XDomainRequest();
 	    xdr.onload = function() {
   			var response = xdr.responseText;
-			var contentType = xdr.contentType;
+			var contentType = xdr.contentType || '';
 			
 			if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 				try {
@@ -783,7 +787,7 @@ var global = {};
 			    	if ((this.status >= 200 && this.status < 300) || this.status == 304) {
 						var response = this.responseText;
 						
-						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type');
+						var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type') || '';
 						if (contentType.toLowerCase() == 'application/json' ||  contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') { 
 							try {
 								var jData = response;
@@ -974,6 +978,7 @@ var global = {};
 		this.onError = function (request, response) {
 			var error = response.responseText;
 		    Appacitive.logs.logRequest(request, error, error, 'error');
+		    if (request.entity && request.entity._triggerError) request.entity._triggerError(request.options, new Appacitive.Error(error));
 		    request.promise.reject(new Appacitive.Error(error), request.entity);
 		};
 		_inner.onError = this.onError;
@@ -1529,6 +1534,13 @@ var global = {};
 
             getPingUrl: function() {
                 return String.Format('{0}/', this.pingServiceUrl);
+            }
+        };
+        this.multi = {
+            multiServiceUrl: 'multi',
+
+            getBatchUrl: function() {
+                return String.Format('{0}/', this.multiServiceUrl);
             }
         }
 
@@ -2234,7 +2246,7 @@ var each = function(obj, iterator, context) {
     }
 };
 
-  // Extend a given object with all the properties in passed-in object(s).
+// Extend a given object with all the properties in passed-in object(s).
 var _extend = function(obj) {
     each(ArrayProto.slice.call(arguments, 1), function(source) {
       if (source) {
@@ -2245,6 +2257,35 @@ var _extend = function(obj) {
     });
     return obj;
 };
+
+var _reject = function(col, fn) {
+  return col.filter(function(v) {
+    return !fn(v);
+  });
+};
+
+// Deep Extend a given object with all the properties in passed-in object(s).
+var _deepExtend = function(obj) {
+  var slice = Array.prototype.slice;
+
+  each(slice.call(arguments, 1), function(source) {
+    for (var prop in source) {
+      if (_type.isArray(source[prop])) {
+        if (!_type.isArray(obj[prop]))  obj[prop] = [];
+        obj[prop] = _reject(_extend(obj[prop], source[prop]), function (item) { return _type.isNull(item);});
+      } else if (_type.isObject(source[prop]) && (!(source[prop] instanceof Appacitive.Object)) && (!(source[prop] instanceof Appacitive.Connection)) && (!(source[prop] instanceof Appacitive.GeoCoord))) {
+        if (!_type.isObject(obj[prop])){
+          obj[prop] = {};
+        } 
+        obj[prop] = _extend(obj[prop], source[prop]);
+      } else {
+        obj[prop] = source[prop];
+      }
+    }
+  });
+  return obj;
+};
+
 
 // Helper function to correctly set up the prototype chain, for subclasses.
 // Similar to `goog.inherits`, but uses a hash of prototype properties and
@@ -4038,7 +4079,7 @@ var extend = function(protoProps, staticProps) {
 		};
 	};
 
-})(global);(function (global) {
+})(global);(function(global) {
 
 	"use strict";
 
@@ -4049,7 +4090,10 @@ var extend = function(protoProps, staticProps) {
 
 	var _allowObjectEncode = ["__endpointa", "__endpointb"];
 
-	var __privateMeta = { "__utcdatecreated": "datetime", "__utclastupdateddate": "datetime" };
+	var __privateMeta = {
+		"__utcdatecreated": "datetime",
+		"__utclastupdateddate": "datetime"
+	};
 
 	var isString = function(val) {
 		return (_type.isString(val) || _type.isNumber(val) || _type.isBoolean(val));
@@ -4076,58 +4120,65 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	var _types = {
-		"integer": function(value) { 
+		"integer": function(value) {
 			if (value) {
 				var res = parseInt(value);
 				if (!isNaN(res)) return res;
 			}
 			return value;
-		}, "decimal": function(value) { 
+		},
+		"decimal": function(value) {
 			if (value) {
 				var res = parseFloat(value);
 				if (!isNaN(res)) return res;
 			}
 			return value;
-		}, "boolean": function(value) { 
+		},
+		"boolean": function(value) {
 			if (_type.isBoolean(value)) return value;
 			if (value !== undefined && value !== null && (value.toString().toLowerCase() === 'true' || value === true || value > 0)) return true;
 			return false;
-		}, "date": function(value) { 
+		},
+		"date": function(value) {
 			if (_type.isDate(value)) return value;
 			if (value) {
 				var res = Appacitive.Date.parseISODate(value);
 				if (res) return res;
 			}
 			return value;
-		}, "datetime": function(value) { 
+		},
+		"datetime": function(value) {
 			if (_type.isDate(value)) return value;
 			if (value) {
 				var res = Appacitive.Date.parseISODate(value);
 				if (res) return res;
 			}
 			return value;
-		}, "time": function(value) { 
+		},
+		"time": function(value) {
 			if (_type.isDate(value)) return value;
 			if (value) {
 				var res = Appacitive.Date.parseISOTime(value);
 				if (res) return res;
 			}
 			return value;
-		}, "string": function(value) { 
+		},
+		"string": function(value) {
 			if (value) return value.toString();
 			return value;
-		}, "geocode": function(value) {
+		},
+		"geocode": function(value) {
 
 			if (isGeocode(value)) return value;
 
 			// value is not string or its length is 0, return false
 			if (!_type.isString(value) || value.trim().length == 0) return false;
-			  
+
 			// Split value string by ,
 			var split = value.split(',');
 
 			// split length is not equal to 2 so return false
-			if (split.length !== 2 ) return false;
+			if (split.length !== 2) return false;
 
 			// validate the value
 			return new Appacitive.GeoCoord(split[0], split[1]);
@@ -4142,12 +4193,12 @@ var extend = function(protoProps, staticProps) {
 	Appacitive.cast = _types;
 
 	var encode = function(value) {
-		if (_type.isNullOrUndefined(value)) return null; 
-	 	else if (isString(value)) return ( value + '');
-	 	else if (_type.isDate(value)) return Appacitive.Date.toISOString(value);
-	 	else if (_type.isObject(value)) {
-	 		if (isGeocode(value)) return value.toString();
-	 		return (value.getObject ? value.getObject() : value);
+		if (_type.isNullOrUndefined(value)) return null;
+		else if (isString(value)) return (value + '');
+		else if (_type.isDate(value)) return Appacitive.Date.toISOString(value);
+		else if (_type.isObject(value)) {
+			if (isGeocode(value)) return value.toString();
+			return (value.getObject ? value.getObject() : value);
 		}
 		return value;
 	};
@@ -4170,7 +4221,8 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	Appacitive._decode = function(attrs) {
-		var object = {}, meta = _extend({}, __privateMeta, getMeta(attrs));
+		var object = {},
+			meta = _extend({}, __privateMeta, getMeta(attrs));
 		delete attrs.__meta;
 		for (var key in attrs) {
 			if (_type.isArray(attrs[key])) {
@@ -4190,8 +4242,8 @@ var extend = function(protoProps, staticProps) {
 
 	//base object for objects and connections
 	/**
-	* @constructor
-	**/
+	 * @constructor
+	 **/
 	var _BaseObject = function(objectOptions, optns) {
 
 		var _snapshot = {};
@@ -4200,20 +4252,20 @@ var extend = function(protoProps, staticProps) {
 
 		objectOptions = objectOptions || {};
 
-		objectOptions = _extend({}, objectOptions);
-		
-	    this.meta = {};
+		objectOptions = _deepExtend({}, objectOptions);
 
-	    //set default meta
-	    objectOptions.__meta = _extend(this.meta, objectOptions.__meta);
+		this.meta = {};
+
+		//set default meta
+		objectOptions.__meta = _extend(this.meta, objectOptions.__meta);
 
 		if (optns && optns.parse) objectOptions = this.parse(objectOptions);
-		
-		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _extend({}, this.defaults, objectOptions);
-		
-	    if (optns && optns.collection) this.collection = optns.collection;
-	    
-	    objectOptions = Appacitive._decode(objectOptions);
+
+		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _deepExtend({}, this.defaults, objectOptions);
+
+		if (optns && optns.collection) this.collection = optns.collection;
+
+		objectOptions = Appacitive._decode(objectOptions);
 
 		var that = this;
 
@@ -4232,11 +4284,11 @@ var extend = function(protoProps, staticProps) {
 				if (_setOps[property]) delete _setOps[property];
 
 				if (isEncodable(obj[property])) des[property] = obj[property];
-				else if (_type.isObject(obj[property])) des[property] = _extend({}, des[property], obj[property]);
+				else if (_type.isObject(obj[property])) des[property] = _deepExtend({}, des[property], obj[property]);
 				else if (_type.isArray(obj[property])) {
-					
+
 					des[property] = [];
-				
+
 					obj[property].forEach(function(v) {
 						if (isEncodable(v) || property == '__link') des[property].push(v);
 						else throw new Error("Multivalued property cannot add object or array as property of object");
@@ -4249,20 +4301,27 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		var _mergePrivateFields = function(attrs, del) {
-            var privateProps = ["id", "__id", "__utclastupdateddate", "__utcdatecreated", "__createdby", "__updatedby"];
-            var map = { "id": "id", "__id" : "id", "__utclastupdateddate": "lastUpdatedAt", "__utcdatecreated": "createdAt", "__createdby": "createdBy", "__updatedby": "lastUpdatedBy" };
-            privateProps.forEach(function(prop) {
-                if (attrs[prop]) {
-                    if ((prop === "__utcdatecreated" || prop === "__utclastupdateddate") && !_type.isDate(attrs[prop])) {
-                        that[map[prop]] = Appacitive.Date.parseISODate(attrs[prop]);
-                    }  else {
-                        that[map[prop]] = attrs[prop];
-                    }
+			var privateProps = ["id", "__id", "__utclastupdateddate", "__utcdatecreated", "__createdby", "__updatedby"];
+			var map = {
+				"id": "id",
+				"__id": "id",
+				"__utclastupdateddate": "lastUpdatedAt",
+				"__utcdatecreated": "createdAt",
+				"__createdby": "createdBy",
+				"__updatedby": "lastUpdatedBy"
+			};
+			privateProps.forEach(function(prop) {
+				if (attrs[prop]) {
+					if ((prop === "__utcdatecreated" || prop === "__utclastupdateddate") && !_type.isDate(attrs[prop])) {
+						that[map[prop]] = Appacitive.Date.parseISODate(attrs[prop]);
+					} else {
+						that[map[prop]] = attrs[prop];
+					}
 
-                    if (del) delete attrs[prop];
-                }
-            });
-        };
+					if (del) delete attrs[prop];
+				}
+			});
+		};
 
 		this.base = Appacitive.Object.prototype;
 
@@ -4281,7 +4340,7 @@ var extend = function(protoProps, staticProps) {
 		var _multivaluedProps = {};
 
 		//list of properties on whom set operations performed
-	    var _setOps = {};
+		var _setOps = {};
 
 		var raw = {};
 		_copy(objectOptions, raw);
@@ -4289,14 +4348,14 @@ var extend = function(protoProps, staticProps) {
 
 		//will be used in case of creating an appacitive object for internal purpose
 		if (optns.setSnapShot) _copy(object, _snapshot);
-		
+
 		if (!_snapshot[this.idAttribute] && raw[this.idAttribute]) _snapshot[this.idAttribute] = raw[this.idAttribute];
 
 		// Set id property
 		this.id = _snapshot[this.idAttribute];
 
 		//Check whether __type or __relationtype is mentioned and set type property
-		if (raw.__type) { 
+		if (raw.__type) {
 			raw.__type = raw.__type.toLowerCase();
 			this.entityType = 'type';
 			this.type = 'object';
@@ -4313,7 +4372,7 @@ var extend = function(protoProps, staticProps) {
 		if (!_snapshot.__attributes) _snapshot.__attributes = {};
 
 		//tags
-		var _removeTags = []; 
+		var _removeTags = [];
 		if (!object.__tags) object.__tags = [];
 		if (!_snapshot.__tags) _snapshot.__tags = [];
 
@@ -4328,7 +4387,7 @@ var extend = function(protoProps, staticProps) {
 
 		//Fileds to be ignored while update operation
 		var _ignoreTheseFields = ["__id", "__revision", "__endpointa", "__endpointb", "__createdby", "__lastmodifiedby", "__type", "__relationtype", "__typeid", "__relationid", "__utcdatecreated", "__utclastupdateddate", "__tags", "__authType", "__link", "__acls", "__meta"];
-		
+
 		// parse api output to get error info
 		var _getOutpuStatus = function(data) {
 			data = data || {};
@@ -4339,20 +4398,33 @@ var extend = function(protoProps, staticProps) {
 
 		// converts object to json representation for data transfer
 		this.getObject  = function() { 
-			var obj = Appacitive._encode(_extend({ __meta: this.meta }, object)); 
+			var obj = Appacitive._encode(_deepExtend({ __meta: this.meta }, object)); 
+
+			if (that.type == 'connection') {
+				obj.__endpointa = object.__endpointa.toJSON();
+				obj.__endpointb = object.__endpointb.toJSON();
+			}
+
 			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
             return obj;
 		};
-
+		
 		var _toJSON = function() {
-			var obj = _extend({ __meta: this.meta }, object); 
-			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
-            return obj;
+			var obj = _deepExtend({
+				__meta: this.meta
+			}, object);
+
+			if (that.type == 'connection') {
+				object.__endpointa = object.__endpointa.toJSON();
+				object.__endpointb = object.__endpointb.toJSON();
+			}
+			if (this.hasOwnProperty("id")  && this.id) obj.__id = this.id;
+			return obj;
 		};
 
 		// converts object to json representation but not in an encoded form
-		this.toJSON  = function(recursive) { 
-			if (recursive  && this.type == 'object') {
+		this.toJSON = function(recursive) {
+			if (recursive && this.type == 'object') {
 				var parseChildren = function(root) {
 					var objects = [];
 					root.forEach(function(obj) {
@@ -4382,7 +4454,7 @@ var extend = function(protoProps, staticProps) {
 
 		// Returns all properties of this object
 		this.properties = function() {
-			var properties = _extend({}, this.attributes);
+			var properties = _deepExtend({}, this.attributes);
 			delete properties.__attributes;
 			delete properties.__tags;
 			return properties;
@@ -4446,23 +4518,23 @@ var extend = function(protoProps, staticProps) {
 			else throw new Error('.aggregates() called with an incorrect number of arguments. 0, and 1 are supported.');
 		};
 
-		this.tags = function()  {
+		this.tags = function() {
 			if (!object.__tags) return [];
 			return object.__tags;
 		};
 
 		this.addTag = function(tag) {
 			if (!tag || !_type.isString(tag) || !tag.length) return this;
-		    
-		    if (!object.__tags) object.__tags = [];
 
-		    object.__tags.push(tag);
-		    object.__tags = Array.distinct(object.__tags);
+			if (!object.__tags) object.__tags = [];
 
-		    if (!_removeTags || !_removeTags.length) {
-		    	triggerChangeEvent('__tags');
-		     	return this;
-			} 
+			object.__tags.push(tag);
+			object.__tags = Array.distinct(object.__tags);
+
+			if (!_removeTags || !_removeTags.length) {
+				triggerChangeEvent('__tags');
+				return this;
+			}
 
 			var index = _removeTags.indexOf(tag);
 			if (index != -1) _removeTags.splice(index, 1);
@@ -4505,12 +4577,14 @@ var extend = function(protoProps, staticProps) {
 
 		this.getChangedTags = _getChangedTags;
 
-		this.getRemovedTags = function() { return _removetags; };
+		this.getRemovedTags = function() {
+			return _removetags;
+		};
 
 		var setMutliItems = function(key, value, op, options) {
 
-			if (!key || !_type.isString(key) ||  key.length === 0  || key.trim().indexOf('__') == 0 || key.trim().indexOf('$') === 0 || value == undefined || value == null) return this; 
-			
+			if (!key || !_type.isString(key) || key.length === 0 || key.trim().indexOf('__') == 0 || key.trim().indexOf('$') === 0 || value == undefined || value == null) return this;
+
 			key = key.toLowerCase();
 
 			try {
@@ -4519,32 +4593,36 @@ var extend = function(protoProps, staticProps) {
 					var val = item;
 					if (!isEncodable(val)) throw new Error("Multivalued property cannot have values of property as an object");
 
-	 				if (object[key] && _type.isArray(object[key])) {
+					if (object[key] && _type.isArray(object[key])) {
 
-	 					if (op == 'additems') {
-	 						object[key].push(val);
-	 					} else if (op == 'adduniqueitems') {
-	 						var index = -1;
+						if (op == 'additems') {
+							object[key].push(val);
+						} else if (op == 'adduniqueitems') {
+							var index = -1;
 
- 							object[key].find(function(o, i) {  
- 								if (_type.isEqual(o, val)) {
- 									index = i;
- 									return true;
- 								} 
- 								return false;
- 							});
-	 						
-	 						if (index == -1) object[key].push(val);
-	 					} else if (op == 'removeitems') {
-	 						object[key].removeAll(val);
-	 					}
-	 				} else {
-	 					if (op != 'removeitems') object[key] = [val];
-	 				}
+							object[key].find(function(o, i) {
+								if (_type.isEqual(o, val)) {
+									index = i;
+									return true;
+								}
+								return false;
+							});
 
-	 				if (!_multivaluedProps[key]) _multivaluedProps[key] = { additems: [], adduniqueitems: [], removeitems: [] };
+							if (index == -1) object[key].push(val);
+						} else if (op == 'removeitems') {
+							object[key].removeAll(val);
+						}
+					} else {
+						if (op != 'removeitems') object[key] = [val];
+					}
 
-	 				_multivaluedProps[key][op].push(val);
+					if (!_multivaluedProps[key]) _multivaluedProps[key] = {
+						additems: [],
+						adduniqueitems: [],
+						removeitems: []
+					};
+
+					_multivaluedProps[key][op].push(val);
 				};
 
 				if (_type.isArray(value)) {
@@ -4555,13 +4633,13 @@ var extend = function(protoProps, staticProps) {
 					addItem(value);
 				}
 
-			 	triggerChangeEvent(key, options);
+				triggerChangeEvent(key, options);
 
-			} catch(e) {
-		 		throw new Error("Unable to add item to " + key);
-		 	}
+			} catch (e) {
+				throw new Error("Unable to add item to " + key);
+			}
 
-		 	return that; 
+			return that;
 		};
 
 		this.add = function(key, value, options) {
@@ -4579,10 +4657,10 @@ var extend = function(protoProps, staticProps) {
 		var hasChanged = function(property, prevValue, currValue, isInternal) {
 			var changed = undefined;
 
-			if (!_type.isEqual(currValue ,prevValue)) {
+			if (!_type.isEqual(currValue, prevValue)) {
 				if (property == '__tags') {
 					var changedTags = _getChangedTags();
-					if (changedTags && changedTags.length > 0) changed = changedTags; 
+					if (changedTags && changedTags.length > 0) changed = changedTags;
 				} else if (property == '__attributes') {
 					var attrs = _getChangedAttributes();
 					if (!Object.isEmpty(attrs)) changed = attrs;
@@ -4596,10 +4674,12 @@ var extend = function(protoProps, staticProps) {
 							}
 						} else if (!currValue.equals(prevValue)) {
 							changed = currValue;
-						} 
+						}
 					} else if (_atomicProps[property] && !_setOps[property]) {
 						if (isInternal) {
-							changed = { incrementby : _atomicProps[property].value };
+							changed = {
+								incrementby: _atomicProps[property].value
+							};
 						} else {
 							changed = currValue;
 						}
@@ -4607,14 +4687,14 @@ var extend = function(protoProps, staticProps) {
 						changed = currValue;
 					}
 				}
-			} 
+			}
 
 			return changed;
 		};
 
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
-			var changeSet = _extend({}, _snapshot);
+			var changeSet = _deepExtend({}, _snapshot);
 
 			for (var p in changeSet) {
 				if (p[0] == '$') delete changeSet[p];
@@ -4635,29 +4715,29 @@ var extend = function(protoProps, staticProps) {
 				_ignoreTheseFields.forEach(function(c) {
 					if (changeSet[c]) delete changeSet[c];
 				});
-			} catch(e) {}
+			} catch (e) {}
 
 			if (isInternal) changeSet = Appacitive._encode(changeSet);
 
 			var changedTags = _getChangedTags();
 			if (isInternal) {
-				if (changedTags && changedTags.length > 0) { 
-					changeSet["__addtags"] = changedTags; 
+				if (changedTags && changedTags.length > 0) {
+					changeSet["__addtags"] = changedTags;
 					isDirty = true;
 				}
 				if (_removeTags && _removeTags.length > 0) {
-				    changeSet["__removetags"] = _removeTags;
-				    isDirty = true;
+					changeSet["__removetags"] = _removeTags;
+					isDirty = true;
 				}
 			} else {
-				if (changedTags && changedTags.length > 0) { 
-					changeSet["__tags"] = changedTags; 
+				if (changedTags && changedTags.length > 0) {
+					changeSet["__tags"] = changedTags;
 					isDirty = true;
 				}
 			}
 
 			var attrs = _getChangedAttributes();
-			if (attrs && !Object.isEmpty(attrs)) { 
+			if (attrs && !Object.isEmpty(attrs)) {
 				changeSet["__attributes"] = attrs;
 				isDirty = true;
 			} else delete changeSet["__attributes"];
@@ -4683,11 +4763,11 @@ var extend = function(protoProps, staticProps) {
 				return Object.isEmpty(_getChanged(true)) ? false : true;
 			else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0)
 				return (hasChanged(arguments[0]) == undefined) ? false : true;
-			
+
 			return false;
 		};
 
-		this.changedAttributes  = function() {
+		this.changedAttributes = function() {
 			if (this.isNew()) return this.toJSON();
 
 			if (arguments.length === 0) {
@@ -4707,14 +4787,14 @@ var extend = function(protoProps, staticProps) {
 			if (this.isNew()) return null;
 
 			if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length) {
-				return _snapshot[arguments[0]];	
+				return _snapshot[arguments[0]];
 			}
 			return null;
 		};
 
-		this.previousAttributes = function() { 
-			if (this.isNew()) return null; 
-			return _extend({}, _snapshot); 
+		this.previousAttributes = function() {
+			if (this.isNew()) return null;
+			return _extend({}, _snapshot);
 		};
 
 		this.fields = function() {
@@ -4728,8 +4808,8 @@ var extend = function(protoProps, staticProps) {
 			}
 		};
 
-		this.get = function(key, type) { 
-			if (key) { 
+		this.get = function(key, type) {
+			if (key) {
 				if (type && _types[type.toLowerCase()]) {
 					if (_types[type.toLowerCase()]) {
 						var res = _types[type.toLowerCase()](object[key]);
@@ -4755,20 +4835,24 @@ var extend = function(protoProps, staticProps) {
 				if (changed[key] != undefined || (_ignoreTheseFields.indexOf(key) != -1)) {
 					var value = changed[key] || object[key];
 					// Trigger all relevant attribute changes.
-				    that.trigger('change:' + key, that, value, {});
-				    if (!options.ignoreChange) that.trigger('change', that, options);
+					that.trigger('change:' + key, that, value, {});
+					if (!options.ignoreChange) that.trigger('change', that, options);
 				}
 			}
 		};
 
 		var triggerDestroy = function(opts) {
 			if (opts && !opts.silent) that.trigger('destroy', that, that.collection, opts);
-      	};
+		};
 
-      	var set = function(key, value, options) {
+		this._triggerError = function(options, status) {
+			if (!options.silent) that.trigger('error', that, status, options);	
+		};
 
-      		if (!key || !_type.isString(key) ||  key.length === 0 || key.trim().indexOf('$') === 0) return this; 
-			
+		var set = function(key, value, options) {
+
+			if (!key || !_type.isString(key) || key.length === 0 || key.trim().indexOf('$') === 0) return this;
+
 			options = options || {};
 
 			var oType = options.dataType;
@@ -4777,11 +4861,13 @@ var extend = function(protoProps, staticProps) {
 
 			try {
 
-			 	if (_type.isNullOrUndefined(value)) { object[key] = null;}
-			 	else if (isEncodable(value)) { object[key] = value; }
-			 	else if (_type.isObject(value)) {
-			 		if (_allowObjectSetOperations.indexOf(key) !== -1) object[key] = value;
-			 		else throw new Error("Property cannot have value as an object");
+				if (_type.isNullOrUndefined(value)) {
+					object[key] = null;
+				} else if (isEncodable(value)) {
+					object[key] = value;
+				} else if (_type.isObject(value)) {
+					if (_allowObjectSetOperations.indexOf(key) !== -1) object[key] = value;
+					else throw new Error("Property cannot have value as an object");
 				} else if (_type.isArray(value)) {
 					object[key] = [];
 
@@ -4796,14 +4882,14 @@ var extend = function(protoProps, staticProps) {
 				delete _setOps[key];
 
 				if (!_type.isEqual(object[key], _snapshot[key])) _setOps[key] = true;
-			
-				if (key == that.idAttribute) that.id = value; 
 
-			 	return this;
-			} catch(e) {
-			 	throw new Error("Unable to set " + key);
-			} 
-      	};
+				if (key == that.idAttribute) that.id = value;
+
+				return this;
+			} catch (e) {
+				throw new Error("Unable to set " + key);
+			}
+		};
 
 		this.set = function(key, val, options) {
 
@@ -4821,10 +4907,10 @@ var extend = function(protoProps, staticProps) {
 
 			options || (options = {});
 
-		    // Run validation.
-		    if (!this._validate(attrs, options)) return false;
+			// Run validation.
+			if (!this._validate(attrs, options)) return false;
 
-		    // Check for changes of `id`.
+			// Check for changes of `id`.
 			if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];
 
 			_mergePrivateFields(attrs);
@@ -4834,7 +4920,9 @@ var extend = function(protoProps, staticProps) {
 			// For each `set` attribute, update or delete the current value.
 			for (attr in attrs) {
 				val = attrs[attr];
-				set.apply(this, [ attr, val, _extend({}, options, { ignoreChange: true }) ]);
+				set.apply(this, [attr, val, _extend({}, options, {
+					ignoreChange: true
+				})]);
 			}
 
 			if (options && !options.silent) {
@@ -4844,7 +4932,7 @@ var extend = function(protoProps, staticProps) {
 						changed = true;
 						var value = object[key];
 						// Trigger relevant attribute change event.
-					    that.trigger('change:' + key, that, value, {});
+						that.trigger('change:' + key, that, value, {});
 					}
 				}
 			}
@@ -4855,31 +4943,35 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.unset = function(key, options) {
-			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this; 
+			if (!key || !_type.isString(key) || key.length === 0 || key.indexOf('__') === 0) return this;
 			key = key.toLowerCase();
-		 	delete object[key];
-		 	triggerChangeEvent(key, options);
-		 	return this;
+			delete object[key];
+			triggerChangeEvent(key, options);
+			return this;
 		};
 
 		// Run validation against the next complete set of model attributes,
-	    // returning `true` if all is well. Otherwise, fire an `"invalid"` event.
-	    this._validate = function(attrs, options) {
+		// returning `true` if all is well. Otherwise, fire an `"invalid"` event.
+		this._validate = function(attrs, options) {
 			if (!options.validate || !this.validate || !_type.isFunction(this.validate)) return true;
 			attrs = _extend({}, this.attributes, attrs);
 			var error = this.validationError = this.validate(attrs, options) || null;
 			if (!error) return true;
-			this.trigger('invalid', this, error, _extend(options, {validationError: error}));
+			this.trigger('invalid', this, error, _extend(options, {
+				validationError: error
+			}));
 			return false;
-	    };
+		};
 
-	     // Check if the model is currently in a valid state.
-	    this.isValid = function(options) {
-	    	return this._validate({}, _extend(options || {}, { validate: true }));
-	    };
+		// Check if the model is currently in a valid state.
+		this.isValid = function(options) {
+			return this._validate({}, _extend(options || {}, {
+				validate: true
+			}));
+		};
 
 		this.has = function(key) {
-			if (!key || !_type.isString(key) ||  key.length === 0) return false; 
+			if (!key || !_type.isString(key) || key.length === 0) return false;
 			if (object[key] && !_type.isUndefined(object[key])) return true;
 			return false;
 		};
@@ -4889,12 +4981,18 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.clone = function() {
-			if (this.type == 'object') return Appacitive.Object._create(_extend({ __meta: this.meta }, this.getObject()));
-			return new Appacitive.connection._create(_extend({ __meta: this.meta }, this.getObject()));
+			if (this.type == 'object') 
+				return Appacitive.Object._create(_deepExtend({
+					__meta: this.meta
+				}, this.getObject()));
+
+			return new Appacitive.connection._create(_deepExtend({
+				__meta: this.meta
+			}, this.getObject()));
 		};
 
-		this.copy = function(properties, setSnapShot) { 
-			if (properties) { 
+		this.copy = function(properties, setSnapShot) {
+			if (properties) {
 				_copy(properties, object);
 				if (setSnapShot) {
 					_copy(properties, _snapshot);
@@ -4931,11 +5029,11 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		var _atomic = function(key, amount, multiplier, options) {
-			if (!key || !_type.isString(key) ||  key.length === 0 || key.indexOf('__') === 0) return this;
+			if (!key || !_type.isString(key) || key.length === 0 || key.indexOf('__') === 0) return this;
 
 			key = key.toLowerCase();
 
-			if (_type.isObject(object[key]) ||  _type.isArray(object[key])) {
+			if (_type.isObject(object[key]) || _type.isArray(object[key])) {
 				throw new Error("Cannot increment/decrement array/object");
 			}
 
@@ -4950,10 +5048,12 @@ var extend = function(protoProps, staticProps) {
 				object[key] = isNaN(Number(object[key])) ? amount : Number(object[key]) + amount;
 
 				if (!that.isNew()) {
-					_atomicProps[key] = { value : (_atomicProps[key] ? _atomicProps[key].value : 0) + amount };
+					_atomicProps[key] = {
+						value: (_atomicProps[key] ? _atomicProps[key].value : 0) + amount
+					};
 				}
 
-			} catch(e) {
+			} catch (e) {
 				throw new Error('Cannot perform increment/decrement operation');
 			}
 
@@ -4970,6 +5070,113 @@ var extend = function(protoProps, staticProps) {
 			return _atomic(key, amount, -1, options);
 		};
 
+		this._findUnsavedChanges = function() {
+
+			var changeSet = {
+				object: null,
+				isNested: false
+			}
+
+			if (!this.id) {
+
+				var clonedObject = that.getObject();
+
+				delete clonedObject.__meta;
+
+				//remove __revision and aggregate poprerties
+				for (var p in clonedObject) if (p[0] == '$') delete clonedObject[p];
+				
+				if (clonedObject["__revision"]) delete clonedObject["__revision"];
+
+				if (that.type == 'object' && that._aclFactory) {
+					var acls = that._aclFactory.getChanged();
+					if (acls) clonedObject.__acls = acls;
+				}
+
+				if (clonedObject.__tags && clonedObject.__tags.length == 0) delete clonedObject.__tags;
+
+				if (Object.isEmpty(clonedObject.__attributes)) delete clonedObject.__attributes;
+
+				changeSet.object = clonedObject;
+			} else {
+				changeSet.object = _getChanged(true);
+			}
+
+			return changeSet;
+		};
+
+		this.getType = function() {
+			var type = that.type;
+			if (object.__type && (object.__type.toLowerCase() == 'user' || object.__type.toLowerCase() == 'device')) {
+				type = object.__type.toLowerCase()
+			}
+
+			return type;
+		};
+
+		this._parseOutput = function(options, data) {
+
+			var type = that.getType(), status;
+			
+			options = options || {};
+			
+			if (data && data[type]) {
+				if (options && options.parse) data[type] = this.parse(data[type]);
+
+				var isNew = this.isNew();
+
+				_snapshot = Appacitive._decode(_extend({
+					__meta: _extend(that.meta, data.__meta)
+				}, data[type]));
+
+				that.id = object[that.idAttribute] = data[type][that.idAttribute];
+
+				_merge();
+
+				if (isNew) {
+					if (that.type == 'connection') {
+						if (!options._batch) {
+							if (object.__endpointa.object) object.__endpointa.object.__meta = data.__ameta;
+							if (object.__endpointb.object) object.__endpointb.object.__meta = data.__bmeta;
+							that.parseConnection(options._batch);
+						}
+					}
+					that.trigger('change:__id', that, that.id, {});
+
+					Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, {
+						object: that
+					});
+
+					that.created = true;
+				} else {
+					Appacitive.eventManager.fire(that.entityType + '.' + type + "." + that.id + '.updated', that, {
+						object: that
+					});
+				}
+
+				if (!options.silent) that.trigger('sync', that, data[type], options);
+
+			} else {
+				data = data || {};
+				data.status = data.status || {};
+				status = _getOutpuStatus(data.status);
+
+				that._triggerError(options, new Appacitive.Error(status));
+
+				if (that.isNew()) {
+					Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, {
+						error: status
+					});
+				} else {
+					Appacitive.eventManager.fire(that.entityType + '.' + type + "." + that.id + '.updateFailed', that, {
+						object: status
+					});
+				}
+			}
+
+			return status;
+		};
+
 		/* crud operations  */
 
 		/* save
@@ -4980,81 +5187,34 @@ var extend = function(protoProps, staticProps) {
 			else return _create.apply(this, arguments);
 		};
 
+
 		// to create the object
 		var _create = function(options) {
 
 			options = options || {};
 
-			var type = that.type;
-			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) {
-				type = object.__type.toLowerCase()
-			}
-
-			var clonedObject = that.getObject();
-
-			delete clonedObject.__meta;
-
-			//remove __revision and aggregate poprerties
-			for (var p in clonedObject) {
-				if (p[0] == '$') delete clonedObject[p];
-			}
-			if (clonedObject["__revision"]) delete clonedObject["__revision"];
+			var type = that.getType();
 			
-			if (type == 'object' && that._aclFactory) {
-				var acls = that._aclFactory.getChanged();
-				if (acls) clonedObject.__acls = acls;
-			}
-
-			if (clonedObject.__tags && clonedObject.__tags.length == 0) delete clonedObject.__tags;
-
-			if (Object.isEmpty(clonedObject.__attributes)) delete clonedObject.__attributes;
+			var changeSet = that._findUnsavedChanges();
 
 			var request = new Appacitive._Request({
 				method: 'PUT',
 				type: type,
 				op: 'getCreateUrl',
 				args: [this.className, _fields],
-				data: clonedObject,
+				data: changeSet.object,
 				options: options,
 				entity: that,
 				onSuccess: function(data) {
-					var savedState = null;
-
-					if (data && data[type]) {
-
-						if (optns && optns.parse) data[type] = this.parse(data[type]);
-
-						savedState = data[type];
-
-						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, savedState));
-
-						that.id = object[that.idAttribute] = savedState[that.idAttribute];
-						
-						_merge();
-
-						if (that.type == 'connection') {
-							if (object.__endpointa.object) object.__endpointa.object.__meta = data.__ameta;
-							if (object.__endpointb.object) object.__endpointb.object.__meta = data.__bmeta;
-							that.parseConnection();
-						}
-						that.trigger('change:__id', that, that.id, { });
-
-						Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, { object : that });
-
-						that.created = true;
-
-						if (!options.silent) that.trigger('sync', that, data[type], options);
-
+					var status = that._parseOutput(options, data);
+					if (!status) {
 						request.promise.fulfill(that);
 					} else {
-						if (!options.silent) that.trigger('error', that, data.status, options);
-
-						Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, { error: data.status });
-						request.promise.reject(data.status, that);
+						request.promise.reject(status, that)
 					}
 				}
 			});
-				
+
 			return request.send();
 		};
 
@@ -5063,18 +5223,18 @@ var extend = function(protoProps, staticProps) {
 
 			if (!Appacitive.Promise.is(promise)) promise = Appacitive.Promise.buildPromise(options);
 
-			var changeSet = _getChanged(true);
+			var changeSet =  that._findUnsavedChanges();
 
 			options = options || {};
 
-			if (!Object.isEmpty(changeSet)) {
+			if (!Object.isEmpty(changeSet.object)) {
 
 				var type = that.type;
-				
+
 				var args = [that.className, (that.id) ? that.id : that.id, _fields];
 
 				// for User and Device objects
-				if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
+				if (object && object.__type && (object.__type.toLowerCase() == 'user' || object.__type.toLowerCase() == 'device')) {
 					type = object.__type.toLowerCase();
 					args.splice(0, 1);
 				}
@@ -5084,55 +5244,35 @@ var extend = function(protoProps, staticProps) {
 					type: type,
 					op: 'getUpdateUrl',
 					args: args,
-					data: changeSet,
+					data: changeSet.object,
 					options: options,
 					entity: that,
 					onSuccess: function(data) {
-						if (data && data[type]) {
-
-							if (optns && optns.parse) data[type] = this.parse(data[type]);
-
-							_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
-
-							_merge();
-							
-							delete that.created;
-
-							if (!options.silent) that.trigger('sync', that, data[type], options);
-
-							Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
+						var status = that._parseOutput(options, data);
+						if (!status) {
 							request.promise.fulfill(that);
 						} else {
-							data = data || {};
-							data.status =  data.status || {};
-							data.status = _getOutpuStatus(data.status);
-							if (!options.silent) that.trigger('error', that, data.status, options);
-							Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updateFailed', that, { object : data.status });
-							request.promise.reject(data.status, that);
+							request.promise.reject(status, that)
 						}
 					}
 				});
-				
+
 				return request.send();
 			} else {
 				promise.fulfill(that);
 			}
-			
+
 			return promise;
 		};
 
-		var _fetch = function (options) {
+		var _fetch = function(options) {
 
 			if (!that.id) throw new Error('Please specify id for get operation');
+
+			options = options || {};
 			
-			options = options || [];
-
-			var type = this.type;
-
 			// for User and Device objects
-			if (object && object.__type &&  ( object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) { 
-				type = object.__type.toLowerCase();
-			}
+			var type = that.getType();
 
 			var request = new Appacitive._Request({
 				method: 'GET',
@@ -5144,9 +5284,11 @@ var extend = function(protoProps, staticProps) {
 				onSuccess: function(data) {
 					if (data && data[type]) {
 
-						if (optns && optns.parse) data[type] = this.parse(data[type]);
+						if (options && options.parse) data[type] = that.parse(data[type]);
 
-						_snapshot = Appacitive._decode(_extend({ __meta: _extend(that.meta, data.__meta) }, data[type]));
+						_snapshot = Appacitive._decode(_extend({
+							__meta: _extend(that.meta, data.__meta)
+						}, data[type]));
 						_copy(_snapshot, object);
 						_mergePrivateFields(object);
 
@@ -5159,12 +5301,17 @@ var extend = function(protoProps, staticProps) {
 
 						if (!options.silent) that.trigger('sync', that, data[type], options);
 
-						Appacitive.eventManager.fire(that.entityType  + '.' + type + "." + that.id +  '.updated', that, { object : that });
+						Appacitive.eventManager.fire(that.entityType + '.' + type + "." + that.id + '.fetched', that, {
+							object: that
+						});
 						request.promise.fulfill(that);
 					} else {
 						data = data || {};
-						data.status =  data.status || {};
+						data.status = data.status || {};
 						data.status = _getOutpuStatus(data.status);
+
+						that._triggerError(options, new Appacitive.Error(data.status));
+
 						request.promise.reject(data.status, that);
 					}
 				}
@@ -5174,15 +5321,15 @@ var extend = function(protoProps, staticProps) {
 
 		// fetch ( by id )
 		this._fetch = function(options) {
-			return _fetch.apply(this ,[options]);
+			return _fetch.apply(this, [options]);
 		};
 
 		// delete the object
 		this._destroy = function(opts) {
-          	opts = opts || {};
+			opts = opts || {};
 
 			var deleteConnections = opts.deleteConnections;
-			
+
 			if (_type.isBoolean(opts)) {
 				deleteConnections = opts;
 				opts = {};
@@ -5191,14 +5338,13 @@ var extend = function(protoProps, staticProps) {
 			if (!opts.wait) triggerDestroy(opts);
 
 			// if the object does not have id set, 
-	        // just call success
-	        // else delete the object
+			// just call success
+			// else delete the object
 
-	        if (!that.id) return new Appacitive.Promise.buildPromise(opts).fulfill();
+			if (!that.id) return new Appacitive.Promise.buildPromise(opts).fulfill();
 
-	        var type = this.type;
-			if (object.__type &&  (object.__type.toLowerCase() == 'user' ||  object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
-			
+			var type = that.getType();
+
 			var request = new Appacitive._Request({
 				method: 'DELETE',
 				type: type,
@@ -5207,17 +5353,16 @@ var extend = function(protoProps, staticProps) {
 				options: opts,
 				entity: this,
 				onSuccess: function(data) {
-
 					if (data && data.status) {
 						object = {};
 						_snapshot = {};
-						
 						if (opts.wait) triggerDestroy(opts);
 						request.promise.fulfill(data.status);
 					} else {
 						data = data || {};
-						data.status =  data.status || {};
+						data.status = data.status || {};
 						data.status = _getOutpuStatus(data.status);
+						that._triggerError(opts, new Appacitive.Error(data.status));
 						request.promise.reject(data.status, that);
 					}
 				}
@@ -5228,7 +5373,9 @@ var extend = function(protoProps, staticProps) {
 
 		if (this.type == 'object') {
 			this._destroyWithConnections = function(options) {
-				return this.destroy(_extend({ deleteConnections: true}, options));
+				return this.destroy(_extend({
+					deleteConnections: true
+				}, options));
 			};
 		}
 
@@ -5253,21 +5400,24 @@ var extend = function(protoProps, staticProps) {
 	Appacitive.BaseObject = _BaseObject;
 
 	Appacitive.BaseObject._saveAll = function(objects, options, type) {
-	    var unsavedObjects = [], tasks = [];
-	    
-    	options = options || [];
+		var unsavedObjects = [],
+			tasks = [];
 
-		if (!_type.isArray(objects)) throw new Error("Provide an array of objects for Object.saveAll");	    
+		options = options || [];
 
-	    objects.forEach(function(o) {
-	    	if (!(o instanceof Appacitive.BaseObject) && _type.isObject(o)) o = new Appacitive[type](o);
-	    	if (unsavedObjects.find(function(x) { return x.id == o.id; })) return;
-	    	unsavedObjects.push(o);
+		if (!_type.isArray(objects)) throw new Error("Provide an array of objects for Object.saveAll");
 
-	    	tasks.push(o.save());
-	    });
+		objects.forEach(function(o) {
+			if (!(o instanceof Appacitive.BaseObject) && _type.isObject(o)) o = new Appacitive[type](o);
+			if (unsavedObjects.find(function(x) {
+				return x.id == o.id;
+			})) return;
+			unsavedObjects.push(o);
 
-	    return Appacitive.Promise.when(tasks);
+			tasks.push(o.save());
+		});
+
+		return Appacitive.Promise.when(tasks);
 	};
 
 	Appacitive.BaseObject.prototype.toString = function() {
@@ -5275,13 +5425,13 @@ var extend = function(protoProps, staticProps) {
 	};
 
 	Appacitive.BaseObject.prototype.parse = function(resp, options) {
-      	return resp;
-    };
+		return resp;
+	};
 
-    // Get the HTML-escaped value of an attribute.
-    Appacitive.BaseObject.prototype.escape = function(attr) {
-      return _.escape(this.get(attr));
-    },
+	// Get the HTML-escaped value of an attribute.
+	Appacitive.BaseObject.prototype.escape = function(attr) {
+		return _.escape(this.get(attr));
+	},
 
 	Appacitive.Events.mixin(Appacitive.BaseObject.prototype);
 
@@ -5864,6 +6014,7 @@ var extend = function(protoProps, staticProps) {
 
 		var result = { label: endpoint.label };
 		if (endpoint.objectid)  result.objectid = endpoint.objectid;
+		
 		if (endpoint.object) {
 			if (endpoint.object instanceof Appacitive.Object) {
 				// provided an instance of Appacitive.ObjectCollection
@@ -5901,28 +6052,49 @@ var extend = function(protoProps, staticProps) {
 		return result;
 	};
 
-	var _convertEndpoint = function(endpoint, type, base) {
-		if ( endpoint.object && _type.isObject(endpoint.object)) {
-			if (!base['endpoint' + type]) {
-				base["endpoint" + type] = {};
-				base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
-			} else {
-				if (base['endpoint' + type] && base['endpoint' + type].object && base['endpoint' + type].object instanceof Appacitive.Object)
-					base["endpoint" + type].object.copy(endpoint.object, true);
-				else 
-					base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
-			}
+	var _convertEndpoint = function(endpoint, type, base, isBatch) {
+		if (endpoint.object && _type.isObject(endpoint.object)) {
 
-			if (base["endpoint" + type]._aclFactory) {
-				base["endpoint" + type]._aclFactory.merge();
+			if (!isBatch) {
+
+				if (!base['endpoint' + type]) {
+					base["endpoint" + type] = {};
+					base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
+				} else {
+					if (base['endpoint' + type] && base['endpoint' + type].object && base['endpoint' + type].object instanceof Appacitive.Object)
+						base["endpoint" + type].object.copy(endpoint.object, true);
+					else 
+						base['endpoint' + type].object = Appacitive.Object._create(endpoint.object, true);
+				}
+
+				if (base["endpoint" + type]._aclFactory) {
+					base["endpoint" + type]._aclFactory.merge();
+				}
+
+				var object = base['endpoint' + type].object;
+				object.trigger('change:__id', object, object.id, {});
 			}
 
 			base["endpoint" + type].objectid = endpoint.object.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
+
 		} else {
 			base["endpoint" + type] = endpoint;
 		}
+
+		endpoint.toJSON = function() {
+			var d = _extend({}, this);
+			if (d.object) {
+				d.object = base['endpoint' + type].object.toJSON();
+				if (base['endpoint' + type].object._aclFactory) {
+					var acls = base['endpoint' + type].object._aclFactory.toJSON();
+					if (acls) d.object.__acls = acls;
+				}
+			}
+			delete d.toJSON;
+			return d
+		};
 	};
 
 	Appacitive.Connection = function(attrs, options) {
@@ -5952,7 +6124,7 @@ var extend = function(protoProps, staticProps) {
 		this.type = 'connection';
 		this.getConnection = this.getObject;
 
-		this.parseConnection = function() {
+		this.parseConnection = function(isBatch) {
 			
 			var typeA = 'A', typeB ='B';
 			if ( attrs.__endpointa.label.toLowerCase() === this.get('__endpointb').label.toLowerCase() ) {
@@ -5962,8 +6134,8 @@ var extend = function(protoProps, staticProps) {
 				}
 			}
 
-			_convertEndpoint(this.get('__endpointa'), typeA, this);
-			_convertEndpoint(this.get('__endpointb'), typeB, this);
+			_convertEndpoint(this.get('__endpointa'), typeA, this, isBatch);
+			_convertEndpoint(this.get('__endpointb'), typeB, this, isBatch);
 
 			this.endpoints = function() {
 				if (arguments.length === 1 && _type.isString(arguments[0])) {
@@ -7177,6 +7349,235 @@ var extend = function(protoProps, staticProps) {
   });
 
 })(global);
+(function(global) {
+
+  	"use strict";
+
+  	var Appacitive = global.Appacitive;
+
+	Appacitive.Batch = function() {
+		this.objects = [];
+		this.connections = [];
+	};
+
+	var _addConnection = function(con) {
+		if (this.connections.indexOf(con) == -1) this.connections.push(con);	
+	};
+
+	var _addObject = function(obj) {
+		if (this.objects.indexOf(obj) == -1) this.objects.push(obj);	
+	};
+
+	var _addEntity = function(entity) {
+		if (_type.isObject(entity)) {
+			if (entity instanceof Appacitive.Object) {
+				return _addObject.apply(this, [entity]);
+			} else if (entity instanceof Appacitive.Connection) {
+				return _addConnection.apply(this, [entity]);
+			}
+		}
+		throw new Error("Batch accepts only Appacitive.Object and Appacitive.Connection instances");
+	};
+
+	var _getObjects = function() {
+		var objs = [];
+		var that = this;
+
+		this.objects.forEach(function(o, i) {
+			
+			var obj = o._findUnsavedChanges();
+			if (obj.object) {
+
+				obj.object.__type = o.className;
+
+				var exists = objs.find(function(k) { return  ((o.id && (o.id == k.object.__id)) || (o.cid == k.name)) });
+				if (exists) {
+					exists.object = obj.object;
+					obj = exists;
+				} 
+
+				delete obj.isNested;
+				if (o.isNew()) obj.name = "" + o.cid;
+				else obj.object.__id = o.id;
+				
+				if (!exists) objs.push(obj);
+			}
+			
+		});
+
+		return objs;
+	};
+
+	var _getConnections = function() {
+		var that = this, cons = [];
+		this.connections.forEach(function(c) {
+			
+				var con = c._findUnsavedChanges().object;
+				if (con) {
+					con.__relationtype = c.className;
+
+					if (con.__endpointa) delete con.__endpointa.object;
+					if (con.__endpointb) delete con.__endpointb.object
+				}
+
+				var epA = c.endpointA.object;
+				if (_type.isObject(epA)) {
+
+					if (c.isNew()) {
+						if (epA.isNew()) {
+							con.__endpointa.name = "" + c.endpointA.object.cid;
+						} else {
+							con.__endpointa.objectid = c.endpointA.object.id;
+						}
+					}
+					_addEntity.apply(that, [epA]);
+				}
+				
+				var epB = c.endpointB.object;
+				if (_type.isObject(epB)) {
+
+					if (c.isNew()) {
+						if (epB.isNew()) {
+							con.__endpointb.name = "" + c.endpointB.object.cid;
+						} else {
+							con.__endpointb.objectid = c.endpointB.object.id;
+						}
+					}
+
+					_addEntity.apply(that, [epB]);
+				}
+
+				if (con) {
+					var exists = cons.find(function(k) { return  ((c.id && (c.id == k.connection.__id)) || (c.cid == k.name)) });
+
+					var obj = { connection: con };
+
+					if (exists) {
+						exists.connection = con;
+						obj = exists;
+					} 
+
+					if (c.isNew()) obj.name = "" + c.cid;
+					else obj.connection.__id = c.id;
+
+					if (!exists) cons.push(obj);
+				}
+		});
+
+		return cons;
+	};
+
+	Appacitive.Batch.prototype.add = function() {
+
+		var that = this;
+
+		if (_type.isArray(arguments[0])) {
+			arguments[0].forEach(function(entity) {
+				_addEntity.apply(that, [entity]);
+			});
+		} else {
+			_addEntity.apply(this, arguments);
+		}
+
+		return this;
+	};
+
+	Appacitive.Batch.prototype.toJSON = function() {
+		var json = { nodes: [], edges: [] };
+
+		json.edges = _getConnections.apply(this, []);
+		json.nodes = _getObjects.apply(this, []);
+
+		return json;
+	};
+
+	// parse api output to get error info
+	var _getOutpuStatus = function(data) {
+		data = data || {};
+		data.message = data.message || 'Server error';
+		data.code = data.code || '500';
+		return data;
+	};
+
+	var _parseNodes = function(nodes, meta, options) {
+		var that = this;
+		nodes.forEach(function(n) {
+			var obj = n.object;
+			var existing = that.objects.forEach(function(o) {
+				if (o.cid == n.name || o.id == obj.__id || o.get('__id') == obj.__id) {
+					var output = { __meta: meta[o.className] };
+					output[o.getType()] = obj;
+					o._parseOutput(options, output);
+				}
+			});
+		});
+	};
+
+	var _parseEdges = function(edges, meta, options) {
+		var that = this;
+		edges.forEach(function(e) {
+			var con = e.connection;
+			var existing = that.connections.forEach(function(c) {
+				if (c.cid == e.name || c.id == con.__id || c.get('__id') == con.__id) {
+					var output = { __meta: meta[c.className] };
+					output[c.getType()] = con;
+					c._parseOutput(options, output);
+				}
+			});
+		});
+	};
+
+	var _parseOutput = function(data, options) {
+		var status;
+		if (data && data["edges"] && data["nodes"] && (data["edges"].length >= 0) && (data["nodes"].length >= 0)) {
+			_parseNodes.call(this, data["nodes"], data["__meta"]["__type"], options);
+			_parseEdges.call(this, data["edges"], data["__meta"]["__rel"], options);
+
+			if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
+		} else {
+			data = data || {};
+			data.status = data.status || {};
+			status = _getOutpuStatus(data.status);
+
+			this._triggerError(options, new Appacitive.Error(status));
+		}
+
+		return status;
+	};
+
+	Appacitive.Batch.prototype._triggerError = function(options, status) {
+		if (!options.silent) this.trigger('error', this, status, options);	
+	};
+
+	Appacitive.Batch.prototype.execute = function(options) {
+		var data = this.toJSON();
+		options = _extend({ _batch: true }, options);
+		var that = this;
+		var request = new Appacitive._Request({
+			method: 'PUT',
+			type: 'multi',
+			op: 'getBatchUrl',
+			data: data,
+			options: options,
+			entity: this,
+			onSuccess: function(response) {
+				var status = _parseOutput.apply(that, [response, options]);
+				if (!status) {
+					request.promise.fulfill(that);
+				} else {
+					request.promise.reject(status, that)
+				}
+			}
+		});
+
+		return request.send();
+
+	};
+
+	Appacitive.Events.mixin(Appacitive.Batch.prototype);
+
+})(global);
+
 (function (global) {
 
 	"use strict";

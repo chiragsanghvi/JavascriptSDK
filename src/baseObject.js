@@ -171,7 +171,7 @@
 
 		objectOptions = objectOptions || {};
 
-		objectOptions = _extend({}, objectOptions);
+		objectOptions = _deepExtend({}, objectOptions);
 
 		this.meta = {};
 
@@ -180,7 +180,7 @@
 
 		if (optns && optns.parse) objectOptions = this.parse(objectOptions);
 
-		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _extend({}, this.defaults, objectOptions);
+		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _deepExtend({}, this.defaults, objectOptions);
 
 		if (optns && optns.collection) this.collection = optns.collection;
 
@@ -203,7 +203,7 @@
 				if (_setOps[property]) delete _setOps[property];
 
 				if (isEncodable(obj[property])) des[property] = obj[property];
-				else if (_type.isObject(obj[property])) des[property] = _extend({}, des[property], obj[property]);
+				else if (_type.isObject(obj[property])) des[property] = _deepExtend({}, des[property], obj[property]);
 				else if (_type.isArray(obj[property])) {
 
 					des[property] = [];
@@ -316,19 +316,28 @@
 		};
 
 		// converts object to json representation for data transfer
-		this.getObject = function() {
-			var obj = Appacitive._encode(_extend({
-				__meta: this.meta
-			}, object));
-			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
-			return obj;
-		};
+		this.getObject  = function() { 
+			var obj = Appacitive._encode(_deepExtend({ __meta: this.meta }, object)); 
 
+			if (that.type == 'connection') {
+				obj.__endpointa = object.__endpointa.toJSON();
+				obj.__endpointb = object.__endpointb.toJSON();
+			}
+
+			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
+            return obj;
+		};
+		
 		var _toJSON = function() {
-			var obj = _extend({
+			var obj = _deepExtend({
 				__meta: this.meta
 			}, object);
-			if (Object.prototype.hasOwnProperty("id")) obj.__id = this.id;
+
+			if (that.type == 'connection') {
+				object.__endpointa = object.__endpointa.toJSON();
+				object.__endpointb = object.__endpointb.toJSON();
+			}
+			if (this.hasOwnProperty("id")  && this.id) obj.__id = this.id;
 			return obj;
 		};
 
@@ -364,7 +373,7 @@
 
 		// Returns all properties of this object
 		this.properties = function() {
-			var properties = _extend({}, this.attributes);
+			var properties = _deepExtend({}, this.attributes);
 			delete properties.__attributes;
 			delete properties.__tags;
 			return properties;
@@ -604,7 +613,7 @@
 
 		var _getChanged = function(isInternal) {
 			var isDirty = false;
-			var changeSet = _extend({}, _snapshot);
+			var changeSet = _deepExtend({}, _snapshot);
 
 			for (var p in changeSet) {
 				if (p[0] == '$') delete changeSet[p];
@@ -755,6 +764,10 @@
 			if (opts && !opts.silent) that.trigger('destroy', that, that.collection, opts);
 		};
 
+		this._triggerError = function(options, status) {
+			if (!options.silent) that.trigger('error', that, status, options);	
+		};
+
 		var set = function(key, value, options) {
 
 			if (!key || !_type.isString(key) || key.length === 0 || key.trim().indexOf('$') === 0) return this;
@@ -887,10 +900,12 @@
 		};
 
 		this.clone = function() {
-			if (this.type == 'object') return Appacitive.Object._create(_extend({
-				__meta: this.meta
-			}, this.getObject()));
-			return new Appacitive.connection._create(_extend({
+			if (this.type == 'object') 
+				return Appacitive.Object._create(_deepExtend({
+					__meta: this.meta
+				}, this.getObject()));
+
+			return new Appacitive.connection._create(_deepExtend({
 				__meta: this.meta
 			}, this.getObject()));
 		};
@@ -978,7 +993,7 @@
 
 			var changeSet = {
 				object: null,
-				isNested: false; 
+				isNested: false
 			}
 
 			if (!this.id) {
@@ -1009,15 +1024,25 @@
 			return changeSet;
 		};
 
-		this._parseOutput = function(options, data) {
-
-			var type = that.type, status;
+		this.getType = function() {
+			var type = that.type;
 			if (object.__type && (object.__type.toLowerCase() == 'user' || object.__type.toLowerCase() == 'device')) {
 				type = object.__type.toLowerCase()
 			}
 
+			return type;
+		};
+
+		this._parseOutput = function(options, data) {
+
+			var type = that.getType(), status;
+			
+			options = options || {};
+
 			if (data && data[type]) {
-				if (optns && optns.parse) data[type] = this.parse(data[type]);
+				if (options && options.parse) data[type] = this.parse(data[type]);
+
+				var isNew = this.isNew();
 
 				_snapshot = Appacitive._decode(_extend({
 					__meta: _extend(that.meta, data.__meta)
@@ -1027,10 +1052,12 @@
 
 				_merge();
 
-				if (this.id) {
+				if (isNew) {
 					if (that.type == 'connection') {
-						if (object.__endpointa.object) object.__endpointa.object.__meta = data.__ameta;
-						if (object.__endpointb.object) object.__endpointb.object.__meta = data.__bmeta;
+						if (!options._batch) {
+							if (object.__endpointa.object) object.__endpointa.object.__meta = data.__ameta;
+							if (object.__endpointb.object) object.__endpointb.object.__meta = data.__bmeta;
+						}
 						that.parseConnection(options._batch);
 					}
 					that.trigger('change:__id', that, that.id, {});
@@ -1053,9 +1080,9 @@
 				data.status = data.status || {};
 				status = _getOutpuStatus(data.status);
 
-				if (!options.silent) that.trigger('error', that, status, options);
-				
-				if (isCreate) {
+				that._triggerError(options, new Appacitive.Error(status));
+
+				if (that.isNew()) {
 					Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, {
 						error: status
 					});
@@ -1085,11 +1112,8 @@
 
 			options = options || {};
 
-			var type = that.type;
-			if (object.__type && (object.__type.toLowerCase() == 'user' || object.__type.toLowerCase() == 'device')) {
-				type = object.__type.toLowerCase()
-			}
-
+			var type = that.getType();
+			
 			var changeSet = that._findUnsavedChanges();
 
 			var request = new Appacitive._Request({
@@ -1101,11 +1125,11 @@
 				options: options,
 				entity: that,
 				onSuccess: function(data) {
-					var status = _parseOutput(options, data);
+					var status = that._parseOutput(options, data);
 					if (!status) {
-						promise.fulfill(that);
+						request.promise.fulfill(that);
 					} else {
-						promise.reject(status, that)
+						request.promise.reject(status, that)
 					}
 				}
 			});
@@ -1143,11 +1167,11 @@
 					options: options,
 					entity: that,
 					onSuccess: function(data) {
-						var status = _parseOutput(options, data);
+						var status = that._parseOutput(options, data);
 						if (!status) {
-							promise.fulfill(that);
+							request.promise.fulfill(that);
 						} else {
-							promise.reject(status, that)
+							request.promise.reject(status, that)
 						}
 					}
 				});
@@ -1164,14 +1188,10 @@
 
 			if (!that.id) throw new Error('Please specify id for get operation');
 
-			options = options || [];
-
-			var type = this.type;
-
+			options = options || {};
+			
 			// for User and Device objects
-			if (object && object.__type && (object.__type.toLowerCase() == 'user' || object.__type.toLowerCase() == 'device')) {
-				type = object.__type.toLowerCase();
-			}
+			var type = that.getType();
 
 			var request = new Appacitive._Request({
 				method: 'GET',
@@ -1183,7 +1203,7 @@
 				onSuccess: function(data) {
 					if (data && data[type]) {
 
-						if (optns && optns.parse) data[type] = that.parse(data[type]);
+						if (options && options.parse) data[type] = that.parse(data[type]);
 
 						_snapshot = Appacitive._decode(_extend({
 							__meta: _extend(that.meta, data.__meta)
@@ -1203,12 +1223,15 @@
 						Appacitive.eventManager.fire(that.entityType + '.' + type + "." + that.id + '.fetched', that, {
 							object: that
 						});
-						if (options._batch == true) request.promise.fulfill(that);
+						request.promise.fulfill(that);
 					} else {
 						data = data || {};
 						data.status = data.status || {};
 						data.status = _getOutpuStatus(data.status);
-						if (options._batch == true) request.promise.reject(data.status, that);
+
+						that._triggerError(options, new Appacitive.Error(data.status));
+
+						request.promise.reject(data.status, that);
 					}
 				}
 			});
@@ -1239,8 +1262,7 @@
 
 			if (!that.id) return new Appacitive.Promise.buildPromise(opts).fulfill();
 
-			var type = this.type;
-			if (object.__type && (object.__type.toLowerCase() == 'user' || object.__type.toLowerCase() == 'device')) type = object.__type.toLowerCase()
+			var type = that.getType();
 
 			var request = new Appacitive._Request({
 				method: 'DELETE',
@@ -1259,6 +1281,7 @@
 						data = data || {};
 						data.status = data.status || {};
 						data.status = _getOutpuStatus(data.status);
+						that._triggerError(opts, new Appacitive.Error(data.status));
 						request.promise.reject(data.status, that);
 					}
 				}
