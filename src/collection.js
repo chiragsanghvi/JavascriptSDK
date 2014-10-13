@@ -302,7 +302,11 @@
     },
 
     saveAll: function(options) {
-      return this.model.saveAll(_extend({}, options));
+      return this.model.saveAll(this.models, _extend({}, options));
+    },
+
+    save: function(options) {
+      return this.model.saveAll(this.models, _extend({}, options));
     },
 
     create: function(model, options) {

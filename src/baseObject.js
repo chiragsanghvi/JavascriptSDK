@@ -1016,6 +1016,11 @@
 
 				if (Object.isEmpty(clonedObject.__attributes)) delete clonedObject.__attributes;
 
+				if (that.type == 'connection') {
+					if (clonedObject.__endpointa.objectid) delete clonedObject.__endpointa.object;
+					if (clonedObject.__endpointb.objectid) delete clonedObject.__endpointb.object;
+				}
+
 				changeSet.object = clonedObject;
 			} else {
 				changeSet.object = _getChanged(true);

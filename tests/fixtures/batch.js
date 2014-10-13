@@ -56,7 +56,7 @@ var createConnection = function() {
   return new Appacitive.Connection(connectOptions)
 };
 
-asyncTest('Update object using Multicaller API', function() {
+asyncTest('Update/Create objects/connections using Multicaller API', function() {
 
   var con1 = createConnection();
   var con2 = createConnection();
@@ -100,22 +100,34 @@ asyncTest('Update object using Multicaller API', function() {
 
       batch.on('sync', function() {
         
-        var valid = false;
+        var valid = true;
 
         batch.objects.forEach(function(o,i) { 
-           if (o.isNew()) ok(false, "object " + o.className + " "  + o.cid +" is still new at " + i);
-           else if (o.changed()) ok(false, "object " + o.className + " " + o.id +" is still changed at " + i);
-           else valid = true;
+           if (o.isNew()) {
+            ok(false, "object " + o.className + " "  + o.cid +" is still new at " + i);
+            valid = false
+          } else if (o.changed()) {
+            ok(false, "object " + o.className + " " + o.id +" is still changed at " + i);
+            valid = false;
+          } 
         });
         
         batch.connections.forEach(function(o,i) { 
-           if (o.isNew()) ok(false, "connection myschool " + o.cid + " is still new at " + i)
-           else if (o.changed()) ok(false, "connection myschool " + o.id + " is still changed at " + i)
-           else { 
-             if (!o.endpointA.object) ok(false, o.id +" endpointa missing at " + i)
-             else if (!o.endpointA.object)  ok(false, o.id +" endpointb missing at " + i)
-             else valid = true; 
-           }
+             if (o.isNew()) { 
+              ok(false, "connection myschool " + o.cid + " is still new at " + i);
+              valid = false;
+             } else if (o.changed()) {
+              ok(false, "connection myschool " + o.id + " is still changed at " + i);
+              valid = false;
+             } else { 
+                if (!o.endpointA.object) { 
+                  ok(false, o.id +" endpointa missing at " + i);
+                  valid = false;
+                } else if (!o.endpointB.object) { 
+                  ok(false, o.id +" endpointb missing at " + i);
+                  valid = false;
+                } 
+             }
         });
 
         if (valid) {
@@ -140,6 +152,41 @@ asyncTest('Update object using Multicaller API', function() {
     ok(false, 'Could not create first connection, onError called with message ' + status.message);
     start();
   });
+
+});
+
+
+asyncTest("Update or Create Objects using Collection.save", function() {
+
+  var Profile = Appacitive.Object.extend('profile');
+  var Profiles = Appacitive.Collection.extend({
+    model : Profile
+  });
+
+  var profiles = new Profiles();
+
+  profiles.add([new Profile(),new Profile(),new Profile(),new Profile(),new Profile(),new Profile(),new Profile(),new Profile(),new Profile(),new Profile()]);
+
+  profiles.save().then(function(result) {
+    var valid = true;
+
+    profiles.forEach(function(o,i) { 
+      if (o.isNew()) {
+        ok(false, "object " + o.className + " "  + o.cid +" is still new at " + i);
+        valid = false
+      } else if (o.changed()) {
+        ok(false, "object " + o.className + " " + o.id +" is still changed at " + i);
+        valid = false;
+      } 
+    });
+
+    if (valid) ok(true, 'Collection.save worked successfully'); 
+
+    start();
+  }, function(status) {
+    ok(false, 'Could not Update or Create Objects using Collection.save, onError called with message ' + status.message);
+    start();
+  }); 
 
 });
 

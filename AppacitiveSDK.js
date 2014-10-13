@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Oct 10 14:15:58 IST 2014
+ * Build time 	: Mon Oct 13 10:02:24 IST 2014
  */
 "use strict";
 
@@ -5099,6 +5099,11 @@ var extend = function(protoProps, staticProps) {
 
 				if (Object.isEmpty(clonedObject.__attributes)) delete clonedObject.__attributes;
 
+				if (that.type == 'connection') {
+					if (clonedObject.__endpointa.objectid) delete clonedObject.__endpointa.object;
+					if (clonedObject.__endpointb.objectid) delete clonedObject.__endpointb.object;
+				}
+
 				changeSet.object = clonedObject;
 			} else {
 				changeSet.object = _getChanged(true);
@@ -5121,7 +5126,7 @@ var extend = function(protoProps, staticProps) {
 			var type = that.getType(), status;
 			
 			options = options || {};
-			
+
 			if (data && data[type]) {
 				if (options && options.parse) data[type] = this.parse(data[type]);
 
@@ -5140,8 +5145,8 @@ var extend = function(protoProps, staticProps) {
 						if (!options._batch) {
 							if (object.__endpointa.object) object.__endpointa.object.__meta = data.__ameta;
 							if (object.__endpointb.object) object.__endpointb.object.__meta = data.__bmeta;
-							that.parseConnection(options._batch);
 						}
+						that.parseConnection(options._batch);
 					}
 					that.trigger('change:__id', that, that.id, {});
 
@@ -5402,24 +5407,19 @@ var extend = function(protoProps, staticProps) {
 	Appacitive.BaseObject = _BaseObject;
 
 	Appacitive.BaseObject._saveAll = function(objects, options, type) {
-		var unsavedObjects = [],
-			tasks = [];
 
-		options = options || [];
+		var batch = new Appacitive.Batch();
+
+		options = options || {};
 
 		if (!_type.isArray(objects)) throw new Error("Provide an array of objects for Object.saveAll");
 
 		objects.forEach(function(o) {
-			if (!(o instanceof Appacitive.BaseObject) && _type.isObject(o)) o = new Appacitive[type](o);
-			if (unsavedObjects.find(function(x) {
-				return x.id == o.id;
-			})) return;
-			unsavedObjects.push(o);
-
-			tasks.push(o.save());
+			if (!(o instanceof Appacitive.BaseObject) && _type.isObject(o)) o = new Appacitive[this.className || type](o);
+			batch.add(o);
 		});
 
-		return Appacitive.Promise.when(tasks);
+		return batch.execute(options);
 	};
 
 	Appacitive.BaseObject.prototype.toString = function() {
@@ -6022,17 +6022,19 @@ var extend = function(protoProps, staticProps) {
 				// provided an instance of Appacitive.ObjectCollection
 				// stick the whole object if there is no __id
 				// else just stick the __id
-				if (endpoint.object.id) result.objectid = endpoint.object.id;
-				else  result.object = endpoint.object.getObject();
+				if (endpoint.object.id) {
+					endpoint.objectid = result.objectid = endpoint.object.id;
+				}
 			} else if (_type.isObject(endpoint.object)) {
 				// provided a raw object
 				// if there is an __id, just add that
 				// else add the entire object
-				if (endpoint.object.__id) result.objectid = endpoint.object.__id;
-				else result.object = endpoint.object;
-
+				if (endpoint.object.__id) endpoint.objectid = result.objectid = endpoint.object.__id;
+				
 				endpoint.object =  Appacitive.Object._create(endpoint.object);
+
 			} 
+			result.object = endpoint.object.getObject();
 		} else {
 			if (!result.objectid && !result.object) throw new Error('Incorrectly configured endpoints provided to parseConnection');
 		}
@@ -6077,7 +6079,7 @@ var extend = function(protoProps, staticProps) {
 				object.trigger('change:__id', object, object.id, {});
 			}
 
-			base["endpoint" + type].objectid = endpoint.object.__id;
+			base["endpoint" + type].objectid = endpoint.objectid || endpoint.object.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
 
@@ -7254,7 +7256,11 @@ var extend = function(protoProps, staticProps) {
     },
 
     saveAll: function(options) {
-      return this.model.saveAll(_extend(options));
+      return this.model.saveAll(this.models, _extend({}, options));
+    },
+
+    save: function(options) {
+      return this.model.saveAll(this.models, _extend({}, options));
     },
 
     create: function(model, options) {
@@ -7554,6 +7560,12 @@ var extend = function(protoProps, staticProps) {
 	Appacitive.Batch.prototype.execute = function(options) {
 		var data = this.toJSON();
 		options = _extend({ _batch: true }, options);
+		
+		if (data.nodes.length == 0 && data.edges.length == 0) {
+			if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
+			return (new Appacitive.Promise()).fulfill(this);
+		}
+
 		var that = this;
 		var request = new Appacitive._Request({
 			method: 'PUT',

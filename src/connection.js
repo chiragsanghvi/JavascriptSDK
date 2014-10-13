@@ -14,17 +14,19 @@
 				// provided an instance of Appacitive.ObjectCollection
 				// stick the whole object if there is no __id
 				// else just stick the __id
-				if (endpoint.object.id) result.objectid = endpoint.object.id;
-				else  result.object = endpoint.object.getObject();
+				if (endpoint.object.id) {
+					endpoint.objectid = result.objectid = endpoint.object.id;
+				}
 			} else if (_type.isObject(endpoint.object)) {
 				// provided a raw object
 				// if there is an __id, just add that
 				// else add the entire object
-				if (endpoint.object.__id) result.objectid = endpoint.object.__id;
-				else result.object = endpoint.object;
-
+				if (endpoint.object.__id) endpoint.objectid = result.objectid = endpoint.object.__id;
+				
 				endpoint.object =  Appacitive.Object._create(endpoint.object);
+
 			} 
+			result.object = endpoint.object.getObject();
 		} else {
 			if (!result.objectid && !result.object) throw new Error('Incorrectly configured endpoints provided to parseConnection');
 		}
@@ -69,7 +71,7 @@
 				object.trigger('change:__id', object, object.id, {});
 			}
 
-			base["endpoint" + type].objectid = endpoint.object.__id;
+			base["endpoint" + type].objectid = endpoint.objectid || endpoint.object.__id;
 			base["endpoint" + type].label = endpoint.label;
 			base["endpoint" + type].type = endpoint.type;
 
