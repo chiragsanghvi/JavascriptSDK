@@ -1319,24 +1319,19 @@
 	Appacitive.BaseObject = _BaseObject;
 
 	Appacitive.BaseObject._saveAll = function(objects, options, type) {
-		var unsavedObjects = [],
-			tasks = [];
 
-		options = options || [];
+		var batch = new Appacitive.Batch();
+
+		options = options || {};
 
 		if (!_type.isArray(objects)) throw new Error("Provide an array of objects for Object.saveAll");
 
 		objects.forEach(function(o) {
-			if (!(o instanceof Appacitive.BaseObject) && _type.isObject(o)) o = new Appacitive[type](o);
-			if (unsavedObjects.find(function(x) {
-				return x.id == o.id;
-			})) return;
-			unsavedObjects.push(o);
-
-			tasks.push(o.save());
+			if (!(o instanceof Appacitive.BaseObject) && _type.isObject(o)) o = new Appacitive[this.className || type](o);
+			batch.add(o);
 		});
 
-		return Appacitive.Promise.when(tasks);
+		return batch.execute(options);
 	};
 
 	Appacitive.BaseObject.prototype.toString = function() {
