@@ -45,7 +45,7 @@ var _deepExtend = function(obj) {
       if (_type.isArray(source[prop])) {
         if (!_type.isArray(obj[prop]))  obj[prop] = [];
         obj[prop] = _reject(_extend(obj[prop], source[prop]), function (item) { return _type.isNull(item);});
-      } else if (_type.isObject(source[prop]) && (!(source[prop] instanceof Appacitive.Object)) && (!(source[prop] instanceof Appacitive.Connection)) && (!(source[prop] instanceof Appacitive.GeoCoord))) {
+      } else if (_type.isObject(source[prop]) && (!(source[prop] instanceof global.Appacitive.Object)) && (!(source[prop] instanceof global.Appacitive.Connection)) && (!(source[prop] instanceof global.Appacitive.GeoCoord))) {
         if (!_type.isObject(obj[prop])){
           obj[prop] = {};
         } 
