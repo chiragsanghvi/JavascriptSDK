@@ -1038,68 +1038,79 @@
 			return type;
 		};
 
-		this._parseOutput = function(options, data) {
+		this._parseOutput = function (options, data) {
 
-			var type = that.getType(), status;
-			
-			options = options || {};
-
-			if (data && data[type]) {
-				if (options && options.parse) data[type] = this.parse(data[type]);
-
-				var isNew = this.isNew();
-
-				_snapshot = Appacitive._decode(_extend({
-					__meta: _extend(that.meta, data.__meta)
-				}, data[type]));
-
-				that.id = object[that.idAttribute] = data[type][that.idAttribute];
-
-				_merge();
-
-				if (isNew) {
-					if (that.type == 'connection') {
-						if (!options._batch) {
-							if (object.__endpointa.object) object.__endpointa.object.__meta = data.__ameta;
-							if (object.__endpointb.object) object.__endpointb.object.__meta = data.__bmeta;
-						}
-						that.parseConnection(options._batch);
-					}
-					that.trigger('change:__id', that, that.id, {});
-
-					Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, {
-						object: that
-					});
-
-					that.created = true;
-				} else {
-					Appacitive.eventManager.fire(that.entityType + '.' + type + "." + that.id + '.updated', that, {
-						object: that
-					});
-				}
-
-				if (!options.silent) that.trigger('sync', that, data[type], options);
-
-			} else {
-				data = data || {};
-				data.status = data.status || {};
-				status = _getOutpuStatus(data.status);
-
-				that._triggerError(options, new Appacitive.Error(status));
-
-				if (that.isNew()) {
-					Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, {
-						error: status
-					});
-				} else {
-					Appacitive.eventManager.fire(that.entityType + '.' + type + "." + that.id + '.updateFailed', that, {
-						object: status
-					});
-				}
-			}
-
-			return status;
-		};
+	            var type = that.getType(), status;
+	
+	            options = options || {};
+	
+	            if (data && data[type]) {
+	                if (options && options.parse) data[type] = this.parse(data[type]);
+	
+	                var isNew = this.isNew();
+	
+	                //A hack to avoid messing up with labels and endpoints
+	
+	                if (that.type == 'connection') {
+	                    if (object.__endpointa && data[type].__endpointa.label != object.__endpointa.label) {
+	                        var obj = data[type].__endpointa;
+	                        data[type].__endpointa = data[type].__endpointb;
+	                        data[type].__endpointb = obj;
+	                    }
+	                }
+	
+	
+	                _snapshot = Appacitive._decode(_extend({
+	                    __meta: _extend(that.meta, data.__meta)
+	                }, data[type]));
+	
+	                that.id = object[that.idAttribute] = data[type][that.idAttribute];
+	
+	                _merge();
+	
+	                if (isNew) {
+	                    if (that.type == 'connection') {
+	                        if (!options._batch) {
+	                            if (object.__endpointa.object && data.__ameta) object.__endpointa.object.__meta = data.__ameta;
+	                            if (object.__endpointb.object && data.__bmeta) object.__endpointb.object.__meta = data.__bmeta;
+	                        }
+	                        that.parseConnection(options._batch);
+	                    }
+	                    that.trigger('change:__id', that, that.id, {});
+	
+	                    Appacitive.eventManager.fire(that.entityType + '.' + type + '.created', that, {
+	                        object: that
+	                    });
+	
+	                    that.created = true;
+	                } else {
+	                    Appacitive.eventManager.fire(that.entityType + '.' + type + "." + that.id + '.updated', that, {
+	                        object: that
+	                    });
+	                }
+	
+	                if (!options.silent) that.trigger('sync', that, data[type], options);
+	
+	            } else {
+	                data = data || {};
+	                data.status = data.status || {};
+	                status = _getOutpuStatus(data.status);
+	
+	                that._triggerError(options, new Appacitive.Error(status));
+	
+	                if (that.isNew()) {
+	                    Appacitive.eventManager.fire(that.entityType + '.' + type + '.createFailed', that, {
+	                        error: status
+	                    });
+	                } else {
+	                    Appacitive.eventManager.fire(that.entityType + '.' + type + "." + that.id + '.updateFailed', that, {
+	                        object: status
+	                    });
+	                }
+	            }
+	
+	            return status;
+	        };
 
 		/* crud operations  */
 
