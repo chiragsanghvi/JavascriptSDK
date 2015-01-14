@@ -532,7 +532,8 @@
 							object[key].removeAll(val);
 						}
 					} else {
-						if (op != 'removeitems') object[key] = [val];
+						if (op == 'removeitems') object[key] = [];
+						else  object[key] = [val];
 					}
 
 					if (!_multivaluedProps[key]) _multivaluedProps[key] = {
