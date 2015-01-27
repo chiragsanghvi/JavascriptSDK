@@ -1048,15 +1048,16 @@
 	            if (data && data[type]) {
 	                if (options && options.parse) data[type] = this.parse(data[type]);
 	
-	                var isNew = this.isNew();
+	                var isNew = this.isNew(), endpointSwitched = false;
 	
 	                //A hack to avoid messing up with labels and endpoints
-	
+					
 	                if (that.type == 'connection') {
 	                    if (object.__endpointa && data[type].__endpointa.label != object.__endpointa.label) {
 	                        var obj = data[type].__endpointa;
 	                        data[type].__endpointa = data[type].__endpointb;
 	                        data[type].__endpointb = obj;
+	                        endpointSwitched = true;
 	                    }
 	                }
 	
@@ -1072,8 +1073,13 @@
 	                if (isNew) {
 	                    if (that.type == 'connection') {
 	                        if (!options._batch) {
-	                            if (object.__endpointa.object && data.__ameta) object.__endpointa.object.__meta = data.__ameta;
-	                            if (object.__endpointb.object && data.__bmeta) object.__endpointb.object.__meta = data.__bmeta;
+	                            if (endpointSwitched) {
+	                                if (object.__endpointa.object && data.__bmeta) object.__endpointa.object.__meta = data.__bmeta;
+	                                if (object.__endpointb.object && data.__ameta) object.__endpointb.object.__meta = data.__ameta;
+	                            } else {
+	                                if (object.__endpointa.object && data.__ameta) object.__endpointa.object.__meta = data.__ameta;
+	                                if (object.__endpointb.object && data.__bmeta) object.__endpointb.object.__meta = data.__bmeta;
+	                            }
 	                        }
 	                        that.parseConnection(options._batch);
 	                    }
