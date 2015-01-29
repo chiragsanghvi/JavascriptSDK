@@ -26,8 +26,8 @@
           date = new Date();
 
         date.setUTCFullYear(Number(dateParts[0]));
-        date.setUTCMonth(Number(dateParts[1])-1);
         date.setUTCDate(Number(dateParts[2]));
+        date.setUTCMonth(Number(dateParts[1])-1);
         
         date.setUTCHours(Number(timeHours));
         date.setUTCMinutes(Number(timeSubParts[1]));
