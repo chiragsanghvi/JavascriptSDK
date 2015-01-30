@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.7.8 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.7.9 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Dec 27 11:18:34 IST 2014
+ * Build time 	: Fri Jan 30 14:05:34 IST 2015
  */
 "use strict";
 
@@ -4613,7 +4613,8 @@ var extend = function(protoProps, staticProps) {
 							object[key].removeAll(val);
 						}
 					} else {
-						if (op != 'removeitems') object[key] = [val];
+						if (op == 'removeitems') object[key] = [];
+						else  object[key] = [val];
 					}
 
 					if (!_multivaluedProps[key]) _multivaluedProps[key] = {
@@ -5128,15 +5129,16 @@ var extend = function(protoProps, staticProps) {
 	            if (data && data[type]) {
 	                if (options && options.parse) data[type] = this.parse(data[type]);
 	
-	                var isNew = this.isNew();
+	                var isNew = this.isNew(), endpointSwitched = false;
 	
 	                //A hack to avoid messing up with labels and endpoints
-	
+					
 	                if (that.type == 'connection') {
 	                    if (object.__endpointa && data[type].__endpointa.label != object.__endpointa.label) {
 	                        var obj = data[type].__endpointa;
 	                        data[type].__endpointa = data[type].__endpointb;
 	                        data[type].__endpointb = obj;
+	                        endpointSwitched = true;
 	                    }
 	                }
 	
@@ -5152,8 +5154,13 @@ var extend = function(protoProps, staticProps) {
 	                if (isNew) {
 	                    if (that.type == 'connection') {
 	                        if (!options._batch) {
-	                            if (object.__endpointa.object && data.__ameta) object.__endpointa.object.__meta = data.__ameta;
-	                            if (object.__endpointb.object && data.__bmeta) object.__endpointb.object.__meta = data.__bmeta;
+	                            if (endpointSwitched) {
+	                                if (object.__endpointa.object && data.__bmeta) object.__endpointa.object.__meta = data.__bmeta;
+	                                if (object.__endpointb.object && data.__ameta) object.__endpointb.object.__meta = data.__ameta;
+	                            } else {
+	                                if (object.__endpointa.object && data.__ameta) object.__endpointa.object.__meta = data.__ameta;
+	                                if (object.__endpointb.object && data.__bmeta) object.__endpointb.object.__meta = data.__bmeta;
+	                            }
 	                        }
 	                        that.parseConnection(options._batch);
 	                    }
@@ -7367,238 +7374,312 @@ var extend = function(protoProps, staticProps) {
   });
 
 })(global);
-(function(global) {
+(function (global) {
 
-  	"use strict";
+    "use strict";
 
-  	var Appacitive = global.Appacitive;
+    var Appacitive = global.Appacitive;
 
-	Appacitive.Batch = function() {
-		this.objects = [];
-		this.connections = [];
-	};
+    Appacitive.Batch = function () {
+        this.objects = [];
+        this.connections = [];
+        this.objectDeletions = [];
+        this.edgeDeletions = [];
+    };
 
-	var _addConnection = function(con) {
-		if (this.connections.indexOf(con) == -1) this.connections.push(con);	
-	};
+    var _addConnection = function (con) {
+        if (this.connections.indexOf(con) == -1) this.connections.push(con);
+    };
 
-	var _addObject = function(obj) {
-		if (this.objects.indexOf(obj) == -1) this.objects.push(obj);	
-	};
+    var _addObject = function (obj) {
+        if (this.objects.indexOf(obj) == -1) this.objects.push(obj);
+    };
 
-	var _addEntity = function(entity) {
-		if (_type.isObject(entity)) {
-			if (entity instanceof Appacitive.Object) {
-				return _addObject.apply(this, [entity]);
-			} else if (entity instanceof Appacitive.Connection) {
-				return _addConnection.apply(this, [entity]);
-			}
-		}
-		throw new Error("Batch accepts only Appacitive.Object and Appacitive.Connection instances");
-	};
+    var _addDeletionObject = function (obj, typeName, deleteConnections) {
+        var id;
+        if (_type.isString(obj)) {
+            id = obj;
+            if (!_type.isString(typeName) && typeName.trim().length > 0) throw new Error("Specify typename as second argument to Batch.removeObjects");
+        } else if (!_type.isObject(obj) || !(obj instanceof Appacitive.Object)) {
+            throw new Error("Batch.removeObjects accepts only Appacitive.Object or ids with typeName");
+        } else {
+            if (obj.isNew()) return;
+            id = obj.id;
+            deleteConnections = typeName;
+            typeName = obj.typeName;
+        }
 
-	var _getObjects = function() {
-		var objs = [];
-		var that = this;
+        if (!this.objectDeletions.find(function (a) { return (id == a.id) })) this.objectDeletions.push({
+            type: typeName,
+            id: id,
+            deleteconnections: deleteConnections
+        });
+    };
 
-		this.objects.forEach(function(o, i) {
-			
-			var obj = o._findUnsavedChanges();
-			if (obj.object) {
 
-				obj.object.__type = o.className;
+    var _addDeletionEdge = function (obj, relationName) {
+        var id;
+        if (_type.isString(obj)) {
+            id = obj;
+            if (!_type.isString(relationName) && relationName.trim().length > 0) throw new Error("Specify relationName as second argument to Batch.removeConnections");
+        } else if (!_type.isObject(obj) || !(obj instanceof Appacitive.Connection)) {
+            throw new Error("Batch.removeConnection accepts only Appacitive.Connection or ids with relationName");
+        } else {
+            if (obj.isNew()) return;
+            id = obj.id;
+            relationName = obj.relationName;
+        }
 
-				var exists = objs.find(function(k) { return  ((o.id && (o.id == k.object.__id)) || (o.cid == k.name)) });
-				if (exists) {
-					exists.object = obj.object;
-					obj = exists;
-				} 
+        if (!this.edgeDeletions.find(function (a) { return (id == a.id) })) this.edgeDeletions.push({
+            type: relationName,
+            id: id
+        });
+    };
 
-				delete obj.isNested;
-				if (o.isNew()) obj.name = "" + o.cid;
-				else obj.object.__id = o.id;
-				
-				if (!exists) objs.push(obj);
-			}
-			
-		});
+    var _addEntity = function (entity) {
+        if (_type.isObject(entity)) {
+            if (entity instanceof Appacitive.Object) {
+                return _addObject.apply(this, [entity]);
+            } else if (entity instanceof Appacitive.Connection) {
+                return _addConnection.apply(this, [entity]);
+            }
+        }
+        throw new Error("Batch accepts only Appacitive.Object and Appacitive.Connection instances");
+    };
 
-		return objs;
-	};
+    var _getObjects = function () {
+        var objs = [];
+        var that = this;
 
-	var _getConnections = function() {
-		var that = this, cons = [];
-		this.connections.forEach(function(c) {
-			
-				var con = c._findUnsavedChanges().object;
-				if (con) {
-					con.__relationtype = c.className;
+        this.objects.forEach(function (o, i) {
 
-					if (con.__endpointa) delete con.__endpointa.object;
-					if (con.__endpointb) delete con.__endpointb.object
-				}
+            var obj = o._findUnsavedChanges();
+            if (obj.object) {
 
-				var epA = c.endpointA.object;
-				if (_type.isObject(epA)) {
+                obj.object.__type = o.className;
 
-					if (c.isNew()) {
-						if (epA.isNew()) {
-							con.__endpointa.name = "" + c.endpointA.object.cid;
-						} else {
-							con.__endpointa.objectid = c.endpointA.object.id;
-						}
-					}
-					_addEntity.apply(that, [epA]);
-				}
-				
-				var epB = c.endpointB.object;
-				if (_type.isObject(epB)) {
+                var exists = objs.find(function (k) { return ((o.id && (o.id == k.object.__id)) || (o.cid == k.name)) });
+                if (exists) {
+                    exists.object = obj.object;
+                    obj = exists;
+                }
 
-					if (c.isNew()) {
-						if (epB.isNew()) {
-							con.__endpointb.name = "" + c.endpointB.object.cid;
-						} else {
-							con.__endpointb.objectid = c.endpointB.object.id;
-						}
-					}
+                delete obj.isNested;
+                if (o.isNew()) obj.name = "" + o.cid;
+                else obj.object.__id = o.id;
 
-					_addEntity.apply(that, [epB]);
-				}
+                if (!exists) objs.push(obj);
+            }
 
-				if (con) {
-					var exists = cons.find(function(k) { return  ((c.id && (c.id == k.connection.__id)) || (c.cid == k.name)) });
+        });
 
-					var obj = { connection: con };
+        return objs;
+    };
 
-					if (exists) {
-						exists.connection = con;
-						obj = exists;
-					} 
+    var _getConnections = function () {
+        var that = this, cons = [];
+        this.connections.forEach(function (c) {
 
-					if (c.isNew()) obj.name = "" + c.cid;
-					else obj.connection.__id = c.id;
+            var con = c._findUnsavedChanges().object;
+            if (con) {
+                con.__relationtype = c.className;
 
-					if (!exists) cons.push(obj);
-				}
-		});
+                if (con.__endpointa) delete con.__endpointa.object;
+                if (con.__endpointb) delete con.__endpointb.object
+            }
 
-		return cons;
-	};
+            var epA = c.endpointA.object;
+            if (_type.isObject(epA)) {
 
-	Appacitive.Batch.prototype.add = function() {
+                if (c.isNew()) {
+                    if (epA.isNew()) {
+                        con.__endpointa.name = "" + c.endpointA.object.cid;
+                    } else {
+                        con.__endpointa.objectid = c.endpointA.object.id;
+                    }
+                }
+                _addEntity.apply(that, [epA]);
+            }
 
-		var that = this;
+            var epB = c.endpointB.object;
+            if (_type.isObject(epB)) {
 
-		if (_type.isArray(arguments[0])) {
-			arguments[0].forEach(function(entity) {
-				_addEntity.apply(that, [entity]);
-			});
-		} else {
-			_addEntity.apply(this, arguments);
-		}
+                if (c.isNew()) {
+                    if (epB.isNew()) {
+                        con.__endpointb.name = "" + c.endpointB.object.cid;
+                    } else {
+                        con.__endpointb.objectid = c.endpointB.object.id;
+                    }
+                }
 
-		return this;
-	};
+                _addEntity.apply(that, [epB]);
+            }
 
-	Appacitive.Batch.prototype.toJSON = function() {
-		var json = { nodes: [], edges: [] };
+            if (con) {
+                var exists = cons.find(function (k) { return ((c.id && (c.id == k.connection.__id)) || (c.cid == k.name)) });
 
-		json.edges = _getConnections.apply(this, []);
-		json.nodes = _getObjects.apply(this, []);
+                var obj = { connection: con };
 
-		return json;
-	};
+                if (exists) {
+                    exists.connection = con;
+                    obj = exists;
+                }
 
-	// parse api output to get error info
-	var _getOutpuStatus = function(data) {
-		data = data || {};
-		data.message = data.message || 'Server error';
-		data.code = data.code || '500';
-		return data;
-	};
+                if (c.isNew()) obj.name = "" + c.cid;
+                else obj.connection.__id = c.id;
 
-	var _parseNodes = function(nodes, meta, options) {
-		var that = this;
-		nodes.forEach(function(n) {
-			var obj = n.object;
-			var existing = that.objects.forEach(function(o) {
-				if (o.cid == n.name || o.id == obj.__id || o.get('__id') == obj.__id) {
-					var output = { __meta: meta[o.className] };
-					output[o.getType()] = obj;
-					o._parseOutput(options, output);
-				}
-			});
-		});
-	};
+                if (!exists) cons.push(obj);
+            }
+        });
 
-	var _parseEdges = function(edges, meta, options) {
-		var that = this;
-		edges.forEach(function(e) {
-			var con = e.connection;
-			var existing = that.connections.forEach(function(c) {
-				if (c.cid == e.name || c.id == con.__id || c.get('__id') == con.__id) {
-					var output = { __meta: meta[c.className] };
-					output[c.getType()] = con;
-					c._parseOutput(options, output);
-				}
-			});
-		});
-	};
+        return cons;
+    };
 
-	var _parseOutput = function(data, options) {
-		var status;
-		if (data && data["edges"] && data["nodes"] && (data["edges"].length >= 0) && (data["nodes"].length >= 0)) {
-			_parseNodes.call(this, data["nodes"], data["__meta"]["__type"], options);
-			_parseEdges.call(this, data["edges"], data["__meta"]["__rel"], options);
+    Appacitive.Batch.prototype.add = function () {
 
-			if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
-		} else {
-			data = data || {};
-			data.status = data.status || {};
-			status = _getOutpuStatus(data.status);
+        var that = this;
 
-			this._triggerError(options, new Appacitive.Error(status));
-		}
+        if (_type.isArray(arguments[0])) {
+            arguments[0].forEach(function (entity) {
+                _addEntity.apply(that, [entity]);
+            });
+        } else {
+            _addEntity.apply(this, arguments);
+        }
 
-		return status;
-	};
+        return this;
+    };
 
-	Appacitive.Batch.prototype._triggerError = function(options, status) {
-		if (!options.silent) this.trigger('error', this, status, options);	
-	};
+    Appacitive.Batch.prototype.removeObjects = function () {
 
-	Appacitive.Batch.prototype.execute = function(options) {
-		var data = this.toJSON();
-		options = _extend({ _batch: true }, options);
-		
-		if (data.nodes.length == 0 && data.edges.length == 0) {
-			if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
-			return (new Appacitive.Promise()).fulfill(this);
-		}
+        var that = this, args = arguments;
 
-		var that = this;
-		var request = new Appacitive._Request({
-			method: 'PUT',
-			type: 'multi',
-			op: 'getBatchUrl',
-			data: data,
-			options: options,
-			entity: this,
-			onSuccess: function(response) {
-				var status = _parseOutput.apply(that, [response, options]);
-				if (!status) {
-					request.promise.fulfill(that);
-				} else {
-					request.promise.reject(status, that)
-				}
-			}
-		});
+        if (_type.isArray(args[0])) {
+            arguments[0].forEach(function (entity) {
+                _addDeletionObject.apply(that, [entity, args[1], args[2]]);
+            });
+        } else {
+            _addDeletionObject.apply(this, args);
+        }
 
-		return request.send();
+        return this;
+    };
 
-	};
+    Appacitive.Batch.prototype.removeConnections = function () {
 
-	Appacitive.Events.mixin(Appacitive.Batch.prototype);
+        var that = this, args = arguments;
+
+        if (_type.isArray(args[0])) {
+            arguments[0].forEach(function (entity) {
+                _addDeletionEdge.apply(that, [entity, args[1], args[2]]);
+            });
+        } else {
+            _addDeletionEdge.apply(this, args);
+        }
+
+        return this;
+    };
+
+    Appacitive.Batch.prototype.toJSON = function () {
+        var json = { nodes: [], edges: [], edgedeletions: [], nodedeletions: [] };
+
+        json.edges = _getConnections.apply(this, []);
+        json.nodes = _getObjects.apply(this, []);
+        json.nodedeletions = this.objectDeletions;
+        json.edgedeletions = this.edgeDeletions;
+        return json;
+    };
+
+    // parse api output to get error info
+    var _getOutpuStatus = function (data) {
+        data = data || {};
+        data.message = data.message || 'Server error';
+        data.code = data.code || '500';
+        return data;
+    };
+
+    var _parseNodes = function (nodes, meta, options) {
+        var that = this;
+        nodes.forEach(function (n) {
+            var obj = n.object;
+            var existing = that.objects.forEach(function (o) {
+                if (o.cid == n.name || o.id == obj.__id || o.get('__id') == obj.__id) {
+                    var output = { __meta: meta[o.className] };
+                    output[o.getType()] = obj;
+                    o._parseOutput(options, output);
+                }
+            });
+        });
+    };
+
+    var _parseEdges = function (edges, meta, options) {
+        var that = this;
+        edges.forEach(function (e) {
+            var con = e.connection;
+            var existing = that.connections.forEach(function (c) {
+                if (c.cid == e.name || c.id == con.__id || c.get('__id') == con.__id) {
+                    var output = { __meta: meta[c.className] };
+                    output[c.getType()] = con;
+                    c._parseOutput(options, output);
+                }
+            });
+        });
+    };
+
+    var _parseOutput = function (data, options) {
+        var status;
+        if (data && data["edges"] && data["nodes"] && (data["edges"].length >= 0) && (data["nodes"].length >= 0)) {
+            _parseNodes.call(this, data["nodes"], data["__meta"]["__type"], options);
+            _parseEdges.call(this, data["edges"], data["__meta"]["__rel"], options);
+
+            if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
+        } else {
+            data = data || {};
+            data.status = data.status || {};
+            status = _getOutpuStatus(data.status);
+
+            this._triggerError(options, new Appacitive.Error(status));
+        }
+
+        return status;
+    };
+
+    Appacitive.Batch.prototype._triggerError = function (options, status) {
+        if (!options.silent) this.trigger('error', this, status, options);
+    };
+
+    Appacitive.Batch.prototype.execute = function (options) {
+        var data = this.toJSON();
+        options = _extend({ _batch: true }, options);
+
+        if (data.nodes.length == 0 && data.edges.length == 0) {
+            if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
+            return (new Appacitive.Promise()).fulfill(this);
+        }
+
+        var that = this;
+        var request = new Appacitive._Request({
+            method: 'PUT',
+            type: 'multi',
+            op: 'getBatchUrl',
+            data: data,
+            options: options,
+            entity: this,
+            onSuccess: function (response) {
+                var status = _parseOutput.apply(that, [response, options]);
+                if (!status) {
+                    request.promise.fulfill(that);
+                } else {
+                    request.promise.reject(status, that)
+                }
+            }
+        });
+
+        return request.send();
+
+    };
+
+    Appacitive.Events.mixin(Appacitive.Batch.prototype);
 
 })(global);
 
@@ -8094,8 +8175,8 @@ var extend = function(protoProps, staticProps) {
           date = new Date();
 
         date.setUTCFullYear(Number(dateParts[0]));
-        date.setUTCMonth(Number(dateParts[1])-1);
         date.setUTCDate(Number(dateParts[2]));
+        date.setUTCMonth(Number(dateParts[1])-1);
         
         date.setUTCHours(Number(timeHours));
         date.setUTCMinutes(Number(timeSubParts[1]));

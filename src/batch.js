@@ -33,7 +33,7 @@
             typeName = obj.typeName;
         }
 
-        if (!this.objectDeletions.find(function (a) { id == a.id })) this.objectDeletions.push({
+        if (!this.objectDeletions.find(function (a) { return (id == a.id) })) this.objectDeletions.push({
             type: typeName,
             id: id,
             deleteconnections: deleteConnections
@@ -54,7 +54,7 @@
             relationName = obj.relationName;
         }
 
-        if (!this.edgeDeletions.find(function (a) { id == a.id })) this.edgeDeletions.push({
+        if (!this.edgeDeletions.find(function (a) { return (id == a.id) })) this.edgeDeletions.push({
             type: relationName,
             id: id
         });
