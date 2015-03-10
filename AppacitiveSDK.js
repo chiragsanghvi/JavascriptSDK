@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.7.9 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.8.0 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Jan 30 14:05:34 IST 2015
+ * Build time 	: Tue Mar 10 11:11:17 IST 2015
  */
 "use strict";
 
@@ -798,12 +798,12 @@ var global = {};
 								}
 								response = JSON.parse(jData);
 							} catch(e) {
-								return promise.reject(this, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response, response.headers["TransactionId"] ));
+								return promise.reject(this, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response));
 							}
 						}
 			            promise.fulfill(response, this);
 			        } else {
-			        	promise.reject(this, new Appacitive.Error(Appacitive.Error.ConnectionFailed, this.responseText, response.headers["TransactionId"]));
+			        	promise.reject(this, new Appacitive.Error(Appacitive.Error.ConnectionFailed, this.responseText, "Unknown"));
 			        }
 		    	}
 		    };
@@ -5989,7 +5989,7 @@ var extend = function(protoProps, staticProps) {
 		var obj = Appacitive.Object._create({ __type: attrs.type, __id: attrs.id });
 		obj.fields = attrs.fields;
 
-		return obj.fetch(attrs, options);
+		return obj.fetch(options);
 	};
 
     //takes relation type and returns query for it

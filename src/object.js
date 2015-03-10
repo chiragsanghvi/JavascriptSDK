@@ -211,7 +211,7 @@
 		var obj = Appacitive.Object._create({ __type: attrs.type, __id: attrs.id });
 		obj.fields = attrs.fields;
 
-		return obj.fetch(attrs, options);
+		return obj.fetch(options);
 	};
 
     //takes relation type and returns query for it

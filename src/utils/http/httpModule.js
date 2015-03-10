@@ -320,12 +320,12 @@ var global = {};
 								}
 								response = JSON.parse(jData);
 							} catch(e) {
-								return promise.reject(this, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response, response.headers["TransactionId"] ));
+								return promise.reject(this, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response));
 							}
 						}
 			            promise.fulfill(response, this);
 			        } else {
-			        	promise.reject(this, new Appacitive.Error(Appacitive.Error.ConnectionFailed, this.responseText, response.headers["TransactionId"]));
+			        	promise.reject(this, new Appacitive.Error(Appacitive.Error.ConnectionFailed, this.responseText, "Unknown"));
 			        }
 		    	}
 		    };
