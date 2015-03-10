@@ -295,7 +295,8 @@
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
 	Appacitive.Connection.multiGet = function(attrs, options) {
 		attrs = attrs || {};
-		
+		options = options || {};
+		var models = [];
 		if (_type.isArray(attrs) && attrs.length > 0) {
 			if (attrs[0] instanceof Appacitive.Connection) {
 				models = attrs;
