@@ -248,7 +248,7 @@ var global = {};
 				message: "IE's XDomainRequest does not supply error info."
 			});
 			xdr.status = Appacitive.Error.XDomainRequest;
-	       	promise.reject(xdr);
+			promise.reject(xdr, new Appacitive.Error(Appacitive.Error.XDomainRequest, xdr.responseText, "Unknown"));
 	    };
 	    xdr.onprogress = function() {};
 	    if (request.url.indexOf('?') === -1)

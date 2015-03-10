@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Mar 10 11:11:17 IST 2015
+ * Build time 	: Tue Mar 10 11:18:30 IST 2015
  */
 "use strict";
 
@@ -726,7 +726,7 @@ var global = {};
 				message: "IE's XDomainRequest does not supply error info."
 			});
 			xdr.status = Appacitive.Error.XDomainRequest;
-	       	promise.reject(xdr);
+			promise.reject(xdr, new Appacitive.Error(Appacitive.Error.XDomainRequest, xdr.responseText, "Unknown"));
 	    };
 	    xdr.onprogress = function() {};
 	    if (request.url.indexOf('?') === -1)
