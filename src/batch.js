@@ -276,7 +276,7 @@
         var data = this.toJSON();
         options = _extend({ _batch: true }, options);
 
-        if (data.nodes.length == 0 && data.edges.length == 0) {
+        if (data.nodes.length == 0 && data.edges.length == 0 && data.edgedeletions.length == 0 && data.nodedeletions.length == 0) {
             if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
             return (new Appacitive.Promise()).fulfill(this);
         }

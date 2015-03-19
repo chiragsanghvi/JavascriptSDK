@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.8.0 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.7.9 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Mar 10 11:18:30 IST 2015
+ * Build time 	: Thu Mar 19 15:42:34 IST 2015
  */
 "use strict";
 
@@ -5930,6 +5930,8 @@ var extend = function(protoProps, staticProps) {
 	//takes typename and array of objectids and returns an array of Appacitive object objects
 	Appacitive.Object.multiGet = function(attrs, options) {
 		attrs = attrs || {};
+		options = options || {};
+		var models = [];
 		if (_type.isArray(attrs) && attrs.length > 0) {
 			if (attrs[0] instanceof Appacitive.Object) {
 				models = attrs;
@@ -6320,7 +6322,8 @@ var extend = function(protoProps, staticProps) {
 	//takes relationname and array of connectionids and returns an array of Appacitive object objects
 	Appacitive.Connection.multiGet = function(attrs, options) {
 		attrs = attrs || {};
-		
+		options = options || {};
+		var models = [];
 		if (_type.isArray(attrs) && attrs.length > 0) {
 			if (attrs[0] instanceof Appacitive.Connection) {
 				models = attrs;
@@ -7652,7 +7655,7 @@ var extend = function(protoProps, staticProps) {
         var data = this.toJSON();
         options = _extend({ _batch: true }, options);
 
-        if (data.nodes.length == 0 && data.edges.length == 0) {
+        if (data.nodes.length == 0 && data.edges.length == 0 && data.edgedeletions.length == 0 && data.nodedeletions.length == 0) {
             if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
             return (new Appacitive.Promise()).fulfill(this);
         }
