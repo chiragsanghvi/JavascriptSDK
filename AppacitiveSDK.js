@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Mar 21 10:44:27 IST 2015
+ * Build time 	: Sat Mar 21 11:36:39 IST 2015
  */
 "use strict";
 
@@ -2889,8 +2889,44 @@ var extend = function(protoProps, staticProps) {
 
     };
 
-    _containsFilter.prototype = new _fieldFilter();
-    _containsFilter.prototype.constructor = _containsFilter;
+    var _inFilter = function(options) {
+        
+        options = options || '';
+
+        if (!_type.isArray(options.value) || !options.value.length) throw new Error("Specify field value as array");
+        
+        _fieldFilter.call(this, options);
+
+        this.toString = function() {
+            return String.format("{0}{1} {2} {3}",
+                    this.getFieldType(),
+                    this.field.toLowerCase(),
+                    this.operator,
+                    this.value.toString());
+        };
+
+    };
+
+    _inFilter.prototype = new _fieldFilter();
+    _inFilter.prototype.constructor = _inFilter;
+
+    var _isMissingFilter = function(options) {
+        
+        options = options || '';
+
+        _fieldFilter.call(this, options);
+
+        this.toString = function() {
+            return String.format("{0}{1} {2}",
+                    this.getFieldType(),
+                    this.field.toLowerCase(),
+                    this.operator);
+        };
+
+    };
+
+    _isMissingFilter.prototype = new _fieldFilter();
+    _isMissingFilter.prototype.constructor = _isMissingFilter;
 
     var _betweenFilter = function(options) {
         options = options || '';
@@ -3044,7 +3080,9 @@ var extend = function(protoProps, staticProps) {
         or: "or",
         and: "and",
         taggedWithAll: "tagged_with_all",
-        taggedWithOneOrMore: "tagged_with_one_or_more"
+        taggedWithOneOrMore: "tagged_with_one_or_more",
+        isMissing: "is missing",
+        containedIn: "in"
     };
 
     var _primitiveFieldValue = function(value, type) {
@@ -3153,6 +3191,14 @@ var extend = function(protoProps, staticProps) {
 
         context.contains = function(values) {
             return new _containsFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.isEqualTo });
+        };
+
+        context.containedIn = function(values) {
+            return new _inFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.containedIn });
+        };
+
+        context.isMissing = function() {
+            return new _inFilter({ field: this.name, fieldType: this.type, operator: _operators.isMissing });
         };
 
         /* Helper functions for between */

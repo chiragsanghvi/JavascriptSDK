@@ -327,7 +327,7 @@
         taggedWithAll: "tagged_with_all",
         taggedWithOneOrMore: "tagged_with_one_or_more",
         isMissing: "is missing",
-        in: "in"
+        containedIn: "in"
     };
 
     var _primitiveFieldValue = function(value, type) {
@@ -438,11 +438,11 @@
             return new _containsFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.isEqualTo });
         };
 
-        context.in = function(values) {
-            return new _inFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.in });
+        context.containedIn = function(values) {
+            return new _inFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.containedIn });
         };
 
-        context.isMissing = function(values) {
+        context.isMissing = function() {
             return new _inFilter({ field: this.name, fieldType: this.type, operator: _operators.isMissing });
         };
 
