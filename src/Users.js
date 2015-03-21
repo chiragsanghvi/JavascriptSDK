@@ -475,6 +475,11 @@
 
 		var passwordResetOptions = { username: username, subject: subject };
 
+		options = options || {};
+
+		if (_type.isString(options.templateName)) passwordResetOptions.templatename = options.templateName;
+		if (_type.isString(options.resetLink)) passwordResetOptions.resetlink = options.resetlink;
+
 		var request = new Appacitive._Request({
 			method: 'POST',
 			type: 'user',

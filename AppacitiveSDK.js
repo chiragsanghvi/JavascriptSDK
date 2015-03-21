@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Mar 19 15:42:34 IST 2015
+ * Build time 	: Sat Mar 21 10:44:27 IST 2015
  */
 "use strict";
 
@@ -6917,6 +6917,11 @@ var extend = function(protoProps, staticProps) {
 		if (!subject || !_type.isString(subject) || subject.length === 0) throw new Error('Plase specify subject for email');
 
 		var passwordResetOptions = { username: username, subject: subject };
+
+		options = options || {};
+
+		if (_type.isString(options.templateName)) passwordResetOptions.templatename = options.templateName;
+		if (_type.isString(options.resetLink)) passwordResetOptions.resetlink = options.resetlink;
 
 		var request = new Appacitive._Request({
 			method: 'POST',
