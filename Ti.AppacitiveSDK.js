@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Mar 25 09:16:38 IST 2015
+ * Build time 	: Wed Mar 25 09:31:13 IST 2015
  */
 "use strict";
 
@@ -2908,7 +2908,7 @@ var extend = function(protoProps, staticProps) {
     _inFilter.prototype = new _fieldFilter();
     _inFilter.prototype.constructor = _inFilter;
 
-    var _isMissingFilter = function(options) {
+    var _isNullFilter = function(options) {
         
         options = options || '';
 
@@ -2923,8 +2923,8 @@ var extend = function(protoProps, staticProps) {
 
     };
 
-    _isMissingFilter.prototype = new _fieldFilter();
-    _isMissingFilter.prototype.constructor = _isMissingFilter;
+    _isNullFilter.prototype = new _fieldFilter();
+    _isNullFilter.prototype.constructor = _isNullFilter;
 
     var _betweenFilter = function(options) {
         options = options || '';
@@ -3079,7 +3079,7 @@ var extend = function(protoProps, staticProps) {
         and: "and",
         taggedWithAll: "tagged_with_all",
         taggedWithOneOrMore: "tagged_with_one_or_more",
-        isMissing: "is missing",
+        isNull: "is null",
         containedIn: "in"
     };
 
@@ -3195,8 +3195,8 @@ var extend = function(protoProps, staticProps) {
             return new _inFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.containedIn });
         };
 
-        context.isMissing = function() {
-            return new _inFilter({ field: this.name, fieldType: this.type, operator: _operators.isMissing });
+        context.isNull = function() {
+            return new _isNullFilter({ field: this.name, fieldType: this.type, operator: _operators.isNull });
         };
 
         /* Helper functions for between */
