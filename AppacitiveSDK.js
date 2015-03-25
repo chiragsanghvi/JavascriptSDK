@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Sat Mar 21 11:36:39 IST 2015
+ * Build time 	: Wed Mar 25 09:16:38 IST 2015
  */
 "use strict";
 
@@ -7279,7 +7279,7 @@ var extend = function(protoProps, staticProps) {
       var promise = Appacitive.Promise.buildPromise(options);
 
       query.fetch(options).then(function(results) {
-        if (options.add) collection.add(results, _extend({ setSnapShot: true }, options));
+        if (options.reset == false) collection.add(results, _extend({ setSnapShot: true }, options));
         else collection.reset(results, options);
         promise.fulfill(collection);
       }, function() {
@@ -7289,6 +7289,19 @@ var extend = function(protoProps, staticProps) {
       return promise;
     },
 
+    fetchNext: function(options) {
+      var pNum = this.query().pageNumber();
+      this.query().pageNumber(++pNum);
+      return this.fetch(options);
+    },
+
+    fetchPrev: function(options) {
+      var pNum = this.query().pageNumber();
+      pNum -= 1;
+      if (pNum <= 0) pNum = 1;
+      this.query().pageNumber(pNum);
+      return this.fetch(options);
+    },
 
     mutiGet: function(options) {
       options = _clone(options) || {};

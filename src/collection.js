@@ -252,7 +252,7 @@
       var promise = Appacitive.Promise.buildPromise(options);
 
       query.fetch(options).then(function(results) {
-        if (options.add) collection.add(results, _extend({ setSnapShot: true }, options));
+        if (options.reset == false) collection.add(results, _extend({ setSnapShot: true }, options));
         else collection.reset(results, options);
         promise.fulfill(collection);
       }, function() {
@@ -262,6 +262,19 @@
       return promise;
     },
 
+    fetchNext: function(options) {
+      var pNum = this.query().pageNumber();
+      this.query().pageNumber(++pNum);
+      return this.fetch(options);
+    },
+
+    fetchPrev: function(options) {
+      var pNum = this.query().pageNumber();
+      pNum -= 1;
+      if (pNum <= 0) pNum = 1;
+      this.query().pageNumber(pNum);
+      return this.fetch(options);
+    },
 
     mutiGet: function(options) {
       options = _clone(options) || {};
