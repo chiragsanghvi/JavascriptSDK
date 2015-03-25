@@ -188,7 +188,7 @@
         };
 
         /* Single task */
-        if (!Array.isArray(task)) { 
+        if (!_type.isArray(task)) { 
             task = [task];
         }
 
