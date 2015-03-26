@@ -105,7 +105,6 @@
     _fieldFilter.prototype = new _filter();
     _fieldFilter.prototype.constructor = _fieldFilter;
 
-
     var _containsFilter = function(options) {
         
         options = options || '';
@@ -133,8 +132,8 @@
         };
 
     };
-    _isNullFilter.prototype = new _fieldFilter();
-    _isNullFilter.prototype.constructor = _isNullFilter;
+    _containsFilter.prototype = new _fieldFilter();
+    _containsFilter.prototype.constructor = _containsFilter;
 
     var _inFilter = function(options) {
         
