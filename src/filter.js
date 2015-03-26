@@ -133,6 +133,8 @@
         };
 
     };
+    _isNullFilter.prototype = new _fieldFilter();
+    _isNullFilter.prototype.constructor = _isNullFilter;
 
     var _inFilter = function(options) {
         
