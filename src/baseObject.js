@@ -664,7 +664,10 @@
 
 			if (that.type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
-				if (acls) changeSet['__acls'] = acls;
+				if (acls) {
+					isDirty = true;
+					changeSet['__acls'] = acls;
+				}
 			}
 
 			if (isDirty && !Object.isEmpty(changeSet)) return changeSet;

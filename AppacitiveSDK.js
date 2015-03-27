@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Mar 26 08:17:03 IST 2015
+ * Build time 	: Fri Mar 27 10:10:13 IST 2015
  */
 "use strict";
 
@@ -2474,7 +2474,9 @@ var extend = function(protoProps, staticProps) {
 					request.headers.push({ key: 'as', value: _sessionKey });
 				}
 
-				if (authEnabled === true) {
+				var userToken = (_type.isString(request.options.userToken) && request.options.userToken.length > 0) ? request.options.userToken : false; 
+
+				if (authEnabled === true || userToken) {
 					var ind = -1;
 					var userAuthHeader = request.headers.filter(function (uah, i) {
 						if (uah.key == 'ut') {
@@ -2487,11 +2489,8 @@ var extend = function(protoProps, staticProps) {
 					if (request.options.ignoreUserToken) {
 						if (ind != -1) request.headers.splice(ind, 1);
 					} else {
-						var token = _authToken;
+						var token = userToken || _authToken;
 						
-						if (_type.isString(request.options.userToken) && request.options.userToken.length > 0)
-							token = request.options.userToken;
-
 						if (userAuthHeader.length == 1) {
 							request.headers.forEach(function (uah) {
 								if (uah.key == 'ut') {
@@ -4794,7 +4793,10 @@ var extend = function(protoProps, staticProps) {
 
 			if (that.type == 'object' && that._aclFactory) {
 				var acls = that._aclFactory.getChanged();
-				if (acls) changeSet['__acls'] = acls;
+				if (acls) {
+					isDirty = true;
+					changeSet['__acls'] = acls;
+				}
 			}
 
 			if (isDirty && !Object.isEmpty(changeSet)) return changeSet;

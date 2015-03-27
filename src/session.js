@@ -74,7 +74,9 @@
 					request.headers.push({ key: 'as', value: _sessionKey });
 				}
 
-				if (authEnabled === true) {
+				var userToken = (_type.isString(request.options.userToken) && request.options.userToken.length > 0) ? request.options.userToken : false; 
+
+				if (authEnabled === true || userToken) {
 					var ind = -1;
 					var userAuthHeader = request.headers.filter(function (uah, i) {
 						if (uah.key == 'ut') {
@@ -87,11 +89,8 @@
 					if (request.options.ignoreUserToken) {
 						if (ind != -1) request.headers.splice(ind, 1);
 					} else {
-						var token = _authToken;
+						var token = userToken || _authToken;
 						
-						if (_type.isString(request.options.userToken) && request.options.userToken.length > 0)
-							token = request.options.userToken;
-
 						if (userAuthHeader.length == 1) {
 							request.headers.forEach(function (uah) {
 								if (uah.key == 'ut') {
