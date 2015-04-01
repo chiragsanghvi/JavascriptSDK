@@ -73,7 +73,7 @@
                     else promise.reject(error);
                 }
 
-                if (value instanceof Promise || Promise.is(value) )  {
+                if (value instanceof Promise || (value && typeof value.then === 'function') )  {
                     /* assume value is thenable */
                     value.then(function(v){
                         promise.fulfill(v); 
@@ -95,11 +95,12 @@
         }
     };
 
-    Promise.prototype.fulfill = function() {
+    Promise.prototype.fulfill = function (value) {
         if (this.state) return this;
 
         this.state = FULFILLED;
-        this.value = arguments;
+
+        this.reason = this.value = [].slice.call(arguments);
 
         this.done();
 
@@ -108,12 +109,13 @@
 
     Promise.prototype.resolve = Promise.prototype.fulfill;
 
-    Promise.prototype.reject = function() {
-        if(this.state) return this;
+    Promise.prototype.reject = function (value) {
+        if (this.state) return this;
 
         this.state = REJECTED;
-        this.reason = this.value = arguments;
 
+        this.reason = this.value = value;
+        
         this.done();
 
         return this;

@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.7.9 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.8.0 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Mar 27 10:10:13 IST 2015
+ * Build time 	: Wed Apr  1 08:23:01 IST 2015
  */
 "use strict";
 
@@ -1625,7 +1625,7 @@ var global = {};
                     else promise.reject(error);
                 }
 
-                if (value instanceof Promise || Promise.is(value) )  {
+                if (value instanceof Promise || (value && typeof value.then === 'function') )  {
                     /* assume value is thenable */
                     value.then(function(v){
                         promise.fulfill(v); 
@@ -1647,11 +1647,12 @@ var global = {};
         }
     };
 
-    Promise.prototype.fulfill = function() {
+    Promise.prototype.fulfill = function (value) {
         if (this.state) return this;
 
         this.state = FULFILLED;
-        this.value = arguments;
+
+        this.reason = this.value = [].slice.call(arguments);
 
         this.done();
 
@@ -1660,12 +1661,13 @@ var global = {};
 
     Promise.prototype.resolve = Promise.prototype.fulfill;
 
-    Promise.prototype.reject = function() {
-        if(this.state) return this;
+    Promise.prototype.reject = function (value) {
+        if (this.state) return this;
 
         this.state = REJECTED;
-        this.reason = this.value = arguments;
 
+        this.reason = this.value = value;
+        
         this.done();
 
         return this;
