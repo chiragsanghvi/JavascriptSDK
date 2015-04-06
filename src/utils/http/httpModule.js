@@ -7,22 +7,30 @@ var global = {};
 	"use strict";
 
 	// create the global object
-
-	if (typeof window === 'undefined') {
-        global = process;
-    } else {
-        global = window;
-    }
-
 	var _initialize = function () {
 		var t;
 		if (!global.Appacitive) {
-			global.Appacitive = {
-				runtime: {
-					isNode: typeof process != typeof t,
-					isBrowser: typeof window != typeof t
-				}
-			};
+			// create the global object
+			// Export the Appacitive object for **CommonJS**, with backwards-compatibility
+		    // for the old `require()` API. If we're not in CommonJS, add `Appacitive` to the
+		    // global object.
+		    if (typeof module !== 'undefined' && module.exports) {
+		    	global = process;
+	            global.Appacitive = {
+	            	runtime: {
+		            	isNode: true,
+		            	isBrowser: false
+		            }
+	            };
+		    } else {
+		    	global = window;
+	            global.Appacitive = {
+	            	runtime: {
+		            	isNode: false,
+		            	isBrowser: true
+		            }
+	            };
+		    }
 		}
 	};
 	_initialize();

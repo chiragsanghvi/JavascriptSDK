@@ -64,7 +64,11 @@
             if (typeof then[state] === 'function') {
                 
                 try {
-                    value = then[state].apply(promise, this.value);  
+                    if (state === REJECTED) {
+                        value = then[state].call(promise, this.value);  
+                    } else {
+                        value = then[state].apply(promise, this.value);  
+                    }
                 } catch(error) {
                     var err = {name: error.name, message: error.message, stack: error.stack};
                     Appacitive.logs.logException(err);

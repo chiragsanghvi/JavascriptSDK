@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Apr  1 08:23:01 IST 2015
+ * Build time 	: Mon Apr  6 17:11:26 IST 2015
  */
 "use strict";
 
@@ -485,22 +485,30 @@ var global = {};
 	"use strict";
 
 	// create the global object
-
-	if (typeof window === 'undefined') {
-        global = process;
-    } else {
-        global = window;
-    }
-
 	var _initialize = function () {
 		var t;
 		if (!global.Appacitive) {
-			global.Appacitive = {
-				runtime: {
-					isNode: typeof process != typeof t,
-					isBrowser: typeof window != typeof t
-				}
-			};
+			// create the global object
+			// Export the Appacitive object for **CommonJS**, with backwards-compatibility
+		    // for the old `require()` API. If we're not in CommonJS, add `Appacitive` to the
+		    // global object.
+		    if (typeof module !== 'undefined' && module.exports) {
+	            global = window;
+	            global.Appacitive = {
+	            	runtime: {
+		            	isNode: true,
+		            	isBrowser: false
+		            }
+	            };
+		    } else {
+		    	global = window;
+	            global.Appacitive = {
+	            	runtime: {
+		            	isNode: false,
+		            	isBrowser: true
+		            }
+	            };
+		    }
 		}
 	};
 	_initialize();
@@ -1616,7 +1624,11 @@ var global = {};
             if (typeof then[state] === 'function') {
                 
                 try {
-                    value = then[state].apply(promise, this.value);  
+                    if (state === REJECTED) {
+                        value = then[state].call(promise, this.value);  
+                    } else {
+                        value = then[state].apply(promise, this.value);  
+                    }
                 } catch(error) {
                     var err = {name: error.name, message: error.message, stack: error.stack};
                     Appacitive.logs.logException(err);
