@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Apr  6 17:11:26 IST 2015
+ * Build time 	: Tue Apr  7 10:15:15 IST 2015
  */
 "use strict";
 
@@ -493,7 +493,7 @@ var global = {};
 		    // for the old `require()` API. If we're not in CommonJS, add `Appacitive` to the
 		    // global object.
 		    if (typeof module !== 'undefined' && module.exports) {
-		    	global = process;
+		    	global = process || {};
 	            global.Appacitive = {
 	            	runtime: {
 		            	isNode: true,
@@ -501,7 +501,7 @@ var global = {};
 		            }
 	            };
 		    } else {
-		    	global = window;
+		    	global = window || {};
 	            global.Appacitive = {
 	            	runtime: {
 		            	isNode: false,

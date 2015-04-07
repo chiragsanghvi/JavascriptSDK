@@ -15,7 +15,7 @@ var global = {};
 		    // for the old `require()` API. If we're not in CommonJS, add `Appacitive` to the
 		    // global object.
 		    if (typeof module !== 'undefined' && module.exports) {
-		    	global = process;
+		    	global = process || {};
 	            global.Appacitive = {
 	            	runtime: {
 		            	isNode: true,
@@ -23,7 +23,7 @@ var global = {};
 		            }
 	            };
 		    } else {
-		    	global = window;
+		    	global = window || {};
 	            global.Appacitive = {
 	            	runtime: {
 		            	isNode: false,
