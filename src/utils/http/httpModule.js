@@ -264,7 +264,7 @@ var global = {};
         else
             request.url = request.url + '&ua=ie';
 
-	    xdr.open(request.method, request.url, true);
+        xdr.open(request.method, request.url, request.sync ? false : true);
 	    xdr.send(request.data);
 		return promise;
 	};
@@ -337,7 +337,8 @@ var global = {};
 			        }
 		    	}
 		    };
-		    xhr.open(request.method, request.url, true);
+
+		    xhr.open(request.method, request.url, request.sync ? false : true);
 
 		    for (var x = 0; x < request.headers.length; x += 1)
 				xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
@@ -393,11 +394,13 @@ var global = {};
 		var that = _super;
 
 		var _trigger = function(request, callbacks, states) {
+			request.options = request.options || {};
 			new  _XMLHttp({
 				method: request.method,
 				url: request.url,
 				headers: request.headers,
 				data: request.data,
+				sync: request.options.sync,
 				onSuccess: function(data, xhr) {
 					if (!data) {
 					 	that.onError(request, { responseText: { code:'400', message: 'Invalid request' } });

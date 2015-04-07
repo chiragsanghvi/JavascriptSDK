@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Apr  7 10:46:10 IST 2015
+ * Build time 	: Tue Apr  7 13:39:00 IST 2015
  */
 "use strict";
 
@@ -743,7 +743,7 @@ var global = {};
         else
             request.url = request.url + '&ua=ie';
 
-	    xdr.open(request.method, request.url, true);
+	    xdr.open(request.method, request.url, request.sync ? false : true);
 	    xdr.send(request.data);
 		return promise;
 	};
@@ -815,7 +815,7 @@ var global = {};
 			        }
 		    	}
 		    };
-		    xhr.open(request.method, request.url, true);
+		    xhr.open(request.method, request.url, request.sync ? false : true);
 
 		    for (var x = 0; x < request.headers.length; x += 1)
 				xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
@@ -871,11 +871,13 @@ var global = {};
 		var that = _super;
 
 		var _trigger = function(request, callbacks, states) {
+			request.options = request.options || {};
 			new  _XMLHttp({
 				method: request.method,
 				url: request.url,
 				headers: request.headers,
 				data: request.data,
+				sync: request.options.sync,
 				onSuccess: function(data, xhr) {
 					if (!data) {
 					 	that.onError(request, { responseText: { code:'400', message: 'Invalid request' } });
