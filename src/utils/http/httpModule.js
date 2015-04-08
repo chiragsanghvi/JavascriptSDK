@@ -305,7 +305,7 @@ var global = {};
 		}
 
 		
-	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
+	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1)) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;
