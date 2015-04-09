@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Apr  8 18:09:34 IST 2015
+ * Build time 	: Thu Apr  9 10:37:33 IST 2015
  */
 "use strict";
 
@@ -729,12 +729,9 @@ var global = {};
 	    };
 	    xdr.onerror = xdr.ontimeout = function() {
 	    	// Let's fake a real error message.
-			xdr.responseText = JSON.stringify({
-				code: Appacitive.Error.XDomainRequest,
-				message: "IE's XDomainRequest does not supply error info."
-			});
+			xdr.responseData = "IE's XDomainRequest does not supply error info."
 			xdr.status = Appacitive.Error.XDomainRequest;
-			promise.reject(xdr, new Appacitive.Error(Appacitive.Error.XDomainRequest, xdr.responseText, "Unknown"));
+			promise.reject(xdr, new Appacitive.Error(Appacitive.Error.XDomainRequest, xdr.responseData, "Unknown"));
 	    };
 	    xdr.onprogress = function() {};
 	    if (request.url.indexOf('?') === -1)
@@ -781,9 +778,8 @@ var global = {};
 				}
 			}
 		}
-
-		
-	    if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1)) {
+		var urlDomain = request.url.split('/')[2] || '';
+		if ( global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1) && urlDomain !== window.location.host.toLowerCase()) {
 	    	request.data = data;
 			var xdr = new _XDomainRequest(request);
 			return xdr;
@@ -905,7 +901,7 @@ var global = {};
 					if (error) {
 						data = Appacitive.Error.toJSON(error);
 					} else {
-						data.message = xhr.responseText || 'Bad Request';
+						data.message = xhr.responseData || xhr.responseText || 'Bad Request';
 						data.code = xhr.status || '400';
 					}
 					that.onError(request, { responseText: data });
