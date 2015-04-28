@@ -100,6 +100,73 @@ asyncTest('Create linked facebook user in one api call', function() {
 });
 
 
+asyncTest('Create user using json with some default fields using facebook login', function() {
+	var user = {};
+	user.firstname = testConstants.user.firstname;
+	user.lastname = testConstants.user.lastname;
+	user.email = testConstants.user.email;
+	user.random = 'DeepClone #' + parseInt(Math.random() * 10000);
+	var token = Appacitive.Facebook.accessToken();
+
+	Appacitive.Users.logout();
+	
+	try {
+		var accessToken = global.Appacitive.Facebook.accessToken();
+		Appacitive.Users.loginWithFacebook(accessToken, { user: user }).then(function(authInfo) {
+			ok(true, 'Signed up with facebook: ' + JSON.stringify(authInfo));
+			equal(user.email, authInfo.user.get('email'), "Email is same");
+			equal(user.random, authInfo.user.get('random'), "Random value is same");
+			return authInfo.user.destroy();
+		}).then( function() {
+			ok(true, "User deleted successfullly");
+			start();
+		}, function(err) {
+			err = err || {};
+			ok(false, 'Could not signup with facebook: ' + JSON.stringify(err));
+			start();
+		});
+	} catch (e) {
+		ok(false, 'Error occured: ' + e.message);
+		start();	
+	}
+
+});
+
+asyncTest('Create User Object with some default fields using facebook login', function() {
+	var user = {};
+	user.firstname = testConstants.user.firstname;
+	user.lastname = testConstants.user.lastname;
+	user.email = testConstants.user.email;
+	var random = 'DeepClone #' + parseInt(Math.random() * 10000);
+	user.random = random;
+	var token = Appacitive.Facebook.accessToken();
+
+	Appacitive.Users.logout();
+	
+	user = new Appacitive.User(user);
+
+	try {
+		var accessToken = global.Appacitive.Facebook.accessToken();
+		Appacitive.Users.loginWithFacebook(accessToken, { user: user }).then(function(authInfo) {
+			ok(true, 'Signed up with facebook: ' + JSON.stringify(authInfo));
+			equal(user.get('email'), authInfo.user.get('email'), "Email is same");
+			equal(random, authInfo.user.get('random'), "Random value is same");
+			return authInfo.user.destroy();
+		}).then( function() {
+			ok(true, "User deleted successfullly");
+			start();
+		}, function(err) {
+			err = err || {};
+			ok(false, 'Could not signup with facebook: ' + JSON.stringify(err));
+			start();
+		});
+	} catch (e) {
+		ok(false, 'Error occured: ' + e.message);
+		start();	
+	}
+
+});
+
 asyncTest('Create and link facebook account to a user', function() {
 	var user = {};
 	user.username = 'DeepClone #' + parseInt(Math.random() * 10000);

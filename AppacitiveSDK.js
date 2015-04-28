@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Apr  9 10:37:33 IST 2015
+ * Build time 	: Tue Apr 28 10:51:20 IST 2015
  */
 "use strict";
 
@@ -3095,7 +3095,9 @@ var extend = function(protoProps, staticProps) {
         taggedWithAll: "tagged_with_all",
         taggedWithOneOrMore: "tagged_with_one_or_more",
         isNull: "is null",
-        containedIn: "in"
+        containedIn: "in",
+        isNotNull: "is not null",
+        notIn: "not in"
     };
 
     var _primitiveFieldValue = function(value, type) {
@@ -3214,6 +3216,14 @@ var extend = function(protoProps, staticProps) {
             return new _isNullFilter({ field: this.name, fieldType: this.type, operator: _operators.isNull });
         };
 
+        context.notIn = function(values) {
+            return new _inFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.notIn });
+        };
+
+        context.isNotNull = function() {
+            return new _isNullFilter({ field: this.name, fieldType: this.type, operator: _operators.isNotNull });
+        };
+
         /* Helper functions for between */
         context.between = function(val1, val2) {
             return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1), val2: new _primitiveFieldValue(val2), operator: _operators.between });
@@ -3277,6 +3287,10 @@ var extend = function(protoProps, staticProps) {
             return _fieldFilters.between(val1, val2);
         };
 
+        this.contains = function(values) {
+            return _fieldFilters.contains(values);
+        };
+
         return this;
     };
 
@@ -3292,11 +3306,11 @@ var extend = function(protoProps, staticProps) {
             return _fieldFilters.like(value);
         };
 
-        this.like = function(value) {
+        this.match = function(value) {
             return _fieldFilters.match(value);
         };
 
-        this.startWith = function(value) {
+        this.startsWith = function(value) {
             return _fieldFilters.startsWith(value);
         };
 
@@ -6823,9 +6837,18 @@ var extend = function(protoProps, staticProps) {
 
 	//authenticate user with authrequest that contains username , password and expiry
 	User.authenticateUser = function(authRequest, options, provider) {
+		options = options || {};
 
 		if (!authRequest.expiry) authRequest.expiry = 86400000;
-		var that = this;
+		
+		var that = this, user;
+
+		if (_type.isString(provider) && _type.isObject(options.user)) {
+			if (options.user instanceof global.Appacitive.User) authRequest.user = options.user.toJSON();
+			else authRequest.user = options.user;
+			delete authRequest.user.__meta;
+			user = options.user;
+		}
 
 		var request = new Appacitive._Request({
 			method: 'POST',
@@ -6837,6 +6860,7 @@ var extend = function(protoProps, staticProps) {
 				if (data && data.user) {
 					if (provider) data.user.__authType = provider;
 					_extend(data.user, { __meta: data.__meta });
+					if (user instanceof global.Appacitive.User) data.user  = user.copy(data.user, true);
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
 					Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
 					request.promise.fulfill({ user : _authenticatedUser, token: data.token });
@@ -6868,7 +6892,7 @@ var extend = function(protoProps, staticProps) {
 
 		options = options || {};	
 
-		var createNew = true;
+		var createNew = true, user;
 
 		if (options.create == false) createNew = false; 
 

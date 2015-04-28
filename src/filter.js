@@ -328,7 +328,9 @@
         taggedWithAll: "tagged_with_all",
         taggedWithOneOrMore: "tagged_with_one_or_more",
         isNull: "is null",
-        containedIn: "in"
+        containedIn: "in",
+        isNotNull: "is not null",
+        notIn: "not in"
     };
 
     var _primitiveFieldValue = function(value, type) {
@@ -447,6 +449,14 @@
             return new _isNullFilter({ field: this.name, fieldType: this.type, operator: _operators.isNull });
         };
 
+        context.notIn = function(values) {
+            return new _inFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.notIn });
+        };
+
+        context.isNotNull = function() {
+            return new _isNullFilter({ field: this.name, fieldType: this.type, operator: _operators.isNotNull });
+        };
+
         /* Helper functions for between */
         context.between = function(val1, val2) {
             return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1), val2: new _primitiveFieldValue(val2), operator: _operators.between });
@@ -510,6 +520,10 @@
             return _fieldFilters.between(val1, val2);
         };
 
+        this.contains = function(values) {
+            return _fieldFilters.contains(values);
+        };
+
         return this;
     };
 
@@ -525,11 +539,11 @@
             return _fieldFilters.like(value);
         };
 
-        this.like = function(value) {
+        this.match = function(value) {
             return _fieldFilters.match(value);
         };
 
-        this.startWith = function(value) {
+        this.startsWith = function(value) {
             return _fieldFilters.startsWith(value);
         };
 

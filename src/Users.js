@@ -318,9 +318,18 @@
 
 	//authenticate user with authrequest that contains username , password and expiry
 	User.authenticateUser = function(authRequest, options, provider) {
+		options = options || {};
 
 		if (!authRequest.expiry) authRequest.expiry = 86400000;
-		var that = this;
+		
+		var that = this, user;
+
+		if (_type.isString(provider) && _type.isObject(options.user)) {
+			if (options.user instanceof global.Appacitive.User) authRequest.user = options.user.toJSON();
+			else authRequest.user = options.user;
+			delete authRequest.user.__meta;
+			user = options.user;
+		}
 
 		var request = new Appacitive._Request({
 			method: 'POST',
@@ -332,6 +341,7 @@
 				if (data && data.user) {
 					if (provider) data.user.__authType = provider;
 					_extend(data.user, { __meta: data.__meta });
+					if (user instanceof global.Appacitive.User) data.user  = user.copy(data.user, true);
 					that.setCurrentUser(data.user, data.token, authRequest.expiry);
 					Appacitive.User.trigger('login', _authenticatedUser, _authenticatedUser, data.token);
 					request.promise.fulfill({ user : _authenticatedUser, token: data.token });
@@ -363,7 +373,7 @@
 
 		options = options || {};	
 
-		var createNew = true;
+		var createNew = true, user;
 
 		if (options.create == false) createNew = false; 
 
