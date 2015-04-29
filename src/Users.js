@@ -488,7 +488,7 @@
 		options = options || {};
 
 		if (_type.isString(options.templateName)) passwordResetOptions.templatename = options.templateName;
-		if (_type.isString(options.resetLink)) passwordResetOptions.resetlink = options.resetlink;
+		if (_type.isString(options.resetLink)) passwordResetOptions.resetlink = options.resetLink;
 
 		var request = new Appacitive._Request({
 			method: 'POST',
