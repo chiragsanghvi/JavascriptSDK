@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.8.0 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.8.1 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2013 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Wed Apr 29 11:24:04 IST 2015
+ * Build time 	: Tue May  5 13:30:49 IST 2015
  */
 "use strict";
 
@@ -4777,7 +4777,7 @@ var extend = function(protoProps, staticProps) {
 			for (var property in object) {
 				var changed = hasChanged(property, changeSet[property], object[property], isInternal);
 
-				if (changed == undefined) {
+				if (changed === undefined) {
 					delete changeSet[property];
 				} else {
 					isDirty = true;
@@ -5054,7 +5054,7 @@ var extend = function(protoProps, staticProps) {
 		};
 
 		this.isNew = function() {
-			return !this.has(this.idAttribute);
+			return !(!_type.isNullOrUndefined(this.id) || this.has(this.idAttribute));
 		};
 
 		this.clone = function() {

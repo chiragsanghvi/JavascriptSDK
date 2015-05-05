@@ -623,7 +623,7 @@
 			for (var property in object) {
 				var changed = hasChanged(property, changeSet[property], object[property], isInternal);
 
-				if (changed == undefined) {
+				if (changed === undefined) {
 					delete changeSet[property];
 				} else {
 					isDirty = true;
@@ -900,7 +900,7 @@
 		};
 
 		this.isNew = function() {
-			return !this.has(this.idAttribute);
+			return !(!_type.isNullOrUndefined(this.id) || this.has(this.idAttribute));
 		};
 
 		this.clone = function() {
