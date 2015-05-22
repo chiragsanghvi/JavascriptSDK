@@ -685,7 +685,7 @@
 			if (arguments.length === 0)
 				return Object.isEmpty(_getChanged(true)) ? false : true;
 			else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0)
-				return (hasChanged(arguments[0]) == undefined) ? false : true;
+				return (hasChanged(arguments[0], _snapshot[arguments[0]], object[arguments[0]]) == undefined) ? false : true;
 
 			return false;
 		};
@@ -698,7 +698,7 @@
 			} else if (arguments.length == 1 && _type.isArray(arguments[0]) && arguments[0].length) {
 				var attrs = {};
 				arguments[0].forEach(function(c) {
-					var value = hasChanged(c);
+					var value = hasChanged(c, _snapshot[c], object[c]);
 					if (value != undefined) attrs.push(value);
 				});
 				return attrs;

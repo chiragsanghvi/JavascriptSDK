@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue May  5 13:30:49 IST 2015
+ * Build time 	: Fri May 22 09:38:54 IST 2015
  */
 "use strict";
 
@@ -4839,7 +4839,7 @@ var extend = function(protoProps, staticProps) {
 			if (arguments.length === 0)
 				return Object.isEmpty(_getChanged(true)) ? false : true;
 			else if (arguments.length == 1 && _type.isString(arguments[0]) && arguments[0].length > 0)
-				return (hasChanged(arguments[0]) == undefined) ? false : true;
+				return (hasChanged(arguments[0], _snapshot[arguments[0]], object[arguments[0]]) == undefined) ? false : true;
 
 			return false;
 		};
@@ -4852,7 +4852,7 @@ var extend = function(protoProps, staticProps) {
 			} else if (arguments.length == 1 && _type.isArray(arguments[0]) && arguments[0].length) {
 				var attrs = {};
 				arguments[0].forEach(function(c) {
-					var value = hasChanged(c);
+					var value = hasChanged(c, _snapshot[c], object[c]);
 					if (value != undefined) attrs.push(value);
 				});
 				return attrs;
