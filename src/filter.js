@@ -116,7 +116,8 @@
         var _getValue = function(value) {
             if (_type.isString(value)) return "'" + value + "'";
             else if (_type.isNumber(value)) return value;  
-            else return value.toString();
+            else if (_type.isDate(value)) return "datetime('" + Appacitive.Date.toISOString(value) + "')";
+            else return "'" + value.toString() + "'";
         };
 
         this.toString = function() {
@@ -143,12 +144,22 @@
         
         _fieldFilter.call(this, options);
 
+        var _getValue = function(value) {
+            if (_type.isString(value)) return "'" + value + "'";
+            else if (_type.isNumber(value)) return value;  
+            else return value.toString();
+        };
+
         this.toString = function() {
+            var arrValue = [];
+            for (var i = 0; i < this.value.length; i = i + 1) {
+                arrValue.push(_getValue(this.value[i]));
+            }
             return String.format("{0}{1} {2} {3}",
                     this.getFieldType(),
                     this.field.toLowerCase(),
                     this.operator,
-                    this.value.toString());
+                    arrValue.join(','));
         };
 
     };
@@ -349,7 +360,7 @@
         this.getValue = function() {
             if (this.type === 'number' || _type.isBoolean(this.value) || _type.isNumber(this.value)) return this.value;  
             else if (this.type === 'object' && _type.isDate(this.value)) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
-            else if (this.type == 'object' && this.value instanceof Appacitive.GeoCoord) return value.toString();
+            else if (this.type == 'object' && this.value instanceof Appacitive.GeoCoord) return this.value.toString();
             else return "'" + this.value.toString() + "'"
         };
     };

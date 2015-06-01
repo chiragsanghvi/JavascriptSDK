@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri May 22 09:38:54 IST 2015
+ * Build time 	: Mon Jun  1 15:18:45 IST 2015
  */
 "use strict";
 
@@ -2881,7 +2881,8 @@ var extend = function(protoProps, staticProps) {
         var _getValue = function(value) {
             if (_type.isString(value)) return "'" + value + "'";
             else if (_type.isNumber(value)) return value;  
-            else return value.toString();
+            else if (_type.isDate(value)) return "datetime('" + Appacitive.Date.toISOString(value) + "')";
+            else return "'" + value.toString() + "'";
         };
 
         this.toString = function() {
@@ -2908,12 +2909,22 @@ var extend = function(protoProps, staticProps) {
         
         _fieldFilter.call(this, options);
 
+        var _getValue = function(value) {
+            if (_type.isString(value)) return "'" + value + "'";
+            else if (_type.isNumber(value)) return value;  
+            else return value.toString();
+        };
+
         this.toString = function() {
+            var arrValue = [];
+            for (var i = 0; i < this.value.length; i = i + 1) {
+                arrValue.push(_getValue(this.value[i]));
+            }
             return String.Format("{0}{1} {2} {3}",
                     this.getFieldType(),
                     this.field.toLowerCase(),
                     this.operator,
-                    this.value.toString());
+                    arrValue.join(','));
         };
 
     };
@@ -3114,7 +3125,7 @@ var extend = function(protoProps, staticProps) {
         this.getValue = function() {
             if (this.type === 'number' || _type.isBoolean(this.value) || _type.isNumber(this.value)) return this.value;  
             else if (this.type === 'object' && _type.isDate(this.value)) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
-            else if (this.type == 'object' && this.value instanceof Appacitive.GeoCoord) return value.toString();
+            else if (this.type == 'object' && this.value instanceof Appacitive.GeoCoord) return this.value.toString();
             else return "'" + this.value.toString() + "'"
         };
     };

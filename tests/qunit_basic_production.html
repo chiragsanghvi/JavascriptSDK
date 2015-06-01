@@ -51,6 +51,7 @@
       // init the FB JS SDK
       Appacitive.Facebook.initialize({
         appId      : '123832777803421', // App ID from the App Dashboard
+        version    : 'v2.0',
         status     : true, // check the login status upon init?
         cookie     : false, // set sessions cookies to allow your server to access the session?
         xfbml      : true  // parse XFBML tags on this page?
@@ -68,7 +69,7 @@
        var js, id = 'facebook-jssdk', ref = d.getElementsByTagName('script')[0];
        if (d.getElementById(id)) {return;}
        js = d.createElement('script'); js.id = id; js.async = true;
-       js.src = "https://connect.facebook.net/en_US/all" + (debug ? "/debug" : "") + ".js";
+       js.src = "https://connect.facebook.net/en_US/sdk" + (debug ? "/debug" : "") + ".js";
        ref.parentNode.insertBefore(js, ref);
      }(document, /*debug*/ false));
   </script>
