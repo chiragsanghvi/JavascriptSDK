@@ -99,6 +99,26 @@ asyncTest('Create linked facebook user in one api call', function() {
 	}
 });
 
+asyncTest('Signin with facebook and verify Appacitive.Users.currentUser', function() {
+	try {
+		var accessToken = global.Appacitive.Facebook.accessToken();
+		Appacitive.Users.loginWithFacebook(accessToken).then(function(user) {
+			deepEqual(user.user, global.Appacitive.Users.currentUser(), 'Appacitive.Users.currentUser is: ' + user.token);
+			equal(user.user.get('email'), 'chirag_sanghvi7@hotmail.com', 'Email poroperty is same');
+			return user.user.destroy();
+		}).then(function() {
+			ok(true, 'user deleted successfullly');
+			start();
+		}, function(err) {
+			err = err || {};
+			ok(false, 'Could not signup with facebook: ' + JSON.stringify(err));
+			start();
+		})
+	} catch (e) {
+		ok(false, 'Error occured: ' + e.message);
+		start();
+	}
+});
 
 asyncTest('Create user using json with some default fields using facebook login', function() {
 	var user = {};
@@ -219,7 +239,7 @@ asyncTest('Verify login with facebook via facebook sdk', function() {
 
 asyncTest('Verify login with facebook via Appacitive sdk', function() {
 	try {
-		Appacitive.Facebook.requestLogin().then(function(authResponse) {
+		Appacitive.Facebook.requestLogin({ scope: 'email'}).then(function(authResponse) {
 			ok(true, 'Facebook login successfull with access token: ' + global.Appacitive.Facebook.accessToken());
 			start();
 		}, function() {
@@ -264,22 +284,6 @@ asyncTest('Login with facebook', function() {
 	}
 });
 
-asyncTest('Signin with facebook and verify Appacitive.Users.currentUser', function() {
-	try {
-		var accessToken = global.Appacitive.Facebook.accessToken();
-		Appacitive.Users.loginWithFacebook(accessToken).then(function(user) {
-			deepEqual(user.user, global.Appacitive.Users.currentUser(), 'Appacitive.Users.currentUser is: ' + user.token);
-			start();
-		}, function(err) {
-			err = err || {};
-			ok(false, 'Could not signup with facebook: ' + JSON.stringify(err));
-			start();
-		})
-	} catch (e) {
-		ok(false, 'Error occured: ' + e.message);
-		start();
-	}
-});
 
 asyncTest('Verify get facebook user if info is requested', function() {
 	try {

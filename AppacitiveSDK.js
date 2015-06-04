@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Jun  1 15:18:45 IST 2015
+ * Build time 	: Thu Jun  4 11:36:54 IST 2015
  */
 "use strict";
 
@@ -7825,12 +7825,11 @@ var extend = function(protoProps, staticProps) {
 		  _initialized = true;
 		};
 
-		this.requestLogin = function(scope) {
-
-			scope = scope || {};
-
+		this.requestLogin = function(options) {
+			options = options || { };
 			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
-		    var promise = new Appacitive.Promise();
+		    var promise = Appacitive.Promise.buildPromise(options);
+			if (!options.scope) options.scope = 'email';
 			FB.login(function(response) {
 				if (response && response.status === 'connected' && response.authResponse) {
 					_accessToken = response.authResponse.accessToken;
@@ -7838,15 +7837,15 @@ var extend = function(protoProps, staticProps) {
 				} else {
 					promise.reject();
 				}
-			}, scope);
+			}, options);
 
 			return promise;
 		};
 
-		this.getCurrentUserInfo = function() {
+		this.getCurrentUserInfo = function(options) {
 			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
-			var promise = new Appacitive.Promise();
-			
+			options = options || {};
+			var promise = Appacitive.Promise.buildPromise(options);
 			FB.api('/me', function(response) {
 				if (response && !response.error) {
 					_accessToken = FB.getAuthResponse().accessToken;
@@ -7871,9 +7870,11 @@ var extend = function(protoProps, staticProps) {
 			return 'https://graph.facebook.com/' + username + '/picture';
 		};
 
-		this.logout = function() {
+		this.logout = function(options) {
 			_accessToken = null;
-			var promise = new Appacitive.Promise();
+
+			options = options || {};
+			var promise = Appacitive.Promise.buildPromise(options);
 			
 			try {
 				FB.logout(function() {
@@ -7916,10 +7917,11 @@ var extend = function(protoProps, staticProps) {
 			return new Appacitive.Promise().fulfill();
 		};
 
-		this.getCurrentUserInfo = function() {
+		this.getCurrentUserInfo = function(options) {
 			if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+			options = options || {};
 
-			var promise = new Appacitive.Promise();
+			var promise = Appacitive.Promise.buildPromise(options);
 
 			if (this.FB && _accessToken) {
 				this.FB.api('/me', function(err, response) {
