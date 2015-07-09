@@ -180,7 +180,9 @@
 
 		if (optns && optns.parse) objectOptions = this.parse(objectOptions);
 
-		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _deepExtend({}, this.defaults, objectOptions);
+		var _defaults = _result(this, 'defaults')
+		
+		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _deepExtend({}, _defaults, objectOptions);
 
 		if (optns && optns.collection) this.collection = optns.collection;
 

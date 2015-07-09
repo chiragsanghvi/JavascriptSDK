@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.8.1 - Javascript SDK to integrate applications using Appacitive
- * Copyright (c) 2013 Appacitive Software Pvt Ltd
+ * AppacitiveSDK.js v0.9.8.2 - Javascript SDK to integrate applications using Appacitive
+ * Copyright (c) 2015 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Jun  4 11:36:54 IST 2015
+ * Build time 	: Thu Jul  9 13:35:11 IST 2015
  */
 "use strict";
 
@@ -303,6 +303,14 @@ _type['isDate'] =  function(n) {
 var _clone = function(obj) {
     if (!_type.isObject(obj)) return obj;
     return _type.isArray(obj) ? obj.slice() : _extend({}, obj);
+};
+
+var _result = function(object, property, fallback) {
+    var value = object == null ? void 0 : object[property];
+    if (value === void 0) {
+      value = fallback;
+    }
+    return _type.isFunction(value) ? value.call(object) : value;
 };
 
 Array.prototype.removeAll = function(obj) {
@@ -3333,8 +3341,28 @@ var extend = function(protoProps, staticProps) {
             return _fieldFilters.equalTo(value);
         };        
 
+        this.notEqualTo = function(value) {
+            return _fieldFilters.notEqualTo(value);
+        };   
+
         this.contains = function(values) {
             return _fieldFilters.contains(values);
+        };
+
+        this.containedIn = function(values) {
+            return _fieldFilters.containedIn(values);
+        };
+
+        this.notIn = function(values) {
+            return _fieldFilters.notIn(values);
+        };
+
+        this.isNull = function() {
+            return _fieldFilters.isNull(); 
+        };
+
+        this.isNotNull = function() {
+            return _fieldFilters.isNull(); 
         };
 
         return this;
@@ -4347,7 +4375,9 @@ var extend = function(protoProps, staticProps) {
 
 		if (optns && optns.parse) objectOptions = this.parse(objectOptions);
 
-		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _deepExtend({}, this.defaults, objectOptions);
+		var _defaults = _result(this, 'defaults')
+		
+		if (_type.isObject(this.defaults) && !optns.setSnapShot) objectOptions = _deepExtend({}, _defaults, objectOptions);
 
 		if (optns && optns.collection) this.collection = optns.collection;
 

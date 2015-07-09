@@ -566,8 +566,28 @@
             return _fieldFilters.equalTo(value);
         };        
 
+        this.notEqualTo = function(value) {
+            return _fieldFilters.notEqualTo(value);
+        };   
+
         this.contains = function(values) {
             return _fieldFilters.contains(values);
+        };
+
+        this.containedIn = function(values) {
+            return _fieldFilters.containedIn(values);
+        };
+
+        this.notIn = function(values) {
+            return _fieldFilters.notIn(values);
+        };
+
+        this.isNull = function() {
+            return _fieldFilters.isNull(); 
+        };
+
+        this.isNotNull = function() {
+            return _fieldFilters.isNull(); 
         };
 
         return this;

@@ -297,6 +297,14 @@ var _clone = function(obj) {
     return _type.isArray(obj) ? obj.slice() : _extend({}, obj);
 };
 
+var _result = function(object, property, fallback) {
+    var value = object == null ? void 0 : object[property];
+    if (value === void 0) {
+      value = fallback;
+    }
+    return _type.isFunction(value) ? value.call(object) : value;
+};
+
 Array.prototype.removeAll = function(obj) {
     // Return null if no objects were found and removed
     var destroyed = null;
