@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js v0.9.8.2 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js v0.9.8.3 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2015 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Jul  9 13:35:11 IST 2015
+ * Build time 	: Wed Sep  2 15:36:46 IST 2015
  */
 "use strict";
 
@@ -8374,31 +8374,49 @@ var extend = function(protoProps, staticProps) {
       return n;
   };
 
+  /**
+   * Date.parse with progressive enhancement for ISO 8601 <https://github.com/csnover/js-iso8601>
+   * © 2011 Colin Snover <http://zetafleet.com>
+   * Released under MIT license.
+   */
+  Appacitive.Date.parse = function (date) {
+      var timestamp, struct, minutesOffset = 0,numericKeys = [ 1, 4, 5, 6, 7, 10, 11 ];
+
+      // ES5 §15.9.4.2 states that the string should attempt to be parsed as a Date Time String Format string
+      // before falling back to any implementation-specific date parsing, so that’s what we do, even if native
+      // implementations could be faster
+      //              1 YYYY                2 MM       3 DD           4 HH    5 mm       6 ss        7 msec        8 Z 9 ±    10 tzHH    11 tzmm
+      if ((struct = /^(\d{4}|[+\-]\d{6})(?:-(\d{2})(?:-(\d{2}))?)?(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{3}))?)?(?:(Z)|([+\-])(\d{2})(?::(\d{2}))?)?)?$/.exec(date))) {
+          // avoid NaN timestamps caused by “undefined” values being passed to Date.UTC
+          for (var i = 0, k; (k = numericKeys[i]); ++i) {
+              struct[k] = +struct[k] || 0;
+          }
+
+          // allow undefined days and months
+          struct[2] = (+struct[2] || 1) - 1;
+          struct[3] = +struct[3] || 1;
+
+          if (struct[8] !== 'Z' && struct[9] !== undefined) {
+              minutesOffset = struct[10] * 60 + struct[11];
+
+              if (struct[9] === '+') {
+                  minutesOffset = 0 - minutesOffset;
+              }
+          }
+
+          timestamp = Date.UTC(struct[1], struct[2], struct[3], struct[4], struct[5] + minutesOffset, struct[6], struct[7]);
+      }
+      else {
+          timestamp = Data.parse ? Data.parse(date) : NaN;
+      }
+
+      return timestamp;
+  };      
+
   Appacitive.Date.parseISODate = function (str) {
     try {
-        var regexp = new RegExp("^([0-9]{1,4})-([0-9]{1,2})-([0-9]{1,2})" + "T" + "([0-9]{1,2}):([0-9]{1,2}):([0-9]{1,2})" + "(.([0-9]+))?" + "Z?$");
-
-        if (!regexp.exec(str)) return new Date(str);
-          
-        var parts = str.split('T'),
-          dateParts = parts[0].split('-'),
-          timeParts = parts[1].split('Z'),
-          timeSubParts = timeParts[0].split(':'),
-          timeSecParts = timeSubParts[2].split('.'),
-          timeHours = Number(timeSubParts[0]),
-          date = new Date();
-
-        date.setUTCFullYear(Number(dateParts[0]));
-        date.setUTCDate(Number(dateParts[2]));
-        date.setUTCMonth(Number(dateParts[1])-1);
-        
-        date.setUTCHours(Number(timeHours));
-        date.setUTCMinutes(Number(timeSubParts[1]));
-        date.setUTCSeconds(Number(timeSecParts[0]));
-        if (timeSecParts[1]) date.setUTCMilliseconds(Number(timeSecParts[1].substring(0, 3)));
-
-        return date;
-    } catch(e) {return null;}
+        return  Appacitive.Date.parse(str);
+    } catch(e) { return null; }
   };
 
   Appacitive.Date.toISOString = function (date) {

@@ -1,3 +1,6 @@
+#
+#!/bin/bash
+
 echo "=======================Combining======================="
 
 function increment_version()
