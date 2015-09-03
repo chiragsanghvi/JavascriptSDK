@@ -55,5 +55,3 @@ cat src/copyright.txt SDK.min.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s
 rm $out;
 
 echo "============Minified AppacitiveSDK.min.js=============="
-
-

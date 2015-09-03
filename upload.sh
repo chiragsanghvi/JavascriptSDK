@@ -1,4 +1,3 @@
-#
 #!/bin/bash
 
 echo "=======================Combining======================="
@@ -18,8 +17,10 @@ function increment_version()
   new="${part[*]}"
   echo "${new// /.}"
 } 
- 
-minifiedFile=$(find .. -name appacitive-js-sdk-v\*.min.js)
+
+echo "Please enter version no: "
+read version
+minifiedFile="appacitive-js-sdk-v$version.min.js"
 minSearchText='./appacitive-js-sdk-v'
 minResult="${minifiedFile/$minSearchText/}"
 minExt='.min.js'
@@ -29,6 +30,9 @@ echo 'old version' $oldVersion
 
 ver=$(increment_version $oldVersion)
 echo 'new version' $ver
+
+newFile="appacitive-js-sdk-v$ver.js"
+newMinifiedFile="appacitive-js-sdk-v$ver.min.js"
 
 thedate=$(date)
 type=""
@@ -47,7 +51,7 @@ echo "================Minifying AppacitiveSDK.js============="
 in=AppacitiveSDK.js
 out=SDK.min.js
 
-java -jar /usr/local/lib/compiler.jar --js $in --js_output_file $out
+java -jar compiler/compiler.jar --js $in --js_output_file $out
 
 cat src/copyright.txt SDK.min.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g" > AppacitiveSDK.min.js
 
@@ -55,3 +59,23 @@ rm $out;
 
 echo "============Minified AppacitiveSDK.min.js=============="
 
+echo "===============Compressing files======================="
+
+gzip -c -9 AppacitiveSDK.js > ${newFile}.gz
+
+echo "Compressed Appacitive.js"
+
+gzip -c -9 AppacitiveSDK.min.js > ${newMinifiedFile}.gz
+
+echo "Compressed Appacitive.min.js"
+
+echo "================Files Compressed======================="
+
+oneday=86400
+
+echo "==================Uploading files to S3================"
+
+s3cmd -P --add-header="Cache-Control:public, max-age=$oneday" --add-header="Content-Encoding:gzip" --mime-type="application/javascript" put ${newFile}.gz s3://appacitive-cdn/sdk/js/$newFile
+s3cmd -P --add-header="Cache-Control:public, max-age=$oneday" --add-header="Content-Encoding:gzip" --mime-type="application/javascript" put ${newMinifiedFile}.gz s3://appacitive-cdn/sdk/js/$newMinifiedFile
+
+echo "==============Files uploaded to S3 successfully==========="
