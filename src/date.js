@@ -52,7 +52,7 @@
 
   Appacitive.Date.parseISODate = function (str) {
     try {
-        return  Appacitive.Date.parse(str);
+        return  new Date(Appacitive.Date.parse(str));
     } catch(e) { return null; }
   };
 

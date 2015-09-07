@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Sep  7 13:57:33 IST 2015
+ * Build time 	: Mon Sep  7 14:27:40 IST 2015
  */
 "use strict";
 
@@ -8415,7 +8415,7 @@ var extend = function(protoProps, staticProps) {
 
   Appacitive.Date.parseISODate = function (str) {
     try {
-        return  Appacitive.Date.parse(str);
+        return  new Date(Appacitive.Date.parse(str));
     } catch(e) { return null; }
   };
 
