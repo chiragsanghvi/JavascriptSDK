@@ -39,6 +39,8 @@
               if (struct[9] === '+') {
                   minutesOffset = 0 - minutesOffset;
               }
+          } else if (struct[8] == 'Z') {
+            struct[7] = struct[7].toString().substring(0, 3);
           }
 
           timestamp = Date.UTC(struct[1], struct[2], struct[3], struct[4], struct[5] + minutesOffset, struct[6], struct[7]);
