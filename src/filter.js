@@ -1,34 +1,37 @@
-(function (global) {
+(function(global) {
 
     "use strict";
 
     var Appacitive = global.Appacitive;
+    var _type = Appacitive.utils._type;
+    var _extend = Appacitive.utils._extend;
+    var _deepExtend = Appacitive.utils._deepExtend;
 
     Appacitive.GeoCoord = function(lat, lng) {
-        
+
         var _validateGeoCoord = function(lat, lng) {
-          if (isNaN(lat) || isNaN(lng)) throw new Error("Invalid Latitiude or longitiude provided");
-          if (lat < -90.0 || lat > 90.0) throw new Error("Latitude " + lat + " should be in range of  -90.0 to 90.");
-          if (lng < -180.0 || lng > 180.0) throw new Error("Latitude " + lng + " should be in range of  -180.0 to 180.");
+            if (isNaN(lat) || isNaN(lng)) throw new Error("Invalid Latitiude or longitiude provided");
+            if (lat < -90.0 || lat > 90.0) throw new Error("Latitude " + lat + " should be in range of  -90.0 to 90.");
+            if (lng < -180.0 || lng > 180.0) throw new Error("Latitude " + lng + " should be in range of  -180.0 to 180.");
         };
 
         // Parses string geocode value and return Appacitive geocode object or false
         var getGeocode = function(geoCode) {
-          // geoCode is not string or its length is 0, return false
-          if (typeof geoCode !== 'string' || geoCode.length == 0) return false;
-          
-          // Split geocode string by ,
-          var split = geoCode.split(',');
+            // geoCode is not string or its length is 0, return false
+            if (typeof geoCode !== 'string' || geoCode.length == 0) return false;
 
-          // split length is not equal to 2 so return false
-          if (split.length !== 2 ) return false;
+            // Split geocode string by ,
+            var split = geoCode.split(',');
 
-          // validate the geocode
-          try {
-            return new Appacitive.GeoCoord(split[0], split[1]);
-          } catch(e) {
-            return false;
-          }
+            // split length is not equal to 2 so return false
+            if (split.length !== 2) return false;
+
+            // validate the geocode
+            try {
+                return new Appacitive.GeoCoord(split[0], split[1]);
+            } catch (e) {
+                return false;
+            }
         };
 
         if (_type.isString(lat) && !lng) {
@@ -37,15 +40,15 @@
         }
 
         if (!lat || !lng) {
-          this.lat = 0, this.lng = 0;
+            this.lat = 0, this.lng = 0;
         } else {
-          _validateGeoCoord(lat, lng);
-          this.lat = lat, this.lng = lng;
+            _validateGeoCoord(lat, lng);
+            this.lat = lat, this.lng = lng;
         }
 
         this.toJSON = function() {
             return {
-                latitude : this.lat,
+                latitude: this.lat,
                 longitude: this.lng
             };
         };
@@ -54,22 +57,24 @@
             return String.format("{0},{1}", lat, lng);
         };
 
-        this.toString = function() { return this.getValue(); };
+        this.toString = function() {
+            return this.getValue();
+        };
     };
 
-    var _filter = function() { 
-        this.toString = function() { }; 
+    var _filter = function() {
+        this.toString = function() {};
 
         this.Or = function() {
             var args = Array.prototype.slice.call(arguments, 0);
             args.splice(0, 0, this);
-            return new _compoundFilter(_operators.or, args); 
+            return new _compoundFilter(_operators.or, args);
         };
 
         this.And = function() {
             var args = Array.prototype.slice.call(arguments, 0);
             args.splice(0, 0, this);
-            return new _compoundFilter(_operators.and, args); 
+            return new _compoundFilter(_operators.and, args);
         };
     };
 
@@ -85,19 +90,23 @@
 
         this.getFieldType = function() {
             switch (this.fieldType) {
-                case 'property' : return '*';
-                case 'attribute' : return '@';
-                case 'aggregate' : return '$';
-                default : return '*';
+                case 'property':
+                    return '*';
+                case 'attribute':
+                    return '@';
+                case 'aggregate':
+                    return '$';
+                default:
+                    return '*';
             }
         };
 
         this.toString = function() {
-             return String.format("{0}{1} {2} {3}",
-                    this.getFieldType(),
-                    this.field.toLowerCase(),
-                    this.operator,
-                    this.value.getValue());
+            return String.format("{0}{1} {2} {3}",
+                this.getFieldType(),
+                this.field.toLowerCase(),
+                this.operator,
+                this.value.getValue());
         };
 
     };
@@ -106,16 +115,16 @@
     _fieldFilter.prototype.constructor = _fieldFilter;
 
     var _containsFilter = function(options) {
-        
+
         options = options || '';
 
         if (!_type.isArray(options.value) || !options.value.length) throw new Error("Specify field value as array");
-        
+
         _fieldFilter.call(this, options);
 
         var _getValue = function(value) {
             if (_type.isString(value)) return "'" + value + "'";
-            else if (_type.isNumber(value)) return value;  
+            else if (_type.isNumber(value)) return value;
             else if (_type.isDate(value)) return "datetime('" + Appacitive.Date.toISOString(value) + "')";
             else return "'" + value.toString() + "'";
         };
@@ -124,12 +133,12 @@
             var values = [];
             for (var i = 0; i < this.value.length; i = i + 1) {
                 values.push(String.format("{0}{1} {2} {3}",
-                            this.getFieldType(),
-                            this.field.toLowerCase(),
-                            this.operator,
-                            _getValue(this.value[i])));
+                    this.getFieldType(),
+                    this.field.toLowerCase(),
+                    this.operator,
+                    _getValue(this.value[i])));
             }
-            return "("  + values.join(' or ') + ")"; 
+            return "(" + values.join(' or ') + ")";
         };
 
     };
@@ -137,16 +146,16 @@
     _containsFilter.prototype.constructor = _containsFilter;
 
     var _inFilter = function(options) {
-        
+
         options = options || '';
 
         if (!_type.isArray(options.value) || !options.value.length) throw new Error("Specify field value as array");
-        
+
         _fieldFilter.call(this, options);
 
         var _getValue = function(value) {
             if (_type.isString(value)) return "'" + value + "'";
-            else if (_type.isNumber(value)) return value;  
+            else if (_type.isNumber(value)) return value;
             else return value.toString();
         };
 
@@ -156,10 +165,10 @@
                 arrValue.push(_getValue(this.value[i]));
             }
             return String.format("{0}{1} {2} {3}",
-                    this.getFieldType(),
-                    this.field.toLowerCase(),
-                    this.operator,
-                    arrValue.join(','));
+                this.getFieldType(),
+                this.field.toLowerCase(),
+                this.operator,
+                arrValue.join(','));
         };
 
     };
@@ -168,16 +177,16 @@
     _inFilter.prototype.constructor = _inFilter;
 
     var _isNullFilter = function(options) {
-        
+
         options = options || '';
 
         _fieldFilter.call(this, options);
 
         this.toString = function() {
             return String.format("{0}{1} {2}",
-                    this.getFieldType(),
-                    this.field.toLowerCase(),
-                    this.operator);
+                this.getFieldType(),
+                this.field.toLowerCase(),
+                this.operator);
         };
 
     };
@@ -199,12 +208,12 @@
         delete this.value;
 
         this.toString = function() {
-             return String.format("{0}{1} {2} ({3},{4})",
-                    this.getFieldType(),
-                    this.field.toLowerCase(),
-                    this.operator,
-                    this.val1.getValue(),
-                    this.val2.getValue());
+            return String.format("{0}{1} {2} ({3},{4})",
+                this.getFieldType(),
+                this.field.toLowerCase(),
+                this.operator,
+                this.val1.getValue(),
+                this.val2.getValue());
         };
 
     };
@@ -228,13 +237,13 @@
         this.distance = options.distance || 5;
 
         this.toString = function() {
-             return String.format("{0}{1} {2} {3},{4} {5}",
-                    this.getFieldType(),
-                    this.field.toLowerCase(),
-                    this.operator,
-                    this.value.getValue(),
-                    this.distance,
-                    this.unit);
+            return String.format("{0}{1} {2} {3},{4} {5}",
+                this.getFieldType(),
+                this.field.toLowerCase(),
+                this.operator,
+                this.value.getValue(),
+                this.distance,
+                this.unit);
         };
     };
 
@@ -264,11 +273,11 @@
         };
 
         this.toString = function() {
-             return String.format("{0}{1} {2} {3}",
-                    this.getFieldType(),
-                    this.field.toLowerCase(),
-                    this.operator,
-                    _getPipeSeparatedList(this.value));
+            return String.format("{0}{1} {2} {3}",
+                this.getFieldType(),
+                this.field.toLowerCase(),
+                this.operator,
+                _getPipeSeparatedList(this.value));
         };
     };
 
@@ -284,9 +293,9 @@
 
         this.tags = options.tags;
         this.operator = options.operator;
-        
+
         this.toString = function() {
-             return String.format("{0}('{1}')", this.operator, this.tags.join(','));
+            return String.format("{0}('{1}')", this.operator, this.tags.join(','));
         };
     };
 
@@ -294,14 +303,14 @@
     _tagFilter.prototype.constructor = _tagFilter;
 
     var _compoundFilter = function(operator, filters) {
-        
+
         if (!filters || !filters.length || filters.length < 2) throw new Error("Provide valid or atleast 2 filters");
 
         this.operator = operator;
 
         this.innerFilters = [];
 
-        for (var i = 0; i < filters.length ; i = i + 1) {
+        for (var i = 0; i < filters.length; i = i + 1) {
             if (!(filters[i] instanceof _filter)) throw new Error("Invalid filter provided");
             this.innerFilters.push(filters[i]);
         }
@@ -351,14 +360,14 @@
         this.value = value;
 
         if (type) this.type = type;
-        else this.type = typeof this.value; 
+        else this.type = typeof this.value;
 
         if (this.type === 'number') {
-          if (!_type.isNumeric(this.value)) throw new Error("Value should be numeric for filter expression");  
+            if (!_type.isNumeric(this.value)) throw new Error("Value should be numeric for filter expression");
         }
 
         this.getValue = function() {
-            if (this.type === 'number' || _type.isBoolean(this.value) || _type.isNumber(this.value)) return this.value;  
+            if (this.type === 'number' || _type.isBoolean(this.value) || _type.isNumber(this.value)) return this.value;
             else if (this.type === 'object' && _type.isDate(this.value)) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else if (this.type == 'object' && this.value instanceof Appacitive.GeoCoord) return this.value.toString();
             else return "'" + this.value.toString() + "'"
@@ -367,7 +376,7 @@
 
     var _dateFieldValue = function(value) {
         this.value = value;
-        
+
         this.getValue = function() {
             if (this.value instanceof Date) return "date('" + Appacitive.Date.toISODate(this.value) + "')";
             else return "date('" + this.value + "')";
@@ -376,7 +385,7 @@
 
     var _timeFieldValue = function(value) {
         this.value = value;
-        
+
         this.getValue = function() {
             if (this.value instanceof Date) return "time('" + Appacitive.Date.toISOTime(this.value) + "')";
             else return "time('" + this.value + "')";
@@ -385,14 +394,14 @@
 
     var _dateTimeFieldValue = function(value) {
         this.value = value;
-        
+
         this.getValue = function() {
             if (this.value instanceof Date) return "datetime('" + Appacitive.Date.toISOString(this.value) + "')";
             else return "datetime('" + this.value + "')";
         };
     };
 
-    var _fieldFilterUtils = function(type, name, context) { 
+    var _fieldFilterUtils = function(type, name, context) {
 
         if (!context) context = this;
 
@@ -402,91 +411,182 @@
 
         /* Helper functions for EqualTo */
         context.equalTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isEqualTo });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue(value),
+                operator: _operators.isEqualTo
+            });
         };
 
         /* Helper functions for NotEqualTo */
         context.notEqualTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.notEqualTo });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue(value),
+                operator: _operators.notEqualTo
+            });
         };
 
         /* Helper functions for GreaterThan */
         context.greaterThan = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThan });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue(value),
+                operator: _operators.isGreaterThan
+            });
         };
 
 
         /* Helper functions for GreaterThanEqualTo */
         context.greaterThanEqualTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isGreaterThanEqualTo });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue(value),
+                operator: _operators.isGreaterThanEqualTo
+            });
         };
 
         /* Helper functions for LessThan */
         context.lessThan = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThan });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue(value),
+                operator: _operators.isLessThan
+            });
         };
 
         /* Helper functions for LessThanEqualTo */
         context.lessThanEqualTo = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value), operator: _operators.isLessThanEqualTo });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue(value),
+                operator: _operators.isLessThanEqualTo
+            });
         };
 
         /* Helper functions for string operations */
         context.like = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.like });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue("*" + value + "*"),
+                operator: _operators.like
+            });
         };
 
         context.match = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value + "*"), operator: _operators.match });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue("*" + value + "*"),
+                operator: _operators.match
+            });
         };
 
         context.startsWith = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue(value + "*"), operator: _operators.like });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue(value + "*"),
+                operator: _operators.like
+            });
         };
 
         context.endsWith = function(value) {
-            return new _fieldFilter({ field: this.name, fieldType: this.type, value: new _primitiveFieldValue("*" + value), operator: _operators.like });
+            return new _fieldFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: new _primitiveFieldValue("*" + value),
+                operator: _operators.like
+            });
         };
 
         context.contains = function(values) {
-            return new _containsFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.isEqualTo });
+            return new _containsFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: values,
+                operator: _operators.isEqualTo
+            });
         };
 
         context.containedIn = function(values) {
-            return new _inFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.containedIn });
+            return new _inFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: values,
+                operator: _operators.containedIn
+            });
         };
 
         context.isNull = function() {
-            return new _isNullFilter({ field: this.name, fieldType: this.type, operator: _operators.isNull });
+            return new _isNullFilter({
+                field: this.name,
+                fieldType: this.type,
+                operator: _operators.isNull
+            });
         };
 
         context.notIn = function(values) {
-            return new _inFilter({ field: this.name, fieldType: this.type, value: values, operator: _operators.notIn });
+            return new _inFilter({
+                field: this.name,
+                fieldType: this.type,
+                value: values,
+                operator: _operators.notIn
+            });
         };
 
         context.isNotNull = function() {
-            return new _isNullFilter({ field: this.name, fieldType: this.type, operator: _operators.isNotNull });
+            return new _isNullFilter({
+                field: this.name,
+                fieldType: this.type,
+                operator: _operators.isNotNull
+            });
         };
 
         /* Helper functions for between */
         context.between = function(val1, val2) {
-            return new _betweenFilter({ field: this.name, fieldType: this.type, val1: new _primitiveFieldValue(val1), val2: new _primitiveFieldValue(val2), operator: _operators.between });
+            return new _betweenFilter({
+                field: this.name,
+                fieldType: this.type,
+                val1: new _primitiveFieldValue(val1),
+                val2: new _primitiveFieldValue(val2),
+                operator: _operators.between
+            });
         };
 
         /*Helper functionf for geolocation search */
         context.withinCircle = function(geoCoord, distance, unit) {
-            return new _radialFilter({ field: this.name, fieldType: this.type, geoCoord: geoCoord, distance: distance, unit: unit, operator: _operators.withinCircle });
+            return new _radialFilter({
+                field: this.name,
+                fieldType: this.type,
+                geoCoord: geoCoord,
+                distance: distance,
+                unit: unit,
+                operator: _operators.withinCircle
+            });
         };
 
         context.withinPolygon = function(geoCoords) {
-            return new _polygonFilter({ field: this.name, fieldType: this.type, geoCoords: geoCoords, operator: _operators.withinPolygon });
+            return new _polygonFilter({
+                field: this.name,
+                fieldType: this.type,
+                geoCoords: geoCoords,
+                operator: _operators.withinPolygon
+            });
         };
     };
 
     var _propertyExpression = function(name) {
-        
+
         if (!name || name.length === 0) throw new Error("Specify field name");
-        
+
         this.field = name;
 
         _fieldFilterUtils("property", name, this);
@@ -495,9 +595,9 @@
     };
 
     var _aggregateExpression = function(name) {
-        
+
         if (!name || name.length === 0) throw new Error("Specify field name");
-        
+
         this.field = name;
 
         var _fieldFilters = new _fieldFilterUtils("aggregate", name);
@@ -540,7 +640,7 @@
 
     var _attributeExpression = function(name) {
         if (!name || name.length === 0) throw new Error("Specify field name");
-        
+
         this.field = name;
 
         var _fieldFilters = new _fieldFilterUtils("attribute", name);
@@ -564,11 +664,11 @@
 
         this.equalTo = function(value) {
             return _fieldFilters.equalTo(value);
-        };        
+        };
 
         this.notEqualTo = function(value) {
             return _fieldFilters.notEqualTo(value);
-        };   
+        };
 
         this.contains = function(values) {
             return _fieldFilters.contains(values);
@@ -583,11 +683,11 @@
         };
 
         this.isNull = function() {
-            return _fieldFilters.isNull(); 
+            return _fieldFilters.isNull();
         };
 
         this.isNotNull = function() {
-            return _fieldFilters.isNull(); 
+            return _fieldFilters.isNull();
         };
 
         return this;
@@ -604,16 +704,22 @@
             return new _attributeExpression(name);
         },
         Or: function() {
-            return new _compoundFilter(_operators.or, arguments); 
+            return new _compoundFilter(_operators.or, arguments);
         },
         And: function() {
-            return new _compoundFilter(_operators.and, arguments); 
+            return new _compoundFilter(_operators.and, arguments);
         },
         taggedWithOneOrMore: function(tags) {
-            return new _tagFilter({ tags: tags, operator: _operators.taggedWithOneOrMore });
+            return new _tagFilter({
+                tags: tags,
+                operator: _operators.taggedWithOneOrMore
+            });
         },
         taggedWithAll: function(tags) {
-            return new _tagFilter({ tags: tags, operator: _operators.taggedWithAll });
+            return new _tagFilter({
+                tags: tags,
+                operator: _operators.taggedWithAll
+            });
         }
     };
 

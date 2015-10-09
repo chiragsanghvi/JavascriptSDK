@@ -1,25 +1,25 @@
-(function (global) {
+(function(global) {
 
-"use strict";
+    "use strict";
 
-var Appacitive = global.Appacitive;
+    var Appacitive = global.Appacitive;
 
-var cookieManager = function () {
+    var cookieManager = function() {
 
-	this.setCookie = function (name, value) {
-		Appacitive.localStorage.set(name, value);
-	};
+        this.setCookie = function(name, value) {
+            Appacitive.localStorage.set(name, value);
+        };
 
-	this.readCookie = function (name) {
-		return Appacitive.localStorage.get(name);
-	};
+        this.readCookie = function(name) {
+            return Appacitive.localStorage.get(name);
+        };
 
-	this.eraseCookie = function (name) {
-		Appacitive.localStorage.remove(name);
-	};
+        this.eraseCookie = function(name) {
+            Appacitive.localStorage.remove(name);
+        };
 
-};
+    };
 
-Appacitive.Cookie = new cookieManager();
+    Appacitive.Cookie = new cookieManager();
 
 })(global);

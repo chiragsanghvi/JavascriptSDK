@@ -1,25 +1,27 @@
-(function (global) {
+(function(global) {
 
     "use strict";
 
     var Appacitive = global.Appacitive;
+    var _type = Appacitive.utils._type;
+    var _extend = Appacitive.utils._extend;
 
-    Appacitive.Batch = function () {
+    Appacitive.Batch = function() {
         this.objects = [];
         this.connections = [];
         this.objectDeletions = [];
         this.edgeDeletions = [];
     };
 
-    var _addConnection = function (con) {
+    var _addConnection = function(con) {
         if (this.connections.indexOf(con) == -1) this.connections.push(con);
     };
 
-    var _addObject = function (obj) {
+    var _addObject = function(obj) {
         if (this.objects.indexOf(obj) == -1) this.objects.push(obj);
     };
 
-    var _addDeletionObject = function (obj, typeName, deleteConnections) {
+    var _addDeletionObject = function(obj, typeName, deleteConnections) {
         var id;
         if (_type.isString(obj)) {
             id = obj;
@@ -33,7 +35,9 @@
             typeName = obj.typeName;
         }
 
-        if (!this.objectDeletions.find(function (a) { return (id == a.id) })) this.objectDeletions.push({
+        if (!this.objectDeletions.find(function(a) {
+                return (id == a.id)
+            })) this.objectDeletions.push({
             type: typeName,
             id: id,
             deleteconnections: deleteConnections
@@ -41,7 +45,7 @@
     };
 
 
-    var _addDeletionEdge = function (obj, relationName) {
+    var _addDeletionEdge = function(obj, relationName) {
         var id;
         if (_type.isString(obj)) {
             id = obj;
@@ -54,13 +58,15 @@
             relationName = obj.relationName;
         }
 
-        if (!this.edgeDeletions.find(function (a) { return (id == a.id) })) this.edgeDeletions.push({
+        if (!this.edgeDeletions.find(function(a) {
+                return (id == a.id)
+            })) this.edgeDeletions.push({
             type: relationName,
             id: id
         });
     };
 
-    var _addEntity = function (entity) {
+    var _addEntity = function(entity) {
         if (_type.isObject(entity)) {
             if (entity instanceof Appacitive.Object) {
                 return _addObject.apply(this, [entity]);
@@ -71,18 +77,20 @@
         throw new Error("Batch accepts only Appacitive.Object and Appacitive.Connection instances");
     };
 
-    var _getObjects = function () {
+    var _getObjects = function() {
         var objs = [];
         var that = this;
 
-        this.objects.forEach(function (o, i) {
+        this.objects.forEach(function(o, i) {
 
             var obj = o._findUnsavedChanges();
             if (obj.object) {
 
                 obj.object.__type = o.className;
 
-                var exists = objs.find(function (k) { return ((o.id && (o.id == k.object.__id)) || (o.cid == k.name)) });
+                var exists = objs.find(function(k) {
+                    return ((o.id && (o.id == k.object.__id)) || (o.cid == k.name))
+                });
                 if (exists) {
                     exists.object = obj.object;
                     obj = exists;
@@ -100,9 +108,10 @@
         return objs;
     };
 
-    var _getConnections = function () {
-        var that = this, cons = [];
-        this.connections.forEach(function (c) {
+    var _getConnections = function() {
+        var that = this,
+            cons = [];
+        this.connections.forEach(function(c) {
 
             var con = c._findUnsavedChanges().object;
             if (con) {
@@ -140,9 +149,13 @@
             }
 
             if (con) {
-                var exists = cons.find(function (k) { return ((c.id && (c.id == k.connection.__id)) || (c.cid == k.name)) });
+                var exists = cons.find(function(k) {
+                    return ((c.id && (c.id == k.connection.__id)) || (c.cid == k.name))
+                });
 
-                var obj = { connection: con };
+                var obj = {
+                    connection: con
+                };
 
                 if (exists) {
                     exists.connection = con;
@@ -159,12 +172,12 @@
         return cons;
     };
 
-    Appacitive.Batch.prototype.add = function () {
+    Appacitive.Batch.prototype.add = function() {
 
         var that = this;
 
         if (_type.isArray(arguments[0])) {
-            arguments[0].forEach(function (entity) {
+            arguments[0].forEach(function(entity) {
                 _addEntity.apply(that, [entity]);
             });
         } else {
@@ -174,12 +187,13 @@
         return this;
     };
 
-    Appacitive.Batch.prototype.removeObjects = function () {
+    Appacitive.Batch.prototype.removeObjects = function() {
 
-        var that = this, args = arguments;
+        var that = this,
+            args = arguments;
 
         if (_type.isArray(args[0])) {
-            arguments[0].forEach(function (entity) {
+            arguments[0].forEach(function(entity) {
                 _addDeletionObject.apply(that, [entity, args[1], args[2]]);
             });
         } else {
@@ -189,12 +203,13 @@
         return this;
     };
 
-    Appacitive.Batch.prototype.removeConnections = function () {
+    Appacitive.Batch.prototype.removeConnections = function() {
 
-        var that = this, args = arguments;
+        var that = this,
+            args = arguments;
 
         if (_type.isArray(args[0])) {
-            arguments[0].forEach(function (entity) {
+            arguments[0].forEach(function(entity) {
                 _addDeletionEdge.apply(that, [entity, args[1], args[2]]);
             });
         } else {
@@ -204,8 +219,13 @@
         return this;
     };
 
-    Appacitive.Batch.prototype.toJSON = function () {
-        var json = { nodes: [], edges: [], edgedeletions: [], nodedeletions: [] };
+    Appacitive.Batch.prototype.toJSON = function() {
+        var json = {
+            nodes: [],
+            edges: [],
+            edgedeletions: [],
+            nodedeletions: []
+        };
 
         json.edges = _getConnections.apply(this, []);
         json.nodes = _getObjects.apply(this, []);
@@ -215,20 +235,22 @@
     };
 
     // parse api output to get error info
-    var _getOutpuStatus = function (data) {
+    var _getOutpuStatus = function(data) {
         data = data || {};
         data.message = data.message || 'Server error';
         data.code = data.code || '500';
         return data;
     };
 
-    var _parseNodes = function (nodes, meta, options) {
+    var _parseNodes = function(nodes, meta, options) {
         var that = this;
-        nodes.forEach(function (n) {
+        nodes.forEach(function(n) {
             var obj = n.object;
-            var existing = that.objects.forEach(function (o) {
+            var existing = that.objects.forEach(function(o) {
                 if (o.cid == n.name || o.id == obj.__id || o.get('__id') == obj.__id) {
-                    var output = { __meta: meta[o.className] };
+                    var output = {
+                        __meta: meta[o.className]
+                    };
                     output[o.getType()] = obj;
                     o._parseOutput(options, output);
                 }
@@ -236,13 +258,15 @@
         });
     };
 
-    var _parseEdges = function (edges, meta, options) {
+    var _parseEdges = function(edges, meta, options) {
         var that = this;
-        edges.forEach(function (e) {
+        edges.forEach(function(e) {
             var con = e.connection;
-            var existing = that.connections.forEach(function (c) {
+            var existing = that.connections.forEach(function(c) {
                 if (c.cid == e.name || c.id == con.__id || c.get('__id') == con.__id) {
-                    var output = { __meta: meta[c.className] };
+                    var output = {
+                        __meta: meta[c.className]
+                    };
                     output[c.getType()] = con;
                     c._parseOutput(options, output);
                 }
@@ -250,13 +274,16 @@
         });
     };
 
-    var _parseOutput = function (data, options) {
+    var _parseOutput = function(data, options) {
         var status;
         if (data && data["edges"] && data["nodes"] && (data["edges"].length >= 0) && (data["nodes"].length >= 0)) {
             _parseNodes.call(this, data["nodes"], data["__meta"]["__type"], options);
             _parseEdges.call(this, data["edges"], data["__meta"]["__rel"], options);
 
-            if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
+            if (!options.silent) this.trigger('sync', this, {
+                objects: this.objects,
+                connections: this.connections
+            }, options);
         } else {
             data = data || {};
             data.status = data.status || {};
@@ -268,16 +295,21 @@
         return status;
     };
 
-    Appacitive.Batch.prototype._triggerError = function (options, status) {
+    Appacitive.Batch.prototype._triggerError = function(options, status) {
         if (!options.silent) this.trigger('error', this, status, options);
     };
 
-    Appacitive.Batch.prototype.execute = function (options) {
+    Appacitive.Batch.prototype.execute = function(options) {
         var data = this.toJSON();
-        options = _extend({ _batch: true }, options);
+        options = _extend({
+            _batch: true
+        }, options);
 
         if (data.nodes.length == 0 && data.edges.length == 0 && data.edgedeletions.length == 0 && data.nodedeletions.length == 0) {
-            if (!options.silent) this.trigger('sync', this, { objects: this.objects, connections: this.connections }, options);
+            if (!options.silent) this.trigger('sync', this, {
+                objects: this.objects,
+                connections: this.connections
+            }, options);
             return (new Appacitive.Promise()).fulfill(this);
         }
 
@@ -289,7 +321,7 @@
             data: data,
             options: options,
             entity: this,
-            onSuccess: function (response) {
+            onSuccess: function(response) {
                 var status = _parseOutput.apply(that, [response, options]);
                 if (!status) {
                     request.promise.fulfill(that);
@@ -306,4 +338,3 @@
     Appacitive.Events.mixin(Appacitive.Batch.prototype);
 
 })(global);
-

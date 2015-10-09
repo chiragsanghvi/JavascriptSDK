@@ -1,70 +1,76 @@
-(function (global) {
+(function(global) {
 
-	"use strict";
+    "use strict";
 
-	var Appacitive = global.Appacitive;
+    var Appacitive = global.Appacitive;
+    var _type = Appacitive.utils._type;
+    var _extend = Appacitive.utils._extend;
+    var _deepExtend = Appacitive.utils._deepExtend;
 
-	var _pushManager = function() {
+    var _pushManager = function() {
 
-		this.send = function(args, options) {
-			
-			if (!args) throw new Error("Please specify push options");
+        this.send = function(args, options) {
 
-			var request = new Appacitive._Request({
-				method: 'POST',
-				type: 'push',
-				op: 'getPushUrl',
-				options: options,
-				data: args,
-				entity: args,
-				onSuccess: function(d) {
-					request.promise.fulfill(d.id);
-				}
-			});
-			return request.send();
-		};
+            if (!args) throw new Error("Please specify push options");
 
-		this.getNotification = function(notificationId, options) {
+            var request = new Appacitive._Request({
+                method: 'POST',
+                type: 'push',
+                op: 'getPushUrl',
+                options: options,
+                data: args,
+                entity: args,
+                onSuccess: function(d) {
+                    request.promise.fulfill(d.id);
+                }
+            });
+            return request.send();
+        };
 
-			if (!notificationId) throw new Error("Please specify notification id");
+        this.getNotification = function(notificationId, options) {
 
-			var request = new Appacitive._Request({
-				method: 'GET',
-				type: 'push',
-				op: 'getGetNotificationUrl',
-				args: [notificationId],
-				options: options,
-				onSuccess: function(d) {
-					request.promise.fulfill(d.pushnotification);
-				}
-			});
-			return request.send();
-		};
+            if (!notificationId) throw new Error("Please specify notification id");
 
-		this.getAllNotifications = function(pagingInfo, options) {
-			
-			if (!pagingInfo)
-				pagingInfo = { pnum: 1, psize: 20 };
-			else {
-				pagingInfo.pnum = pagingInfo.pnum || 1;
-				pagingInfo.psize = pagingInfo.psize || 20;
-			}
+            var request = new Appacitive._Request({
+                method: 'GET',
+                type: 'push',
+                op: 'getGetNotificationUrl',
+                args: [notificationId],
+                options: options,
+                onSuccess: function(d) {
+                    request.promise.fulfill(d.pushnotification);
+                }
+            });
+            return request.send();
+        };
 
-			var request = new Appacitive._Request({
-				method: 'GET',
-				type: 'push',
-				op: 'getGetAllNotificationsUrl',
-				args: [pagingInfo],
-				options: options,
-				onSuccess: function(d) {
-					request.promise.fulfill(d.pushnotifications, d.paginginfo);
-				}
-			});
-			return request.send();
-		};
+        this.getAllNotifications = function(pagingInfo, options) {
 
-	};
+            if (!pagingInfo)
+                pagingInfo = {
+                    pnum: 1,
+                    psize: 20
+                };
+            else {
+                pagingInfo.pnum = pagingInfo.pnum || 1;
+                pagingInfo.psize = pagingInfo.psize || 20;
+            }
 
-	Appacitive.Push = new _pushManager();
+            var request = new Appacitive._Request({
+                method: 'GET',
+                type: 'push',
+                op: 'getGetAllNotificationsUrl',
+                args: [pagingInfo],
+                options: options,
+                onSuccess: function(d) {
+                    request.promise.fulfill(d.pushnotifications, d.paginginfo);
+                }
+            });
+            return request.send();
+        };
+
+    };
+
+    Appacitive.Push = new _pushManager();
 
 })(global);

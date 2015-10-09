@@ -1,53 +1,60 @@
-(function (global) {
+(function(global) {
 
-	"use strict";
+    "use strict";
 
-	var Appacitive = global.Appacitive;
+    var Appacitive = global.Appacitive;
+    var _type = Appacitive.utils._type;
+    var _extend = Appacitive.utils._extend;
+    var _deepExtend = Appacitive.utils._deepExtend;
 
-	var A_LocalStorage = function() {
+    var A_LocalStorage = function() {
 
-		var _localStorage = Ti.App.Properties;
+        var _localStorage = Ti.App.Properties;
 
-		this.set = function(key, value) {
-			value = value || '';
-			if (!key) return false;
+        this.set = function(key, value) {
+            value = value || '';
+            if (!key) return false;
 
-		    if (typeof value === "object") {
-		    	try {
-			      value = JSON.stringify(value);
-			    } catch(e){}
-		    }
-		    key = Appacitive.getAppPrefix(key);
+            if (typeof value === "object") {
+                try {
+                    value = JSON.stringify(value);
+                } catch (e) {}
+            }
+            key = Appacitive.getAppPrefix(key);
 
-			_localStorage.setString(key, value);
-			return this;
-		};
+            _localStorage.setString(key, value);
+            return this;
+        };
 
-		this.get = function(key) {
-			if (!key) return null;
+        this.get = function(key) {
+            if (!key) return null;
 
-			key = Appacitive.getAppPrefix(key);
+            key = Appacitive.getAppPrefix(key);
 
-			var value = _localStorage.getString(key);
-		   	if (!value) { return null; }
+            var value = _localStorage.getString(key);
+            if (!value) {
+                return null;
+            }
 
-		    // assume it is an object that has been stringified
-		    if (value[0] === "{") {
-		    	try {
-			      value = JSON.parse(value);
-			    } catch(e){}
-		    }
+            // assume it is an object that has been stringified
+            if (value[0] === "{") {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {}
+            }
 
-		    return value;
-		};
-		
-		this.remove = function(key) {
-			if (!key) return;
-			key = Appacitive.getAppPrefix(key);
-			try { _localStorage.removeProperty(key); } catch(e){}
-		};
-	};
+            return value;
+        };
 
-	Appacitive.localStorage = new A_LocalStorage();
+        this.remove = function(key) {
+            if (!key) return;
+            key = Appacitive.getAppPrefix(key);
+            try {
+                _localStorage.removeProperty(key);
+            } catch (e) {}
+        };
+    };
+
+    Appacitive.localStorage = new A_LocalStorage();
 
 })(global);

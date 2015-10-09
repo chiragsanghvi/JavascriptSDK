@@ -1,72 +1,77 @@
-(function (global) {
+(function(global) {
 
-	"use strict";
+    "use strict";
 
-	var S4 = function () {
-		return Math.floor(Math.random() * 0x10000).toString(16);
-	};
+    var Appacitive = global.Appacitive;
+    var _type = Appacitive.utils._type;
+    var _extend = Appacitive.utils._extend;
+    var _deepExtend = Appacitive.utils._deepExtend;
 
-	var _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    var S4 = function() {
+        return Math.floor(Math.random() * 0x10000).toString(16);
+    };
 
-	var _utf8_encode = function (string) {
-		string = string.replace(/\r\n/g, "\n");
-		var utftext = "";
-		for (var n = 0; n < string.length; n++) {
-			var c = string.charCodeAt(n);
-			if (c < 128) {
-				utftext += String.fromCharCode(c);
-			} else if ((c > 127) && (c < 2048)) {
-				utftext += String.fromCharCode((c >> 6) | 192);
-				utftext += String.fromCharCode((c & 63) | 128);
-			} else {
-				utftext += String.fromCharCode((c >> 12) | 224);
-				utftext += String.fromCharCode(((c >> 6) & 63) | 128);
-				utftext += String.fromCharCode((c & 63) | 128);
-			}
-		}
-		return utftext;
-	};
+    var _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
-	var encodeToBase64 = function (input) {
-		var output = "";
-		var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
-		var i = 0;
-		input = _utf8_encode(input);
-		while (i < input.length) {
+    var _utf8_encode = function(string) {
+        string = string.replace(/\r\n/g, "\n");
+        var utftext = "";
+        for (var n = 0; n < string.length; n++) {
+            var c = string.charCodeAt(n);
+            if (c < 128) {
+                utftext += String.fromCharCode(c);
+            } else if ((c > 127) && (c < 2048)) {
+                utftext += String.fromCharCode((c >> 6) | 192);
+                utftext += String.fromCharCode((c & 63) | 128);
+            } else {
+                utftext += String.fromCharCode((c >> 12) | 224);
+                utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+                utftext += String.fromCharCode((c & 63) | 128);
+            }
+        }
+        return utftext;
+    };
 
-			chr1 = input.charCodeAt(i++);
-			chr2 = input.charCodeAt(i++);
-			chr3 = input.charCodeAt(i++);
+    var encodeToBase64 = function(input) {
+        var output = "";
+        var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+        var i = 0;
+        input = _utf8_encode(input);
+        while (i < input.length) {
 
-			enc1 = chr1 >> 2;
-			enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
-			enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
-			enc4 = chr3 & 63;
+            chr1 = input.charCodeAt(i++);
+            chr2 = input.charCodeAt(i++);
+            chr3 = input.charCodeAt(i++);
 
-			if (isNaN(chr2)) {
-				enc3 = enc4 = 64;
-			} else if (isNaN(chr3)) {
-				enc4 = 64;
-			}
+            enc1 = chr1 >> 2;
+            enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+            enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+            enc4 = chr3 & 63;
 
-			output = output +
-				_keyStr.charAt(enc1) + _keyStr.charAt(enc2) +
-				_keyStr.charAt(enc3) + _keyStr.charAt(enc4);
-		}
+            if (isNaN(chr2)) {
+                enc3 = enc4 = 64;
+            } else if (isNaN(chr3)) {
+                enc4 = 64;
+            }
 
-		return output;
-	};
+            output = output +
+                _keyStr.charAt(enc1) + _keyStr.charAt(enc2) +
+                _keyStr.charAt(enc3) + _keyStr.charAt(enc4);
+        }
 
-	/**
-	 * @constructor
-	 **/
-	global.Appacitive.GUID = function () {
-		return encodeToBase64(
-		S4() + S4() + "-" +
-			S4() + "-" +
-			S4() + "-" +
-			S4() + "-" +
-			S4() + S4() + S4()).toString();
-	};
+        return output;
+    };
+
+    /**
+     * @constructor
+     **/
+    global.Appacitive.GUID = function() {
+        return encodeToBase64(
+            S4() + S4() + "-" +
+            S4() + "-" +
+            S4() + "-" +
+            S4() + "-" +
+            S4() + S4() + S4()).toString();
+    };
 
 })(global);

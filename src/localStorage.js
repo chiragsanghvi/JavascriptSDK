@@ -1,86 +1,97 @@
-(function (global) {
+(function(global) {
 
-	"use strict";
+    "use strict";
 
-	var Appacitive = global.Appacitive;
+    var Appacitive = global.Appacitive;
+    var _type = Appacitive.utils._type;
+    var _extend = Appacitive.utils._extend;
+    var _deepExtend = Appacitive.utils._deepExtend;
 
-	if (Appacitive.runtime.isBrowser) {
+    if (Appacitive.runtime.isBrowser) {
 
-		var A_LocalStorage = function() {
+        var A_LocalStorage = function() {
 
-			var _localStorage = (Appacitive.runtime.isBrowser) ? window.localStorage : { getItem: function() { return null; } };
+            var _localStorage = (Appacitive.runtime.isBrowser) ? window.localStorage : {
+                getItem: function() {
+                    return null;
+                }
+            };
 
-			var isLocalStorageSupported = function() {
-				var testKey = 'test';
-				try {
-					_localStorage.setItem(testKey, '1');
-					_localStorage.removeItem(testKey);
-					return true;
-				} catch (error) {
-					return false;
-				}
-			};
+            var isLocalStorageSupported = function() {
+                var testKey = 'test';
+                try {
+                    _localStorage.setItem(testKey, '1');
+                    _localStorage.removeItem(testKey);
+                    return true;
+                } catch (error) {
+                    return false;
+                }
+            };
 
-			this.set = function(key, value) {
-				value = value || '';
-				if (!key) return false;
+            this.set = function(key, value) {
+                value = value || '';
+                if (!key) return false;
 
-			    if (_type.isObject(value) || _type.isArray(value)) {
-			    	try {
-				       value = JSON.stringify(value);
-				    } catch(e){}
-			    }
+                if (_type.isObject(value) || _type.isArray(value)) {
+                    try {
+                        value = JSON.stringify(value);
+                    } catch (e) {}
+                }
 
-				if (!isLocalStorageSupported()) {
-					Appacitive.Cookie.setCookie(key, value);
-					return this;
-				} else {
-					key = Appacitive.getAppPrefix(key);
-				    
-				    _localStorage[key] = value;
-				    return this;
-				}
-			};
+                if (!isLocalStorageSupported()) {
+                    Appacitive.Cookie.setCookie(key, value);
+                    return this;
+                } else {
+                    key = Appacitive.getAppPrefix(key);
 
-			this.get = function(key) {
-				if (!key) return null;
+                    _localStorage[key] = value;
+                    return this;
+                }
+            };
 
-				var value;
+            this.get = function(key) {
+                if (!key) return null;
 
-				if (!isLocalStorageSupported()) {
-					value = Appacitive.Cookie.readCookie(key);
-				} else {
-					key = Appacitive.getAppPrefix(key);
-					value = _localStorage.getItem(key);
-			   	}
+                var value;
 
-			   	if (!value) { return null; }
+                if (!isLocalStorageSupported()) {
+                    value = Appacitive.Cookie.readCookie(key);
+                } else {
+                    key = Appacitive.getAppPrefix(key);
+                    value = _localStorage.getItem(key);
+                }
 
-			    // assume it is an object that has been stringified
-			    if (value[0] === "{") {
-			    	try {
-				      value = JSON.parse(value);
-				    } catch(e){}
-			    }
+                if (!value) {
+                    return null;
+                }
 
-			    return value;
-			};
-			
-			this.remove = function(key) {
-				if (!key) return;
-				if (!isLocalStorageSupported()) {
-					Appacitive.Cookie.eraseCookie(key);
-					return;
-				}
-				key = Appacitive.getAppPrefix(key);
-				try { delete _localStorage[key]; } catch(e){}
-			};
-		};
-		Appacitive.localStorage = new A_LocalStorage();
+                // assume it is an object that has been stringified
+                if (value[0] === "{") {
+                    try {
+                        value = JSON.parse(value);
+                    } catch (e) {}
+                }
 
-	} else {
-		var A_LocalStorage = function() {
-			
+                return value;
+            };
+
+            this.remove = function(key) {
+                if (!key) return;
+                if (!isLocalStorageSupported()) {
+                    Appacitive.Cookie.eraseCookie(key);
+                    return;
+                }
+                key = Appacitive.getAppPrefix(key);
+                try {
+                    delete _localStorage[key];
+                } catch (e) {}
+            };
+        };
+        Appacitive.localStorage = new A_LocalStorage();
+
+    } else {
+        var A_LocalStorage = function() {
+
             var _localStorage = [];
 
             this.set = function(key, value) {
@@ -99,18 +110,22 @@
                 key = Appacitive.getAppPrefix(key);
 
                 var value = _localStorage[key];
-	            if (!value) { return null; }
+                if (!value) {
+                    return null;
+                }
 
                 return value;
             };
-            
+
             this.remove = function(key) {
                 if (!key || _type.isString(key)) return;
                 key = Appacitive.getAppPrefix(key);
-                try { delete _localStorage[key]; } catch(e){}
+                try {
+                    delete _localStorage[key];
+                } catch (e) {}
             };
         };
 
         Appacitive.localStorage = new A_LocalStorage();
-	}
+    }
 })(global);

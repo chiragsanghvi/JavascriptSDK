@@ -3,7 +3,8 @@
  * Degrades nicely when Backone/underscore are already available in the current
  * global context.
  *
- * Note that docs suggest to use underscore's `_.extend()` method to add Events
+ * Note that docs suggest to use underscore's `_.extend
+()` method to add Events
  * support to some given object. A `mixin()` method has been added to the Events
  * prototype to avoid using underscore for that sole purpose:
  *

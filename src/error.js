@@ -1,8 +1,11 @@
-(function (global) {
+(function(global) {
 
     "use strict";
 
     var Appacitive = global.Appacitive;
+    var _type = Appacitive.utils._type;
+    var _extend = Appacitive.utils._extend;
+    var _deepExtend = Appacitive.utils._deepExtend;
 
     Appacitive.Error = function(status) {
         if (_type.isString(arguments[0]) || _type.isNumber(arguments[0])) {
@@ -30,7 +33,7 @@
     };
 
     _extend(Appacitive.Error, {
-    
+
         // Appacitive Status codes
 
         BadRequest: "400",

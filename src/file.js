@@ -1,161 +1,171 @@
-(function (global) {
+(function(global) {
 
-  "use strict";
+    "use strict";
 
-  var Appacitive = global.Appacitive;
+    var Appacitive = global.Appacitive;
+    var _type = Appacitive.utils._type;
+    var _extend = Appacitive.utils._extend;
+    var _deepExtend = Appacitive.utils._deepExtend;
 
-  var _file = function(ops) {
-      
-      ops = ops || {}; 
-      this.fileId = ops.fileId;
-      this.contentType = ops.contentType;
-      this.fileData = ops.fileData;
-      var that = this;
+    var _file = function(ops) {
 
-      var _getUrls = function(url, onSuccess, promise, description, options) {
-          var request = new Appacitive.HttpRequest();
-          request.url = url;
-          request.method = 'GET';
-          request.description = description;
-          request.onSuccess = onSuccess;
-          request.promise = promise;
-          request.entity = that;
-          request.options = options;
-          Appacitive.http.send(request); 
-      };
+        ops = ops || {};
+        this.fileId = ops.fileId;
+        this.contentType = ops.contentType;
+        this.fileData = ops.fileData;
+        var that = this;
 
-      var _upload = function(url, file, type, onSuccess, promise) {
-          var request = new Appacitive.HttpRequest();
-          request.url = url;
-          request.method = 'PUT';
-          request.log = false;
-          request.description = 'Upload file';
-          request.data = file;
-          request.headers.push({ key:'Content-Type', value: type });
-          request.send().then(onSuccess, function(d) {
-            promise.reject(d, that);
-          });
-      };
+        var _getUrls = function(url, onSuccess, promise, description, options) {
+            var request = new Appacitive.HttpRequest();
+            request.url = url;
+            request.method = 'GET';
+            request.description = description;
+            request.onSuccess = onSuccess;
+            request.promise = promise;
+            request.entity = that;
+            request.options = options;
+            Appacitive.http.send(request);
+        };
 
-      this.save = function(expiry, options) {
-        if (typeof expiry !== 'number') {
-          options = expiry;
-          expiry = -1;
-        }
-          
-        if (this.fileId && _type.isString(this.fileId) && this.fileId.length > 0)
-          return _update(expiry, options);
-        else
-          return _create(expiry, options);
-      };
+        var _upload = function(url, file, type, onSuccess, promise) {
+            var request = new Appacitive.HttpRequest();
+            request.url = url;
+            request.method = 'PUT';
+            request.log = false;
+            request.description = 'Upload file';
+            request.data = file;
+            request.headers.push({
+                key: 'Content-Type',
+                value: type
+            });
+            request.send().then(onSuccess, function(d) {
+                promise.reject(d, that);
+            });
+        };
 
-      var _create = function(expiry, options) {
-          if (!that.fileData) throw new Error('Please specify filedata');
-          if(!that.contentType) {
-            try { that.contentType = that.fileData.type; } catch(e) {}
-          }
-          if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
-          
-          var promise = Appacitive.Promise.buildPromise(options);
+        this.save = function(expiry, options) {
+            if (typeof expiry !== 'number') {
+                options = expiry;
+                expiry = -1;
+            }
 
-          var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
-         
-          _getUrls(url, function(response) {
+            if (this.fileId && _type.isString(this.fileId) && this.fileId.length > 0)
+                return _update(expiry, options);
+            else
+                return _create(expiry, options);
+        };
+
+        var _create = function(expiry, options) {
+            if (!that.fileData) throw new Error('Please specify filedata');
+            if (!that.contentType) {
+                try {
+                    that.contentType = that.fileData.type;
+                } catch (e) {}
+            }
+            if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
+
+            var promise = Appacitive.Promise.buildPromise(options);
+
+            var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getUploadUrl(that.contentType, that.fileId ? that.fileId : '');
+
+            _getUrls(url, function(response) {
                 _upload(response.url, that.fileData, that.contentType, function() {
                     that.fileId = response.id;
-                    
+
                     that.getDownloadUrl(expiry, options).then(function(res) {
-                      return promise.fulfill(res, that);
+                        return promise.fulfill(res, that);
                     }, function(e) {
-                      return promise.reject(e);
+                        return promise.reject(e);
                     });
 
                 }, promise);
-          }, promise, ' Get upload url for file ', options);
+            }, promise, ' Get upload url for file ', options);
 
-          return promise;
-      };
+            return promise;
+        };
 
-      var _update = function(expiry, options) {
-          if (!that.fileData) throw new Error('Please specify filedata');
-          if(!that.contentType) {
-            try { that.contentType = that.fileData.type; } catch(e) {}
-          }
-          if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
-          
-          var promise = Appacitive.Promise.buildPromise(options);
+        var _update = function(expiry, options) {
+            if (!that.fileData) throw new Error('Please specify filedata');
+            if (!that.contentType) {
+                try {
+                    that.contentType = that.fileData.type;
+                } catch (e) {}
+            }
+            if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
 
-          var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getUpdateUrl(that.fileId, that.contentType);
-          
-          _getUrls(url, function(response) {
-              _upload(response.url, that.fileData, that.contentType, function() {
-                  
-                  that.getDownloadUrl(expiry, options).then(function(res) {
-                    promise.fulfill(res, that);
-                  }, function(e) {
-                    promise.reject(e);
-                  });
+            var promise = Appacitive.Promise.buildPromise(options);
 
-              }, promise);
-          }, promise, ' Get update url for file ' + that.fileId, options);
+            var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getUpdateUrl(that.fileId, that.contentType);
 
-          return promise;
-      };
+            _getUrls(url, function(response) {
+                _upload(response.url, that.fileData, that.contentType, function() {
 
-      this.destroy = function(options) {
-          if (!this.fileId) throw new Error('Please specify fileId to delete');
+                    that.getDownloadUrl(expiry, options).then(function(res) {
+                        promise.fulfill(res, that);
+                    }, function(e) {
+                        promise.reject(e);
+                    });
 
-          var promise = Appacitive.Promise.buildPromise(options);
+                }, promise);
+            }, promise, ' Get update url for file ' + that.fileId, options);
 
-          var request = new Appacitive.HttpRequest();
-          request.url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);
-          request.method = 'DELETE';
-          request.description = 'Delete file with id ' + this.fileId;
-          request.onSuccess = function(response) {
-              promise.fulfill();
-          };
-          request.promise = promise;
-          request.entity = that;
-          request.options= options;
-          return Appacitive.http.send(request); 
-      };
+            return promise;
+        };
 
-      this.getDownloadUrl = function(expiry, options) {
-          if (!this.fileId) throw new Error('Please specify fileId to download');
+        this.destroy = function(options) {
+            if (!this.fileId) throw new Error('Please specify fileId to delete');
 
-          if (typeof expiry !== 'number') {
-            options = expiry;
-            expiry = -1;
-          }
-          
-          var promise = Appacitive.Promise.buildPromise(options);
+            var promise = Appacitive.Promise.buildPromise(options);
 
-          var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getDownloadUrl(this.fileId, expiry);
- 
-          _getUrls(url, function(response) {
-              that.url = response.uri;
-              promise.fulfill(response.uri);
-          }, promise,  ' Get download url for file ' + this.fileId, options);
+            var request = new Appacitive.HttpRequest();
+            request.url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getDeleteUrl(this.fileId);
+            request.method = 'DELETE';
+            request.description = 'Delete file with id ' + this.fileId;
+            request.onSuccess = function(response) {
+                promise.fulfill();
+            };
+            request.promise = promise;
+            request.entity = that;
+            request.options = options;
+            return Appacitive.http.send(request);
+        };
 
-          return promise;
-      };
+        this.getDownloadUrl = function(expiry, options) {
+            if (!this.fileId) throw new Error('Please specify fileId to download');
 
-      this.getUploadUrl = function(options) {
-          if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
+            if (typeof expiry !== 'number') {
+                options = expiry;
+                expiry = -1;
+            }
 
-          var promise = Appacitive.Promise.buildPromise(options);
+            var promise = Appacitive.Promise.buildPromise(options);
 
-          var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');
+            var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getDownloadUrl(this.fileId, expiry);
 
-          _getUrls(url, function(response) {
-              that.url = response.url;
-              promise.fulfill(response.url, that);
-          }, promise, ' Get upload url for file ' + this.fileId, options);
+            _getUrls(url, function(response) {
+                that.url = response.uri;
+                promise.fulfill(response.uri);
+            }, promise, ' Get download url for file ' + this.fileId, options);
 
-          return promise;
-      };
-  };
+            return promise;
+        };
 
-  Appacitive.File = _file;
+        this.getUploadUrl = function(options) {
+            if (!that.contentType || !_type.isString(that.contentType) || that.contentType.length === 0) that.contentType = 'text/plain';
+
+            var promise = Appacitive.Promise.buildPromise(options);
+
+            var url = Appacitive.config.apiBaseUrl + Appacitive.storage.urlFactory.file.getUploadUrl(this.contentType, this.fileId ? this.fileId : '');
+
+            _getUrls(url, function(response) {
+                that.url = response.url;
+                promise.fulfill(response.url, that);
+            }, promise, ' Get upload url for file ' + this.fileId, options);
+
+            return promise;
+        };
+    };
+
+    Appacitive.File = _file;
 
 }(global));

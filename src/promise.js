@@ -1,25 +1,27 @@
-
 /* 
-* Copyright (c) 2012 Kaerus (kaerus.com), Anders Elo <anders @ kaerus com>.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2012 Kaerus (kaerus.com), Anders Elo <anders @ kaerus com>.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 (function(global) {
 
     "use strict";
 
     var Appacitive = global.Appacitive;
+    var _type = Appacitive.utils._type;
+    var _extend = Appacitive.utils._extend;
+    var _deepExtend = Appacitive.utils._deepExtend;
 
     var setImmediate;
 
@@ -29,9 +31,11 @@
         setImmediate = setTimeout;
     }
 
-    var PROMISE = 0, FULFILLED = 1, REJECTED = 2;
+    var PROMISE = 0,
+        FULFILLED = 1,
+        REJECTED = 2;
 
-    var Promise = function () {
+    var Promise = function() {
 
         if (!(this instanceof Promise)) return new Promise();
 
@@ -54,7 +58,8 @@
     };
 
     Promise.prototype.done = function() {
-        var then, promise, res, state = this.state, value = this.value;
+        var then, promise, res, state = this.state,
+            value = this.value;
 
         if (!state) return this;
 
@@ -62,44 +67,48 @@
             promise = then[PROMISE];
 
             if (typeof then[state] === 'function') {
-                
+
                 try {
                     if (state === REJECTED) {
-                        value = then[state].call(promise, this.value);  
+                        value = then[state].call(promise, this.value);
                     } else {
-                        value = then[state].apply(promise, this.value);  
+                        value = then[state].apply(promise, this.value);
                     }
-                } catch(error) {
-                    var err = {name: error.name, message: error.message, stack: error.stack};
+                } catch (error) {
+                    var err = {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack
+                    };
                     Appacitive.logs.logException(err);
-                    
+
                     if (promise.calls.length == 0) throw error;
                     else promise.reject(error);
                 }
 
-                if (value instanceof Promise || (value && typeof value.then === 'function') )  {
+                if (value instanceof Promise || (value && typeof value.then === 'function')) {
                     /* assume value is thenable */
-                    value.then(function(v){
-                        promise.fulfill(v); 
+                    value.then(function(v) {
+                        promise.fulfill(v);
                     }, function(r) {
                         promise.reject(r);
                     });
                 } else {
                     if (state === FULFILLED)
                         promise.fulfill(value);
-                    else 
+                    else
                         promise.reject(value);
-                }  
+                }
             } else {
                 if (state === FULFILLED)
                     promise.fulfill(value);
-                else 
+                else
                     promise.reject(value);
             }
         }
     };
 
-    Promise.prototype.fulfill = function (value) {
+    Promise.prototype.fulfill = function(value) {
         if (this.state) return this;
 
         this.state = FULFILLED;
@@ -113,35 +122,38 @@
 
     Promise.prototype.resolve = Promise.prototype.fulfill;
 
-    Promise.prototype.reject = function (value) {
+    Promise.prototype.reject = function(value) {
         if (this.state) return this;
 
         this.state = REJECTED;
 
         this.reason = this.value = value;
-        
+
         this.done();
 
         return this;
     };
 
     Promise.prototype.then = function(onFulfill, onReject) {
-        var self = this, promise = new Promise();
+        var self = this,
+            promise = new Promise();
 
         this.calls[this.calls.length] = [promise, onFulfill, onReject];
 
         if (this.state) {
-            setImmediate(function(){
+            setImmediate(function() {
                 self.done();
             });
-        }    
+        }
 
         return promise;
     };
 
     Promise.when = function(task) {
-        
-        var values = [], reasons = [], total, numDone = 0;
+
+        var values = [],
+            reasons = [],
+            total, numDone = 0;
 
         var promise = new Promise();
 
@@ -170,7 +182,7 @@
             var value;
             var proc = task[i];
             if (proc instanceof Promise || (proc && typeof proc.then === 'function')) {
-                 setImmediate(function() {
+                setImmediate(function() {
                     /* If proc is a promise, then wait for fulfillment */
                     proc.then(function(value) {
                         values[i] = value;
@@ -194,7 +206,7 @@
         };
 
         /* Single task */
-        if (!_type.isArray(task)) { 
+        if (!_type.isArray(task)) {
             task = [task];
         }
 
@@ -207,15 +219,16 @@
         }
 
         return promise;
-    }; 
+    };
 
     Promise.is = function(p) {
-        if (p instanceof Promise) return true; return false; 
+        if (p instanceof Promise) return true;
+        return false;
     };
 
     Promise.buildPromise = function(options) {
-        var promise = new Promise(); 
-        
+        var promise = new Promise();
+
         if (_type.isObject(options)) {
             promise.then(options.success, options.error);
         }
