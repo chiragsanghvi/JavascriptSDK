@@ -162,6 +162,103 @@ var createUser = function() {
     });
 };
 
+test('Filter query without objects', function() {
+    var query = new Appacitive.Queries.GraphQuery({
+        returnObjects: true,
+        name: 'users'
+    });
+    var request = query.toRequest();
+
+    var url = Appacitive.config.apiBaseUrl + 'search/users/graphquery?';
+
+    equal(url, request.url, 'Request url generated is ok');
+    equal('post', request.method.toLowerCase(), 'Request method is ok');
+});
+
+
+test('Filter query for objects', function() {
+    var query = new Appacitive.Queries.GraphQuery('users');
+    var request = query.toRequest();
+
+    var url = Appacitive.config.apiBaseUrl + 'search/users/filter?';
+
+    equal(url, request.url, 'Request url generated is ok');
+    equal('post', request.method.toLowerCase(), 'Request method is ok');
+});
+
+test('Filter query for objects with sorting', function() {
+    var query = new Appacitive.Queries.GraphQuery({
+        returnObjects: true,
+        name: 'users',
+        orderBy: 'name',
+        isAscending: true
+    });
+    var request = query.toRequest();
+
+    var url = Appacitive.config.apiBaseUrl + 'search/users/graphquery?orderBy=name asc';
+    equal(url, request.url, 'Url generated has correct sort options - ascending');
+
+    query = new Appacitive.Queries.GraphQuery({
+        returnObjects: false,
+        name: 'users',
+        orderBy: 'name',
+        isAscending: false
+    });
+    request = query.toRequest();
+
+    var url = Appacitive.config.apiBaseUrl + 'search/users/filter?orderBy=name desc';
+    equal(url, request.url, 'Url generated has correct sort options - descending');
+});
+
+test('Filter query for objects with pagination', function() {
+    var query = new Appacitive.Queries.GraphQuery({
+        returnObjects: true,
+        name: 'users',
+        pageNumber: 3
+    });
+    var request = query.toRequest();
+
+    var url = Appacitive.config.apiBaseUrl + 'search/users/graphquery?pnum=3';
+    equal(url, request.url, 'Url generated has correct pagination options - page number');
+
+    query = new Appacitive.Queries.GraphQuery({
+        returnObjects: false,
+        name: 'users',
+        pageSize: 100
+    });
+    request = query.toRequest();
+
+    var url = Appacitive.config.apiBaseUrl + 'search/users/filter?pnum=1&psize=100';
+    equal(url, request.url, 'Url generated has correct pagination options - page size');
+
+    query = new Appacitive.Queries.GraphQuery({
+        returnObjects: true,
+        name: 'users',
+        pageSize: 100,
+        pageNumber: 10
+    });
+    request = query.toRequest();
+
+    var url = Appacitive.config.apiBaseUrl + 'search/users/graphquery?pnum=10&psize=100';
+    equal(url, request.url, 'Url generated has correct pagination options - page size & page number');
+});
+
+test('Filter query with sorting and pagination', function() {
+    var query = new Appacitive.Queries.GraphQuery({
+        returnObjects: true,
+        name: 'users',
+        pageSize: 100,
+        pageNumber: 10,
+        orderBy: 'name',
+        isAscending: true,
+        descending: 'age'
+    });
+    var request = query.toRequest();
+
+    var url = Appacitive.config.apiBaseUrl + 'search/users/graphquery?pnum=10&psize=100&orderBy=name asc,age desc';
+    equal(url, request.url, 'Url generated has correct pagination and sorting options');
+});
+
 asyncTest('Verify filter query works without pagination, and returns only ids', function() {
     //logout current user
     Appacitive.Users.logout(null, true);
@@ -208,9 +305,7 @@ asyncTest('Verify filter query works with pagination, and returns only objects',
         //Fetch all users except admin user
         query = new Appacitive.Queries.GraphQuery({
             name: 'users',
-            options: {
-                returnObjects: true
-            },
+            returnObjects: true,
             placeholders: {
                 filter: Appacitive.Filter.Property('__utcdatecreated').greaterThan(Appacitive.User.current().createdAt).toString()
             }

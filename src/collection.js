@@ -168,12 +168,8 @@
 
           query: function(query) {
               if (query) {
-                  if ((query instanceof Appacitive.Query) || (query instanceof Appacitive.Queries.GraphAPI)) {
-                      this._query = query;
-                      return this;
-                  } else {
-                      throw new Error("Cannot bind this query")
-                  }
+                  this._query = query;
+                  return this;
               } else if (!this._query) this._query = new Appacitive.Query(this.model);
 
               return this._query;

@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Oct  9 20:36:58 IST 2015
+ * Build time 	: Mon Oct 12 11:03:39 IST 2015
  */
 // monolithic file
 
@@ -774,7 +774,7 @@ var _type = function(o) {
 
             return list[first ? 'find' : 'filter'](function(obj) {
                 for (var key in attrs) {
-                    if (attrs[key] !== obj(key)) return false;
+                    if (attrs[key] !== obj[key]) return false;
                 }
                 return true;
             });
@@ -3660,14 +3660,14 @@ Depends on  NOTHING
         var options = o || {};
         this._pageNumber = 1;
         this._pageSize = null;
+        this.isPageDefault = true;
         this.pageNumber(options.pageNumber);
         this.pageSize(options.pageSize);
-        this.isPageDefault = true;
     };
 
     //define getter and setter for pageNumber
     PageQuery.prototype.pageNumber = function() {
-        if (arguments.length == 1) {
+        if (arguments.length == 1 && !_type.isNullOrUndefined(arguments[0])) {
             this._pageNumber = arguments[0] || 1;
             this.isPageDefault = false;
             return this;
@@ -3676,7 +3676,7 @@ Depends on  NOTHING
     };
     //define getter and setter for pageSize
     PageQuery.prototype.pageSize = function() {
-        if (arguments.length == 1) {
+        if (arguments.length == 1 && !_type.isNullOrUndefined(arguments[0])) {
             this._pageSize = arguments[0];
             this.isPageDefault = false;
             return this;
@@ -3684,7 +3684,7 @@ Depends on  NOTHING
         return this._pageSize;
     };
 
-    PageQuery.prototype.reset = function() {
+    PageQuery.prototype.resetPaging = function() {
         this._pageSize = null;
         this._pageNumber = 1;
         this.isPageDefault = true;
@@ -3707,11 +3707,10 @@ Depends on  NOTHING
         this._order = [];
         this.isSortSet = false;
 
+        if (!_type.isNullOrUndefined(options.isAscending)) this.isAscending(options.isAscending);
         this.orderBy(options.orderBy);
-        this.isAscending(options.isAscending);
-
-        if (options.ascending) this.addAscending(options.ascending);
-        if (options.descending) this.addAscending(options.descending);
+        if (options.ascending) this.ascending(options.ascending);
+        if (options.descending) this.descending(options.descending);
     };
 
     //define getter/setter for orderby
@@ -3742,58 +3741,46 @@ Depends on  NOTHING
     };
 
 
-    SortQuery.prototype.reset = function() {
+    SortQuery.prototype.resetSorting = function() {
         this._order = [];
         this._isAscending = false;
         this.isSortSet = false;
+        return this;
+    };
+
+    SortQuery.prototype._setSorting = function(keys, isAscending) {
+        if (arguments.length > 1) {
+            var that = this;
+
+            keys.forEach(function(key) {
+                if (Array.isArray(key)) key = key.join();
+
+                key.replace(/\s/g, '').split(',').forEach(function(k) {
+                    var obj = that._order.findWhere({
+                        orderBy: k.toLowerCase()
+                    });
+                    if (obj) obj.isAscending = isAscending;
+                    else {
+                        that._order.push({
+                            orderBy: k.toLowerCase(),
+                            isAscending: isAscending
+                        });
+                    }
+                });
+            });
+
+            this.isSortSet = true;
+        }
+
+        return this;
     };
 
     SortQuery.prototype.ascending = function() {
-        this._order = [];
-        if (arguments.length > 0) return this.addAscending.apply(this, Array.prototype.slice.call(arguments));
-        return this._order;
-    };
-
-    SortQuery.prototype.addAscending = function() {
-        var that = this;
-        var keys = Array.prototype.slice.call(arguments);
-
-        keys.forEach(function(key) {
-            if (Array.isArray(key)) key = key.join();
-
-            that._order = that._order.concat(key.replace(/\s/g, '').split(',').map(function(k) {
-                return {
-                    orderBy: k,
-                    isAscending: true
-                };
-            }));
-        });
-
-        return this;
+        return this._setSorting(Array.prototype.slice.call(arguments), true);
     };
 
     SortQuery.prototype.descending = function() {
-        this._order = [];
-        if (arguments.length > 0) return this.addDecending.apply(this, Array.prototype.slice.call(arguments));
-        return this._order;
-    };
-
-    SortQuery.prototype.addDecending = function() {
-        var that = this;
-        var fields = Array.prototype.slice.call(arguments);
-
-        fields.forEach(function(f) {
-            if (Array.isArray(f)) f = f.join();
-
-            that._order = that._order.concat(f.replace(/\s/g, '').split(',').map(function(p) {
-                return {
-                    orderBy: p,
-                    isAscending: false
-                };
-            }));
-        });
-
-        return this;
+        return this._setSorting(Array.prototype.slice.call(arguments), false);
     };
 
     SortQuery.prototype.sortString = function() {
@@ -4362,13 +4349,17 @@ Depends on  NOTHING
 
 
         if (_type.isObject(name)) {
-            options = name.options || {};
-            this.returnObjects = options.returnObjects;
+            options = name;
+            options.returnObjects = name.returnObjects || options.returnObjects;
             placeholders = name.placeholders || {};
-            name = name.name;
+            name = options.name;
         }
 
         if (!name || name.length === 0) throw new Error("Specify name of filter query");
+
+        options = options || {};
+
+        this.returnObjects = options.returnObjects;
 
         PageQuery.call(this, options);
         SortQuery.call(this, options);
@@ -7781,12 +7772,8 @@ Depends on  NOTHING
 
           query: function(query) {
               if (query) {
-                  if ((query instanceof Appacitive.Query) || (query instanceof Appacitive.Queries.GraphAPI)) {
-                      this._query = query;
-                      return this;
-                  } else {
-                      throw new Error("Cannot bind this query")
-                  }
+                  this._query = query;
+                  return this;
               } else if (!this._query) this._query = new Appacitive.Query(this.model);
 
               return this._query;
