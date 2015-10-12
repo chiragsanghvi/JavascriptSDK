@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Oct 12 11:19:01 IST 2015
+ * Build time 	: Mon Oct 12 12:22:32 IST 2015
  */
 // monolithic file
 
@@ -3812,6 +3812,18 @@ Depends on  NOTHING
         }
     };
 
+    // define fields
+    CommonQueryHelper.prototype.fields = function() {
+        if (arguments.length === 1) {
+            var value = arguments[0];
+            if (_type.isString(value)) this._fields = [value];
+            else if (_type.isArray(value) && value.length) this._fields = value;
+            return this;
+        }
+        return this._fields;
+    };
+
+
     CommonQueryHelper.prototype._parse = function(entities, metadata, options) {
         var entityObjects = [];
         if (!entities) entities = [];
@@ -3903,15 +3915,17 @@ Depends on  NOTHING
 
         PageQuery.call(this, o);
         SortQuery.call(this, o);
+        CommonQueryHelper.call(this, o);
+
         //set filters , freetext and fields
         var _filter = '';
         var _freeText = '';
-        var _fields = '';
         var _queryType = options.queryType || 'BasicQuery';
         var _entityType = options.type || options.relation;
         var _etype = (options.relation) ? 'connection' : 'object';
 
         var self = this;
+        this._fields = [];
 
         // 
         if (options.entity) this.entity = options.entity;
@@ -3951,22 +3965,10 @@ Depends on  NOTHING
             return _freeText;
         };
 
-        // define fields
-        this.fields = function() {
-            if (arguments.length === 1) {
-                var value = arguments[0];
-                if (_type.isString(value)) _fields = value;
-                else if (_type.isArray(value) && value.length) _fields = value.join(',');
-                return this;
-            } else {
-                return _fields;
-            }
-        };
-
         // set filters , freetext and fields
         this.filter(options.filter || '');
         this.freeText(options.freeText || '');
-        this.fields(options.fields || '');
+        this.fields(options.fields || []);
 
         this.setFilter = function() {
             this.filter(arguments[0]);
@@ -4004,8 +4006,8 @@ Depends on  NOTHING
                 finalUrl += "&freetext=" + encodeURIComponent(this.freeText()) + "&language=en";
             }
 
-            if (this.fields() && this.fields().trim().length > 0) {
-                finalUrl += "&fields=" + this.fields();
+            if (this._fields && this._fields.length > 0) {
+                finalUrl += "&fields=" + this._fields.join(',');
             }
 
             return finalUrl;
@@ -4361,11 +4363,12 @@ Depends on  NOTHING
 
         PageQuery.call(this, options);
         SortQuery.call(this, options);
+        CommonQueryHelper.call(this, options);
 
         this.name = name;
         this.data = {};
         this.queryType = 'GraphQuery';
-
+        this.fields(options.fields || []);
         var self = this;
 
         if (placeholders) {
@@ -4395,7 +4398,7 @@ Depends on  NOTHING
 
             if (!this.isPageDefault) urls.push(this.pageString());
             if (this.isSortSet) urls.push(this.sortString());
-
+            if (this._fields && this._fields.length > 0) urls.push('fields=' + this._fields.join(','));
             return urls.join('&');
         };
 
@@ -4420,7 +4423,7 @@ Depends on  NOTHING
                     this.results = response;
                 }
 
-                if (!self.isPageDefault) self._setPaging(d.paginginfo);
+                if (d.paginginfo) self._setPaging(d.paginginfo);
 
                 promise.fulfill(response, d.paginginfo);
             };

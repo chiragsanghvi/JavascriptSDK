@@ -251,11 +251,12 @@ test('Filter query with sorting and pagination', function() {
         pageNumber: 10,
         orderBy: 'name',
         isAscending: true,
-        descending: 'age'
+        descending: 'age',
+        fields: ['firstname', 'username']
     });
     var request = query.toRequest();
 
-    var url = Appacitive.config.apiBaseUrl + 'search/users/graphquery?pnum=10&psize=100&orderBy=name asc,age desc';
+    var url = Appacitive.config.apiBaseUrl + 'search/users/graphquery?pnum=10&psize=100&orderBy=name asc,age desc&fields=firstname,username';
     equal(url, request.url, 'Url generated has correct pagination and sorting options');
 });
 
@@ -308,7 +309,8 @@ asyncTest('Verify filter query works with pagination, and returns only objects',
             returnObjects: true,
             placeholders: {
                 filter: Appacitive.Filter.Property('__utcdatecreated').greaterThan(Appacitive.User.current().createdAt).toString()
-            }
+            },
+            fields: ['username', 'firstname']
         });
         return query.fetch();
     }).then(function(users) {
