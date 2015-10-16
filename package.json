@@ -11,7 +11,11 @@
         "type": "git",
         "url": "https://github.com/chiragsanghvi/JavascriptSDK.git"
     },
-    "main": "./AppacitiveSDK.js",
+    "files": [
+        "node.js",
+        "react-native.js"
+    ],
+    "main": "node.js",
     "readmeFilename": "README.md",
     "engines": [
         "node >= 0.8.16"

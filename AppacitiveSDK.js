@@ -4,10 +4,8 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Oct 12 12:22:32 IST 2015
+ * Build time 	: Fri Oct 16 17:02:55 IST 2015
  */
-// monolithic file
-
 var global = {};
 
 (function() {
@@ -22,19 +20,16 @@ var global = {};
             // Export the Appacitive object for **CommonJS**, with backwards-compatibility
             // for the old `require()` API. If we're not in CommonJS, add `Appacitive` to the
             // global object.
-            if (typeof module !== 'undefined' && module.exports) {
-                global = (typeof process !== 'undefined') ? process : {};
+            global.Appacitive = {
+                runtime: {}
+            };
+
+            if (typeof process !== 'undefined' && !!process.versions && !!process.versions.node) {
+                global.Appacitive.runtime.isNode = true;
+            } else if (typeof window !== 'undefined') {
+                global = window;
                 global.Appacitive = {
                     runtime: {
-                        isNode: true,
-                        isBrowser: false
-                    }
-                };
-            } else {
-                global = (typeof window !== 'undefined') ? window : {};
-                global.Appacitive = {
-                    runtime: {
-                        isNode: false,
                         isBrowser: true
                     }
                 };
@@ -43,6 +38,157 @@ var global = {};
     };
     _initialize();
 
+
+})(this);
+(function(global) {
+
+    "use strict";
+
+    var Appacitive = global.Appacitive;
+
+    // base xmlhttprequest class
+    /**
+     * @constructor
+     */
+
+    var _XDomainRequest = function(request) {
+        var promise = Appacitive.Promise.buildPromise({
+            success: request.onSuccess,
+            error: request.onError
+        });
+        var xdr = new XDomainRequest();
+        xdr.onload = function() {
+            var response = xdr.responseText;
+            var contentType = xdr.contentType || '';
+            if (contentType.toLowerCase() == 'application/json' || contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') {
+                try {
+                    var jData = response;
+                    if (!Appacitive.runtime.isBrowser) {
+                        if (jData[0] != "{") {
+                            jData = jData.substr(1, jData.length - 1);
+                        }
+                    }
+                    response = JSON.parse(jData);
+                } catch (e) {
+                    return promise.reject(xdr, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response));
+                }
+            }
+            promise.fulfill(response, this);
+        };
+        xdr.onerror = xdr.ontimeout = function() {
+            // Let's fake a real error message.
+            xdr.responseData = "IE's XDomainRequest does not supply error info."
+            xdr.status = Appacitive.Error.XDomainRequest;
+            promise.reject(xdr, new Appacitive.Error(Appacitive.Error.XDomainRequest, xdr.responseData, "Unknown"));
+        };
+        xdr.onprogress = function() {};
+        if (request.url.indexOf('?') === -1)
+            request.url = request.url + '?ua=ie';
+        else
+            request.url = request.url + '&ua=ie';
+
+        xdr.open(request.method, request.url, request.sync ? false : true);
+        xdr.send(request.data);
+        return promise;
+    };
+
+    var _xmlHttpRequest = (Appacitive.runtime.isBrowser) ? XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
+
+    Appacitive._Http = function(request) {
+
+        if (!request.url) throw new Error("Please specify request url");
+        if (!request.method) request.method = 'GET';
+        if (!request.headers) request.headers = [];
+        var data = {};
+
+        if (!request.onSuccess || !(typeof request.onSuccess == 'function')) request.onSuccess = function() {};
+        if (!request.onError || !(typeof request.onError == 'function')) request.onError = function() {};
+
+
+        var promise = Appacitive.Promise.buildPromise({
+            success: request.onSuccess,
+            error: request.onError
+        });
+
+        var doNotStringify = true;
+        request.headers.forEach(function(r) {
+            if (r.key.toLowerCase() == 'content-type') {
+                doNotStringify = true;
+                if (r.value.toLowerCase() == 'application/json' || r.value.toLowerCase() == "application/javascript" || r.value.toLowerCase() == 'application/json; charset=utf-8' || r.value.toLowerCase() == 'application/json; charset=utf-8;') {
+                    doNotStringify = false;
+                }
+            }
+        });
+
+
+        if (doNotStringify) data = request.data;
+        else {
+            if (request.data) {
+                data = request.data;
+                if (typeof request.data == 'object') {
+                    try {
+                        data = JSON.stringify(data);
+                    } catch (e) {}
+                }
+            }
+        }
+
+
+        var urlDomain = request.url.split('/')[2] || '';
+        if (global.navigator && (_type.isObject(global.navigator.userAgent) && _type.isFunction(global.navigator.userAgent.indexOf) && global.navigator.userAgent.indexOf('MSIE 9') != -1) && (global.location && global.location.host && urlDomain !== global.location.host.toLowerCase())) {
+            request.data = data;
+            var xdr = new _XDomainRequest(request);
+            return xdr;
+        } else {
+            var xhr = new _xmlHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4) {
+                    if ((xhr.status >= 200 && xhr.status < 300) || xhr.status == 304) {
+                        var response = xhr.responseText;
+
+                        var contentType = xhr.getResponseHeader('content-type') || xhr.getResponseHeader('Content-Type') || '';
+
+                        if (contentType.toLowerCase() == 'application/json' || contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') {
+                            try {
+                                var jData = response;
+                                if (!Appacitive.runtime.isBrowser) {
+                                    if (jData[0] != "{") {
+                                        jData = jData.substr(1, jData.length - 1);
+                                    }
+                                }
+                                response = JSON.parse(jData);
+                            } catch (e) {
+                                return promise.reject(xhr, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response));
+                            }
+                        }
+                        promise.fulfill(response, xhr);
+                    } else {
+                        promise.reject(xhr, new Appacitive.Error(Appacitive.Error.ConnectionFailed, xhr.responseText, "Unknown"));
+                    }
+                }
+            };
+
+            xhr.open(request.method, request.url, request.sync ? false : true);
+
+            for (var x = 0; x < request.headers.length; x += 1)
+                xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
+
+            if (!Appacitive.runtime.isBrowser)
+                xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK');
+
+            xhr.send(data);
+
+            return promise;
+        }
+    };
+
+
+})(global);
+// monolithic file
+
+(function(global
+) {
+    "use strict";
 
     var Appacitive = global.Appacitive;
 
@@ -234,144 +380,6 @@ var global = {};
         };
     };
 
-    // base xmlhttprequest class
-    /**
-     * @constructor
-     */
-
-    var _XMLHttpRequest = null;
-
-    _XMLHttpRequest = (Appacitive.runtime.isBrowser) ? XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
-
-    var _XDomainRequest = function(request) {
-        var promise = Appacitive.Promise.buildPromise({
-            success: request.onSuccess,
-            error: request.onError
-        });
-        var xdr = new XDomainRequest();
-        xdr.onload = function() {
-            var response = xdr.responseText;
-            var contentType = xdr.contentType || '';
-            if (contentType.toLowerCase() == 'application/json' || contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') {
-                try {
-                    var jData = response;
-                    if (!Appacitive.runtime.isBrowser) {
-                        if (jData[0] != "{") {
-                            jData = jData.substr(1, jData.length - 1);
-                        }
-                    }
-                    response = JSON.parse(jData);
-                } catch (e) {
-                    return promise.reject(xdr, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response));
-                }
-            }
-            promise.fulfill(response, this);
-        };
-        xdr.onerror = xdr.ontimeout = function() {
-            // Let's fake a real error message.
-            xdr.responseData = "IE's XDomainRequest does not supply error info."
-            xdr.status = Appacitive.Error.XDomainRequest;
-            promise.reject(xdr, new Appacitive.Error(Appacitive.Error.XDomainRequest, xdr.responseData, "Unknown"));
-        };
-        xdr.onprogress = function() {};
-        if (request.url.indexOf('?') === -1)
-            request.url = request.url + '?ua=ie';
-        else
-            request.url = request.url + '&ua=ie';
-
-        xdr.open(request.method, request.url, request.sync ? false : true);
-        xdr.send(request.data);
-        return promise;
-    };
-
-
-    var _XMLHttp = function(request) {
-
-        if (!request.url) throw new Error("Please specify request url");
-        if (!request.method) request.method = 'GET';
-        if (!request.headers) request.headers = [];
-        var data = {};
-
-        if (!request.onSuccess || !(typeof request.onSuccess == 'function')) request.onSuccess = function() {};
-        if (!request.onError || !(typeof request.onError == 'function')) request.onError = function() {};
-
-
-        var promise = Appacitive.Promise.buildPromise({
-            success: request.onSuccess,
-            error: request.onError
-        });
-
-        var doNotStringify = true;
-        request.headers.forEach(function(r) {
-            if (r.key.toLowerCase() == 'content-type') {
-                doNotStringify = true;
-                if (r.value.toLowerCase() == 'application/json' || r.value.toLowerCase() == "application/javascript" || r.value.toLowerCase() == 'application/json; charset=utf-8' || r.value.toLowerCase() == 'application/json; charset=utf-8;') {
-                    doNotStringify = false;
-                }
-            }
-        });
-
-
-        if (doNotStringify) data = request.data;
-        else {
-            if (request.data) {
-                data = request.data;
-                if (typeof request.data == 'object') {
-                    try {
-                        data = JSON.stringify(data);
-                    } catch (e) {}
-                }
-            }
-        }
-        var urlDomain = request.url.split('/')[2] || '';
-        if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1) && urlDomain !== window.location.host.toLowerCase()) {
-            request.data = data;
-            var xdr = new _XDomainRequest(request);
-            return xdr;
-        } else {
-            var xhr = new _XMLHttpRequest();
-            xhr.onreadystatechange = function() {
-                if (this.readyState == 4) {
-                    if ((this.status >= 200 && this.status < 300) || this.status == 304) {
-                        var response = this.responseText;
-
-                        var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type') || '';
-
-                        if (contentType.toLowerCase() == 'application/json' || contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') {
-                            try {
-                                var jData = response;
-                                if (!Appacitive.runtime.isBrowser) {
-                                    if (jData[0] != "{") {
-                                        jData = jData.substr(1, jData.length - 1);
-                                    }
-                                }
-                                response = JSON.parse(jData);
-                            } catch (e) {
-                                return promise.reject(this, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response));
-                            }
-                        }
-                        promise.fulfill(response, this);
-                    } else {
-                        promise.reject(this, new Appacitive.Error(Appacitive.Error.ConnectionFailed, this.responseText, "Unknown"));
-                    }
-                }
-            };
-
-            xhr.open(request.method, request.url, request.sync ? false : true);
-
-            for (var x = 0; x < request.headers.length; x += 1)
-                xhr.setRequestHeader(request.headers[x].key, request.headers[x].value);
-
-            if (!Appacitive.runtime.isBrowser)
-                xhr.setRequestHeader('User-Agent', 'Appacitive-NodeJSSDK');
-
-            xhr.send(data);
-
-            return promise;
-        }
-    };
-
-
     // httpRequest class, encapsulates the request 
     // without bothering about how it is going to be fired.
     /**
@@ -387,7 +395,7 @@ var global = {};
         this.onError = o.onError || function() {};
 
         this.send = function(doNotStringify) {
-            return new _XMLHttp(this, doNotStringify);
+            return new Appacitive._Http(this, doNotStringify);
         };
     };
 
@@ -416,7 +424,7 @@ var global = {};
 
         var _trigger = function(request, callbacks, states) {
             request.options = request.options || {};
-            new _XMLHttp({
+            new Appacitive._Http({
                 method: request.method,
                 url: request.url,
                 headers: request.headers,
@@ -623,7 +631,7 @@ var global = {};
 
     /* Http Utilities */
 
-})(this);
+})(global);
 var _type = function(o) {
 
     // handle null in old IE
@@ -1134,8 +1142,6 @@ var _type = function(o) {
     var ObjectProto = Object.prototype;
     var Appacitive = global.Appacitive;
 
-
-
     Appacitive.utils._each = function(obj, iterator, context) {
         if (obj == null) return;
         if (ArrayProto.forEach && obj.forEach === ArrayProto.forEach) {
@@ -1248,7 +1254,7 @@ var _type = function(o) {
     };
 
     Appacitive.clone = Appacitive.utils._clone = function(obj) {
-        if (!Appacitive.utils.isObject(obj)) return obj;
+        if (!Appacitive.utils._type.isObject(obj)) return obj;
         return Appacitive.utils.isArray(obj) ? obj.slice() : Appacitive.utils._extend({}, obj);
     };
 
@@ -2404,7 +2410,7 @@ Depends on  NOTHING
 		metadata: true
 	};
 
-	if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
+	if (global.navigator && _type.isObject(global.navigator.userAgent) && _type.isFunction(global.navigator.userAgent.indexOf) && (global.navigator.userAgent.indexOf('MSIE 8') != -1 || global.navigator.userAgent.indexOf('MSIE 9') != -1)) {
 		global.Appacitive.config.apiBaseUrl = window.location.protocol + '//apis.appacitive.com/v1.0/';
 	}
 
@@ -2666,9 +2672,9 @@ Depends on  NOTHING
                         if (!expiry) expiry = -1;
                         if (expiry == -1) expiry = null;
 
-                        Appacitive.localStorage.set('Appacitive-UserToken', authToken);
-                        Appacitive.localStorage.set('Appacitive-UserTokenExpiry', expiry);
-                        Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
+                        Appacitive.LocalStorage.set('Appacitive-UserToken', authToken);
+                        Appacitive.LocalStorage.set('Appacitive-UserTokenExpiry', expiry);
+                        Appacitive.LocalStorage.set('Appacitive-UserTokenDate', new Date().getTime());
                     }
                 }
             } catch (e) {}
@@ -2677,7 +2683,7 @@ Depends on  NOTHING
         this.incrementExpiry = function() {
             try {
                 if (Appacitive.runtime.isBrowser && authEnabled) {
-                    Appacitive.localStorage.set('Appacitive-UserTokenDate', new Date().getTime());
+                    Appacitive.LocalStorage.set('Appacitive-UserTokenDate', new Date().getTime());
                 }
             } catch (e) {}
         };
@@ -2688,7 +2694,7 @@ Depends on  NOTHING
 
             if (!makeApiCall) Appacitive.User.trigger('logout', {});
 
-            Appacitive.localStorage.remove('Appacitive-User');
+            Appacitive.LocalStorage.remove('Appacitive-User');
             if (_authToken && makeApiCall) {
                 try {
 
@@ -2703,9 +2709,9 @@ Depends on  NOTHING
                         authEnabled = false;
                         _authToken = null;
                         Appacitive.User.trigger('logout', {});
-                        Appacitive.localStorage.remove('Appacitive-UserToken');
-                        Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
-                        Appacitive.localStorage.remove('Appacitive-UserTokenDate');
+                        Appacitive.LocalStorage.remove('Appacitive-UserToken');
+                        Appacitive.LocalStorage.remove('Appacitive-UserTokenExpiry');
+                        Appacitive.LocalStorage.remove('Appacitive-UserTokenDate');
                         promise.fulfill();
                     };
 
@@ -2716,9 +2722,9 @@ Depends on  NOTHING
             } else {
                 authEnabled = false;
                 _authToken = null;
-                Appacitive.localStorage.remove('Appacitive-UserToken');
-                Appacitive.localStorage.remove('Appacitive-UserTokenExpiry');
-                Appacitive.localStorage.remove('Appacitive-UserTokenDate');
+                Appacitive.LocalStorage.remove('Appacitive-UserToken');
+                Appacitive.LocalStorage.remove('Appacitive-UserTokenExpiry');
+                Appacitive.LocalStorage.remove('Appacitive-UserTokenDate');
                 return promise.fulfill();
             }
         };
@@ -2854,29 +2860,28 @@ Depends on  NOTHING
             if (options.user) {
                 Appacitive.Users.setCurrentUser(options.user);
             } else {
-                //read user from from localstorage and set it;
-                var user = Appacitive.localStorage.get('Appacitive-User');
-                if (user) Appacitive.Users.setCurrentUser(user);
+                //read user from from LocalStorage and set it;
+                Appacitive.LocalStorage.get('Appacitive-User').then(function(user) {
+                    if (user) Appacitive.Users.setCurrentUser(user);
+                });
             }
 
         } else {
 
             if (Appacitive.runtime.isBrowser) {
-                //read usertoken from localstorage and set it
-                var token = Appacitive.localStorage.get('Appacitive-UserToken');
-                if (token) {
-                    var expiry = Appacitive.localStorage.get('Appacitive-UserTokenExpiry');
-                    var expiryDate = Appacitive.localStorage.get('Appacitive-UserTokenDate');
-
-                    if (!expiry) expiry = -1;
-                    if (expiryDate && expiry > 0) {
-                        if (new Date(expiryDate + (expiry * 1000)) < new Date()) return;
+                //read usertoken, expiry, expiry-date and user from LocalStorage and set it
+                Appacitive.LocalStorage.multiGet('Appacitive-UserToken','Appacitive-UserTokenExpiry','Appacitive-UserTokenDate','Appacitive-User').then(function(keyValues) {
+                    var token = keyValues['Appacitive-UserToken'], expiry = keyValues['Appacitive-UserTokenExpiry'], expiryDate = keyValues['Appacitive-User'], user = keyValues['Appacitive-User'];
+                    if (token) {
+                        if (!expiry) expiry = -1;
+                        if (expiryDate && expiry > 0) {
+                            if (new Date(expiryDate + (expiry * 1000)) < new Date()) return;
+                        }
+                        if (expiry == -1) expiry = null;
+                        if (user) Appacitive.Users.setCurrentUser(user, token, expiry);
                     }
-                    if (expiry == -1) expiry = null;
-                    //read usertoken and user from from localstorage and set it;
-                    var user = Appacitive.localStorage.get('Appacitive-User');
-                    if (user) Appacitive.Users.setCurrentUser(user, token, expiry);
-                }
+                });
+                
             }
         }
     };
@@ -3749,7 +3754,7 @@ Depends on  NOTHING
     };
 
     SortQuery.prototype._setSorting = function(keys, isAscending) {
-        if (arguments.length > 1) {
+        if (arguments.length) {
             var that = this;
 
             keys.forEach(function(key) {
@@ -4353,13 +4358,14 @@ Depends on  NOTHING
         if (_type.isObject(name)) {
             options = name;
             options.returnObjects = name.returnObjects || options.returnObjects;
-            placeholders = name.placeholders || {};
+            placeholders = options.placeholders || {};
             name = options.name;
         }
 
         if (!name || name.length === 0) throw new Error("Specify name of filter query");
 
         options = options || {};
+        this.placeholders = placeholders || {};
 
         this.returnObjects = options.returnObjects;
 
@@ -4368,17 +4374,9 @@ Depends on  NOTHING
         CommonQueryHelper.call(this, options);
 
         this.name = name;
-        this.data = {};
         this.queryType = 'GraphQuery';
         this.fields(options.fields || []);
         var self = this;
-
-        if (placeholders) {
-            this.data.placeholders = placeholders;
-            for (var ph in this.data.placeholders) {
-                this.data.placeholders[ph] = this.data.placeholders[ph];
-            }
-        }
 
         this.type = function() {
             return 'object';
@@ -4391,6 +4389,16 @@ Depends on  NOTHING
             r.options = options;
             r.description = obj.description;
             r.method = 'post';
+
+            this.data = {};
+
+            if (this.placeholders) {
+                this.data.placeholders = this.placeholders;
+                for (var ph in this.data.placeholders) {
+                    this.data.placeholders[ph] = this.data.placeholders[ph];
+                }
+            }
+
             r.data = this.data;
             return r;
         };
@@ -7104,7 +7112,7 @@ Depends on  NOTHING
         else if (!userObject.get('__id') || userObject.get('__id').length === 0) throw new Error('Specify user __id');
         else user = userObject.getObject();
 
-        Appacitive.localStorage.set('Appacitive-User', user);
+        Appacitive.LocalStorage.set('Appacitive-User', user);
 
         if (!expiry) expiry = 86400000;
         _authenticatedUser = userObject;
@@ -7124,7 +7132,7 @@ Depends on  NOTHING
         };
 
         Appacitive.eventManager.clearAndSubscribe('type.user.' + userObject.get('__id') + '.updated', function(sender, args) {
-            Appacitive.localStorage.set('Appacitive-User', args.object.getObject());
+            Appacitive.LocalStorage.set('Appacitive-User', args.object.getObject());
         });
 
         return _authenticatedUser;
@@ -7465,28 +7473,28 @@ Depends on  NOTHING
             callback = function() {};
         }
 
-        var token = Appacitive.localStorage.get('Appacitive-UserToken');
-
-        if (!token) {
-            promise.fulfill(false);
-            return promise;
-        }
-
-        if (!avoidApiCall) {
-            try {
-                var that = this;
-                this.getUserByToken(token).then(function(user) {
-                    that.setCurrentUser(user, token);
-                    promise.fulfill(true);
-                }, function() {
-                    promise.fulfill(false);
-                });
-            } catch (e) {
+        var token = Appacitive.LocalStorage.get('Appacitive-UserToken').then(function(token) {
+            if (!token) {
                 promise.fulfill(false);
+                return
             }
-        } else {
-            promise.fulfill(true);
-        }
+
+            if (!avoidApiCall) {
+                try {
+                    var that = this;
+                    this.getUserByToken(token).then(function(user) {
+                        that.setCurrentUser(user, token);
+                        promise.fulfill(true);
+                    }, function() {
+                        promise.fulfill(false);
+                    });
+                } catch (e) {
+                    promise.fulfill(false);
+                }
+            } else {
+                promise.fulfill(true);
+            }
+        });
 
         return promise;
     };
@@ -8530,7 +8538,7 @@ Depends on  NOTHING
                     }
                 });
             } else {
-                promise.reject("Either intialize facebook with your appid and appsecret or set accesstoken");
+                promise.reject("Either initialize facebook with your appid and appsecret or set accesstoken");
             }
 
             return promise;
@@ -9088,127 +9096,82 @@ Depends on  NOTHING
     var _extend = Appacitive.utils._extend;
     var _deepExtend = Appacitive.utils._deepExtend;
 
-    if (Appacitive.runtime.isBrowser) {
+    var _isBrowserLocalStorageSupported = Appacitive.runtime.isBrowser && (typeof window.localStorage == 'object') && _type.isFunction(window.localStorage.getItem);
 
-        var A_LocalStorage = function() {
+    Appacitive.LocalStorage = new (function() {
 
-            var _localStorage = (Appacitive.runtime.isBrowser) ? window.localStorage : {
-                getItem: function() {
-                    return null;
-                }
-            };
+        var _localStorage = (_isBrowserLocalStorageSupported) ? window.localStorage : {};
 
-            var isLocalStorageSupported = function() {
-                var testKey = 'test';
+        this.set = function(key, value) {
+            value = value || '';
+            if (!_type.isString(key)) return this;
+
+            if (_type.isObject(value) || _type.isArray(value)) {
                 try {
-                    _localStorage.setItem(testKey, '1');
-                    _localStorage.removeItem(testKey);
-                    return true;
-                } catch (error) {
-                    return false;
-                }
-            };
-
-            this.set = function(key, value) {
-                value = value || '';
-                if (!key) return false;
-
-                if (_type.isObject(value) || _type.isArray(value)) {
-                    try {
-                        value = JSON.stringify(value);
-                    } catch (e) {}
-                }
-
-                if (!isLocalStorageSupported()) {
-                    Appacitive.Cookie.setCookie(key, value);
-                    return this;
-                } else {
-                    key = Appacitive.getAppPrefix(key);
-
-                    _localStorage[key] = value;
-                    return this;
-                }
-            };
-
-            this.get = function(key) {
-                if (!key) return null;
-
-                var value;
-
-                if (!isLocalStorageSupported()) {
-                    value = Appacitive.Cookie.readCookie(key);
-                } else {
-                    key = Appacitive.getAppPrefix(key);
-                    value = _localStorage.getItem(key);
-                }
-
-                if (!value) {
-                    return null;
-                }
-
-                // assume it is an object that has been stringified
-                if (value[0] === "{") {
-                    try {
-                        value = JSON.parse(value);
-                    } catch (e) {}
-                }
-
-                return value;
-            };
-
-            this.remove = function(key) {
-                if (!key) return;
-                if (!isLocalStorageSupported()) {
-                    Appacitive.Cookie.eraseCookie(key);
-                    return;
-                }
-                key = Appacitive.getAppPrefix(key);
-                try {
-                    delete _localStorage[key];
+                    value = JSON.stringify(value);
                 } catch (e) {}
-            };
-        };
-        Appacitive.localStorage = new A_LocalStorage();
+            }
 
-    } else {
-        var A_LocalStorage = function() {
-
-            var _localStorage = [];
-
-            this.set = function(key, value) {
-                value = value || '';
-                if (!key || _type.isString(key)) return false;
-
-                key = Appacitive.getAppPrefix(key);
-
-                _localStorage[key] = value;
-                return this;
-            };
-
-            this.get = function(key) {
-                if (!key || _type.isString(key)) return null;
-
-                key = Appacitive.getAppPrefix(key);
-
-                var value = _localStorage[key];
-                if (!value) {
-                    return null;
-                }
-
-                return value;
-            };
-
-            this.remove = function(key) {
-                if (!key || _type.isString(key)) return;
-                key = Appacitive.getAppPrefix(key);
-                try {
-                    delete _localStorage[key];
-                } catch (e) {}
-            };
+            var path = Appacitive.getAppPrefix(key);
+            _localStorage[path] = value;
+            return this;
         };
 
-        Appacitive.localStorage = new A_LocalStorage();
-    }
+        this.get = function(key) {
+            var promise = new Appacitive.Promise();
+            if (!_type.isString(key)) return promise.fulfill(null, key);
+
+            var value, path = Appacitive.getAppPrefix(key);
+            if (!_isBrowserLocalStorageSupported()) {
+                value = _localStorage[path];
+            } else {
+                value = _localStorage.getItem(path);
+            }
+
+            if (!value) value = null;
+            
+            // assume it is an object that has been stringified
+            if (value && value[0] === "{") {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {}
+            }
+
+            return promise.fulfill(value, key);
+        };
+
+        this.multiGet = function() {
+            var promise = new Appacitive.Promise(), self = this, keys = Array.prototype.slice.call(arguments)
+            if (arguments.length > 1) {
+                var output = {}, promises = [];
+                keys.forEach(function(key) {
+                    if (Array.isArray(key)) key = key.join();
+                    key.replace(/\s/g, '').split(',').forEach(function(k) {
+                        var p = self.get(key);
+                        p.then(function(value, key) { output[key] = value });
+                        promises.push(p);
+                    });
+                });
+                Appacitive.Promise.when(promises).then(function() {
+                    promise.fulfill(output);
+                });
+
+                return promise;
+            }
+
+            throw new Error("Appacitive.LocalStorage.multiGet requires atleast one argument");
+        };
+
+        this.remove = function(key) {
+            if (!_type.isString(key)) return this;
+            var path = Appacitive.getAppPrefix(key);
+            try {
+                delete _localStorage[path];
+            } catch (e) {}
+        };
+
+    })();
+   
 })(global);
 (function(global) {
 
@@ -9219,10 +9182,9 @@ Depends on  NOTHING
     var _extend = Appacitive.utils._extend;
     var _deepExtend = Appacitive.utils._deepExtend;
 
+    if (typeof document != 'undefined' && _type.isString(document.cookie)) {
 
-    if (Appacitive.runtime.isBrowser) {
-
-        var _cookieManager = function() {
+        Appacitive.Cookie = new (function() {
 
             this.setCookie = function(name, value, minutes, erase) {
                 name = Appacitive.getAppPrefix(name);
@@ -9262,29 +9224,11 @@ Depends on  NOTHING
                 this.setCookie(name, "", -1, true);
             };
 
-        };
+        })();
 
-        Appacitive.Cookie = new _cookieManager();
-
-    } else {
-        var _cookieManager = function() {
-
-            this.setCookie = function(name, value) {
-                Appacitive.localStorage.set('cookie/' + name, value);
-            };
-
-            this.readCookie = function(name) {
-                return Appacitive.localStorage.get('cookie/' + name);
-            };
-
-            this.eraseCookie = function(name) {
-                Appacitive.localStorage.remove('cookie/' + name);
-            };
-
-        };
-        Appacitive.Cookie = new _cookieManager();
-    }
+    } 
 
 })(global);
-
-if (typeof module !== 'undefined' && !global.Appacitive.runtime.isBrowser) module.exports =  global.Appacitive;
+ if (typeof module === 'object' && module.exports && typeof require === 'function') {
+     module.exports = global.Appacitive;
+ }

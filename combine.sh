@@ -83,11 +83,19 @@ thedate=$(date)
 type=""
 format="String.Format"
 
-cat src/copyright.txt src/utils/http/httpModule.js src/utils/utils.js src/extend.js src/utils/http/logger.js src/utils/http/urlFactory.js src/promise.js src/EventManager.js  src/events.js  src/config.js src/request.js  src/error.js src/session.js src/filter.js src/queries.js  src/baseObject.js src/guid.js  src/acl.js  src/object.js src/connection.js src/Users.js src/collection.js src/batch.js  src/facebook.js src/email.js src/push.js src/file.js src/date.js src/localstorage.js src/cookie.js src/export.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g" > AppacitiveSDK.js
+cat lib/copyright.txt lib/init.js lib/http.js lib/httpModule.js lib/utils/utils.js lib/extend.js lib/utils/logger.js lib/utils/urlFactory.js lib/promise.js lib/EventManager.js  lib/events.js  lib/config.js lib/request.js  lib/error.js lib/session.js lib/filter.js lib/queries.js  lib/baseObject.js lib/guid.js  lib/acl.js  lib/object.js lib/connection.js lib/Users.js lib/collection.js lib/batch.js  lib/facebook.js lib/email.js lib/push.js lib/file.js lib/date.js lib/localstorage.js lib/cookie.js lib/export.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g" > AppacitiveSDK.js
 
 echo "Done combining AppacitiveSDK.js"
 
-cat src/copyright.txt src/Titanium/Ti.HttpModule.js src/utils/utils.js src/extend.js src/utils/http/logger.js src/utils/http/urlFactory.js src/promise.js src/EventManager.js  src/events.js  src/config.js src/request.js src/error.js src/session.js src/filter.js src/queries.js  src/baseObject.js src/guid.js  src/acl.js  src/object.js src/connection.js src/Users.js src/collection.js src/batch.js src/Titanium/Ti.Facebook.js src/email.js src/push.js src/file.js src/date.js src/Titanium/Ti.Localstorage.js src/Titanium/Ti.Cookie.js src/Titanium/Ti.Export.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g;s/\String.format/$format/g;" > Ti.AppacitiveSDK.js
+cat lib/copyright.txt lib/init.js lib/node/http.js lib/httpModule.js lib/utils/utils.js lib/extend.js lib/utils/logger.js lib/utils/urlFactory.js lib/promise.js lib/EventManager.js  lib/events.js  lib/config.js lib/request.js  lib/error.js lib/session.js lib/filter.js lib/queries.js  lib/baseObject.js lib/guid.js  lib/acl.js  lib/object.js lib/connection.js lib/Users.js lib/collection.js lib/batch.js  lib/facebook.js lib/email.js lib/push.js lib/file.js lib/date.js lib/localstorage.js lib/export.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g" > node.js
+
+echo "Done combining Node AppacitiveSDK node.js"
+
+cat lib/copyright.txt lib/init.js lib/http.js lib/httpModule.js lib/utils/utils.js lib/extend.js lib/utils/logger.js lib/utils/urlFactory.js lib/promise.js lib/EventManager.js  lib/events.js  lib/config.js lib/request.js  lib/error.js lib/session.js lib/filter.js lib/queries.js  lib/baseObject.js lib/guid.js  lib/acl.js  lib/object.js lib/connection.js lib/Users.js lib/collection.js lib/batch.js  lib/facebook.js lib/email.js lib/push.js lib/file.js lib/date.js lib/React/localstorage.js lib/export.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g" > react-native.js
+
+echo "Done combining React-Native AppacitiveSDK react-native.js"
+
+cat lib/copyright.txt lib/init.js lib/Titanium/Http.js lib/httpModule.js lib/utils/utils.js lib/extend.js lib/utils/logger.js lib/utils/urlFactory.js lib/promise.js lib/EventManager.js  lib/events.js  lib/config.js lib/request.js lib/error.js lib/session.js lib/filter.js lib/queries.js  lib/baseObject.js lib/guid.js  lib/acl.js  lib/object.js lib/connection.js lib/Users.js lib/collection.js lib/batch.js lib/Titanium/Ti.Facebook.js lib/email.js lib/push.js lib/file.js lib/date.js lib/Titanium/Ti.Localstorage.js lib/cookie.js lib/Titanium/Ti.Export.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g;s/\String.format/$format/g;" > Ti.AppacitiveSDK.js
 
 echo "Done combining Ti.AppacitiveSDK.js"
 
@@ -98,7 +106,7 @@ out=SDK.min.js
 
 java -jar compiler/compiler.jar --js $in --js_output_file $out
 
-cat src/copyright.txt SDK.min.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g" > AppacitiveSDK.min.js
+cat lib/copyright.txt SDK.min.js | sed "s/\${ver}/$ver/g;s/\${time}/$thedate/g;s/\${type}/$type/g" > AppacitiveSDK.min.js
 
 rm $out;
 
