@@ -46,12 +46,54 @@ var global = {};
 
     var Appacitive = global.Appacitive;
 
-    var _XMLHttpRequest = Titanium.Network.createHTTPClient();;
-
     // base xmlhttprequest class
     /**
      * @constructor
      */
+
+    var _XDomainRequest = function(request) {
+        var promise = Appacitive.Promise.buildPromise({
+            success: request.onSuccess,
+            error: request.onError
+        });
+        var xdr = new XDomainRequest();
+        xdr.onload = function() {
+            var response = xdr.responseText;
+            var contentType = xdr.contentType || '';
+            if (contentType.toLowerCase() == 'application/json' || contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') {
+                try {
+                    var jData = response;
+                    if (!Appacitive.runtime.isBrowser) {
+                        if (jData[0] != "{") {
+                            jData = jData.substr(1, jData.length - 1);
+                        }
+                    }
+                    response = JSON.parse(jData);
+                } catch (e) {
+                    return promise.reject(xdr, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response));
+                }
+            }
+            promise.fulfill(response, this);
+        };
+        xdr.onerror = xdr.ontimeout = function() {
+            // Let's fake a real error message.
+            xdr.responseData = "IE's XDomainRequest does not supply error info."
+            xdr.status = Appacitive.Error.XDomainRequest;
+            promise.reject(xdr, new Appacitive.Error(Appacitive.Error.XDomainRequest, xdr.responseData, "Unknown"));
+        };
+        xdr.onprogress = function() {};
+        if (request.url.indexOf('?') === -1)
+            request.url = request.url + '?ua=ie';
+        else
+            request.url = request.url + '&ua=ie';
+
+        xdr.open(request.method, request.url, request.sync ? false : true);
+        xdr.send(request.data);
+        return promise;
+    };
+
+    var _xmlHttpRequest = (Appacitive.runtime.isBrowser) ? XMLHttpRequest : require('xmlhttprequest-with-globalagent').XMLHttpRequest;
+
     Appacitive._Http = function(request) {
 
         if (!request.url) throw new Error("Please specify request url");
@@ -90,19 +132,21 @@ var global = {};
                 }
             }
         }
+
+
         var urlDomain = request.url.split('/')[2] || '';
-        if (global.navigator && (global.navigator.userAgent.indexOf('MSIE 8') != -1) && urlDomain !== window.location.host.toLowerCase()) {
+        if (global.navigator && (_type.isObject(global.navigator.userAgent) && _type.isFunction(global.navigator.userAgent.indexOf) && global.navigator.userAgent.indexOf('MSIE 9') != -1) && (global.location && global.location.host && urlDomain !== global.location.host.toLowerCase())) {
             request.data = data;
             var xdr = new _XDomainRequest(request);
             return xdr;
         } else {
-            var xhr = new _XMLHttpRequest();
+            var xhr = new _xmlHttpRequest();
             xhr.onreadystatechange = function() {
-                if (this.readyState == 4) {
-                    if ((this.status >= 200 && this.status < 300) || this.status == 304) {
-                        var response = this.responseText;
+                if (xhr.readyState == 4) {
+                    if ((xhr.status >= 200 && xhr.status < 300) || xhr.status == 304) {
+                        var response = xhr.responseText;
 
-                        var contentType = this.getResponseHeader('content-type') || this.getResponseHeader('Content-Type') || '';
+                        var contentType = xhr.getResponseHeader('content-type') || xhr.getResponseHeader('Content-Type') || '';
 
                         if (contentType.toLowerCase() == 'application/json' || contentType.toLowerCase() == 'application/javascript' || contentType.toLowerCase() == 'application/json; charset=utf-8' || contentType.toLowerCase() == 'application/json; charset=utf-8;') {
                             try {
@@ -114,12 +158,12 @@ var global = {};
                                 }
                                 response = JSON.parse(jData);
                             } catch (e) {
-                                return promise.reject(this, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response));
+                                return promise.reject(xhr, new Appacitive.Error(Appacitive.Error.InvalidJson, 'Error while parsing received json ' + response));
                             }
                         }
-                        promise.fulfill(response, this);
+                        promise.fulfill(response, xhr);
                     } else {
-                        promise.reject(this, new Appacitive.Error(Appacitive.Error.ConnectionFailed, this.responseText, "Unknown"));
+                        promise.reject(xhr, new Appacitive.Error(Appacitive.Error.ConnectionFailed, xhr.responseText, "Unknown"));
                     }
                 }
             };
@@ -1304,7 +1348,7 @@ var _type = function(o) {
     /**
      * @param {...string} var_args
      */
-    String.Format = function(text, var_args) {
+    String.format = function(text, var_args) {
         if (arguments.length <= 1) {
             return text;
         }
@@ -1412,7 +1456,7 @@ var _type = function(o) {
             applicationServiceUrl: 'application',
 
             getSessionCreateUrl: function() {
-                return String.Format("{0}/session", this.applicationServiceUrl);
+                return String.format("{0}/session", this.applicationServiceUrl);
             }
         };
 
@@ -1420,7 +1464,7 @@ var _type = function(o) {
             emailServiceUrl: 'email',
 
             getSendEmailUrl: function() {
-                return String.Format("{0}/send", this.emailServiceUrl);
+                return String.format("{0}/send", this.emailServiceUrl);
             }
         };
         this.user = {
@@ -1428,88 +1472,88 @@ var _type = function(o) {
             userServiceUrl: 'user',
 
             getCreateUrl: function(type, fields) {
-                return String.Format("{0}/create?fields={1}", this.userServiceUrl, _getFields(fields));
+                return String.format("{0}/create?fields={1}", this.userServiceUrl, _getFields(fields));
             },
             getAuthenticateUserUrl: function() {
-                return String.Format("{0}/authenticate", this.userServiceUrl);
+                return String.format("{0}/authenticate", this.userServiceUrl);
             },
             getGetUrl: function(type, userId, fields) {
-                return String.Format("{0}/{1}?fields={2}", type, userId, _getFields(fields));
+                return String.format("{0}/{1}?fields={2}", type, userId, _getFields(fields));
             },
             getUserByTokenUrl: function(userToken) {
-                return String.Format("{0}/me?useridtype=token&token={1}", this.userServiceUrl, userToken);
+                return String.format("{0}/me?useridtype=token&token={1}", this.userServiceUrl, userToken);
             },
             getUserByUsernameUrl: function(username) {
-                return String.Format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
+                return String.format("{0}/{1}?useridtype=username", this.userServiceUrl, username);
             },
             getUpdateUrl: function(userId, fields, revision) {
                 if (!revision) {
-                    return String.Format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
+                    return String.format("{0}/{1}?fields={2}", this.userServiceUrl, userId, _getFields(fields));
                 } else {
-                    return String.Format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
+                    return String.format("{0}/{1}?fields={2}&revision={3}", this.userServiceUrl, userId, _getFields(fields), revision);
                 }
             },
             getDeleteUrl: function(type, userId, deleteConnections) {
                 if (deleteConnections === true) {
-                    return String.Format("{0}/{1}?deleteconnections=true", this.userServiceUrl, userId);
+                    return String.format("{0}/{1}?deleteconnections=true", this.userServiceUrl, userId);
                 } else {
-                    return String.Format("{0}/{1}", this.userServiceUrl, userId);
+                    return String.format("{0}/{1}", this.userServiceUrl, userId);
                 }
 
             },
             getGetAllLinkedAccountsUrl: function(userId) {
-                var url = String.Format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
+                var url = String.format("{0}/{1}/linkedaccounts", this.userServiceUrl, userId);
                 return url;
             },
             getValidateTokenUrl: function(token) {
-                return String.Format("{0}/validate?userToken={1}", this.userServiceUrl, token);
+                return String.format("{0}/validate?userToken={1}", this.userServiceUrl, token);
             },
             getInvalidateTokenUrl: function(token) {
-                return String.Format("{0}/invalidate?userToken={1}", this.userServiceUrl, token);
+                return String.format("{0}/invalidate?userToken={1}", this.userServiceUrl, token);
             },
             getSendResetPasswordEmailUrl: function() {
-                return String.Format("{0}/sendresetpasswordemail", this.userServiceUrl);
+                return String.format("{0}/sendresetpasswordemail", this.userServiceUrl);
             },
             getUpdatePasswordUrl: function(userId) {
-                return String.Format("{0}/{1}/changepassword", this.userServiceUrl, userId);
+                return String.format("{0}/{1}/changepassword", this.userServiceUrl, userId);
             },
             getLinkAccountUrl: function(userId) {
-                return String.Format("{0}/{1}/link", this.userServiceUrl, userId);
+                return String.format("{0}/{1}/link", this.userServiceUrl, userId);
             },
             getDelinkAccountUrl: function(userId, type) {
-                return String.Format("{0}/{1}/{2}/delink", this.userServiceUrl, userId, type);
+                return String.format("{0}/{1}/{2}/delink", this.userServiceUrl, userId, type);
             },
             getCheckinUrl: function(userId, lat, lng) {
-                return String.Format("{0}/{1}/chekin?lat={2}&lng={3}", this.userServiceUrl, userId, lat, lng);
+                return String.format("{0}/{1}/chekin?lat={2}&lng={3}", this.userServiceUrl, userId, lat, lng);
             },
             getResetPasswordUrl: function(token) {
-                return String.Format("{0}/resetpassword?token={1}", this.userServiceUrl, token);
+                return String.format("{0}/resetpassword?token={1}", this.userServiceUrl, token);
             },
             getValidateResetPasswordUrl: function(token) {
-                return String.Format("{0}/validateresetpasswordtoken?token={1}", this.userServiceUrl, token);
+                return String.format("{0}/validateresetpasswordtoken?token={1}", this.userServiceUrl, token);
             }
         };
         this.device = {
             deviceServiceUrl: 'device',
 
             getCreateUrl: function(type, fields) {
-                return String.Format("{0}/register?fields={1}", this.deviceServiceUrl, _getFields(fields));
+                return String.format("{0}/register?fields={1}", this.deviceServiceUrl, _getFields(fields));
             },
             getGetUrl: function(type, deviceId, fields) {
-                return String.Format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
+                return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
             },
             getUpdateUrl: function(deviceId, fields, revision) {
                 if (!revision) {
-                    return String.Format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
+                    return String.format("{0}/{1}?fields={2}", this.deviceServiceUrl, deviceId, _getFields(fields));
                 } else {
-                    return String.Format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
+                    return String.format("{0}/{1}?fields={2}&revision={3}", this.deviceServiceUrl, deviceId, _getFields(fields), revision);
                 }
             },
             getDeleteUrl: function(type, deviceId, deleteConnections) {
                 if (deleteConnections === true) {
-                    return String.Format('{0}/{1}?deleteconnections=true', this.deviceServiceUrl, deviceId);
+                    return String.format('{0}/{1}?deleteconnections=true', this.deviceServiceUrl, deviceId);
                 } else {
-                    return String.Format('{0}/{1}', this.deviceServiceUrl, deviceId);
+                    return String.format('{0}/{1}', this.deviceServiceUrl, deviceId);
                 }
             }
         };
@@ -1519,7 +1563,7 @@ var _type = function(o) {
             getSearchAllUrl: function(typeName, queryParams, pageSize) {
                 var url = '';
 
-                url = String.Format('{0}/search/{1}/all', this.objectServiceUrl, typeName);
+                url = String.format('{0}/search/{1}/all', this.objectServiceUrl, typeName);
 
                 if (pageSize)
                     url = url + '?psize=' + pageSize;
@@ -1534,36 +1578,36 @@ var _type = function(o) {
                 return url;
             },
             getProjectionQueryUrl: function() {
-                return String.Format('{0}/search/project', this.objectServiceUrl);
+                return String.format('{0}/search/project', this.objectServiceUrl);
             },
             getPropertiesSearchUrl: function(typeName, query) {
-                return String.Format('{0}/search/{1}/all?properties={2}', this.objectServiceUrl, typeName, query);
+                return String.format('{0}/search/{1}/all?properties={2}', this.objectServiceUrl, typeName, query);
             },
             getMultiGetUrl: function(typeName, objectIds, fields) {
-                return String.Format('{0}/{1}/multiGet/{2}?fields={3}', this.objectServiceUrl, typeName, objectIds, _getFields(fields));
+                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.objectServiceUrl, typeName, objectIds, _getFields(fields));
             },
             getCreateUrl: function(typeName, fields) {
-                return String.Format('{0}/{1}?fields={2}', this.objectServiceUrl, typeName, _getFields(fields));
+                return String.format('{0}/{1}?fields={2}', this.objectServiceUrl, typeName, _getFields(fields));
             },
             getGetUrl: function(typeName, objectId, fields) {
-                return String.Format('{0}/{1}/{2}?fields={3}', this.objectServiceUrl, typeName, objectId, _getFields(fields));
+                return String.format('{0}/{1}/{2}?fields={3}', this.objectServiceUrl, typeName, objectId, _getFields(fields));
             },
             getUpdateUrl: function(typeName, objectId, fields, revision) {
                 if (!revision) {
-                    return String.Format('{0}/{1}/{2}?fields={3}', this.objectServiceUrl, typeName, objectId, _getFields(fields));
+                    return String.format('{0}/{1}/{2}?fields={3}', this.objectServiceUrl, typeName, objectId, _getFields(fields));
                 } else {
-                    return String.Format('{0}/{1}/{2}?fields={3}&revision={4}', this.objectServiceUrl, typeName, objectId, _getFields(fields), revision);
+                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.objectServiceUrl, typeName, objectId, _getFields(fields), revision);
                 }
             },
             getDeleteUrl: function(typeName, objectId, deleteConnections) {
                 if (deleteConnections === true) {
-                    return String.Format('{0}/{1}/{2}?deleteconnections=true', this.objectServiceUrl, typeName, objectId);
+                    return String.format('{0}/{1}/{2}?deleteconnections=true', this.objectServiceUrl, typeName, objectId);
                 } else {
-                    return String.Format('{0}/{1}/{2}', this.objectServiceUrl, typeName, objectId);
+                    return String.format('{0}/{1}/{2}', this.objectServiceUrl, typeName, objectId);
                 }
             },
             getMultiDeleteUrl: function(typeName) {
-                return String.Format('{0}/{1}/bulkdelete', this.objectServiceUrl, typeName);
+                return String.format('{0}/{1}/bulkdelete', this.objectServiceUrl, typeName);
             }
         };
         this.connection = {
@@ -1571,31 +1615,31 @@ var _type = function(o) {
             connectionServiceUrl: 'connection',
 
             getGetUrl: function(relationName, connectionId, fields) {
-                return String.Format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
+                return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
             },
             getMultiGetUrl: function(relationName, connectionIds, fields) {
-                return String.Format('{0}/{1}/multiGet/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionIds, _getFields(fields));
+                return String.format('{0}/{1}/multiGet/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionIds, _getFields(fields));
             },
             getCreateUrl: function(relationName, fields) {
-                return String.Format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, _getFields(fields));
+                return String.format('{0}/{1}?fields={2}', this.connectionServiceUrl, relationName, _getFields(fields));
             },
             getUpdateUrl: function(relationName, connectionId, fields, revision) {
                 if (!revision) {
-                    return String.Format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
+                    return String.format('{0}/{1}/{2}?fields={3}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields));
                 } else {
-                    return String.Format('{0}/{1}/{2}?fields={3}&revision={4}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields), revision);
+                    return String.format('{0}/{1}/{2}?fields={3}&revision={4}', this.connectionServiceUrl, relationName, connectionId, _getFields(fields), revision);
                 }
             },
             getDeleteUrl: function(relationName, connectionId) {
-                return String.Format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
+                return String.format('{0}/{1}/{2}', this.connectionServiceUrl, relationName, connectionId);
             },
             getMultiDeleteUrl: function(relationName) {
-                return String.Format('{0}/{1}/bulkdelete', this.connectionServiceUrl, relationName);
+                return String.format('{0}/{1}/bulkdelete', this.connectionServiceUrl, relationName);
             },
             getSearchByArticleUrl: function(relationName, objectId, label, queryParams) {
                 var url = '';
 
-                url = String.Format('{0}/{1}/find/all?label={2}&objectid={3}', this.connectionServiceUrl, relationName, label, objectId);
+                url = String.format('{0}/{1}/find/all?label={2}&objectid={3}', this.connectionServiceUrl, relationName, label, objectId);
                 // url = url + '?psize=1000';
                 if (typeof(queryParams) !== 'undefined' && queryParams.length > 0) {
                     for (var i = 0; i < queryParams.length; i = i + 1) {
@@ -1606,7 +1650,7 @@ var _type = function(o) {
             },
             getConnectedArticles: function(relationName, objectId, queryParams) {
                 var url = '';
-                url = String.Format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationName, objectId);
+                url = String.format('{0}/{1}/{2}/find', this.connectionServiceUrl, relationName, objectId);
                 if (queryParams && queryParams.length && queryParams.length > 0) {
                     for (var x = 0; x < queryParams.length; x += 1) {
                         if (x === 0) {
@@ -1619,10 +1663,10 @@ var _type = function(o) {
                 return url;
             },
             getInterconnectsUrl: function() {
-                return String.Format('{0}/interconnects', this.connectionServiceUrl);
+                return String.format('{0}/interconnects', this.connectionServiceUrl);
             },
             getPropertiesSearchUrl: function(relationName, query) {
-                return String.Format('{0}/{1}/find/all?properties=', this.connectionServiceUrl, relationName, query);
+                return String.format('{0}/{1}/find/all?properties=', this.connectionServiceUrl, relationName, query);
             }
         };
         this.cannedList = {
@@ -1630,7 +1674,7 @@ var _type = function(o) {
             cannedListServiceUrl: 'list',
 
             getGetListItemsUrl: function(cannedListId) {
-                return String.Format('{0}/list/{1}/contents', this.cannedListServiceUrl, cannedListId);
+                return String.format('{0}/list/{1}/contents', this.cannedListServiceUrl, cannedListId);
             }
         };
         this.push = {
@@ -1638,15 +1682,15 @@ var _type = function(o) {
             pushServiceUrl: 'push',
 
             getPushUrl: function() {
-                return String.Format('{0}/', this.pushServiceUrl);
+                return String.format('{0}/', this.pushServiceUrl);
             },
 
             getGetNotificationUrl: function(notificationId) {
-                return String.Format('{0}/notification/{1}', this.pushServiceUrl, notificationId);
+                return String.format('{0}/notification/{1}', this.pushServiceUrl, notificationId);
             },
 
             getGetAllNotificationsUrl: function(pagingInfo) {
-                return String.Format('{0}/getAll?psize={1}&pnum={2}', this.pushServiceUrl, pagingInfo.psize, pagingInfo.pnum);
+                return String.format('{0}/getAll?psize={1}&pnum={2}', this.pushServiceUrl, pagingInfo.psize, pagingInfo.pnum);
             }
         };
         this.file = {
@@ -1655,22 +1699,22 @@ var _type = function(o) {
 
             getUploadUrl: function(contentType, fileName) {
                 if (fileName && fileName.length > 0) {
-                    return String.Format('{0}/uploadurl?contenttype={1}&expires=20&filename={2}', this.fileServiceUrl, escape(contentType), escape(fileName));
+                    return String.format('{0}/uploadurl?contenttype={1}&expires=20&filename={2}', this.fileServiceUrl, escape(contentType), escape(fileName));
                 } else {
-                    return String.Format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
+                    return String.format('{0}/uploadurl?contenttype={1}&expires=20', this.fileServiceUrl, escape(contentType));
                 }
             },
 
             getUpdateUrl: function(fileId, contentType) {
-                return String.Format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contentType));
+                return String.format('{0}/updateurl/{1}?contenttype={2}&expires=20', this.fileServiceUrl, fileId, escape(contentType));
             },
 
             getDownloadUrl: function(fileId, expiryTime) {
-                return String.Format('{0}/download/{1}?expires={2}', this.fileServiceUrl, fileId, expiryTime);
+                return String.format('{0}/download/{1}?expires={2}', this.fileServiceUrl, fileId, expiryTime);
             },
 
             getDeleteUrl: function(fileId) {
-                return String.Format('{0}/delete/{1}', this.fileServiceUrl, fileId);
+                return String.format('{0}/delete/{1}', this.fileServiceUrl, fileId);
             }
         };
         this.query = {
@@ -1700,21 +1744,21 @@ var _type = function(o) {
             usergroupServiceUrl: 'usergroup',
 
             getUpdateUrl: function(groupId) {
-                return String.Format('{0}/{1}/members', this.usergroupServiceUrl, groupId);
+                return String.format('{0}/{1}/members', this.usergroupServiceUrl, groupId);
             }
         };
         this.ping = {
             pingServiceUrl: 'ping',
 
             getPingUrl: function() {
-                return String.Format('{0}/', this.pingServiceUrl);
+                return String.format('{0}/', this.pingServiceUrl);
             }
         };
         this.multi = {
             multiServiceUrl: 'multi',
 
             getBatchUrl: function() {
-                return String.Format('{0}/', this.multiServiceUrl);
+                return String.format('{0}/', this.multiServiceUrl);
             }
         }
 
@@ -2939,7 +2983,7 @@ Depends on  NOTHING
         };
 
         this.getValue = function() {
-            return String.Format("{0},{1}", lat, lng);
+            return String.format("{0},{1}", lat, lng);
         };
 
         this.toString = function() {
@@ -2987,7 +3031,7 @@ Depends on  NOTHING
         };
 
         this.toString = function() {
-            return String.Format("{0}{1} {2} {3}",
+            return String.format("{0}{1} {2} {3}",
                 this.getFieldType(),
                 this.field.toLowerCase(),
                 this.operator,
@@ -3017,7 +3061,7 @@ Depends on  NOTHING
         this.toString = function() {
             var values = [];
             for (var i = 0; i < this.value.length; i = i + 1) {
-                values.push(String.Format("{0}{1} {2} {3}",
+                values.push(String.format("{0}{1} {2} {3}",
                     this.getFieldType(),
                     this.field.toLowerCase(),
                     this.operator,
@@ -3049,7 +3093,7 @@ Depends on  NOTHING
             for (var i = 0; i < this.value.length; i = i + 1) {
                 arrValue.push(_getValue(this.value[i]));
             }
-            return String.Format("{0}{1} {2} {3}",
+            return String.format("{0}{1} {2} {3}",
                 this.getFieldType(),
                 this.field.toLowerCase(),
                 this.operator,
@@ -3068,7 +3112,7 @@ Depends on  NOTHING
         _fieldFilter.call(this, options);
 
         this.toString = function() {
-            return String.Format("{0}{1} {2}",
+            return String.format("{0}{1} {2}",
                 this.getFieldType(),
                 this.field.toLowerCase(),
                 this.operator);
@@ -3093,7 +3137,7 @@ Depends on  NOTHING
         delete this.value;
 
         this.toString = function() {
-            return String.Format("{0}{1} {2} ({3},{4})",
+            return String.format("{0}{1} {2} ({3},{4})",
                 this.getFieldType(),
                 this.field.toLowerCase(),
                 this.operator,
@@ -3122,7 +3166,7 @@ Depends on  NOTHING
         this.distance = options.distance || 5;
 
         this.toString = function() {
-            return String.Format("{0}{1} {2} {3},{4} {5}",
+            return String.format("{0}{1} {2} {3},{4} {5}",
                 this.getFieldType(),
                 this.field.toLowerCase(),
                 this.operator,
@@ -3158,7 +3202,7 @@ Depends on  NOTHING
         };
 
         this.toString = function() {
-            return String.Format("{0}{1} {2} {3}",
+            return String.format("{0}{1} {2} {3}",
                 this.getFieldType(),
                 this.field.toLowerCase(),
                 this.operator,
@@ -3180,7 +3224,7 @@ Depends on  NOTHING
         this.operator = options.operator;
 
         this.toString = function() {
-            return String.Format("{0}('{1}')", this.operator, this.tags.join(','));
+            return String.format("{0}('{1}')", this.operator, this.tags.join(','));
         };
     };
 
@@ -3205,7 +3249,7 @@ Depends on  NOTHING
             var value = "(";
             this.innerFilters.forEach(function(f) {
                 if (value.length === 1) value += ' ' + f.toString();
-                else value += String.Format(' {0} {1} ', op, f.toString());
+                else value += String.format(' {0} {1} ', op, f.toString());
             });
             value += ")";
             return value;
@@ -8376,7 +8420,87 @@ Depends on  NOTHING
     var _extend = Appacitive.utils._extend;
     var _deepExtend = Appacitive.utils._deepExtend;
 
-    var _facebook = function() {
+    var _browserFacebook = function() {
+
+        var _accessToken = null;
+
+        var _initialized = true;
+
+        var _app_id = null;
+
+        this.initialize = function(options) {
+            if (!FB) throw "Facebook SDK needs be loaded before calling initialize.";
+            if (!options.appId) throw new Error("Please provide appid");
+            _app_id = options.appId;
+            FB.init(options);
+            _initialized = true;
+        };
+
+        this.requestLogin = function(options) {
+            options = options || {};
+            if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+            var promise = Appacitive.Promise.buildPromise(options);
+            if (!options.scope) options.scope = 'email';
+            FB.login(function(response) {
+                if (response && response.status === 'connected' && response.authResponse) {
+                    _accessToken = response.authResponse.accessToken;
+                    promise.fulfill(response.authResponse);
+                } else {
+                    promise.reject();
+                }
+            }, options);
+
+            return promise;
+        };
+
+        this.getCurrentUserInfo = function(options) {
+            if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+            options = options || {};
+            var promise = Appacitive.Promise.buildPromise(options);
+            FB.api('/me', function(response) {
+                if (response && !response.error) {
+                    _accessToken = FB.getAuthResponse().accessToken;
+                    promise.fulfill(response);
+                } else {
+                    promise.reject();
+                }
+            });
+
+            return promise;
+        };
+
+        this.accessToken = function() {
+            if (arguments.length === 1) {
+                _accessToken = arguments[0];
+                return this;
+            }
+            return _accessToken;
+        };
+
+        this.getProfilePictureUrl = function(username) {
+            return 'https://graph.facebook.com/' + username + '/picture';
+        };
+
+        this.logout = function(options) {
+            _accessToken = null;
+
+            options = options || {};
+            var promise = Appacitive.Promise.buildPromise(options);
+
+            try {
+                FB.logout(function() {
+                    Appacitive.Users.logout();
+                    promise.fulfill();
+                });
+            } catch (e) {
+                promise.reject(e.message);
+            }
+
+            return promise;
+        };
+    };
+
+    var _nodeFacebook = function() {
 
         var _accessToken = null;
 
@@ -8384,65 +8508,53 @@ Depends on  NOTHING
 
         var _app_id = null;
 
-        var _initialized = true;
+        var _app_secret = null;
+
+        var _initialized = false;
 
         this.initialize = function(options) {
-            if (!Ti.Facebook) throw new Error("Titanium Facebook module needs be loaded before calling initialize.");
+            if (!Facebook) throw new Error("node-facebook SDK needs be loaded before calling initialize.");
             if (!options.appId) throw new Error("Please provide appid");
+            if (!options.appSecret) throw new Error("Please provide app secret");
 
             _app_id = options.appId;
-            Ti.Facebook.setAppid(_app_id);
-            Ti.Facebook.setPermissions("email", "user_birthday");
-            this.FB = Ti.Facebook;
+            _app_secret = options.appSecret;
+            this.FB = new(require('facebook-node-sdk'))({
+                appId: _appId,
+                secret: _app_secret
+            });
             _initialized = true;
         };
 
-        this.requestLogin = function() {
-            if (!_initialized) throw new Error("Titanium Facebook module has not yet been initialized, or not yet loaded.");
-
-            var promise = new Appacitive.Promise();
-
-            Ti.Facebook.addEventListener('login', function(e) {
-                if (e.success) {
-                    _accessToken = Ti.Facebook.accessToken;
-                    promise.fulfill({
-                        id: e.data.id,
-                        access_token: Ti.Facebook.accessToken,
-                        expiration_date: Ti.Facebook.expirationDate
-                    });
-                } else if (e.error) {
-                    promise.reject();
-                } else if (e.cancelled) {
-                    promise.reject();
-                }
-            });
-            Ti.Facebook.authorize();
-            return promise;
+        this.requestLogin = function(accessToken) {
+            if (accessToken) _accessToken = accessToken;
+            return new Appacitive.Promise().fulfill();
         };
 
-        this.getCurrentUserInfo = function() {
-            if (!_initialized) throw new Error("Titanium Facebook module  has not yet been initialized, or not yet loaded.");
-            var promise = new Appacitive.Promise();
+        this.getCurrentUserInfo = function(options) {
+            if (!_initialized) throw new Error("Either facebook sdk has not yet been initialized, or not yet loaded.");
+            options = options || {};
 
-            if (Ti.Facebook && _accessToken) {
+            var promise = Appacitive.Promise.buildPromise(options);
 
-                Ti.Facebook.requestWithGraphPath('me', {}, 'GET', function(e) {
-                    if (e.success) {
-                        promise.fulfill(e);
+            if (this.FB && _accessToken) {
+                this.FB.api('/me', function(err, response) {
+                    if (response) {
+                        promise.fulfill(response);
                     } else {
                         promise.reject("Access token is invalid");
                     }
                 });
             } else {
-                promise.reject("Either intialize Titanium Facebook module with your appid and appsecret or set accesstoken");
+                promise.reject("Either initialize facebook with your appid and appsecret or set accesstoken");
             }
+
             return promise;
         };
 
         this.accessToken = function() {
             if (arguments.length === 1) {
                 _accessToken = arguments[0];
-                if (Ti.Facebook) Ti.Facebook.setAccessToken(_accessToken);
                 return this;
             }
             return _accessToken;
@@ -8453,13 +8565,12 @@ Depends on  NOTHING
         };
 
         this.logout = function() {
-            _accessToken = "";
-            Ti.Facebook.logout();
+            Appacitive.Facebook.accessToken = "";
             return new Appacitive.Promise().fulfill();
         };
     };
 
-    Appacitive.Facebook = new _facebook();
+    Appacitive.Facebook = Appacitive.runtime.isBrowser ? new _browserFacebook() : new _nodeFacebook();
 
 })(global);
 (function(global) {
@@ -8930,7 +9041,7 @@ Depends on  NOTHING
     };
 
     Appacitive.Date.toISODate = function(date) {
-        if (date instanceof Date) return String.Format("{0}-{1}-{2}", date.getFullYear(), pad((date.getMonth() + 1)), pad(date.getDate()));
+        if (date instanceof Date) return String.format("{0}-{1}-{2}", date.getFullYear(), pad((date.getMonth() + 1)), pad(date.getDate()));
         throw new Error("Invalid date provided Appacitive.Date.toISODate method");
     };
 
@@ -8944,7 +9055,7 @@ Depends on  NOTHING
             else if (n < 1000000) return n + '0';
             return n;
         };
-        if (date instanceof Date) return String.Format("{0}:{1}:{2}.{3}", pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds()), padMilliseconds(date.getMilliseconds()));
+        if (date instanceof Date) return String.format("{0}:{1}:{2}.{3}", pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds()), padMilliseconds(date.getMilliseconds()));
         throw new Error("Invalid date provided Appacitive.Date.toISOTime method");
     };
 
@@ -8984,9 +9095,13 @@ Depends on  NOTHING
     };
 
 })(global);
+var _reactNative = require('react-native');
+
 (function(global) {
 
-    "use strict";
+    'use strict';
+
+    var AsyncStorage = _reactNative.AsyncStorage;
 
     var Appacitive = global.Appacitive;
     var _type = Appacitive.utils._type;
@@ -8995,20 +9110,11 @@ Depends on  NOTHING
 
     Appacitive.LocalStorage = new (function() {
 
-        var _localStorage = Ti.App.Properties;
-
         this.set = function(key, value) {
             value = value || '';
             if (!_type.isString(key)) return this;
-
-            if (_type.isObject(value) || _type.isArray(value)) {
-                try {
-                    value = JSON.stringify(value);
-                } catch (e) {}
-            }
-
             var path = Appacitive.getAppPrefix(key);
-            _localStorage.setString(path, value;
+            AsyncStorage.setItem(path, value);
             return this;
         };
 
@@ -9016,18 +9122,24 @@ Depends on  NOTHING
             var promise = new Appacitive.Promise();
             if (!_type.isString(key)) return promise.fulfill(null, key);
 
-            var path = Appacitive.getAppPrefix(key), value = _localStorage.getString(path);
+            var promise = new Appacitive.Promise(), path = Appacitive.getAppPrefix(key);
 
-            if (!value) value = null;
-            
-            // assume it is an object that has been stringified
-            if (value && value[0] === "{") {
-                try {
-                    value = JSON.parse(value);
-                } catch (e) {}
-            }
+            AsyncStorage.getItem(path, function (err, value) {
+                if (err) {
+                    promise.fulfill(null, key);
+                } else {
+                    if (!value) value = null;
+                    // assume it is an object that has been stringified
+                    if (value && value[0] === "{") {
+                        try {
+                            value = JSON.parse(value);
+                        } catch (e) {}
+                    }
+                    promise.fulfill(value, key);
+                }
+            });
 
-            return promise.fulfill(value, key);
+            return promise;
         };
 
         this.multiGet = function() {
@@ -9043,7 +9155,6 @@ Depends on  NOTHING
                     });
                 });
                 Appacitive.Promise.when(promises).then(function() {
-                    console.log(output);
                     promise.fulfill(output);
                 });
 
@@ -9056,69 +9167,13 @@ Depends on  NOTHING
         this.remove = function(key) {
             if (!_type.isString(key)) return this;
             var path = Appacitive.getAppPrefix(key);
-            try {
-                _localStorage.removeProperty(path);
-            } catch (e) {}
+            AsyncStorage.removeItem(path);
+            return this;
         };
 
     })();
 
 })(global);
-(function(global) {
-
-    "use strict";
-
-    var Appacitive = global.Appacitive;
-    var _type = Appacitive.utils._type;
-    var _extend = Appacitive.utils._extend;
-    var _deepExtend = Appacitive.utils._deepExtend;
-
-    if (typeof document != 'undefined' && _type.isString(document.cookie)) {
-
-        Appacitive.Cookie = new (function() {
-
-            this.setCookie = function(name, value, minutes, erase) {
-                name = Appacitive.getAppPrefix(name);
-                var expires = '';
-                if (minutes) {
-                    var date = new Date();
-                    date.setTime(date.getTime() + (minutes * 60 * 1000));
-                    expires = "; expires=" + date.toGMTString();
-                }
-
-                if (!erase) {
-                    //for now lets make this a session cookie if it is not an erase
-                    if (!Appacitive.Session.persistUserToken) expires = '';
-                    else expires = "; expires=" + new Date("2020-12-31").toGMTString();
-                } else {
-                    expires = '; expires=Thu, 01-Jan-1970 00:00:01 GMT';
-                }
-                var domain = 'domain=' + window.location.hostname;
-                if (window.location.hostname == 'localhost') domain = '';
-
-                document.cookie = name + "=" + value + expires + "; path=/;" + domain;
-            };
-
-            this.readCookie = function(name) {
-                name = Appacitive.getAppPrefix(name);
-                var nameEQ = name + "=";
-                var ca = document.cookie.split(';');
-                for (var i = 0; i < ca.length; i++) {
-                    var c = ca[i];
-                    while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-                    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-                }
-                return null;
-            };
-
-            this.eraseCookie = function(name) {
-                this.setCookie(name, "", -1, true);
-            };
-
-        })();
-
-    } 
-
-})(global);
-"use strict";
-module.exports =  global.Appacitive;
+ if (typeof module === 'object' && module.exports && typeof require === 'function') {
+     module.exports = global.Appacitive;
+ }

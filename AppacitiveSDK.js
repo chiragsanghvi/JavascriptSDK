@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Fri Oct 16 17:02:55 IST 2015
+ * Build time 	: Mon Oct 19 16:55:47 IST 2015
  */
 var global = {};
 
@@ -1255,7 +1255,7 @@ var _type = function(o) {
 
     Appacitive.clone = Appacitive.utils._clone = function(obj) {
         if (!Appacitive.utils._type.isObject(obj)) return obj;
-        return Appacitive.utils.isArray(obj) ? obj.slice() : Appacitive.utils._extend({}, obj);
+        return Appacitive.utils._type.isArray(obj) ? obj.slice() : Appacitive.utils._extend({}, obj);
     };
 
 })(global);
@@ -2824,7 +2824,9 @@ Depends on  NOTHING
 
         options = options || {};
 
-        if (Appacitive.Session.initialized) return;
+        var promise = new Appacitive.Promise();
+
+        if (Appacitive.Session.initialized) return promise.fulfill(Appacitive);
 
         if (options.masterKey && options.masterKey.length > 0) Appacitive.Session.setMasterKey(options.masterKey);
 
@@ -2835,17 +2837,18 @@ Depends on  NOTHING
 
         if (!options.appId || options.appId.length === 0) throw new Error("appId is mandatory");
 
+        var _onInitialized = function() {
+            Appacitive.Session.initialized = true;
+            promise.fulfill(Appacitive.User.current());
+        };
 
         Appacitive.Session.setApiKey(options.apikey);
         Appacitive.Session.environment(options.env || 'sandbox');
         Appacitive.useApiKey = true;
         Appacitive.appId = options.appId;
-
-        Appacitive.Session.initialized = true;
         Appacitive.Session.persistUserToken = options.persistUserToken;
 
         if (options.debug) Appacitive.config.debug = true;
-
         if (_type.isFunction(options.apiLog)) Appacitive.logs.apiLog = options.apiLog;
         if (_type.isFunction(options.apiErrorLog)) Appacitive.logs.apiErrorLog = options.apiErrorLog;
         if (_type.isFunction(options.exceptionLog)) Appacitive.logs.exceptionLog = options.exceptionLog;
@@ -2859,10 +2862,12 @@ Depends on  NOTHING
 
             if (options.user) {
                 Appacitive.Users.setCurrentUser(options.user);
+                _onInitialized();
             } else {
                 //read user from from LocalStorage and set it;
                 Appacitive.LocalStorage.get('Appacitive-User').then(function(user) {
                     if (user) Appacitive.Users.setCurrentUser(user);
+                    _onInitialized();
                 });
             }
 
@@ -2880,10 +2885,12 @@ Depends on  NOTHING
                         if (expiry == -1) expiry = null;
                         if (user) Appacitive.Users.setCurrentUser(user, token, expiry);
                     }
+                    _onInitialized();
                 });
-                
             }
         }
+
+        return promise;
     };
 
     Appacitive.reset = function() {
@@ -7473,7 +7480,9 @@ Depends on  NOTHING
             callback = function() {};
         }
 
-        var token = Appacitive.LocalStorage.get('Appacitive-UserToken').then(function(token) {
+        var that = this;
+
+        Appacitive.LocalStorage.get('Appacitive-UserToken').then(function(token) {
             if (!token) {
                 promise.fulfill(false);
                 return
@@ -7481,8 +7490,7 @@ Depends on  NOTHING
 
             if (!avoidApiCall) {
                 try {
-                    var that = this;
-                    this.getUserByToken(token).then(function(user) {
+                    that.getUserByToken(token).then(function(user) {
                         that.setCurrentUser(user, token);
                         promise.fulfill(true);
                     }, function() {
@@ -9122,7 +9130,7 @@ Depends on  NOTHING
             if (!_type.isString(key)) return promise.fulfill(null, key);
 
             var value, path = Appacitive.getAppPrefix(key);
-            if (!_isBrowserLocalStorageSupported()) {
+            if (!_isBrowserLocalStorageSupported) {
                 value = _localStorage[path];
             } else {
                 value = _localStorage.getItem(path);

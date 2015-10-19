@@ -18,8 +18,10 @@ asyncTest('Cleaning up objects of type user by fetching them using "users" filte
     Appacitive.Users.login('chiragsanghvi', 'test123!@#').then(function(data) {
     	ok(true, "User authenticated successfully");
     	//Fetch all users except admin user
-    	var query = new Appacitive.Queries.GraphQuery('users');
-    	return query.fetch();
+    	var query = new Appacitive.Queries.GraphQuery('users', {
+            filter: Appacitive.Filter.Property('__utcdatecreated').greaterThan(Appacitive.User.current().createdAt).toString()
+        });
+        return query.fetch();
     }).then(function(ids) {
     	total = ids.length;
 		if (total === 0) {
