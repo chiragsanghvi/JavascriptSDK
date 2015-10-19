@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js vappacitive-js-sdk-v1.0.4 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js vappacitive-js-sdk-v1.0.5 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2015 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Oct 19 16:55:47 IST 2015
+ * Build time 	: Mon Oct 19 17:17:10 IST 2015
  */
 var global = {};
 
