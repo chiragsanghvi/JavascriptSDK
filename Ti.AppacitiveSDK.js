@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js vappacitive-js-sdk-v1.0.4 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js vappacitive-js-sdk-v1.0.6 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2015 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Mon Oct 19 16:55:47 IST 2015
+ * Build time 	: Wed Oct 21 15:09:42 IST 2015
  */
 var global = {};
 
@@ -13,31 +13,90 @@ var global = {};
     "use strict";
 
     // create the global object
-    var _initialize = function() {
-        var t;
-        if (!global.Appacitive) {
-            // create the global object
-            // Export the Appacitive object for **CommonJS**, with backwards-compatibility
-            // for the old `require()` API. If we're not in CommonJS, add `Appacitive` to the
-            // global object.
+    (function() {
+        // create the global object
+        // Export the Appacitive object for **CommonJS**, with backwards-compatibility
+        // for the old `require()` API. If we're not in CommonJS, add `Appacitive` to the
+        // global object.
+        global.Appacitive = {
+            runtime: {}
+        };
+
+        if (typeof process !== 'undefined' && !!process.versions && !!process.versions.node) {
+            global.Appacitive.runtime.isNode = true;
+        } else if (typeof window !== 'undefined') {
+            global = window;
             global.Appacitive = {
-                runtime: {}
+                runtime: {
+                    isBrowser: true
+                }
             };
-
-            if (typeof process !== 'undefined' && !!process.versions && !!process.versions.node) {
-                global.Appacitive.runtime.isNode = true;
-            } else if (typeof window !== 'undefined') {
-                global = window;
-                global.Appacitive = {
-                    runtime: {
-                        isBrowser: true
-                    }
-                };
-            }
         }
-    };
-    _initialize();
+    })();
 
+    var Appacitive = global.Appacitive;
+
+    Appacitive.initialize = function(options) {
+
+        options = options || {};
+
+        var promise = new Appacitive.Promise();
+
+        if (Appacitive.Session.initialized) return promise.fulfill(Appacitive);
+
+        if (options.masterKey && options.masterKey.length > 0) Appacitive.Session.setMasterKey(options.masterKey);
+
+        if (!options.apikey || options.apikey.length === 0) {
+            if (options.masterKey) options.apikey = options.masterKey;
+            else throw new Error("apikey is mandatory");
+        }
+
+        if (!options.appId || options.appId.length === 0) throw new Error("appId is mandatory");
+
+        var _onInitialized = function() {
+            Appacitive.Session.initialized = true;
+            promise.fulfill(Appacitive.User.current());
+        };
+
+        Appacitive.Session.setApiKey(options.apikey);
+        Appacitive.Session.environment(options.env || 'sandbox');
+        Appacitive.useApiKey = true;
+        Appacitive.appId = options.appId;
+        Appacitive.Session.persistUserToken = options.persistUserToken;
+
+        if (options.debug) Appacitive.config.debug = true;
+        if (Appacitive.utils._type.isFunction(options.apiLog)) Appacitive.logs.apiLog = options.apiLog;
+        if (Appacitive.utils._type.isFunction(options.apiErrorLog)) Appacitive.logs.apiErrorLog = options.apiErrorLog;
+        if (Appacitive.utils._type.isFunction(options.exceptionLog)) Appacitive.logs.exceptionLog = options.exceptionLog;
+
+        if (options.userToken) {
+
+            if (options.expiry == -1) options.expiry = null;
+            else if (!options.expiry) options.expiry = 8450000;
+
+            Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
+            if (options.user) Appacitive.Users.setCurrentUser(options.user);
+            _onInitialized();
+            
+        } else {
+            if (Appacitive.runtime.isBrowser) {
+                //read usertoken, expiry, expiry-date and user from LocalStorage and set it
+                var keyValues = Appacitive.LocalStorage.multiGet('Appacitive-UserToken','Appacitive-UserTokenExpiry','Appacitive-UserTokenDate','Appacitive-User');
+                var token = keyValues['Appacitive-UserToken'], expiry = keyValues['Appacitive-UserTokenExpiry'], expiryDate = keyValues['Appacitive-User'], user = keyValues['Appacitive-User'];
+                if (token) {
+                    if (!expiry) expiry = -1;
+                    if (expiryDate && expiry > 0) {
+                        if (new Date(expiryDate + (expiry * 1000)) < new Date()) return;
+                    }
+                    if (expiry == -1) expiry = null;
+                    if (user) Appacitive.Users.setCurrentUser(user, token, expiry);
+                }
+            }
+            _onInitialized();
+        }
+
+        return promise;
+    };
 
 })(this);
 (function(global) {
@@ -2774,79 +2833,6 @@ Depends on  NOTHING
             }
         });
         return request.send();
-    };
-
-    Appacitive.initialize = function(options) {
-
-        options = options || {};
-
-        var promise = new Appacitive.Promise();
-
-        if (Appacitive.Session.initialized) return promise.fulfill(Appacitive);
-
-        if (options.masterKey && options.masterKey.length > 0) Appacitive.Session.setMasterKey(options.masterKey);
-
-        if (!options.apikey || options.apikey.length === 0) {
-            if (options.masterKey) options.apikey = options.masterKey;
-            else throw new Error("apikey is mandatory");
-        }
-
-        if (!options.appId || options.appId.length === 0) throw new Error("appId is mandatory");
-
-        var _onInitialized = function() {
-            Appacitive.Session.initialized = true;
-            promise.fulfill(Appacitive.User.current());
-        };
-
-        Appacitive.Session.setApiKey(options.apikey);
-        Appacitive.Session.environment(options.env || 'sandbox');
-        Appacitive.useApiKey = true;
-        Appacitive.appId = options.appId;
-        Appacitive.Session.persistUserToken = options.persistUserToken;
-
-        if (options.debug) Appacitive.config.debug = true;
-        if (_type.isFunction(options.apiLog)) Appacitive.logs.apiLog = options.apiLog;
-        if (_type.isFunction(options.apiErrorLog)) Appacitive.logs.apiErrorLog = options.apiErrorLog;
-        if (_type.isFunction(options.exceptionLog)) Appacitive.logs.exceptionLog = options.exceptionLog;
-
-        if (options.userToken) {
-
-            if (options.expiry == -1) options.expiry = null;
-            else if (!options.expiry) options.expiry = 8450000;
-
-            Appacitive.Session.setUserAuthHeader(options.userToken, options.expiry);
-
-            if (options.user) {
-                Appacitive.Users.setCurrentUser(options.user);
-                _onInitialized();
-            } else {
-                //read user from from LocalStorage and set it;
-                Appacitive.LocalStorage.get('Appacitive-User').then(function(user) {
-                    if (user) Appacitive.Users.setCurrentUser(user);
-                    _onInitialized();
-                });
-            }
-
-        } else {
-
-            if (Appacitive.runtime.isBrowser) {
-                //read usertoken, expiry, expiry-date and user from LocalStorage and set it
-                Appacitive.LocalStorage.multiGet('Appacitive-UserToken','Appacitive-UserTokenExpiry','Appacitive-UserTokenDate','Appacitive-User').then(function(keyValues) {
-                    var token = keyValues['Appacitive-UserToken'], expiry = keyValues['Appacitive-UserTokenExpiry'], expiryDate = keyValues['Appacitive-User'], user = keyValues['Appacitive-User'];
-                    if (token) {
-                        if (!expiry) expiry = -1;
-                        if (expiryDate && expiry > 0) {
-                            if (new Date(expiryDate + (expiry * 1000)) < new Date()) return;
-                        }
-                        if (expiry == -1) expiry = null;
-                        if (user) Appacitive.Users.setCurrentUser(user, token, expiry);
-                    }
-                    _onInitialized();
-                });
-            }
-        }
-
-        return promise;
     };
 
     Appacitive.reset = function() {
@@ -7436,9 +7422,7 @@ Depends on  NOTHING
             callback = function() {};
         }
 
-        var that = this;
-
-        Appacitive.LocalStorage.get('Appacitive-UserToken').then(function(token) {
+        var that = this, onFetch = function(token) {
             if (!token) {
                 promise.fulfill(false);
                 return
@@ -7458,7 +7442,13 @@ Depends on  NOTHING
             } else {
                 promise.fulfill(true);
             }
-        });
+        };
+
+        if (Appacitive.runtime.isReactNative) {
+            Appacitive.LocalStorage.get('Appacitive-UserToken').then(function(token) {
+                onFetch(token);
+            });
+        } else onFetch(Appacitive.LocalStorage.get('Appacitive-UserToken'));
 
         return promise;
     };
@@ -9013,7 +9003,6 @@ Depends on  NOTHING
         };
 
         this.get = function(key) {
-            var promise = new Appacitive.Promise();
             if (!_type.isString(key)) return promise.fulfill(null, key);
 
             var path = Appacitive.getAppPrefix(key), value = _localStorage.getString(path);
@@ -9027,27 +9016,21 @@ Depends on  NOTHING
                 } catch (e) {}
             }
 
-            return promise.fulfill(value, key);
+            return value
         };
 
         this.multiGet = function() {
-            var promise = new Appacitive.Promise(), self = this, keys = Array.prototype.slice.call(arguments)
+            var self = this, keys = Array.prototype.slice.call(arguments)
             if (arguments.length > 1) {
                 var output = {}, promises = [];
                 keys.forEach(function(key) {
                     if (Array.isArray(key)) key = key.join();
                     key.replace(/\s/g, '').split(',').forEach(function(k) {
-                        var p = self.get(key);
-                        p.then(function(value, key) { output[key] = value });
-                        promises.push(p);
+                        output[k] = self.get(k);
                     });
                 });
-                Appacitive.Promise.when(promises).then(function() {
-                    console.log(output);
-                    promise.fulfill(output);
-                });
 
-                return promise;
+                return output;
             }
 
             throw new Error("Appacitive.LocalStorage.multiGet requires atleast one argument");

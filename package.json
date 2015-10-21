@@ -1,7 +1,7 @@
 {
     "name": "appacitive",
     "description": "Allows you to integrate applications built using javascript with the Appacitive platform. ",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "keywords": ["Appacitive", "BAAS", "cloud", "api"],
     "author": {
         "name": "Chirag Sanghvi",
@@ -22,6 +22,6 @@
     ],
     "dependencies": {
         "xmlhttprequest-with-globalagent": "x.x.x",
-        "facebook-node-sdk": "0.x"
+        "facebook-node-withfetch": "x"
     }
 }
