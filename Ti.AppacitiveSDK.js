@@ -4,7 +4,7 @@
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Thu Nov  5 16:49:30 IST 2015
+ * Build time 	: Fri Nov  6 13:59:56 IST 2015
  */
 var global = {};
 
@@ -5453,7 +5453,7 @@ Depends on  NOTHING
                 __meta: this.meta
             }, this.getObject()));
 
-        return new Appacitive.connection._create(_deepExtend({
+        return Appacitive.Connection._create(_deepExtend({
             __meta: this.meta
         }, this.getObject()));
     };
