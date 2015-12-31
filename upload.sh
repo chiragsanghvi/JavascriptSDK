@@ -144,6 +144,28 @@ rm ${newMinifiedFile}.gz
 
 echo "==============Files uploaded to S3 successfully==========="
 
+echo "==================Creating empty project=================="
+
+empty_project=js_appacitive_empty_project
+empty_project_zip=${empty_project}_v${version}
+
+cp -vr $empty_project $empty_project_zip
+
+sed -e "s/\${ver}/$version/g;" ${empty_project_zip}/index.html > index.html.tmp && mv index.html.tmp ${empty_project_zip}/index.html
+
+zip -r -X ${empty_project_zip}.zip $empty_project_zip
+
+echo "===============Uploading empty project to S3=============="
+
+s3cmd -P --add-header="Cache-Control:public, max-age=$oneday" --mime-type="application/zip" put ${empty_project_zip}.zip s3://appacitive-cdn/devcenter/javascript/${empty_project_zip}.zip
+
+rm ${empty_project_zip}.zip
+rm -rf $empty_project_zip
+
 fi
 
-echo "=============Done combining SDK's=========="
+echo "=======Change node.js package version====================="
+
+sed -e "s/\${ver}/$version/g;" compiler/_package.json > package.json
+
+echo "=============Done combining SDK's=========="z

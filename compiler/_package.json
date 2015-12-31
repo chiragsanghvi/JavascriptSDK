@@ -1,0 +1,27 @@
+{
+    "name": "appacitive",
+    "description": "Allows you to integrate applications built using javascript with the Appacitive platform. ",
+    "version": "${ver}",
+    "keywords": ["Appacitive", "BAAS", "cloud", "api"],
+    "author": {
+        "name": "Chirag Sanghvi",
+        "email": "csanghvi@appacitive.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/chiragsanghvi/JavascriptSDK.git"
+    },
+    "files": [
+        "node.js",
+        "react-native.js"
+    ],
+    "main": "node.js",
+    "readmeFilename": "README.md",
+    "engines": [
+        "node >= 0.8.16"
+    ],
+    "dependencies": {
+        "xmlhttprequest-with-globalagent": "x.x.x",
+        "facebook-node-withfetch": "x"
+    }
+}
