@@ -147,7 +147,7 @@ echo "==============Files uploaded to S3 successfully==========="
 echo "==================Creating empty project=================="
 
 empty_project=js_appacitive_empty_project
-empty_project_zip=${empty_project}_v${version}
+empty_project_zip=${empty_project}_v${ver}
 
 cp -vr $empty_project $empty_project_zip
 

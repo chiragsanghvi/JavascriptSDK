@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js vappacitive-js-sdk-v1.0.7 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js vappacitive-js-sdk-v1.0.8 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2015 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Dec 29 18:50:50 PST 2015
+ * Build time 	: Tue Feb 16 20:34:07 PST 2016
  */
 var global = {};
 
@@ -4772,16 +4772,6 @@ Depends on  NOTHING
 
         var that = this;
 
-        if (this.type == 'object') {
-            this._destroyWithConnections = function(options) {
-                return this.destroy(_extend({
-                    deleteConnections: true
-                }, options));
-            };
-        }
-
-        this.base = Appacitive.Object.prototype;
-
         //Set client id
         this.cid = parseInt(Math.random() * 100000000, 10);
 
@@ -4815,11 +4805,23 @@ Depends on  NOTHING
             this.entityType = 'type';
             this.type = 'object';
             this.className = raw.__type;
+            this.base = Appacitive.Object.prototype;
+
         } else if (raw.__relationtype) {
             raw.__relationtype = raw.__relationtype.toLowerCase();
             this.entityType = 'relation';
             this.type = 'connection';
             this.className = raw.__relationtype;
+            this.base = Appacitive.Connection.prototype;
+        }
+
+
+        if (this.type == 'object') {
+            this._destroyWithConnections = function(options) {
+                return this.destroy(_extend({
+                    deleteConnections: true
+                }, options));
+            };
         }
 
         //attributes
@@ -5173,7 +5175,7 @@ Depends on  NOTHING
                     var changedTags = this.getChangedTags();
                     if (changedTags && changedTags.length > 0) changed = changedTags;
                 } else if (property == '__attributes') {
-                    var attrs = this._getChangedAttributes();
+                    var attrs = this.getChangedAttributes();
                     if (!Object.isEmpty(attrs)) changed = attrs;
                 } else {
                     if (_type.isArray(currValue)) {
