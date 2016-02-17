@@ -166,6 +166,6 @@ fi
 
 echo "=======Change node.js package version====================="
 
-sed -e "s/\${ver}/$version/g;" compiler/_package.json > package.json
+sed -e "s/\${ver}/$ver/g;" compiler/_package.json > package.json
 
 echo "=============Done combining SDK's=========="z
