@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js vappacitive-js-sdk-v1.0.8 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js vappacitive-js-sdk-v1.0.9 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2015 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Feb 16 20:34:07 PST 2016
+ * Build time 	: Fri Jun 17 10:47:30 PDT 2016
  */
 var global = {};
 
@@ -5006,7 +5006,7 @@ Depends on  NOTHING
                     changeSet[property] = null;
                     isDirty = true;
                 } else if (this._object.__attributes[property] != this._snapshot.__attributes[property]) {
-                    changeSet[property] = object.__attributes[property];
+                    changeSet[property] = this._object.__attributes[property];
                     isDirty = true;
                 } else if (this._object.__attributes[property] == this._snapshot.__attributes[property]) {
                     delete changeSet[property];
