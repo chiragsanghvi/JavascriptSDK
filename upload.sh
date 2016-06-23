@@ -77,6 +77,9 @@ echo 'old version' $oldVersion
 ver=$(increment_version $oldVersion)
 echo 'new version' $ver
 
+npmVer=$(increment_version $version)
+echo 'Npm version' $npmVer
+
 newFile="$ver.js"
 newMinifiedFile="$ver.min.js"
 
@@ -166,6 +169,6 @@ fi
 
 echo "=======Change node.js package version====================="
 
-sed -e "s/\${ver}/$ver/g;" compiler/_package.json > package.json
+sed -e "s/\${ver}/$npmVer/g;" compiler/_package.json > package.json
 
 echo "=============Done combining SDK's=========="z
