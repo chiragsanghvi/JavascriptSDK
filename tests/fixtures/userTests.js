@@ -52,6 +52,35 @@ asyncTest('Verify signup for user', function() {
 	});
 });
 
+asyncTest('Verify user password update', function() {
+	var userObj = testConstants.user;
+	userObj.username = 'DeepClone #' + parseInt(Math.random() * 10000);
+	
+	var created, reset, login;
+	Appacitive.Users.createUser(userObj).then(function(user) {
+		ok(true, 'User created successfully');
+		created = true;
+		return user.updatePassword(userObj.password, "p@ssw0rd");
+	}).then(function() {
+		reset = true;
+		ok(true, 'User password updated successfully');
+		return Appacitive.Users.login(userObj.username, "p@ssw0rd");
+	}).then(function() {
+		login = true;
+		ok(true, 'User logged in successfully with new password');
+		start();
+	}, function(d) {
+		if(!created) {
+			ok(false, "Unable to create new user " + JSON.stringify(d));
+		} else if(!reset) {
+			ok(false, "Unable to reset password " + JSON.stringify(d));
+		} else {
+			ok(false, "Unable to login " + JSON.stringify(d));
+		}
+		start();
+	});
+});
+
 asyncTest('Verify create user with location', function() {
 	var user = testConstants.user;
 	user.username = 'DeepClone #' + parseInt(Math.random() * 10000);

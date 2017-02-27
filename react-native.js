@@ -1,10 +1,10 @@
 /*
- * AppacitiveSDK.js vappacitive-js-sdk-v1.0.8 - Javascript SDK to integrate applications using Appacitive
+ * AppacitiveSDK.js vappacitive-js-sdk-v1.0.10 - Javascript SDK to integrate applications using Appacitive
  * Copyright (c) 2015 Appacitive Software Pvt Ltd
  * MIT license  : http://www.apache.org/licenses/LICENSE-2.0.html
  * Project      : https://github.com/chiragsanghvi/JavascriptSDK
  * Contact      : support@appacitive.com | csanghvi@appacitive.com
- * Build time 	: Tue Feb 16 20:34:07 PST 2016
+ * Build time 	: Wed Jun 22 17:00:00 PDT 2016
  */
 var global = {};
 
@@ -5006,7 +5006,7 @@ Depends on  NOTHING
                     changeSet[property] = null;
                     isDirty = true;
                 } else if (this._object.__attributes[property] != this._snapshot.__attributes[property]) {
-                    changeSet[property] = object.__attributes[property];
+                    changeSet[property] = this._object.__attributes[property];
                     isDirty = true;
                 } else if (this._object.__attributes[property] == this._snapshot.__attributes[property]) {
                     delete changeSet[property];
@@ -7042,34 +7042,6 @@ Depends on  NOTHING
         return _authenticatedUser;
     };
 
-    var _updatePassword = function(oldPassword, newPassword, options) {
-        var userId = this.get('__id');
-        if (!userId || !_type.isString(userId) || userId.length === 0) throw new Error("Please specify valid userid");
-        if (!oldPassword || !_type.isString(oldPassword) || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
-        if (!newPassword || !_type.isString(newPassword) || newPassword.length === 0) throw new Error("Please specify valid newPassword");
-
-        var updatedPasswordOptions = {
-            oldpassword: oldPassword,
-            newpassword: newPassword
-        };
-
-        var that = this;
-
-        var request = new Appacitive._Request({
-            method: 'POST',
-            type: 'user',
-            op: 'getUpdatePasswordUrl',
-            args: [userId],
-            options: options,
-            data: updatedPasswordOptions,
-            entity: this,
-            onSuccess: function(data) {
-                request.promise.fulfill(that);
-            }
-        });
-        return request.send();
-    };
-
     var _link = function(link, options) {
         var userId = this.get('__id');
 
@@ -7122,20 +7094,42 @@ Depends on  NOTHING
             return Appacitive.Users.logout(callback);
         };
 
-        _authenticatedUser.updatePassword = function(oldPassword, newPassword, options) {
-            return _updatePassword.apply(this, [oldPassword, newPassword, options]);
-        };
-
-        _authenticatedUser.logout = function(callback) {
-            return Appacitive.Users.logout(callback);
-        };
-
         Appacitive.eventManager.clearAndSubscribe('type.user.' + userObject.get('__id') + '.updated', function(sender, args) {
             Appacitive.LocalStorage.set('Appacitive-User', args.object.getObject());
         });
 
         return _authenticatedUser;
     };
+
+    User.prototype.updatePassword = function(oldPassword, newPassword, options) {
+        var userId = this.get('__id');
+        if (!userId || !_type.isString(userId) || userId.length === 0) throw new Error("Please specify valid userid");
+        if (!oldPassword || !_type.isString(oldPassword) || oldPassword.length === 0) throw new Error("Please specify valid oldPassword");
+        if (!newPassword || !_type.isString(newPassword) || newPassword.length === 0) throw new Error("Please specify valid newPassword");
+
+        var updatedPasswordOptions = {
+            oldpassword: oldPassword,
+            newpassword: newPassword
+        };
+
+        var that = this;
+
+        var request = new Appacitive._Request({
+            method: 'POST',
+            type: 'user',
+            op: 'getUpdatePasswordUrl',
+            args: [userId],
+            options: options,
+            data: updatedPasswordOptions,
+            entity: this,
+            onSuccess: function(data) {
+                request.promise.fulfill(that);
+            }
+        });
+        return request.send();
+    };
+
+
 
 
     //getter to get linkedaccounts
