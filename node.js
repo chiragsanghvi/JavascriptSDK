@@ -3558,7 +3558,7 @@ Depends on  NOTHING
         };
 
         this.isNotNull = function() {
-            return _fieldFilters.isNull();
+            return _fieldFilters.isNotNull();
         };
 
         return this;
